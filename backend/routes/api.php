@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\MeetingTerminalController;
 use App\Http\Controllers\Api\TerminalApiController;
 use App\Http\Controllers\Api\BiometricController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\TerminalBiometricEnrollmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -229,6 +230,7 @@ Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->gr
     Route::post('/heartbeat', [TerminalApiController::class, 'heartbeat']);
     Route::get('/assignments/current', [TerminalApiController::class, 'currentAssignments']);
     Route::post('/assignments/{assignment:uuid}/activate', [TerminalApiController::class, 'activate'])->middleware('throttle:10,1');
+    Route::post('/enrollment/{enrollment:uuid}/template', [TerminalBiometricEnrollmentController::class, 'submit']);
 });
 
 Route::prefix('terminal/v1')->middleware(['terminal.session.auth', 'throttle:60,1'])->group(function (): void {

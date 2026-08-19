@@ -22,6 +22,7 @@ No claim is made that real SVT3000 capture, DERMALOG SDK behavior, real template
 | Enrollment governance | New permissions, `BIOMETRIC_ENROLLMENT_OFFICER` role, Policy checks, configurable TTL and minimum active-finger count. |
 | Terminal mode boundary | Enrollment start checks terminal availability and rejects an active FLOW-09 session with `TERMINAL_BUSY`. |
 | Device abstraction | `FingerprintDeviceAdapter`, `IdentificationResult`, and clearly labeled `FakeFingerprintAdapter`; no vendor API has been invented. |
+| Terminal enrollment contract | `POST /api/terminal/v1/enrollment/{enrollment}/template` is terminal-credential authenticated, session/terminal-bound, template-only, and rejects raw-image fields. |
 | Candidate set | Separate session-authenticated endpoint built strictly from `participant_version_id`; ordinary FLOW-09 manifest remains non-biometric. |
 | Attendance | Fingerprint submission validates session, freshness, participant membership, active template ownership, candidate checksum, uniqueness, and client-event idempotency. |
 | Manual fallback | Human-only `MANUAL_OVERRIDE`, mandatory reason, governance resolver, current participant membership, and immutable record. |
@@ -32,8 +33,10 @@ No claim is made that real SVT3000 capture, DERMALOG SDK behavior, real template
 The deterministic adapter contract tests pass, the existing Feature regression remains green, and the frontend production build succeeds.
 
 ```text
-Flow10AAdapterTest: 2 tests passed
-Full Feature suite: 302 tests, 1,095 assertions passed
+Flow10AAdapterTest: 2 tests passed (10 assertions)
+Flow10ABiometricLifecycleTest: 1 test passed (8 assertions)
+FLOW-10A tests: 3 tests passed (18 assertions)
+Full Feature suite: 303 tests, 1,103 assertions passed in the current working source after the lifecycle test was added
 Frontend build: 1,862 modules transformed, successful
 ```
 
