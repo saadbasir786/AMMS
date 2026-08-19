@@ -261,6 +261,7 @@ The High Authority was the originator. The request therefore retained `requestin
 | High Authority origin with no requester Directorate | **Passed** | Browser creation form exposes no requester field; Request ID 5 persisted `requesting_unit_id=null`. |
 | Three-Directorate formal model | **Passed** | Technology, Finance, and HR are the only formal units; each has role `PARTICIPATING`. |
 | Authority Office issuance boundary | **Passed** | Authority Office could submit and distribute, while issuance remained restricted to High Authority; automated boundary test returned 403 for Office issuance. |
+| Draft Return/Correction/Resubmit UI gate | **Passed** | Fresh Request ID 7 completed through the real RTL UI: Authority Office created and submitted the draft; High Authority returned it with a required Persian reason; Authority Office edited directive, description, and agenda and resubmitted; High Authority issued the corrected directive. |
 | Immutable directive versioning | **Passed** | Version 1 was issued and rendered in the browser; dedicated reissuance test created version 2 and invalidated old acknowledgements. |
 | Independent Directorate coordination | **Passed** | Technology, Finance, and HR actions were independently scoped; HR clarification did not reject the request. |
 | Clarification without rejection semantics | **Passed** | HR requested clarification, Authority Office responded, and HR later acknowledged; no reject operation was exposed or executed. |
@@ -268,7 +269,7 @@ The High Authority was the originator. The request therefore retained `requestin
 | Participant-list ownership | **Passed** | Executives saved only their own Directorate lists; Directors confirmed only their own lists; Authority Office alone managed authority-side participants. |
 | Mandatory High Authority participant and chairperson | **Passed** | Employee `عبدالقیوم احمدزی`, employee id 9, was selected in the authority panel and persisted as `HIGH_AUTHORITY`; the authority context resolved the same holder. |
 | Exactly-once finalization | **Passed** | Request 5 created meeting id 4 exactly once; MariaDB InnoDB probe also serialized two concurrent finalizers. |
-| Automated FLOW-06 coverage | **Passed** | 5 behavioral tests plus 70 contract cases; all passed within the final 266-test, 933-assertion Feature suite. |
+| Automated FLOW-06 coverage | **Passed** | 6 behavioral tests plus 70 contract cases; all passed within the final 267-test, 947-assertion Feature suite. |
 | Regression preservation | **Passed** | FLOW-01 through FLOW-05 tests remained green in the same final Feature suite. |
 | MariaDB concurrency | **Passed** | Real MariaDB row-lock probe verified one FLOW-06 meeting, three participating units, zero requester units, one authority context, and High Authority employee 9. |
 | React production build | **Passed** | TypeScript/Vite production build completed with 1,858 transformed modules. |
@@ -297,6 +298,10 @@ The High Authority was the originator. The request therefore retained `requestin
 | Finalize meeting | Executive Secretary | `CONVERTED_TO_MEETING`; `MEETING_CREATED` recorded exactly once. |
 
 The immutable Request ID 5 timeline records the complete chain from `AUTHORITY_INITIATED_DRAFT_CREATED` through `AUTHORITY_SCHEDULE_CONFIRMED` and `MEETING_CREATED`. The final browser evidence also records the Executive Secretary reopening the completed scheduling workspace, seeing the proposal as `تأییدشده` with all three Directorate acknowledgements, returning to the request detail page, and navigating through the visible «مشاهدهٔ جلسهٔ رسمی» link to Meeting ID 4.
+
+### Dedicated Draft Return/Correction/Resubmit UI fixture
+
+The canonical Request ID 5 intentionally followed the direct issuance path. To satisfy the explicit Prompt 06 return contract without mutating the canonical converted meeting, a fresh Request ID 7 was executed through the real UI. Authority Office created a three-Directorate draft and submitted it. High Authority entered the required reason `لطفاً آجندا و شرح اجرایی مسوده تکمیل و برای صدور مجدد ارسال شود.` and clicked «برگشت برای اصلاح», producing `AUTHORITY_DRAFT_RETURNED` and returning directive version 1 to editable `DRAFT`. Authority Office then entered a corrected directive, description, and proposed agenda through the correction form and clicked «ذخیره و ارسال برای صدور», producing `AUTHORITY_INITIATED_DRAFT_UPDATED` and a second `DRAFT_SUBMITTED_FOR_AUTHORITY_ISSUANCE`. High Authority finally clicked «صدور رسمی دستور», producing `HIGH_AUTHORITY_DIRECTIVE_ISSUED` and `ISSUED`. The browser evidence is recorded in `flow06_browser_findings.md`.
 
 ## Negative UI Matrix A–L
 
@@ -348,12 +353,14 @@ The following corrections were made and re-tested during the live scenario:
 3. Directorate participant confirmation was granted to the `DIRECTOR` role while participant-list writes remained restricted to `EXECUTIVE_MANAGEMENT`.
 4. Organizational-unit visibility for the authority-initiated preparation permission was added to `OrganizationalUnitPolicy::viewAny()`.
 5. Authority participant selection was corrected in `flow06.tsx`: the sentinel `-1` used by the UI is now mapped to the `authority` selection key, preventing an empty `employee_ids` payload. The corrected UI was rebuilt, refreshed, and used successfully to save and confirm the mandatory High Authority holder.
+6. The FLOW-06 correction form in `flow06.tsx` now exposes the proposed-agenda field and includes `proposed_agenda` in the update payload, so the required agenda correction is performed through the UI rather than only through an API payload.
+7. `ReturnAuthorityInitiatedDraftForCorrection` now returns the current directive version to editable `DRAFT` status after recording `AUTHORITY_DRAFT_RETURNED`. This matches the edit action invariant and enables the Authority Office to correct and resubmit the returned draft.
 
 ## Automated verification commands and results
 
 ```text
 cd backend && php artisan test --testsuite=Feature
-Tests: 266 passed (933 assertions)
+Tests: 267 passed (947 assertions)
 
 php tests/Concurrency/mysql_row_lock_test.php
 MariaDB concurrency checks passed; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9.
@@ -363,8 +370,8 @@ cd frontend && pnpm build
 built successfully
 ```
 
-The dedicated FLOW-06 reissuance test (`Flow06Test::test_flow06_material_revision_requires_reissuance_and_invalidates_old_acknowledgements`) passed. It verifies material revision, version increment, High Authority-only reissuance, and invalidation of acknowledgements tied to the prior directive version. The 70-case contract matrix passed in full, and FLOW-01 through FLOW-05 regression tests remained green.
+The dedicated FLOW-06 reissuance test (`Flow06Test::test_flow06_material_revision_requires_reissuance_and_invalidates_old_acknowledgements`) passed. It verifies material revision, version increment, High Authority-only reissuance, and invalidation of acknowledgements tied to the prior directive version. The new `Flow06Test::test_flow06_returned_draft_becomes_editable_and_can_be_resubmitted` regression also passed, verifying returned version editability, the second submission event, and final issuance. The 70-case contract matrix passed in full, and FLOW-01 through FLOW-05 regression tests remained green.
 
 ## Release decision
 
-**FLOW-06 is APPROVED / FROZEN as of 19 August 2026.** The decision is based on the completed nine-account RTL browser scenario, no-requester and three-participating-unit invariants, explicit negative Matrix A–L, dedicated reissuance coverage, 266 passing Feature tests with 933 assertions, real MariaDB concurrency verification, and the successful 1,858-module production build. No delegation, acting authority, cancellation, attendance, minutes, or unsupported meeting-management behavior was introduced.
+**FLOW-06 is APPROVED / FROZEN as of 19 August 2026.** The decision is based on the completed nine-account RTL browser scenario, the separate fresh Request ID 7 Draft Return/Correction/Resubmit UI gate, no-requester and three-participating-unit invariants, explicit negative Matrix A–L, dedicated reissuance coverage, 267 passing Feature tests with 947 assertions, real MariaDB concurrency verification, and the successful 1,858-module production build. No delegation, acting authority, cancellation, attendance, minutes, or unsupported meeting-management behavior was introduced.
