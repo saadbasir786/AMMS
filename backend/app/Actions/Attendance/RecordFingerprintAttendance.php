@@ -17,7 +17,12 @@ class RecordFingerprintAttendance
     public function execute(TerminalMeetingSession $session, array $data): MeetingAttendanceRecord
     {
         return DB::transaction(function () use ($session, $data): MeetingAttendanceRecord {
-            $lockedSession = TerminalMeetingSession::query()->with(['meeting.units.unit', 'terminal', 'participantVersion.members'])->lockForUpdate()->findOrFail($session->id);
+            $sessionRow = TerminalMeetingSession::query()->findOrFail($session->id);
+            $lockedMeeting = \App\Models\Meeting::query()->with(['units.unit'])->lockForUpdate()->findOrFail($sessionRow->meeting_id);
+            $lockedSession = TerminalMeetingSession::query()->lockForUpdate()->findOrFail($sessionRow->id)->load(['terminal', 'participantVersion.members'])->setRelation('meeting', $lockedMeeting);
+            if (in_array($lockedMeeting->status, ['HELD', 'COMPLETED'], true)) {
+                $this->fail('MEETING_ATTENDANCE_CLOSED', 422, 'حضور جلسه پس از پایان بسته شده است.');
+            }
             $this->candidates->assertValid($lockedSession);
             $clientEvent = (string) $data['client_event_uuid'];
             $existingEvent = MeetingAttendanceRecord::query()->where('client_event_uuid', $clientEvent)->lockForUpdate()->first();

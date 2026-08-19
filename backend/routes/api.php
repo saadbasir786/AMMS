@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\MeetingTerminalController;
 use App\Http\Controllers\Api\TerminalApiController;
 use App\Http\Controllers\Api\BiometricController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\MeetingExecutionController;
+use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\TerminalBiometricEnrollmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +54,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
     Route::get('/meetings', [DirectoryController::class, 'meetings']);
     Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
+    Route::get('/meetings/{meeting}/execution', [MeetingExecutionController::class, 'show']);
+    Route::post('/meetings/{meeting}/execution/start', [MeetingExecutionController::class, 'start']);
+    Route::post('/meetings/{meeting}/execution/end', [MeetingExecutionController::class, 'end']);
+    Route::get('/meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
+    Route::post('/meetings/{meeting}/minutes/draft', [MeetingMinutesController::class, 'create']);
+    Route::put('/meetings/{meeting}/minutes/draft', [MeetingMinutesController::class, 'update']);
+    Route::post('/meetings/{meeting}/minutes/submit', [MeetingMinutesController::class, 'submit']);
+    Route::post('/meetings/{meeting}/minutes/reviews/correction', [MeetingMinutesController::class, 'correction']);
+    Route::post('/meetings/{meeting}/minutes/reviews/{unit}/acknowledge', [MeetingMinutesController::class, 'acknowledge']);
+    Route::post('/meetings/{meeting}/minutes/authority-approve', [MeetingMinutesController::class, 'authorityApprove']);
+    Route::post('/meetings/{meeting}/minutes/finalize', [MeetingMinutesController::class, 'finalize']);
+    Route::get('/meetings/{meeting}/minutes/final.pdf', [MeetingMinutesController::class, 'finalPdf']);
     Route::get('/meetings/{meeting}/reschedule', [MeetingRescheduleController::class, 'workspace']);
     Route::get('/meetings/{meeting}/schedule-history', [MeetingRescheduleController::class, 'history']);
     Route::post('/meetings/{meeting}/reschedule-cases', [MeetingRescheduleController::class, 'createCase']);

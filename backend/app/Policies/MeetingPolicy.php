@@ -154,6 +154,56 @@ class MeetingPolicy
             && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayRevoke($meeting, $user);
     }
 
+    public function executionView(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && $user->can('meeting.minutes.view');
+    }
+
+    public function minutesView(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && $user->can('meeting.minutes.view');
+    }
+
+    public function minutesPrepare(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && app(\App\Support\MinutesGovernanceResolver::class)->mayPrepare($meeting, $user);
+    }
+
+    public function minutesSubmit(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && app(\App\Support\MinutesGovernanceResolver::class)->maySubmit($meeting, $user);
+    }
+
+    public function minutesReviewUnit(User $user, Meeting $meeting, int $unitId): bool
+    {
+        return $this->view($user, $meeting) && app(\App\Support\MinutesGovernanceResolver::class)->mayReviewUnit($meeting, $user, $unitId);
+    }
+
+    public function minutesApproveAuthority(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && app(\App\Support\MinutesGovernanceResolver::class)->mayApproveHighAuthority($meeting, $user);
+    }
+
+    public function minutesFinalize(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && app(\App\Support\MinutesGovernanceResolver::class)->mayFinalize($meeting, $user);
+    }
+
+    public function minutesDocumentView(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting) && $user->can('meeting.minutes.document.view') && $meeting->minutes()->where('status', \App\Models\MeetingMinutes::FINALIZED)->exists();
+    }
+
+    public function executionStart(User $user, Meeting $meeting): bool
+    {
+        return app(\App\Support\MeetingExecutionGovernanceResolver::class)->mayStart($meeting, $user);
+    }
+
+    public function executionEnd(User $user, Meeting $meeting): bool
+    {
+        return app(\App\Support\MeetingExecutionGovernanceResolver::class)->mayEnd($meeting, $user);
+    }
+
     public function cancel(User $user, Meeting $meeting): bool
     {
         return false;

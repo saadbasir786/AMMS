@@ -1,0 +1,158 @@
+{
+    "artifact": "FLOW11_CANONICAL_INVARIANTS",
+    "database": "amms_concurrency_test",
+    "source": "flow11_action_race_probe.php plus official domain cleanup",
+    "fixture_meetings": [
+        7,
+        3,
+        4,
+        2,
+        8,
+        5,
+        1,
+        6
+    ],
+    "meeting_inventory": [
+        {
+            "meeting_id": 1,
+            "meeting_number": "FLOW11-RACE-M-START-DEMTO4",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 1,
+                "participant_version_id": 1
+            },
+            "minutes": null
+        },
+        {
+            "meeting_id": 2,
+            "meeting_number": "FLOW11-RACE-M-END-T1ppCG",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 2,
+                "participant_version_id": 2
+            },
+            "minutes": null
+        },
+        {
+            "meeting_id": 3,
+            "meeting_number": "FLOW11-RACE-M-ATT_FIRST-T8f6G3",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 3,
+                "participant_version_id": 3
+            },
+            "minutes": null
+        },
+        {
+            "meeting_id": 4,
+            "meeting_number": "FLOW11-RACE-M-END_FIRST-yicHaQ",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 4,
+                "participant_version_id": 4
+            },
+            "minutes": null
+        },
+        {
+            "meeting_id": 5,
+            "meeting_number": "FLOW11-RACE-M-ROOT-Ksa6mz",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 5,
+                "participant_version_id": 5
+            },
+            "minutes": {
+                "status": "DRAFT",
+                "current_version_id": null,
+                "version_count": 0,
+                "review_statuses": []
+            }
+        },
+        {
+            "meeting_id": 6,
+            "meeting_number": "FLOW11-RACE-M-SUBMIT-98FaYh",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 6,
+                "participant_version_id": 6
+            },
+            "minutes": {
+                "status": "UNDER_REVIEW",
+                "current_version_id": 1,
+                "version_count": 1,
+                "review_statuses": [
+                    "PENDING"
+                ]
+            }
+        },
+        {
+            "meeting_id": 7,
+            "meeting_number": "FLOW11-RACE-M-ACK-i1AsiW",
+            "status": "HELD",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 7,
+                "participant_version_id": 7
+            },
+            "minutes": {
+                "status": "READY_TO_FINALIZE",
+                "current_version_id": 2,
+                "version_count": 1,
+                "review_statuses": [
+                    "ACKNOWLEDGED"
+                ]
+            }
+        },
+        {
+            "meeting_id": 8,
+            "meeting_number": "FLOW11-RACE-M-FINAL-SfgCbA",
+            "status": "COMPLETED",
+            "execution_session": {
+                "status": "ENDED",
+                "schedule_version_id": 8,
+                "participant_version_id": 8
+            },
+            "minutes": {
+                "status": "FINALIZED",
+                "current_version_id": 3,
+                "version_count": 1,
+                "review_statuses": [
+                    "ACKNOWLEDGED"
+                ]
+            }
+        }
+    ],
+    "execution_session_status_counts": {
+        "ENDED": 8
+    },
+    "minutes_status_counts": {
+        "DRAFT": 1,
+        "FINALIZED": 1,
+        "READY_TO_FINALIZE": 1,
+        "UNDER_REVIEW": 1
+    },
+    "official_document_rows": 1,
+    "attendance_rows": 1,
+    "attendance_methods": {
+        "FINGERPRINT": 1
+    },
+    "attendance_employee_ids": [
+        1
+    ],
+    "duplicate_minutes_roots": 0,
+    "duplicate_official_documents": 0,
+    "active_execution_sessions": 0,
+    "active_terminal_sessions": 0,
+    "active_enrollment_sessions": 0,
+    "plaintext_probe_columns_present": [],
+    "meeting_status_counts": {
+        "COMPLETED": 1,
+        "HELD": 7
+    }
+}

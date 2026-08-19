@@ -26,7 +26,9 @@ trait MeetingRescheduleSupport
     private function ensureReschedulable(Meeting $meeting): void
     {
         abort_unless($meeting->request?->status === 'CONVERTED_TO_MEETING', 422, 'MEETING_NOT_RESCHEDULABLE');
-        abort_unless($meeting->status === 'SCHEDULED', 422, 'MEETING_NOT_RESCHEDULABLE');
+        if ($meeting->status !== 'SCHEDULED') {
+            abort(422, in_array($meeting->status, ['IN_PROGRESS', 'HELD', 'COMPLETED'], true) ? 'MEETING_ALREADY_STARTED' : 'MEETING_NOT_RESCHEDULABLE');
+        }
         $current = app(\App\Support\ScheduleVersionService::class)->current($meeting);
         $at = CarbonImmutable::createFromFormat('Y-m-d H:i', $current->meeting_date->toDateString().' '.substr((string) $current->start_time, 0, 5), \App\Support\ScheduleVersionService::TIMEZONE);
         abort_unless($at && $at->greaterThan(CarbonImmutable::now(\App\Support\ScheduleVersionService::TIMEZONE)), 422, 'MEETING_ALREADY_STARTED');

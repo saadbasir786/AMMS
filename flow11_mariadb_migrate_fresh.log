@@ -1,0 +1,44 @@
+
+  Dropping all tables ........................................... 42.67ms DONE
+
+   INFO  Preparing database.
+
+  Creating migration table ....................................... 2.79ms DONE
+
+   INFO  Running migrations.
+
+  0001_01_01_000000_create_users_table ........................... 8.42ms DONE
+  0001_01_01_000001_create_cache_table ........................... 4.80ms DONE
+  0001_01_01_000002_create_jobs_table ............................ 8.35ms DONE
+  2026_08_18_140608_create_personal_access_tokens_table .......... 5.57ms DONE
+  2026_08_18_140620_create_amms_tables ......................... 123.12ms DONE
+  2026_08_18_140621_add_employee_id_to_users_table ............... 4.41ms DONE
+  2026_08_18_145229_add_status_to_users_table .................... 3.54ms DONE
+  2026_08_18_150458_create_amms_sequences_table .................. 1.82ms DONE
+  2026_08_18_152500_create_permission_tables .................... 20.64ms DONE
+  2026_08_18_152542_create_amms_role_scopes_table ............... 11.44ms DONE
+  2026_08_18_152726_backfill_amms_spatie_rbac ................... 43.41ms DONE
+  2026_08_18_161000_add_flow02_inter_directorate_structures .... 107.14ms DONE
+  2026_08_18_161010_seed_flow02_permissions ..................... 14.35ms DONE
+  2026_08_18_171500_grant_flow02_incoming_view_to_director ....... 1.58ms DONE
+  2026_08_19_090000_add_flow03_multi_directorate_structures ..... 39.46ms DONE
+  2026_08_19_100000_add_flow04_high_authority_structures ........ 88.42ms DONE
+  2026_08_19_100010_seed_flow04_permissions ..................... 31.38ms DONE
+  2026_08_19_100020_add_flow04_requester_permissions ............ 12.68ms DONE
+  2026_08_19_110000_add_flow05_multi_high_authority_structures .. 16.30ms DONE
+  2026_08_19_120000_add_flow06_authority_initiated_structures ... 89.07ms DONE
+  2026_08_19_120010_seed_flow06_permissions ..................... 56.88ms DONE
+  2026_08_19_120020_grant_flow06_role_permissions ............... 14.66ms DONE
+  2026_08_19_130000_add_flow07_meeting_rescheduling_structures .. 99.25ms DONE
+  2026_08_19_130010_seed_flow07_permissions ..................... 60.27ms DONE
+  2026_08_19_140000_add_flow08_participant_change_structures .... 70.94ms DONE
+  2026_08_19_140010_seed_flow08_permissions ..................... 70.36ms DONE
+  2026_08_19_140020_restrict_flow08_authority_participant_ownership  4.35ms DONE
+  2026_08_19_150000_add_flow09_terminal_structures .............. 90.06ms DONE
+  2026_08_19_150010_seed_flow09_permissions ..................... 48.78ms DONE
+  2026_08_19_150020_add_flow09_audit_events ..................... 21.40ms DONE
+  2026_08_19_160000_add_flow10_biometric_structures ............. 88.10ms DONE
+  2026_08_19_160010_seed_flow10_permissions ..................... 59.10ms DONE
+  2026_08_20_100000_add_flow11_execution_structures ............. 20.84ms DONE
+  2026_08_20_100010_seed_flow11_permissions ..................... 65.10ms DONE
+  2026_08_20_110000_add_flow11_minutes_structures ............... 95.27ms DONE

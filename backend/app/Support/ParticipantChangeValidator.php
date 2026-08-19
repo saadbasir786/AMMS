@@ -19,7 +19,9 @@ class ParticipantChangeValidator
 
     public function assertMeetingEditable(Meeting $meeting): void
     {
-        if ($meeting->status !== 'SCHEDULED') throw new HttpException(422, 'MEETING_NOT_PARTICIPANT_EDITABLE');
+        if ($meeting->status !== 'SCHEDULED') {
+            throw new HttpException(422, in_array($meeting->status, ['IN_PROGRESS', 'HELD', 'COMPLETED'], true) ? 'MEETING_ALREADY_STARTED' : 'MEETING_NOT_PARTICIPANT_EDITABLE');
+        }
         $schedule = $meeting->currentScheduleVersion;
         $date = $schedule?->meeting_date?->format('Y-m-d') ?? $meeting->meeting_date?->format('Y-m-d');
         $start = $schedule?->start_time ?? $meeting->start_time;

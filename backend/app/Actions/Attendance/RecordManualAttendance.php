@@ -15,6 +15,7 @@ class RecordManualAttendance
         if (trim($reason) === '') abort(response()->json(['success' => false, 'code' => 'MANUAL_ATTENDANCE_REASON_REQUIRED', 'message' => 'ثبت دستی حضور به دلیل نیاز دارد.', 'errors' => []], 422));
         return DB::transaction(function () use ($actor, $meeting, $employeeId, $reason): MeetingAttendanceRecord {
             $lockedMeeting = Meeting::query()->with('currentParticipantVersion.members')->lockForUpdate()->findOrFail($meeting->id);
+            if (in_array($lockedMeeting->status, ['HELD', 'COMPLETED'], true)) abort(response()->json(['success' => false, 'code' => 'MEETING_ATTENDANCE_CLOSED', 'message' => 'حضور جلسه پس از پایان بسته شده است.', 'errors' => []], 422));
             $member = $lockedMeeting->currentParticipantVersion?->members->firstWhere('employee_id', $employeeId);
             if ($member === null) abort(response()->json(['success' => false, 'code' => 'ATTENDANCE_EMPLOYEE_NOT_PARTICIPANT', 'message' => 'کارمند عضو نسخهٔ رسمی اشتراک‌کنندگان نیست.', 'errors' => []], 422));
             $existing = MeetingAttendanceRecord::query()->where('meeting_id', $lockedMeeting->id)->where('employee_id', $employeeId)->lockForUpdate()->first();
