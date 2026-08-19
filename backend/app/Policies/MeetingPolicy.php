@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Meeting;
 use App\Models\User;
+use App\Models\MeetingTerminalAssignment;
 
 class MeetingPolicy
 {
@@ -125,6 +126,32 @@ class MeetingPolicy
     private function canView(User $user, Meeting $meeting): bool
     {
         return $this->view($user, $meeting);
+    }
+
+    public function flow09View(User $user, Meeting $meeting): bool
+    {
+        $resolver = app(\App\Support\TerminalAssignmentGovernanceResolver::class);
+        if ($user->isActive() && $user->can('meeting-terminal.view') && $user->hasScopedRole('SYSTEM_ADMIN')) return true;
+        return $this->view($user, $meeting) && $resolver->mayView($meeting, $user);
+    }
+
+    public function flow09Assign(User $user, Meeting $meeting): bool
+    {
+        return $this->flow09View($user, $meeting) && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayAssign($meeting, $user);
+    }
+
+    public function flow09Refresh(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
+    {
+        return (int) $assignment->meeting_id === (int) $meeting->id
+            && $this->flow09View($user, $meeting)
+            && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayRefresh($meeting, $user);
+    }
+
+    public function flow09Revoke(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
+    {
+        return (int) $assignment->meeting_id === (int) $meeting->id
+            && $this->flow09View($user, $meeting)
+            && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayRevoke($meeting, $user);
     }
 
     public function cancel(User $user, Meeting $meeting): bool

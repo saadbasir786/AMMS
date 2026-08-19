@@ -12,6 +12,9 @@ use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
 use App\Http\Controllers\Api\MeetingRescheduleController;
 use App\Http\Controllers\Api\MeetingParticipantChangeController;
+use App\Http\Controllers\Api\TerminalController;
+use App\Http\Controllers\Api\MeetingTerminalController;
+use App\Http\Controllers\Api\TerminalApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -195,4 +198,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meeting-requests/{meetingRequest}/attachments', [MeetingRequestAttachmentController::class, 'store']);
     Route::get('/meeting-request-attachments/{attachment}/download', [MeetingRequestAttachmentController::class, 'download'])->name('api.meeting-request-attachments.download');
     Route::delete('/meeting-request-attachments/{attachment}', [MeetingRequestAttachmentController::class, 'destroy']);
+
+    Route::get('/terminals', [TerminalController::class, 'index']);
+    Route::post('/terminals', [TerminalController::class, 'store']);
+    Route::get('/terminals/{terminal}', [TerminalController::class, 'show']);
+    Route::patch('/terminals/{terminal}', [TerminalController::class, 'update']);
+    Route::post('/terminals/{terminal}/credentials', [TerminalController::class, 'issueCredential']);
+    Route::post('/terminals/{terminal}/credentials/rotate', [TerminalController::class, 'rotateCredential']);
+    Route::post('/terminals/{terminal}/revoke', [TerminalController::class, 'revoke']);
+
+    Route::get('/meetings/{meeting}/terminals', [MeetingTerminalController::class, 'workspace']);
+    Route::get('/meetings/{meeting}/terminal-assignments', [MeetingTerminalController::class, 'workspace']);
+    Route::post('/meetings/{meeting}/terminal-assignments', [MeetingTerminalController::class, 'assign']);
+    Route::post('/meetings/{meeting}/terminal-assignments/{assignment}/refresh', [MeetingTerminalController::class, 'refresh']);
+    Route::post('/meetings/{meeting}/terminal-assignments/{assignment}/revoke', [MeetingTerminalController::class, 'revoke']);
+});
+
+Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->group(function (): void {
+    Route::get('/me', [TerminalApiController::class, 'me']);
+    Route::post('/heartbeat', [TerminalApiController::class, 'heartbeat']);
+    Route::get('/assignments/current', [TerminalApiController::class, 'currentAssignments']);
+    Route::post('/assignments/{assignment:uuid}/activate', [TerminalApiController::class, 'activate'])->middleware('throttle:10,1');
+});
+
+Route::prefix('terminal/v1')->middleware(['terminal.session.auth', 'throttle:60,1'])->group(function (): void {
+    Route::get('/sessions/{session:uuid}/manifest', [TerminalApiController::class, 'manifest']);
+    Route::post('/sessions/{session:uuid}/close', [TerminalApiController::class, 'close']);
 });

@@ -638,4 +638,108 @@ The authoritative post-gate invariant artifact is `flow08_final_invariants_after
 
 All FLOW-08 schema, additive migration, backfill, ownership, action, API, RTL browser, negative-matrix, conflict, stale-baseline, race, concurrency, regression, build, and final strict-reviewer evidence gates are **Passed**. FLOW-08 is therefore **APPROVED / FROZEN** as of 19 August 2026. FLOW-01 through FLOW-07 remain **APPROVED / FROZEN** and unchanged by this verification.
 
-Per the release rule, development stops here. **FLOW-09 has not been started and will not be started until the user explicitly approves proceeding beyond the frozen FLOW-08 release.**
+At the time of the FLOW-08 strict-reviewer closure, development stopped before FLOW-09. The subsequent user instruction to continue according to Prompt 09 authorized the next implementation phase; the FLOW-09 verification section below supersedes this historical pre-start note.
+
+
+# FLOW-09 Verification — Terminal Registry, Meeting Assignment & Secure Activation Sessions
+
+**Verification date:** 19 August 2026 GMT+4:30  
+**Scope:** Terminal Registry, Meeting ↔ Terminal Assignment, dedicated terminal authentication, activation sessions, version-bound manifests, and security/audit boundaries.  
+**Release status:** **VERIFICATION COMPLETE — READY FOR EXPLICIT USER RELEASE APPROVAL; FLOW-10 NOT STARTED**
+
+## Executive result
+
+FLOW-09 was implemented as a post-Meeting capability. It does not add a new `MeetingRequest.flow_type`, reopen a `MeetingRequest`, create a replacement Meeting, or introduce biometric attendance behavior. Existing authoritative `Meeting`, Schedule Version, and Participant Version records remain the source of truth. Terminal, credential, assignment, and session are separate persistence concepts with additive migrations.
+
+The implementation provides a Persian/Dari RTL registry at `/admin/terminals`, a terminal detail page, a Meeting terminal workspace at `/meetings/:id/terminals`, an entry point from Meeting Detail, human API routes under `/api/...`, and device routes under `/api/terminal/v1/...`. Terminal credentials and session tokens are hash-only and are shown only once at issuance/activation. The device API returns terminal-scoped resources and the manifest contains version-bound meeting data without email, phone, password, unrelated RBAC, or biometric fields.
+
+## FLOW-09 gate matrix
+
+| Gate | Result | Evidence |
+|---|---|---|
+| Additive schema and four-concept model | **Passed** | `2026_08_19_150000_add_flow09_terminal_structures.php`, audit migration, and models for Terminal, TerminalCredential, MeetingTerminalAssignment, and TerminalMeetingSession. |
+| Permission and policy separation | **Passed** | Additive FLOW-09 permissions; TerminalPolicy, MeetingPolicy flow09 abilities, and TerminalAssignmentGovernanceResolver. SYSTEM_ADMIN can manage infrastructure/view workspace but is not automatically an assignment owner. |
+| Hash-only credential lifecycle | **Passed** | Issue/rotate/revoke Actions; raw token is returned once, old credentials are invalidated, and `credential_plaintext_columns=[]` in the final invariant artifact. |
+| Organization boundary | **Passed** | Cross-organization assignment returns `TERMINAL_OUTSIDE_MEETING_ORGANIZATION`. |
+| Terminal availability | **Passed** | Inactive, maintenance, and revoked terminals are rejected with `TERMINAL_NOT_AVAILABLE` semantics. |
+| Version-bound assignment | **Passed** | Assignment captures Schedule V22 and Participant V24 in the live browser fixture and automated tests. |
+| Explicit assignment window | **Passed** | Valid-from/valid-until fields are required and the window covers the official Meeting interval without a hard-coded pre/post duration. |
+| Duplicate/overlap protection | **Passed** | Duplicate Meeting + Terminal assignment is rejected; real MariaDB race produced one success and one `TERMINAL_ASSIGNMENT_CONFLICT`. |
+| FLOW-07 schedule staleness | **Passed** | Schedule version change causes `TERMINAL_ASSIGNMENT_STALE` with `schedule_changed=true`; activation is blocked until explicit refresh. |
+| FLOW-08 participant staleness | **Passed** | Participant version change causes `TERMINAL_ASSIGNMENT_STALE` with `participants_changed=true`; no hidden refresh occurs. |
+| Dedicated device authentication | **Passed** | Separate `terminal.auth` and `terminal.session.auth` middleware; no Sanctum User token is used by device routes. |
+| Least-privilege terminal API | **Passed** | `/me`, `/heartbeat`, `/assignments/current`, activation, manifest, and close are terminal/session scoped; no users, organizations, RBAC, email, or phone data are returned. |
+| Secure activation session | **Passed** | Valid activation returned HTTP 201, a session UUID, one-time session token, V22/P24 bindings, and expiry; token hash is stored instead of raw token. |
+| One active session and isolation | **Passed** | Automated tests and real MariaDB race produced exactly one ACTIVE session; the other activation returned `TERMINAL_SESSION_ALREADY_ACTIVE`. Session route UUID isolation is enforced. |
+| Session close/expiry/revocation | **Passed** | Close invalidates the token and clears current pointer; expired sessions are rejected before cleanup; assignment and terminal revocation invalidate active sessions. |
+| Version-safe manifest | **Passed** | Manifest is built from session-bound versions and returns deterministic SHA-256 checksum; active sessions become `TERMINAL_SESSION_STALE` after a bound version changes. |
+| Immutable audit | **Passed** | TerminalAuditEvent blocks update/delete and records register, credential, assignment, activation, and close events without raw secrets. |
+| Real RTL registry browser gate | **Passed** | SYSTEM_ADMIN registered `SVT3000-01` with the required DERMALOG metadata; registry row rendered with ACTIVE status and detail/credential actions. |
+| Real credential browser gate | **Passed** | One-time credential warning rendered; authenticated `GET /api/terminal/v1/me` returned HTTP 200 with terminal identity only. |
+| Real assignment browser gate | **Passed** | Authorized Technology executive assigned `SVT3000-01` to Meeting 18 with explicit window; UI displayed `Schedule 22 · Participants 24` and status تخصیص‌یافته. |
+| Real activation/manifest browser gate | **Passed** | Device credential activated the assignment with HTTP 201; manifest returned HTTP 200, three participants, V22/P24, no email/phone; session closed with HTTP 200. |
+| Dedicated FLOW-09 Feature suite | **Passed** | **14 tests, 71 assertions**. |
+| Full Feature regression | **Passed** | **300 tests, 1,085 assertions**; FLOW-01 through FLOW-08 remained green. |
+| Real MariaDB/InnoDB races | **Passed** | Existing FLOW-07/08 race probe passed; FLOW-09 probe passed activation, overlapping assignment, and revocation races. |
+| React production build | **Passed** | `pnpm build`; **1,861 modules transformed**, build successful. |
+
+## Browser evidence
+
+The official browser evidence is recorded in `flow09_browser_findings.md`. The live UI first exposed and then confirmed a controller return-type defect: `TerminalController::index()` was corrected to return the Laravel resource collection without an invalid `JsonResponse` type declaration. A second policy correction allowed SYSTEM_ADMIN to view the Meeting terminal workspace while keeping assignment ownership governed by the exact Meeting scheduling actor.
+
+The registry gate used the required fixture values: code `SVT3000-01`, name `ترمینال بایومتریک تالار مقام`, manufacturer `DERMALOG`, model `SVT3000 SE`, platform `Android`, OS `7.1.2`, and status `ACTIVE`. The credential was displayed once and not persisted in the evidence file. The device `/me` response returned the terminal UUID, code, name, manufacturer, model, platform, OS version, app version, and status only.
+
+Meeting 18 was used for the authorized assignment gate. The official interval was `2026-10-14 11:00–12:00`, with current Schedule Version 22 and Participant Version 24. The browser assignment window was explicitly entered as `2026-08-19 00:00` through `2026-10-15 13:00`. Activation returned session UUID `131bbc8c-0735-46fb-8336-e4fd937788e2` in the authenticated browser session, the manifest returned three participants and no email/phone fields, and the session was closed immediately after evidence capture.
+
+## Automated verification
+
+```text
+cd backend
+php artisan test --filter=Flow09Test
+Tests: 14 passed (71 assertions)
+
+php artisan test --testsuite=Feature
+Tests: 300 passed (1,085 assertions)
+
+php scripts/flow08_mariadb_race_probe.php
+MariaDB FLOW-08 race checks passed: same employee overlap serialized safely; stale FLOW-07/FLOW-08 orderings remained consistent.
+
+php scripts/flow09_mariadb_race_probe.php
+MariaDB FLOW-09 race checks passed: concurrent activation produced exactly one ACTIVE session and one TERMINAL_SESSION_ALREADY_ACTIVE; overlapping assignment produced one success and one TERMINAL_ASSIGNMENT_CONFLICT; revocation invalidated terminal, assignment, session, and current pointer.
+
+cd frontend
+pnpm build
+✓ 1,861 modules transformed.
+✓ built successfully
+```
+
+## Final live invariant artifact
+
+The authoritative artifact is `flow09_final_invariants.json`, generated by `backend/scripts/flow09_final_invariants.php`. The final live state records one registered fixture terminal, one assignment, zero active sessions after the browser close gate, no plaintext credential columns, zero duplicate Meeting-per-request identities, and Meeting 18 still `SCHEDULED` with its originating request still `CONVERTED_TO_MEETING`.
+
+```text
+terminal_count=1
+terminal_fixture.code=SVT3000-01
+terminal_fixture.status=ACTIVE
+terminal_fixture.current_session_id=null
+credential_plaintext_columns=[]
+assignment_count=1
+assigned_count=1
+stale_count=0
+active_session_count=0
+session_count=1
+meeting_18.status=SCHEDULED
+meeting_18.request_status=CONVERTED_TO_MEETING
+meeting_18.current_schedule_version_id=22
+meeting_18.current_participant_version_id=24
+request_meeting_duplicate_count=0
+audit_event_count=5
+```
+
+## Scope exclusions
+
+FLOW-09 does not implement fingerprint capture, fingerprint matching, biometric templates, attendance, check-in, check-out, DERMALOG SDK integration, 1:N biometric identification, minutes, action items, notification integrations, delegation, acting authority, cancellation, or FLOW-10 behavior. No generic participant mutation endpoint, silent administrative override, or new MeetingRequest workflow was introduced.
+
+## Release decision
+
+All FLOW-09 implementation, security, version binding, governance, RTL browser, Feature regression, MariaDB/InnoDB race, manifest privacy, immutable audit, and production build gates are **Passed**. FLOW-01 through FLOW-08 remain **APPROVED / FROZEN** and their Feature regression remains green. **FLOW-09 is ready for explicit user release approval and has not been marked APPROVED / FROZEN in this report until that approval is given.** FLOW-10 has not been started.

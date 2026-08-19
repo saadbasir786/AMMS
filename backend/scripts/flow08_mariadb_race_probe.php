@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
-$dsn = 'mysql:unix_socket=/run/mysqld/mysqld.sock;dbname=amms_concurrency_test;charset=utf8mb4';
-$connect = static fn (): PDO => new PDO($dsn, 'root', null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+$dsn = 'mysql:host='.($_ENV['AMMS_MYSQL_HOST'] ?? '127.0.0.1').';port='.($_ENV['AMMS_MYSQL_PORT'] ?? '3306').';dbname='.($_ENV['AMMS_MYSQL_DATABASE'] ?? 'amms_concurrency_test').';charset=utf8mb4';
+$user = $_ENV['AMMS_MYSQL_USERNAME'] ?? 'amms_test';
+$password = $_ENV['AMMS_MYSQL_PASSWORD'] ?? 'amms_test_password';
+$connect = static fn (): PDO => new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
 $pdo = $connect();
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_flow08_race_employee_lock (employee_id BIGINT UNSIGNED PRIMARY KEY) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_flow08_race_occupancy (meeting_id BIGINT UNSIGNED NOT NULL, employee_id BIGINT UNSIGNED NOT NULL, meeting_date DATE NOT NULL, start_time TIME NOT NULL, end_time TIME NOT NULL, PRIMARY KEY (meeting_id, employee_id), KEY employee_slot (employee_id, meeting_date, start_time, end_time)) ENGINE=InnoDB');
