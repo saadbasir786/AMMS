@@ -50,7 +50,7 @@ class ParticipantGovernanceResolver
     {
         $officeId = (int) ($meeting->authorityContext?->authority_office_unit_id ?? 0);
         return $officeId > 0 && $this->resolve($meeting)['authority_controlled']
-            && ($actor->hasScopedRole('AUTHORITY_OFFICE', $officeId) || $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId));
+            && $actor->hasScopedRole('AUTHORITY_OFFICE', $officeId);
     }
 
     public function actorOwner(Meeting $meeting, User $actor): ?array
@@ -95,11 +95,7 @@ class ParticipantGovernanceResolver
         if (!$actor->isActive() || !$actor->can('meeting-participant-change.confirm')) return false;
         if ($ownerType === 'AUTHORITY') return $this->isAuthorityOwner($meeting, $actor);
         if ($ownerType !== 'UNIT' || !$ownerUnitId || $this->resolve($meeting)['authority_controlled']) return false;
-        if ($actor->hasScopedRole('SYSTEM_ADMIN')) return true;
-        foreach ($this->resolve($meeting)['formal_unit_ids'] as $formalUnitId) {
-            if ($actor->hasScopedRole('DIRECTOR', (int) $formalUnitId)) return true;
-        }
-        return false;
+        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $ownerUnitId);
     }
 
     public function mayView(Meeting $meeting, User $actor): bool

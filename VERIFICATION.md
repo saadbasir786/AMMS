@@ -531,8 +531,8 @@ The change lifecycle is implemented as an explicit case workflow: `DRAFT → PEN
 | Contract | Result | Evidence |
 |---|---|---|
 | Preparation is owner-domain scoped | **Passed** | `ParticipantGovernanceResolver` distinguishes UNIT and AUTHORITY ownership; `mayPrepare` requires active actor, FLOW-08 permission, scope, and owner domain. |
-| Peer governance | **Passed** | A scoped Executive Management actor prepares a unit-owned case; confirmation is available to a Director from a formal Peer unit while preparation remains owner-scoped. |
-| Authority governance | **Passed** | Authority Office/Executive Secretary owns authority-side cases; High Authority is represented by its real employee/context and is not treated as a fake Directorate acknowledgement. |
+| Peer governance | **Passed** | A scoped Executive Management actor prepares a unit-owned case; confirmation is restricted to a Director with the exact `owner_unit_id`. Finance Director confirmation of a Technology-owned case returns HTTP 403 `UNAUTHORIZED_PARTICIPANT_CONFIRMATION`; Technology Director confirmation succeeds. |
+| Authority governance | **Passed** | Authority Office alone prepares/manages/confirms authority-side participant cases. Executive Secretary retains scheduling/appropriate meeting operations and is not an automatic participant owner. High Authority remains a real employee/context, not a fake Directorate acknowledgement. |
 | Current projection is immutable before confirmation | **Passed** | Flow08Test and browser fixtures show the current list remains unchanged through DRAFT and PENDING_CONFIRMATION. |
 | One active case per Meeting | **Passed** | Database uniqueness and `Flow08Test::test_draft_does_not_mutate_current_projection_and_one_active_case_is_enforced`. |
 | Chairperson protection | **Passed** | REMOVE/REPLACE of chairperson returns `CHAIRPERSON_PARTICIPANT_REQUIRED`. |
@@ -554,17 +554,24 @@ The change lifecycle is implemented as an explicit case workflow: `DRAFT → PEN
 | E. REMOVE missing current employee | `PARTICIPANT_NOT_IN_CURRENT_VERSION` | **Passed** |
 | F. REPLACE with same employee | `NO_PARTICIPANT_CHANGE` | **Passed** |
 | G. REMOVE/REPLACE chairperson | `CHAIRPERSON_PARTICIPANT_REQUIRED` | **Passed** |
-| H. REMOVE/REPLACE High Authority | `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE` | **Passed** |
-| I. Confirm stale schedule baseline | `MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED` | **Passed** |
-| J. Confirm without submitted case | `PARTICIPANT_CHANGE_NOT_READY_FOR_CONFIRMATION` | **Passed** |
-| K. Direct generic participant mutation | HTTP 404 / no projection mutation | **Passed** |
-| L. Duplicate concurrent confirmation | one applied successor version; duplicate rejected | **Passed** |
+| H. Unrelated Directorate / Finance modifies Technology | HTTP 403 `UNAUTHORIZED_PARTICIPANT_CHANGE` or `UNAUTHORIZED_PARTICIPANT_CONFIRMATION` | **Passed** |
+| I. Technology modifies Authority | HTTP 403 `UNAUTHORIZED_PARTICIPANT_CHANGE` | **Passed** |
+| J. Authority Office modifies Directorate | HTTP 403 `UNAUTHORIZED_PARTICIPANT_CHANGE` | **Passed** |
+| K. REMOVE last participant of a formal unit | HTTP 422 `UNIT_PARTICIPANT_REQUIRED` | **Passed** |
+| L. REMOVE/REPLACE chairperson or High Authority | HTTP 422 protection code | **Passed** |
+| M. Out-of-unit employee | HTTP 422 `EMPLOYEE_OUTSIDE_PARTICIPANT_DOMAIN` | **Passed** |
+| N. Participant schedule conflict | HTTP 422 `PARTICIPANT_SCHEDULE_CONFLICT` | **Passed** |
+| O. Schedule changed mid-case | HTTP 422 `MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED`; refresh required | **Passed** |
+| P. Duplicate concurrent confirmation | one applied successor version; duplicate rejected | **Passed** |
+| Q. Final identity invariants | same Meeting ID; `SCHEDULED`; `CONVERTED_TO_MEETING`; no duplicate Meeting | **Passed** |
 
 ### FLOW-08 positive browser gates
 
-The Authority-side gate was executed through the real RTL workspace on Meeting 4 while authenticated as `executive.secretary@example.test`. The workspace created a case, displayed authority-scoped employee options, rejected an attempted High Authority removal with HTTP 422 `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE`, then successfully added `مریم نورستانی` from the Authority Office and confirmed the case. The UI displayed participant version 2, five current participants, immutable versions 1 and 2, and the complete participant-change timeline.
+The corrected Authority-side gate used the independent Meeting 14 fixture through the real RTL workspace. `authority.office@example.test` created and submitted the participant case, while `executive.secretary@example.test` performed the FLOW-07 schedule transition from version 1 to version 2. The Authority Office workspace displayed the stale-baseline warning; `بازنگری بر اساس زمان فعلی` returned the case to `DRAFT`, recorded `PARTICIPANT_CHANGE_BASELINE_REFRESHED`, and refreshed the baseline to schedule version 2. The case was resubmitted and confirmed by Authority Office, producing participant version 2 and `MEETING_PARTICIPANTS_CHANGED`.
 
-The Peer-side gate used the independent Meeting 11 fixture `FLOW08-PEER-BROWSER`. `tech.exec@example.test` created a case and replaced `احمد احمدی` with `فاطمه رحیمی` within the Technology domain. The current projection remained unchanged until submission and confirmation. `finance.director@example.test`, a Director from another formal Peer unit, then confirmed through the real UI. The UI displayed participant version 2, the new projection, no active case, and `MEETING_PARTICIPANTS_CHANGED` in the timeline.
+The corrected Peer ownership gate used Meeting 15. `tech.exec@example.test` created and submitted a Technology-owned REPLACE case through the real UI. `finance.director@example.test` attempted confirmation and received HTTP 403 `UNAUTHORIZED_PARTICIPANT_CONFIRMATION` from the same frontend Bearer session; no projection mutation occurred. `tech.director@example.test` then confirmed the case through the UI, producing participant version 2, the new Technology representative, no active case, and `MEETING_PARTICIPANTS_CHANGED`.
+
+The manual participant-conflict gate used Meetings 12 and 13. Meeting 12 was scheduled for 10:00–11:00 and Meeting 13 for 10:30–11:30 with employee X already participating. An ADD for employee X was entered in Meeting 12 through the real UI, and the same frontend session returned HTTP 422 `PARTICIPANT_SCHEDULE_CONFLICT`; the projection remained unchanged. The earlier Meeting 11 Finance-confirmation evidence is superseded and is not release evidence.
 
 The complete browser record is stored in `flow08_browser_findings.md`.
 
@@ -572,21 +579,24 @@ The complete browser record is stored in `flow08_browser_findings.md`.
 
 ```text
 cd backend && php artisan test --testsuite=Feature > flow08_feature_test_final_release.log 2>&1
-Tests: 282 passed (1003 assertions)
+Tests: 286 passed (1014 assertions)
 
-sudo php scripts/flow08_mariadb_concurrency_probe.php > flow08_mariadb_concurrency_final.log 2>&1
-MariaDB FLOW-08 concurrency checks passed: duplicate confirmation serialized to one applied transition and one rejected duplicate; final participant version=2; active case cleared; one-active-case uniqueness held.
+sudo php scripts/flow08_mariadb_concurrency_probe.php > flow08_mariadb_concurrency_strict_final.log 2>&1
+MariaDB FLOW-08 basic concurrency checks passed: duplicate confirmation serialized to one applied transition and one rejected duplicate; final participant version=2; active case cleared; one-active-case uniqueness held.
 
-cd frontend && pnpm build > flow08_frontend_build_final_release.log 2>&1
+sudo php scripts/flow08_mariadb_race_probe.php > flow08_mariadb_race_strict_final.log 2>&1
+MariaDB FLOW-08 race checks passed: same employee in two overlapping Meetings serialized to one applied candidate and one `PARTICIPANT_SCHEDULE_CONFLICT`; FLOW-07-first ordering rejected stale FLOW-08 confirmation; FLOW-08-first ordering applied participant before the later schedule transition; final schedule and participant transitions remained single and consistent.
+
+cd frontend && pnpm build > flow08_frontend_strict_final.log 2>&1
 ✓ 1860 modules transformed.
 ✓ built successfully
 
 php scripts/flow08_final_invariants.php
-meeting_count=11; request_meeting_duplicates=0; change_case_count=2
+meeting_count=15; request_meeting_duplicates=0; change_case_count=5
 ```
 
-The final invariant artifact is `flow08_final_invariants.json`. It records zero duplicate Meeting-per-request identities, participant version pointers for all live Meetings, Meeting 4 at participant version 2 after the successful Authority-side browser gate, and Meeting 11 at participant version 2 after the successful Peer-side browser gate. Both confirmed cases have cleared their active-case pointers.
+The final invariant artifact is `flow08_final_invariants.json`. It records zero duplicate Meeting-per-request identities, participant-version pointers for all 15 live Meetings, Meeting 14 at schedule version 2 and participant version 2 after the stale-baseline browser gate, Meeting 15 at participant version 2 after the corrected owner-unit browser gate, and cleared active-case pointers for all confirmed cases. Meeting 4 and the frozen FLOW-01 through FLOW-07 canonical data remain identity-preserving.
 
 ## FLOW-08 release decision
 
-All implemented FLOW-08 schema, backfill, governance, action, API, RTL workspace, negative, browser, invariant, MariaDB concurrency, regression, and production-build gates are **Passed**. FLOW-01 through FLOW-07 behavior remains green in the same 282-test Feature suite. FLOW-08 is intentionally **not declared APPROVED / FROZEN** until the user explicitly approves this workflow. No subsequent workflow will be started before that approval.
+All implemented FLOW-08 schema, backfill, governance, action, API, RTL workspace, original negative matrix, manual participant-conflict, manual schedule-refresh, invariant, MariaDB concurrency, regression, and production-build gates are **Passed**. The cross-unit confirmation broadening and Executive Secretary authority ownership were corrected without broadening production permissions. FLOW-01 through FLOW-07 behavior remains green in the same 286-test Feature suite. FLOW-08 is intentionally **not declared APPROVED / FROZEN** until the user explicitly approves this workflow. No subsequent workflow will be started before that approval.

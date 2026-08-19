@@ -1,0 +1,1 @@
+MariaDB FLOW-08 race checks passed: same employee in two overlapping Meetings serialized to one applied candidate and one PARTICIPANT_SCHEDULE_CONFLICT; FLOW-07-first ordering rejected stale FLOW-08 confirmation; FLOW-08-first ordering applied participant before the later schedule transition; final schedule and participant transitions remained single and consistent.

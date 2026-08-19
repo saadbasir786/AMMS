@@ -15,3 +15,27 @@ Through the real RTL UI, Technology management selected `REPLACE`, old participa
 ## Browser-discovered fixes
 
 The first Authority submit attempt exposed that final conflict validation was incorrectly checking all existing participants, including baseline participants whose existing schedule was already accepted. The validator was corrected to re-check only ADD/REPLACE candidate employee IDs, as required by FLOW-08. The first Peer confirmation attempt exposed that confirmation was incorrectly restricted to the case owner unit; governance was corrected so any Director in a formal Peer unit may confirm while preparation remains owner-domain restricted.
+
+## Manual participant conflict — Meetings 12 and 13
+
+A dedicated fixture created Meeting 12 with schedule `2026-09-18 10:00–11:00` and Meeting 13 with schedule `2026-09-18 10:30–11:30`. Employee X (`حامد کریمی`, employee id 3) was already a participant in Meeting 13. In the real RTL workspace for Meeting 12, authenticated as `tech.exec@example.test`, a participant-change case was created and an ADD item for employee X was entered through the UI. The UI submission displayed the localized authorization panel, while the same frontend Bearer session returned HTTP 422 with exact code `PARTICIPANT_SCHEDULE_CONFLICT`. The current projection and participant version remained unchanged.
+
+This closes the previously missing manual participant-conflict fixture.
+
+## Schedule changed mid-case — Meeting 14
+
+The browser authenticated as `authority.office@example.test` created a participant-change case in the real RTL workspace against schedule version 1 and added an Authority Office participant. The case was submitted and displayed `PENDING_CONFIRMATION` with baseline schedule version 1.
+
+The browser then authenticated as `executive.secretary@example.test` and used the real FLOW-07 reschedule workspace to create an official proposal for `2026-09-19 13:00–14:00` at `تالار جدید`. Real director acknowledgements were collected and the proposal was confirmed; Meeting 14 moved to schedule version 2 while preserving the participant case baseline at version 1.
+
+Back in the FLOW-08 workspace, authenticated as Authority Office, the UI displayed the stale schedule warning and the real action returned the case to `DRAFT` after `بازنگری بر اساس زمان فعلی`. The timeline recorded `PARTICIPANT_CHANGE_BASELINE_REFRESHED` with baseline schedule version 2. The case was resubmitted through the UI and confirmed through the same Authority Office workspace. The final UI displayed schedule version 2, participant version 2, five current participants, no active case, and `MEETING_PARTICIPANTS_CHANGED`.
+
+This closes the previously missing manual schedule-change/refresh gate.
+
+## Corrected Peer ownership — Meeting 15
+
+A new Peer fixture was executed after the governance correction. `tech.exec@example.test` created the Technology-owned participant-change case and submitted a REPLACE for the Technology representative through the RTL workspace. The same case was opened by `finance.director@example.test`; the UI displayed the localized access-denied panel, and the same frontend Bearer session returned HTTP 403 with exact code `UNAUTHORIZED_PARTICIPANT_CONFIRMATION`. No projection mutation occurred.
+
+The session was then switched to `tech.director@example.test`. The Technology Director confirmed the same case through the real UI. Meeting 15 displayed participant version 2, `فاطمه رحیمی` as the current Technology representative, no active case, and `MEETING_PARTICIPANTS_CHANGED` in the immutable timeline.
+
+This closes the corrected Peer owner-unit negative and positive browser gate. The earlier Meeting 11 Finance confirmation evidence is superseded and must not be used as release evidence.

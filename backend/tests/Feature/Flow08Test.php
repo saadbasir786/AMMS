@@ -74,6 +74,69 @@ class Flow08Test extends TestCase
         app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'پروندهٔ دوم نباید ایجاد شود');
     }
 
+    public function test_authority_office_cannot_prepare_peer_case(): void
+    {
+        [$meeting, $users] = $this->peerMeeting();
+        try {
+            app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['authorityOffice'], 'Authority Office نباید Directorate را تغییر دهد');
+            $this->fail('Authority Office must not prepare a Directorate-owned participant change.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame('UNAUTHORIZED_PARTICIPANT_CHANGE', $exception->getMessage());
+        }
+    }
+
+    public function test_authority_participant_ownership_is_authority_office_only(): void
+    {
+        [$meeting, $users] = $this->authorityMeeting();
+        try {
+            app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['secretary'], 'سکرتر نباید مالک participant مقام باشد');
+            $this->fail('Executive Secretary must not own Authority participant changes.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame('UNAUTHORIZED_PARTICIPANT_CHANGE', $exception->getMessage());
+        }
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['authorityOffice'], 'Authority Office مالک رسمی است');
+        try {
+            app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'ADD', null, $this->employee('employee.a@example.test')->id);
+            $this->fail('Technology must not manage an Authority-owned case.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame('UNAUTHORIZED_PARTICIPANT_CHANGE', $exception->getMessage());
+        }
+    }
+
+    public function test_remove_last_participant_of_formal_unit_is_rejected(): void
+    {
+        [$meeting, $users, $employees] = $this->peerMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'حفاظت حداقل participant ریاست تکنالوژی');
+        app(RemoveMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], $employees['techDirector']->id);
+        try {
+            app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+            $this->fail('The last unit participant must not be submitted.');
+        } catch (HttpException $exception) {
+            $this->assertSame(422, $exception->getStatusCode());
+            $this->assertSame('UNIT_PARTICIPANT_REQUIRED', $exception->getMessage());
+        }
+    }
+
+    public function test_cross_unit_confirmation_is_rejected_and_owner_director_can_confirm(): void
+    {
+        [$meeting, $users, $employees] = $this->peerMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'تغییر نماینده ریاست تکنالوژی');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['techDirector']->id, $employees['techEmployee']->id);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        try {
+            app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['financeDirector']);
+            $this->fail('Finance Director must not confirm Technology-owned participant changes.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame('UNAUTHORIZED_PARTICIPANT_CONFIRMATION', $exception->getMessage());
+        }
+        $confirmed = app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector']);
+        $this->assertSame('CONFIRMED', $confirmed->status);
+    }
+
     public function test_cross_unit_candidate_is_rejected(): void
     {
         [$meeting, $users, $employees] = $this->peerMeeting();
@@ -90,9 +153,9 @@ class Flow08Test extends TestCase
     public function test_chairperson_and_high_authority_are_protected(): void
     {
         [$meeting, $users, $employees] = $this->authorityMeeting();
-        $authorityCase = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['secretary'], 'تغییر نماینده دفتر مقام');
+        $authorityCase = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['authorityOffice'], 'تغییر نماینده دفتر مقام');
         try {
-            app(RemoveMeetingParticipantChangeItem::class)->execute($meeting, $authorityCase, $users['secretary'], $employees['authority']->id);
+            app(RemoveMeetingParticipantChangeItem::class)->execute($meeting, $authorityCase, $users['authorityOffice'], $employees['authority']->id);
             $this->fail('High Authority must remain immutable.');
         } catch (HttpException $exception) {
             $this->assertSame('HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE', $exception->getMessage());
@@ -166,7 +229,7 @@ class Flow08Test extends TestCase
 
     private function peerMeeting(): array
     {
-        $users = ['techExec' => $this->user('tech.exec@example.test'), 'financeExec' => $this->user('finance.exec@example.test'), 'techDirector' => $this->user('tech.director@example.test'), 'financeDirector' => $this->user('finance.director@example.test'), 'hrDirector' => $this->user('hr.director@example.test')];
+        $users = ['techExec' => $this->user('tech.exec@example.test'), 'financeExec' => $this->user('finance.exec@example.test'), 'techDirector' => $this->user('tech.director@example.test'), 'financeDirector' => $this->user('finance.director@example.test'), 'hrDirector' => $this->user('hr.director@example.test'), 'authorityOffice' => $this->user('authority.office@example.test')];
         $employees = ['techDirector' => $this->employee('tech.director@example.test'), 'techEmployee' => $this->employee('employee.a@example.test'), 'financeDirector' => $this->employee('finance.director@example.test'), 'financeExec' => $this->employee('finance.exec@example.test'), 'hrDirector' => $this->employee('hr.director@example.test')];
         $request = MeetingRequest::create(['request_number' => 'FLOW08-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $this->unit('TECH')->id, 'created_by' => $users['techExec']->id, 'subject' => 'جلسهٔ آزمایشی FLOW-08', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $users['techExec']->id]);
         $meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW08-M-'.uniqid(), 'title' => $request->subject, 'organizing_unit_id' => $this->unit('TECH')->id, 'coordinator_id' => $users['techExec']->id, 'chairperson_employee_id' => $employees['financeDirector']->id, 'meeting_date' => now()->addDays(20)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'تالار آزمایش', 'status' => 'SCHEDULED']);
@@ -194,6 +257,7 @@ class Flow08Test extends TestCase
         $meeting->participantVersions()->delete();
         app(ParticipantVersionService::class)->ensureInitialVersion($meeting, $users['techExec']->id);
         $users['secretary'] = $this->user('executive.secretary@example.test');
+        $users['authorityOffice'] = $this->user('authority.office@example.test');
         return [$meeting->fresh(['request', 'authorityContext', 'units.unit', 'participants.employee.unit', 'currentParticipantVersion.members.employee.unit', 'currentScheduleVersion']), $users, $employees];
     }
 }
