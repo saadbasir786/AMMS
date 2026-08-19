@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\MeetingParticipantChangeController;
 use App\Http\Controllers\Api\TerminalController;
 use App\Http\Controllers\Api\MeetingTerminalController;
 use App\Http\Controllers\Api\TerminalApiController;
+use App\Http\Controllers\Api\BiometricController;
+use App\Http\Controllers\Api\AttendanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -33,6 +35,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/users/{user}', [AdminController::class, 'updateUser']);
     Route::post('/admin/users/{user}/roles', [AdminController::class, 'assignRole']);
     Route::get('/admin/employees', [AdminController::class, 'employees']);
+
+    Route::get('/employees/{employee}/biometrics', [BiometricController::class, 'employee']);
+    Route::post('/biometric/enrollment-sessions', [BiometricController::class, 'start']);
+    Route::post('/biometric/enrollment-sessions/{enrollment}/complete', [BiometricController::class, 'complete']);
+    Route::post('/biometric/enrollment-sessions/{enrollment}/cancel', [BiometricController::class, 'cancel']);
+    Route::post('/biometric/templates/{template}/revoke', [BiometricController::class, 'revoke']);
+    Route::get('/meetings/{meeting}/attendance', [AttendanceController::class, 'index']);
+    Route::post('/meetings/{meeting}/attendance/manual', [AttendanceController::class, 'manual']);
     Route::post('/admin/employees', [AdminController::class, 'storeEmployee']);
     Route::put('/admin/employees/{employee}', [AdminController::class, 'updateEmployee']);
     Route::post('/admin/employees/{employee}/deactivate', [AdminController::class, 'deactivateEmployee']);
@@ -223,5 +233,7 @@ Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->gr
 
 Route::prefix('terminal/v1')->middleware(['terminal.session.auth', 'throttle:60,1'])->group(function (): void {
     Route::get('/sessions/{session:uuid}/manifest', [TerminalApiController::class, 'manifest']);
+    Route::get('/sessions/{session:uuid}/biometric-candidates', [TerminalApiController::class, 'biometricCandidates']);
+    Route::post('/sessions/{session:uuid}/attendance/fingerprint', [TerminalApiController::class, 'fingerprintAttendance']);
     Route::post('/sessions/{session:uuid}/close', [TerminalApiController::class, 'close']);
 });

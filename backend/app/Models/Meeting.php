@@ -19,4 +19,5 @@ class Meeting extends Model { protected $fillable = ['meeting_request_id','meeti
     public function terminalAssignments(): HasMany { return $this->hasMany(MeetingTerminalAssignment::class); }
     public function terminalSessions(): HasMany { return $this->hasMany(TerminalMeetingSession::class); }
     public function currentTerminalSession(): BelongsTo { return $this->belongsTo(TerminalMeetingSession::class, 'current_terminal_session_id'); }
+    public function attendanceRecords(): HasMany { return $this->hasMany(MeetingAttendanceRecord::class); }
 }
