@@ -8,6 +8,7 @@ use App\Models\Terminal;
 use App\Models\User;
 use App\Support\TerminalAssignmentConflictGuard;
 use App\Support\TerminalAuditLogger;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class RefreshMeetingTerminalAssignment
@@ -35,8 +36,8 @@ class RefreshMeetingTerminalAssignment
             $this->guard->assertAssignable(
                 $lockedTerminal,
                 $lockedMeeting,
-                $locked->valid_from,
-                $locked->valid_until,
+                CarbonImmutable::instance($locked->valid_from),
+                CarbonImmutable::instance($locked->valid_until),
                 $locked,
             );
 
