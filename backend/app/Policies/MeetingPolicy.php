@@ -7,10 +7,10 @@ use App\Models\User;
 
 class MeetingPolicy
 {
-    public function before(User $user): ?bool
+    public function before(User $user, string $ability): ?bool
     {
         if (!$user->isActive()) return false;
-        return $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('meeting.view') ? true : null;
+        return in_array($ability, ['viewAny', 'view'], true) && $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('meeting.view') ? true : null;
     }
 
     public function viewAny(User $user): bool
@@ -30,6 +30,66 @@ class MeetingPolicy
             return $context && ((int) $context->authority_employee_id === (int) $user->employee_id || $user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id) || $user->hasScopedRole('EXECUTIVE_SECRETARY', (int) $context->authority_office_unit_id));
         }
         return false;
+    }
+
+    public function flow07ViewHistory(User $user, Meeting $meeting): bool
+    {
+        return $this->canView($user, $meeting) && $user->can('meeting-reschedule.view-history');
+    }
+
+    public function flow07CreateCase(User $user, Meeting $meeting): bool
+    {
+        return $this->canView($user, $meeting) && $user->can('meeting-reschedule.create');
+    }
+
+    public function flow07PeerPropose(User $user, Meeting $meeting): bool
+    {
+        if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
+        $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
+        return $governance['mode'] === 'PEER_MULTI_UNIT' && in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
+    }
+
+    public function flow07AuthorityPropose(User $user, Meeting $meeting): bool
+    {
+        if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
+        $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
+        return $governance['mode'] === 'AUTHORITY_CONTROLLED'
+            && $governance['authority_office_unit_id'] > 0
+            && $user->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
+    }
+
+    public function flow07Acknowledge(User $user, Meeting $meeting): bool
+    {
+        if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.acknowledge')) return false;
+        $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
+        return in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
+    }
+
+    public function flow07RequestAlternative(User $user, Meeting $meeting): bool
+    {
+        if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.request-alternative')) return false;
+        $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
+        return in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
+    }
+
+    public function flow07ResolveAlternative(User $user, Meeting $meeting): bool
+    {
+        return $this->flow07AuthorityPropose($user, $meeting) && $user->can('meeting-reschedule.request-alternative');
+    }
+
+    public function flow07Confirm(User $user, Meeting $meeting): bool
+    {
+        if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.confirm')) return false;
+        $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
+        if ($governance['mode'] === 'AUTHORITY_CONTROLLED') {
+            return $governance['authority_office_unit_id'] > 0 && $user->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
+        }
+        return $user->id === $meeting->coordinator_id || in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
+    }
+
+    private function canView(User $user, Meeting $meeting): bool
+    {
+        return $this->view($user, $meeting);
     }
 
     public function cancel(User $user, Meeting $meeting): bool

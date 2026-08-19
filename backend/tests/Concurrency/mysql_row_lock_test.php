@@ -29,6 +29,10 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_meeting_unit_prob
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_request_probe (id BIGINT UNSIGNED PRIMARY KEY, status VARCHAR(64) NOT NULL, requesting_unit_id BIGINT UNSIGNED NULL, participating_units INT NOT NULL, finalize_transitions INT NOT NULL) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_context_probe (meeting_request_id BIGINT UNSIGNED PRIMARY KEY, authority_employee_id BIGINT UNSIGNED NOT NULL, authority_type VARCHAR(64) NOT NULL) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_meeting_unit_probe (meeting_request_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, role VARCHAR(32) NOT NULL, PRIMARY KEY (meeting_request_id, unit_id)) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow07_meeting_probe (meeting_id BIGINT UNSIGNED PRIMARY KEY, status VARCHAR(32) NOT NULL, current_version INT NOT NULL, active_case_id BIGINT UNSIGNED NULL, confirm_transitions INT NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow07_version_probe (meeting_id BIGINT UNSIGNED NOT NULL, version_number INT NOT NULL, PRIMARY KEY (meeting_id, version_number)) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow07_ack_probe (proposal_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY (proposal_id, unit_id)) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow07_conflict_lock_probe (employee_id BIGINT UNSIGNED PRIMARY KEY, accepted_meeting_id BIGINT UNSIGNED NULL, accepted INT NOT NULL, rejected INT NOT NULL) ENGINE=InnoDB');
 $pdo->exec('DELETE FROM amms_concurrency_probe');
 $pdo->exec('DELETE FROM amms_concurrency_meeting_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow02_request_probe');
@@ -46,6 +50,10 @@ $pdo->exec('DELETE FROM amms_concurrency_flow05_meeting_unit_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow06_request_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow06_context_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow06_meeting_unit_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow07_meeting_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow07_version_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow07_ack_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow07_conflict_lock_probe');
 $pdo->exec('INSERT INTO amms_concurrency_probe (id, value) VALUES (1, 0)');
 
 $runConcurrent = static function (callable $work): array {
@@ -343,4 +351,45 @@ if ($flow06State['status'] !== 'CONVERTED_TO_MEETING' || $flow06State['requestin
     throw new RuntimeException('FLOW-06 parallel finalization failed: ' . json_encode(['results' => $flow06FinalizeResults, 'state' => $flow06State, 'meetings' => $flow06Meetings, 'participating_units' => $flow06Units, 'requesting_units' => $flow06RequestingUnits, 'contexts' => $flow06Contexts, 'authority_employee' => $flow06AuthorityEmployee]));
 }
 
-echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9.\n";
+$pdo->exec("INSERT INTO amms_concurrency_flow07_meeting_probe (meeting_id, status, current_version, active_case_id, confirm_transitions) VALUES (7, 'SCHEDULED', 1, 70, 0)");
+$pdo->exec("INSERT INTO amms_concurrency_flow07_version_probe (meeting_id, version_number) VALUES (7, 1)");
+$pdo->exec("INSERT INTO amms_concurrency_flow07_ack_probe (proposal_id, unit_id) VALUES (77, 1), (77, 2), (77, 3)");
+$pdo = null;
+$flow07FinalizeResults = $runConcurrent(static function () use ($connect): void {
+    $db = $connect();
+    $db->beginTransaction();
+    $state = $db->query("SELECT status, current_version, active_case_id FROM amms_concurrency_flow07_meeting_probe WHERE meeting_id = 7 FOR UPDATE")->fetch();
+    if ($state['status'] === 'SCHEDULED' && (int) $state['active_case_id'] === 70) {
+        $next = (int) $state['current_version'] + 1;
+        $db->prepare('INSERT INTO amms_concurrency_flow07_version_probe (meeting_id, version_number) VALUES (?, ?)')->execute([7, $next]);
+        $db->exec("UPDATE amms_concurrency_flow07_meeting_probe SET current_version = 2, active_case_id = NULL, confirm_transitions = confirm_transitions + 1 WHERE meeting_id = 7");
+    }
+    $db->commit();
+});
+$pdo = $connect();
+$flow07State = $pdo->query('SELECT status, current_version, active_case_id, confirm_transitions FROM amms_concurrency_flow07_meeting_probe WHERE meeting_id = 7')->fetch();
+$flow07Versions = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow07_version_probe WHERE meeting_id = 7')->fetchColumn();
+$flow07Acks = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow07_ack_probe WHERE proposal_id = 77')->fetchColumn();
+if ($flow07State['status'] !== 'SCHEDULED' || (int) $flow07State['current_version'] !== 2 || $flow07State['active_case_id'] !== null || (int) $flow07State['confirm_transitions'] !== 1 || $flow07Versions !== 2 || $flow07Acks !== 3 || count(array_filter($flow07FinalizeResults, fn ($r) => $r['status'] !== 0)) > 0) {
+    throw new RuntimeException('FLOW-07 duplicate finalization probe failed: '.json_encode(['results'=>$flow07FinalizeResults,'state'=>$flow07State,'versions'=>$flow07Versions,'acknowledgements'=>$flow07Acks]));
+}
+$pdo->exec("INSERT INTO amms_concurrency_flow07_conflict_lock_probe (employee_id, accepted_meeting_id, accepted, rejected) VALUES (9, NULL, 0, 0)");
+$pdo = null;
+$flow07ConflictResults = $runIndexedConcurrent(static function (int $worker) use ($connect): void {
+    $db = $connect();
+    $db->beginTransaction();
+    $lock = $db->query('SELECT accepted_meeting_id, accepted, rejected FROM amms_concurrency_flow07_conflict_lock_probe WHERE employee_id = 9 FOR UPDATE')->fetch();
+    if ($lock['accepted_meeting_id'] === null) {
+        $db->prepare('UPDATE amms_concurrency_flow07_conflict_lock_probe SET accepted_meeting_id = ?, accepted = accepted + 1 WHERE employee_id = 9')->execute([700 + $worker]);
+    } else {
+        $db->exec('UPDATE amms_concurrency_flow07_conflict_lock_probe SET rejected = rejected + 1 WHERE employee_id = 9');
+    }
+    $db->commit();
+});
+$pdo = $connect();
+$flow07ConflictState = $pdo->query('SELECT accepted_meeting_id, accepted, rejected FROM amms_concurrency_flow07_conflict_lock_probe WHERE employee_id = 9')->fetch();
+if ((int) $flow07ConflictState['accepted'] !== 1 || (int) $flow07ConflictState['rejected'] !== 1 || count(array_filter($flow07ConflictResults, fn ($r) => $r['status'] !== 0)) > 0) {
+    throw new RuntimeException('FLOW-07 shared employee conflict lock probe failed: '.json_encode(['results'=>$flow07ConflictResults,'state'=>$flow07ConflictState]));
+}
+
+echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9; FLOW-07 duplicate confirmation produced one new version and one transition, and shared employee lock accepted one candidate and rejected one conflicting candidate.\n";

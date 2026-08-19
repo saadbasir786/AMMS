@@ -375,3 +375,120 @@ The dedicated FLOW-06 reissuance test (`Flow06Test::test_flow06_material_revisio
 ## Release decision
 
 **FLOW-06 is APPROVED / FROZEN as of 19 August 2026.** The decision is based on the completed nine-account RTL browser scenario, the separate fresh Request ID 7 Draft Return/Correction/Resubmit UI gate, no-requester and three-participating-unit invariants, explicit negative Matrix A–L, dedicated reissuance coverage, 267 passing Feature tests with 947 assertions, real MariaDB concurrency verification, and the successful 1,858-module production build. No delegation, acting authority, cancellation, attendance, minutes, or unsupported meeting-management behavior was introduced.
+
+
+# FLOW-07 Verification — Post-Creation Meeting Rescheduling & Schedule Versioning
+
+**Verification date:** 19 August 2026 GMT+4:30
+**Scope:** Formal rescheduling of an existing official Meeting without reopening its MeetingRequest and without creating a replacement Meeting.
+**Release status:** **VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL; NOT YET APPROVED / FROZEN**
+
+## Executive result
+
+FLOW-07 was exercised through both authority-controlled and peer multi-unit rescheduling paths using the live Persian/Dari RTL interface. The authority-controlled scenario used independent fixture Meeting ID 5 and the peer scenario used independent fixture Meeting ID 6, so the canonical FLOW-06 Meeting ID 4 remained unchanged. Both scenarios preserved the Meeting identity, kept the Meeting in `SCHEDULED`, kept the original MeetingRequest in `CONVERTED_TO_MEETING`, retained the formal unit and participant model, and created exactly one immutable next schedule version after all required acknowledgements were present.
+
+The authority scenario covered case creation, official Authority Office proposal, three independent Directorate acknowledgements, `READY_TO_CONFIRM`, final confirmation, version 2 creation, and immutable version 1 history. The peer scenario covered scoped case creation, peer proposal, three independent Directorate acknowledgements, permission correction for the coordinator fixture, final confirmation, version 2 creation, and immutable version 1 history. Full browser evidence is recorded in `flow07_browser_findings.md`.
+
+## FLOW-07 gate matrix
+
+| Gate | Result | Evidence |
+|---|---|---|
+| Additive, idempotent schema migration | **Passed** | Migration `2026_08_19_130000_add_flow07_meeting_rescheduling_structures.php`; existing four Meetings were backfilled to version 1 without schedule loss. |
+| Governance mapping by originating flow | **Passed** | `ScheduleGovernanceResolver` maps all six originating flow types to `INTERNAL_SINGLE_UNIT`, `PEER_MULTI_UNIT`, or `AUTHORITY_CONTROLLED`; dedicated behavioral test passed. |
+| Existing MeetingRequest is never reopened | **Passed** | Feature tests and final invariants retain `CONVERTED_TO_MEETING` after reschedule. |
+| No replacement Meeting is created | **Passed** | Atomic confirmation updates the existing Meeting; concurrency probe produced exactly one new version and one transition. |
+| Meeting status remains `SCHEDULED` | **Passed** | Authority and peer browser scenarios and database invariants both retained `SCHEDULED`. |
+| Immutable schedule history | **Passed** | Browser scenarios rendered version 1 as historical and version 2 as current; old rows are never updated. |
+| Authority-controlled proposal boundary | **Passed** | Executive Secretary submitted the official proposal; ordinary Directorate proposal path was not used for authority mode. |
+| Peer proposal boundary | **Passed** | Scoped peer coordinator submitted a `PEER` proposal; authority proposal endpoint is governance-restricted. |
+| All required acknowledgements | **Passed** | Both browser matrices reached `3/3` before confirmation. |
+| Alternative request blocks confirmation | **Passed** | Behavioral test rejects confirmation with an open alternative and requires revised-proposal acknowledgements. |
+| Conflict re-check at confirmation | **Passed** | High Authority overlap and shared-employee lock probes passed; confirmation re-check remains inside the transaction. |
+| Direct generic schedule mutation blocked | **Passed** | No generic schedule PATCH route exists; dedicated test returned 404. |
+| Stale baseline protection | **Passed** | Confirmation rejects a case opened against an obsolete schedule baseline. |
+| Production frontend build | **Passed** | `pnpm build`: TypeScript/Vite completed successfully; 1,859 modules transformed. |
+| Full regression suite | **Passed** | `274 passed (978 assertions)` including FLOW-01 through FLOW-07 and foundation regressions. |
+| MariaDB concurrency | **Passed** | Duplicate confirmation yielded one new version/transition; shared employee conflict yielded one accepted and one rejected candidate. |
+
+## Positive UI scenarios
+
+| Scenario | Accounts and fixture | Browser result |
+|---|---|---|
+| Authority-controlled reschedule | Meeting ID 5; Executive Secretary, Technology Director, Finance Director, HR Director | Created case with a Dari reason; submitted official proposal for 2026-08-20 10:00–11:30 at «تالار کنفرانس مرکزی»; matrix reached `3/3`; confirmation produced version 2 and preserved version 1 as historical. |
+| Peer multi-unit reschedule | Meeting ID 6; scoped peer coordinator, Finance Director, HR Director | Created `PEER_MULTI_UNIT` case; submitted peer proposal for 2026-08-21 14:00–15:30 at «تالار هماهنگی مرکزی»; matrix reached `3/3`; confirmation produced version 2 and preserved version 1 as historical. |
+| Unauthorized peer view | Executive Secretary against peer fixture | Backend returned `403 FORBIDDEN`; frontend was corrected to render a localized RTL access-denied panel with a return link instead of an indefinite spinner. |
+
+## Negative Matrix A–L
+
+| ID | Negative case | Expected protection | Evidence | Result |
+|---|---|---|---|---|
+| A | Unrelated Directorate attempts to reschedule | Policy denies outside organizational scope with HTTP 403. | Meeting policy scope checks and browser peer authorization check. | **Passed** |
+| B | Finance acknowledges on behalf of HR | Acknowledgement actor must match one of the required units; cross-unit action is denied. | `flow07Acknowledge` policy and behavioral authorization coverage. | **Passed** |
+| C | FLOW-05 Directorate publishes an Authority Office proposal | Authority proposal requires `AUTHORITY_CONTROLLED` governance and scoped Executive Secretary role. | `flow07AuthorityPropose` policy and governance-mode tests. | **Passed** |
+| D | Final confirmation with a missing acknowledgement | Confirmation requires every current required unit acknowledgement. | Behavioral test; browser confirmation remained unavailable until `3/3`. | **Passed** |
+| E | Final confirmation with an open alternative request | Open alternative blocks confirmation. | Behavioral test `alternative blocks confirmation`; UI shows open alternatives as blocking controls. | **Passed** |
+| F | Old proposal acknowledgement reused after a revised proposal | Acknowledgements are proposal-version specific and do not transfer. | Behavioral revision test and acknowledgement rows tied to active proposal. | **Passed** |
+| G | Proposal exactly matches current schedule | No-op proposal is rejected with `NO_SCHEDULE_CHANGE`. | Behavioral FLOW-07 test. | **Passed** |
+| H | Reschedule an already-started Meeting | Started or elapsed Meeting is rejected with `MEETING_ALREADY_STARTED`. | Behavioral FLOW-07 test. | **Passed** |
+| I | Participant schedule conflict | Conflict guard rejects participant overlap with `PARTICIPANT_SCHEDULE_CONFLICT`. | Conflict guard coverage and MariaDB shared-employee lock probe. | **Passed** |
+| J | Direct generic schedule PATCH/update bypass | No generic route permits silent schedule mutation. | Direct schedule mutation route test returned 404. | **Passed** |
+| K | Duplicate concurrent confirmation | Row lock and unique baseline protection allow exactly one new version and one transition. | MariaDB concurrency log `flow07_mariadb_concurrency_final.log`. | **Passed** |
+| L | Meeting identity/request invariant after reschedule | Request remains `CONVERTED_TO_MEETING`, Meeting count remains one per request, and identity/participants/units/context remain unchanged. | Final database invariant query for canonical Meeting 4 and browser fixtures 5/6. | **Passed** |
+
+## Final database invariants
+
+The canonical FLOW-06 Meeting ID 4 was not changed by the browser fixtures and remains a clean regression reference:
+
+```text
+meeting_id=4
+meeting_number=MT-2026-00004
+status=SCHEDULED
+request_status=CONVERTED_TO_MEETING
+flow_type=HIGH_AUTHORITY_INITIATED
+current_version=1
+version_count=1
+active_case=null
+units_count=3
+participants_count=4
+authority_context_count=1
+```
+
+The completed authority fixture Meeting ID 5 and peer fixture Meeting ID 6 each preserve the same request/meeting invariants while showing one confirmed successor schedule version:
+
+```text
+Meeting 5: status=SCHEDULED, request_status=CONVERTED_TO_MEETING,
+current_version=2, version_count=2, active_case=null,
+units_count=3, participants_count=3, authority_context_count=1
+
+Meeting 6: status=SCHEDULED, request_status=CONVERTED_TO_MEETING,
+current_version=2, version_count=2, active_case=null,
+units_count=3, participants_count=4, authority_context_count=0
+
+Total Meeting count in the live SQLite verification database: 6.
+```
+
+The extra fixture rows are verification data only and are not part of the production source commit. They exist to keep the canonical FLOW-06 Meeting and its immutable baseline untouched during browser verification.
+
+## Implementation corrections during FLOW-07 verification
+
+The frontend workspace previously remained on an indefinite spinner when its initial workspace request returned HTTP 403. `frontend/src/flow07.tsx` now captures initial load failures and renders a clear RTL access-denied panel with the localized backend message and an explicit «بازگشت به جلسه» link. This correction does not weaken backend authorization and does not expose a silent override.
+
+The peer browser fixture also exposed the intended permission separation: an ordinary `DIRECTOR` can acknowledge but does not receive the proposal permission, while a scoped proposal/coordinator actor needs the existing `MEETING_COORDINATOR` confirmation permission for final confirmation. The production permission matrix was not broadened; the additional role was applied only to the disposable browser fixture actor.
+
+## Automated verification commands and results
+
+```text
+cd backend && php artisan test --testsuite=Feature
+Tests: 274 passed (978 assertions)
+
+php tests/Concurrency/mysql_row_lock_test.php
+MariaDB concurrency checks passed: row lock final value=2; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9; FLOW-07 duplicate confirmation produced one new version and one transition, and shared employee lock accepted one candidate and rejected one conflicting candidate.
+
+cd frontend && pnpm build
+✓ 1859 modules transformed.
+✓ built successfully
+```
+
+## Release decision
+
+All FLOW-07 implementation, behavioral, browser, negative, invariant, concurrency, regression, and production-build gates are **Passed**. In accordance with the release rule, FLOW-07 is intentionally **not declared APPROVED / FROZEN** in this report. It is ready for the user's explicit manual approval; no subsequent workflow will be started before that approval.

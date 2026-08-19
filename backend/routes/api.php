@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MultiDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRescheduleController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -36,6 +37,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
     Route::get('/meetings', [DirectoryController::class, 'meetings']);
     Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
+    Route::get('/meetings/{meeting}/reschedule', [MeetingRescheduleController::class, 'workspace']);
+    Route::get('/meetings/{meeting}/schedule-history', [MeetingRescheduleController::class, 'history']);
+    Route::post('/meetings/{meeting}/reschedule-cases', [MeetingRescheduleController::class, 'createCase']);
+    Route::post('/meetings/{meeting}/reschedule/proposals', [MeetingRescheduleController::class, 'peerProposal']);
+    Route::post('/meetings/{meeting}/reschedule/authority-proposals', [MeetingRescheduleController::class, 'authorityProposal']);
+    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/acknowledge', [MeetingRescheduleController::class, 'acknowledge']);
+    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/request-alternative', [MeetingRescheduleController::class, 'requestAlternative']);
+    Route::post('/meetings/{meeting}/reschedule/alternative-requests/{alternative}/resolve', [MeetingRescheduleController::class, 'resolveAlternative']);
+    Route::post('/meetings/{meeting}/reschedule/confirm', [MeetingRescheduleController::class, 'confirm']);
 
     Route::get('/meeting-requests', [MeetingRequestController::class, 'index']);
     Route::post('/meeting-requests/inter-directorate', [InterDirectorateMeetingRequestController::class, 'store']);
