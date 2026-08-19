@@ -600,3 +600,42 @@ The final invariant artifact is `flow08_final_invariants.json`. It records zero 
 ## FLOW-08 release decision
 
 All implemented FLOW-08 schema, backfill, governance, action, API, RTL workspace, original negative matrix, manual participant-conflict, manual schedule-refresh, invariant, MariaDB concurrency, regression, and production-build gates are **Passed**. The cross-unit confirmation broadening and Executive Secretary authority ownership were corrected without broadening production permissions. FLOW-01 through FLOW-07 behavior remains green in the same 286-test Feature suite. FLOW-08 is intentionally **not declared APPROVED / FROZEN** until the user explicitly approves this workflow. No subsequent workflow will be started before that approval.
+
+
+## FLOW-08 final strict-reviewer gate closure
+
+**Final verification date:** 19 August 2026 GMT+4:30. The two remaining manual browser gates are now complete through the Persian/Dari RTL interface and authenticated frontend sessions.
+
+| Final gate | Fixture and account | Result | Evidence |
+|---|---|---|---|
+| High Authority protection | Meeting 16; `authority.office@example.test` | **Passed** | REMOVE of employee 9 returned HTTP 422 `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE`; no projection mutation occurred. |
+| Authority support replacement | Meeting 16; `authority.office@example.test` | **Passed** | REPLACE employee 10 `مریم نورستانی` with employee 11 `جمال صدیقی`; submit and confirmation produced participant version 2, retained High Authority, cleared the active case, and recorded `MEETING_PARTICIPANTS_CHANGED`. |
+| Valid REMOVE positive path | Meeting 18 `FLOW08-REMOVE-POSITIVE-V2`; `tech.exec@example.test` then `tech.director@example.test` | **Passed** | REMOVE of optional employee 12 `هماهنگ‌کننده peer` was submitted and confirmed by the Director of exact owner unit Technology; participant version 2 contains three participants and version 1 remains immutable history. |
+
+The final browser evidence is recorded in `flow08_browser_findings.md`. Meeting 16 remained `SCHEDULED` with its five-person projection after the Authority replacement, and Meeting 18 remained `SCHEDULED` with its request in `CONVERTED_TO_MEETING` after the valid removal. No participant mutation occurred before confirmation, no MeetingRequest was reopened, and no replacement Meeting was created.
+
+### Updated live invariants after final gates
+
+```text
+meeting_count=18
+request_meeting_duplicates=0
+participant_change_case_count=8
+meeting_16_current_participant_version=2
+meeting_16_high_authority_employee_id=9
+meeting_16_authority_support_employee_id=11
+meeting_16_active_case=null
+meeting_18_current_participant_version=2
+meeting_18_current_participant_count=3
+meeting_18_removed_optional_employee_id=12
+meeting_18_active_case=null
+meeting_18_status=SCHEDULED
+meeting_18_request_status=CONVERTED_TO_MEETING
+```
+
+The authoritative post-gate invariant artifact is `flow08_final_invariants_after_gates.json`; the execution log is `flow08_final_invariants_after_gates.log`. The disposable Meeting 17 fixture was not used as release evidence because its first setup used a child-unit participant outside the exact owner-domain rule; the valid gate was rerun cleanly on Meeting 18 with employee 12 in the exact Technology unit.
+
+## Final release decision
+
+All FLOW-08 schema, additive migration, backfill, ownership, action, API, RTL browser, negative-matrix, conflict, stale-baseline, race, concurrency, regression, build, and final strict-reviewer evidence gates are **Passed**. FLOW-08 is therefore **APPROVED / FROZEN** as of 19 August 2026. FLOW-01 through FLOW-07 remain **APPROVED / FROZEN** and unchanged by this verification.
+
+Per the release rule, development stops here. **FLOW-09 has not been started and will not be started until the user explicitly approves proceeding beyond the frozen FLOW-08 release.**
