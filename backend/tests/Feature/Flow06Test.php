@@ -87,6 +87,39 @@ class Flow06Test extends TestCase
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/distribute")->assertStatus(422);
     }
 
+    public function test_flow06_returned_draft_becomes_editable_and_can_be_resubmitted(): void
+    {
+        [$users, $units] = $this->fixture();
+        $this->actingAs($users['office'], 'sanctum')->postJson('/api/meeting-requests/authority-initiated', [
+            'subject' => 'مسودهٔ قابل اصلاح', 'purpose' => 'DECISION', 'directive' => 'دستور اولیه',
+            'description' => 'شرح اولیه', 'requested_outcome' => 'نتیجهٔ اولیه', 'proposed_agenda' => 'آجندای اولیه', 'estimated_duration_minutes' => 60,
+            'priority' => 'NORMAL', 'participating_unit_ids' => [$units['tech']->id],
+        ])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+
+        $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/submit")
+            ->assertOk()->assertJsonPath('data.status', 'PENDING_HIGH_AUTHORITY_ISSUANCE');
+        $this->actingAs($users['authority'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/return", [
+            'reason' => 'آجندا و شرح اجرایی تکمیل شود.',
+        ])->assertOk()->assertJsonPath('data.status', 'RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION');
+        $this->assertSame('DRAFT', $request->fresh()->currentDirectiveVersion->version_status);
+
+        $this->actingAs($users['office'], 'sanctum')->putJson("/api/meeting-requests/{$request->id}/authority-initiated", [
+            'subject' => 'مسودهٔ اصلاح‌شده', 'purpose' => 'DECISION', 'directive' => 'دستور اصلاح‌شده',
+            'description' => 'شرح اجرایی اصلاح‌شده', 'requested_outcome' => 'نتیجهٔ اصلاح‌شده',
+            'proposed_agenda' => 'آجندای اصلاح‌شده', 'priority' => 'NORMAL', 'participating_unit_ids' => [$units['tech']->id],
+        ])->assertOk();
+        $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/submit")
+            ->assertOk()->assertJsonPath('data.status', 'PENDING_HIGH_AUTHORITY_ISSUANCE');
+        $this->actingAs($users['authority'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/issue")
+            ->assertOk()->assertJsonPath('data.status', 'ISSUED_BY_HIGH_AUTHORITY');
+
+        $actions = $request->fresh()->actions()->pluck('action')->all();
+        $this->assertContains('AUTHORITY_DRAFT_RETURNED', $actions);
+        $this->assertSame(2, collect($actions)->filter(fn (string $action): bool => $action === 'DRAFT_SUBMITTED_FOR_AUTHORITY_ISSUANCE')->count());
+        $this->assertContains('HIGH_AUTHORITY_DIRECTIVE_ISSUED', $actions);
+    }
+
     public function test_flow06_material_revision_requires_reissuance_and_invalidates_old_acknowledgements(): void
     {
         [$users, $units] = $this->fixture();

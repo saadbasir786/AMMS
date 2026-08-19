@@ -22,7 +22,7 @@ class ReturnAuthorityInitiatedDraftForCorrection
             abort_unless($request->status === MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
             $from = $this->transition06($request, MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION);
             $version = $this->currentVersion($request);
-            $version->update(['version_status' => 'RETURNED_FOR_CORRECTION']);
+            $version->update(['version_status' => 'DRAFT']);
             $this->record06($request, $actor, 'AUTHORITY_DRAFT_RETURNED', $from, MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value, $reason, ['directive_version' => $version->version]);
             $this->notifyUser($request->created_by, 'مسودهٔ جلسه برگشت داده شد', 'مسودهٔ دستور جلسه برای اصلاح برگشت داده شد.', $request);
             return $this->response06($request);
