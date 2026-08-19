@@ -230,6 +230,7 @@ Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->gr
     Route::post('/heartbeat', [TerminalApiController::class, 'heartbeat']);
     Route::get('/assignments/current', [TerminalApiController::class, 'currentAssignments']);
     Route::post('/assignments/{assignment:uuid}/activate', [TerminalApiController::class, 'activate'])->middleware('throttle:10,1');
+    Route::get('/enrollment/current', [TerminalBiometricEnrollmentController::class, 'current']);
     Route::post('/enrollment/{enrollment:uuid}/template', [TerminalBiometricEnrollmentController::class, 'submit']);
 });
 

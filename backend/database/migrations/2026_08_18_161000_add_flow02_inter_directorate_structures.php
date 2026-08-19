@@ -54,11 +54,11 @@ return new class extends Migration
 
         Schema::create('meeting_request_participant_nominations', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('employee_id')->constrained('employees')->restrictOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('nominated_by_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('nominated_by_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'mrpn_request_fk')->cascadeOnDelete();
+            $table->foreignId('employee_id')->constrained('employees', 'id', 'mrpn_employee_fk')->restrictOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'mrpn_unit_fk')->restrictOnDelete();
+            $table->foreignId('nominated_by_unit_id')->constrained('organizational_units', 'id', 'mrpn_nom_unit_fk')->restrictOnDelete();
+            $table->foreignId('nominated_by_user_id')->constrained('users', 'id', 'mrpn_nom_user_fk')->restrictOnDelete();
             $table->string('participant_stage', 30)->default('PROPOSED');
             $table->string('nomination_status', 30)->default('NOMINATED');
             $table->timestamps();

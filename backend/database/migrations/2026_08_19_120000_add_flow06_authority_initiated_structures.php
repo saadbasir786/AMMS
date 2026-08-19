@@ -17,7 +17,7 @@ return new class extends Migration
 
         Schema::create('meeting_request_directive_versions', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'fdv_request_fk')->cascadeOnDelete();
             $table->unsignedInteger('version');
             $table->string('version_status', 40)->default('DRAFT');
             $table->string('subject');
@@ -33,10 +33,10 @@ return new class extends Migration
             $table->string('preferred_location')->nullable();
             $table->text('proposed_agenda')->nullable();
             $table->json('participating_unit_ids');
-            $table->foreignId('prepared_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('issued_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('authority_employee_id')->nullable()->constrained('employees')->nullOnDelete();
-            $table->foreignId('authority_position_id')->nullable()->constrained('positions')->nullOnDelete();
+            $table->foreignId('prepared_by')->constrained('users', 'id', 'fdv_prepared_user_fk')->restrictOnDelete();
+            $table->foreignId('issued_by')->nullable()->constrained('users', 'id', 'fdv_issued_user_fk')->nullOnDelete();
+            $table->foreignId('authority_employee_id')->nullable()->constrained('employees', 'id', 'fdv_authority_employee_fk')->nullOnDelete();
+            $table->foreignId('authority_position_id')->nullable()->constrained('positions', 'id', 'fdv_authority_position_fk')->nullOnDelete();
             $table->timestamp('issued_at')->nullable();
             $table->boolean('is_current')->default(false);
             $table->timestamps();
@@ -47,13 +47,13 @@ return new class extends Migration
 
         Schema::create('meeting_request_unit_responses', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('meeting_request_directive_version_id')->constrained('meeting_request_directive_versions')->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'fur_request_fk')->cascadeOnDelete();
+            $table->foreignId('meeting_request_directive_version_id')->constrained('meeting_request_directive_versions', 'id', 'fur_directive_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'fur_unit_fk')->restrictOnDelete();
             $table->string('response_status', 40)->default('PENDING_ACKNOWLEDGEMENT');
-            $table->foreignId('coordination_started_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('coordination_started_by')->nullable()->constrained('users', 'id', 'fur_coord_user_fk')->nullOnDelete();
             $table->timestamp('coordination_started_at')->nullable();
-            $table->foreignId('acknowledged_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('acknowledged_by')->nullable()->constrained('users', 'id', 'fur_ack_user_fk')->nullOnDelete();
             $table->timestamp('acknowledged_at')->nullable();
             $table->timestamps();
             $table->unique(['meeting_request_id', 'meeting_request_directive_version_id', 'organizational_unit_id'], 'flow06_unit_response_unique');
@@ -62,13 +62,13 @@ return new class extends Migration
 
         Schema::create('meeting_request_directive_clarifications', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('meeting_request_directive_version_id')->constrained('meeting_request_directive_versions')->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('requested_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'fdc_request_fk')->cascadeOnDelete();
+            $table->foreignId('meeting_request_directive_version_id')->constrained('meeting_request_directive_versions', 'id', 'fdc_directive_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'fdc_unit_fk')->restrictOnDelete();
+            $table->foreignId('requested_by')->constrained('users', 'id', 'fdc_requested_user_fk')->restrictOnDelete();
             $table->timestamp('requested_at');
             $table->text('reason');
-            $table->foreignId('responded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('responded_by')->nullable()->constrained('users', 'id', 'fdc_responded_user_fk')->nullOnDelete();
             $table->timestamp('responded_at')->nullable();
             $table->text('response')->nullable();
             $table->timestamps();
@@ -77,7 +77,7 @@ return new class extends Migration
 
         Schema::table('meeting_request_authority_contexts', function (Blueprint $table): void {
             $table->string('origin_type', 40)->default('DIRECTORATE_INITIATED')->after('authority_type');
-            $table->foreignId('current_directive_version_id')->nullable()->after('authority_employee_id')->constrained('meeting_request_directive_versions')->nullOnDelete();
+            $table->foreignId('current_directive_version_id')->nullable()->after('authority_employee_id')->constrained('meeting_request_directive_versions', 'id', 'fac_current_directive_fk')->nullOnDelete();
             $table->index(['origin_type', 'authority_employee_id'], 'flow06_authority_origin_idx');
         });
     }

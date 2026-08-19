@@ -6,11 +6,24 @@ use App\Actions\Biometrics\SubmitFingerprintTemplate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubmitFingerprintTemplateRequest;
 use App\Http\Resources\BiometricTemplateResource;
+use App\Http\Resources\BiometricEnrollmentSessionResource;
+use App\Support\BiometricFingerPosition;
 use App\Models\BiometricEnrollmentSession;
 use App\Models\Terminal;
 
 class TerminalBiometricEnrollmentController extends Controller
 {
+    public function current(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        /** @var Terminal $terminal */
+        $terminal = $request->attributes->get('terminal');
+        $enrollment = BiometricEnrollmentSession::query()->with('employee')->active()->where('terminal_id', $terminal->id)->latest('id')->first();
+        if (!$enrollment || !$enrollment->isActive()) {
+            return response()->json(['success' => true, 'data' => ['enrollment' => null, 'finger_positions' => BiometricFingerPosition::all()]]);
+        }
+        return response()->json(['success' => true, 'data' => ['enrollment' => new BiometricEnrollmentSessionResource($enrollment), 'finger_positions' => BiometricFingerPosition::all()]]);
+    }
+
     public function submit(SubmitFingerprintTemplateRequest $request, BiometricEnrollmentSession $enrollment, SubmitFingerprintTemplate $action): BiometricTemplateResource
     {
         /** @var Terminal $terminal */

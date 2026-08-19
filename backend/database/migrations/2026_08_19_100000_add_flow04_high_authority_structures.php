@@ -21,10 +21,10 @@ return new class extends Migration
 
         Schema::create('organization_authorities', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_id')->constrained('organizations', 'id', 'oa_org_fk')->cascadeOnDelete();
             $table->string('authority_type', 40);
-            $table->foreignId('authority_position_id')->constrained('positions')->restrictOnDelete();
-            $table->foreignId('authority_office_unit_id')->constrained('organizational_units')->restrictOnDelete();
+            $table->foreignId('authority_position_id')->constrained('positions', 'id', 'oa_position_fk')->restrictOnDelete();
+            $table->foreignId('authority_office_unit_id')->constrained('organizational_units', 'id', 'oa_unit_fk')->restrictOnDelete();
             $table->string('status', 20)->default('ACTIVE');
             $table->boolean('is_primary')->default(true);
             $table->timestamps();
@@ -34,20 +34,20 @@ return new class extends Migration
 
         Schema::create('meeting_request_authority_contexts', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('organization_authority_id')->constrained('organization_authorities')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->unique()->constrained('meeting_requests', 'id', 'mrac_request_fk')->cascadeOnDelete();
+            $table->foreignId('organization_authority_id')->constrained('organization_authorities', 'id', 'mrac_authority_fk')->restrictOnDelete();
             $table->string('authority_type', 40);
-            $table->foreignId('authority_office_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('authority_position_id')->constrained('positions')->restrictOnDelete();
-            $table->foreignId('authority_employee_id')->nullable()->constrained('employees')->restrictOnDelete();
+            $table->foreignId('authority_office_unit_id')->constrained('organizational_units', 'id', 'mrac_unit_fk')->restrictOnDelete();
+            $table->foreignId('authority_position_id')->constrained('positions', 'id', 'mrac_position_fk')->restrictOnDelete();
+            $table->foreignId('authority_employee_id')->nullable()->constrained('employees', 'id', 'mrac_employee_fk')->restrictOnDelete();
             $table->string('office_review_status', 40)->default('PENDING');
-            $table->foreignId('office_reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('office_reviewed_by')->nullable()->constrained('users', 'id', 'mrac_office_user_fk')->nullOnDelete();
             $table->timestamp('office_reviewed_at')->nullable();
             $table->text('office_review_comment')->nullable();
-            $table->foreignId('forwarded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('forwarded_by')->nullable()->constrained('users', 'id', 'mrac_forward_user_fk')->nullOnDelete();
             $table->timestamp('forwarded_at')->nullable();
             $table->string('authority_decision_status', 40)->default('PENDING');
-            $table->foreignId('authority_decided_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('authority_decided_by')->nullable()->constrained('users', 'id', 'mrac_decided_user_fk')->nullOnDelete();
             $table->timestamp('authority_decided_at')->nullable();
             $table->text('authority_decision_comment')->nullable();
             $table->timestamps();
@@ -57,37 +57,37 @@ return new class extends Migration
 
         Schema::create('meeting_authority_schedule_acknowledgements', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('meeting_schedule_proposal_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('requesting_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('acknowledged_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'masa_request_fk')->cascadeOnDelete();
+            $table->foreignId('meeting_schedule_proposal_id')->constrained('meeting_schedule_proposals', 'id', 'masa_proposal_fk')->cascadeOnDelete();
+            $table->foreignId('requesting_unit_id')->constrained('organizational_units', 'id', 'masa_unit_fk')->restrictOnDelete();
+            $table->foreignId('acknowledged_by')->constrained('users', 'id', 'masa_user_fk')->restrictOnDelete();
             $table->timestamp('acknowledged_at');
             $table->timestamps();
             $table->unique(['meeting_request_id', 'meeting_schedule_proposal_id', 'requesting_unit_id'], 'authority_schedule_ack_unique');
-            $table->index(['meeting_request_id', 'acknowledged_at']);
+            $table->index(['meeting_request_id', 'acknowledged_at'], 'masa_request_time_idx');
         });
 
         Schema::create('meeting_authority_participant_confirmations', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'mapc_request_fk')->cascadeOnDelete();
             $table->string('side', 20);
-            $table->foreignId('confirmed_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('confirmed_by')->constrained('users', 'id', 'mapc_user_fk')->restrictOnDelete();
             $table->timestamp('confirmed_at');
             $table->timestamps();
             $table->unique(['meeting_request_id', 'side'], 'authority_participant_confirmation_side_unique');
-            $table->index(['meeting_request_id', 'side']);
+            $table->index(['meeting_request_id', 'side'], 'mapc_request_side_idx');
         });
 
         Schema::create('meeting_authority_contexts', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('organization_authority_id')->constrained('organization_authorities')->restrictOnDelete();
+            $table->foreignId('meeting_id')->unique()->constrained('meetings', 'id', 'mac_meeting_fk')->cascadeOnDelete();
+            $table->foreignId('organization_authority_id')->constrained('organization_authorities', 'id', 'mac_authority_fk')->restrictOnDelete();
             $table->string('authority_type', 40);
-            $table->foreignId('authority_position_id')->constrained('positions')->restrictOnDelete();
-            $table->foreignId('authority_employee_id')->constrained('employees')->restrictOnDelete();
-            $table->foreignId('authority_office_unit_id')->constrained('organizational_units')->restrictOnDelete();
+            $table->foreignId('authority_position_id')->constrained('positions', 'id', 'mac_position_fk')->restrictOnDelete();
+            $table->foreignId('authority_employee_id')->constrained('employees', 'id', 'mac_employee_fk')->restrictOnDelete();
+            $table->foreignId('authority_office_unit_id')->constrained('organizational_units', 'id', 'mac_unit_fk')->restrictOnDelete();
             $table->timestamps();
-            $table->index(['authority_employee_id', 'meeting_id']);
+            $table->index(['authority_employee_id', 'meeting_id'], 'mac_employee_meeting_idx');
         });
     }
 

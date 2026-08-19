@@ -11,54 +11,54 @@ return new class extends Migration
     {
         Schema::create('meeting_participant_change_cases', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_id')->constrained('meetings')->restrictOnDelete();
+            $table->foreignId('meeting_id')->constrained('meetings', 'id', 'mpcc_meeting_fk')->restrictOnDelete();
             $table->string('owner_type', 20);
-            $table->foreignId('owner_unit_id')->nullable()->constrained('organizational_units')->nullOnDelete();
+            $table->foreignId('owner_unit_id')->nullable()->constrained('organizational_units', 'id', 'mpcc_owner_unit_fk')->nullOnDelete();
             $table->unsignedBigInteger('baseline_participant_version_id');
             $table->unsignedBigInteger('baseline_schedule_version_id')->nullable();
-            $table->foreignId('initiated_by_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('initiated_by_user_id')->constrained('users', 'id', 'mpcc_initiated_user_fk')->restrictOnDelete();
             $table->text('reason');
             $table->string('status', 32)->default('DRAFT')->index();
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
-            $table->index(['meeting_id', 'status']);
+            $table->index(['meeting_id', 'status'], 'mpcc_meeting_status_idx');
         });
 
         Schema::create('meeting_participant_versions', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_id')->constrained('meetings')->restrictOnDelete();
+            $table->foreignId('meeting_id')->constrained('meetings', 'id', 'mpv_meeting_fk')->restrictOnDelete();
             $table->unsignedInteger('version_number');
             $table->unsignedBigInteger('source_change_case_id')->nullable();
-            $table->foreignId('created_by_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('created_by_user_id')->constrained('users', 'id', 'mpv_created_user_fk')->restrictOnDelete();
             $table->timestamp('created_at')->useCurrent();
             $table->unique(['meeting_id', 'version_number'], 'participant_versions_meeting_version_unique');
-            $table->index(['meeting_id', 'created_at']);
+            $table->index(['meeting_id', 'created_at'], 'mpv_meeting_created_idx');
         });
 
         Schema::create('meeting_participant_version_members', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('participant_version_id')->constrained('meeting_participant_versions')->restrictOnDelete();
-            $table->foreignId('employee_id')->constrained('employees')->restrictOnDelete();
-            $table->foreignId('organizational_unit_id')->nullable()->constrained('organizational_units')->nullOnDelete();
+            $table->foreignId('participant_version_id')->constrained('meeting_participant_versions', 'id', 'mpvm_version_fk')->restrictOnDelete();
+            $table->foreignId('employee_id')->constrained('employees', 'id', 'mpvm_employee_fk')->restrictOnDelete();
+            $table->foreignId('organizational_unit_id')->nullable()->constrained('organizational_units', 'id', 'mpvm_unit_fk')->nullOnDelete();
             $table->string('participant_role')->nullable();
             $table->string('owner_type', 20);
-            $table->foreignId('owner_unit_id')->nullable()->constrained('organizational_units')->nullOnDelete();
+            $table->foreignId('owner_unit_id')->nullable()->constrained('organizational_units', 'id', 'mpvm_owner_unit_fk')->nullOnDelete();
             $table->boolean('is_mandatory')->default(false);
             $table->timestamp('created_at')->useCurrent();
             $table->unique(['participant_version_id', 'employee_id'], 'participant_version_members_employee_unique');
-            $table->index(['participant_version_id', 'owner_type', 'owner_unit_id']);
+            $table->index(['participant_version_id', 'owner_type', 'owner_unit_id'], 'mpvm_version_owner_idx');
         });
 
         Schema::create('meeting_participant_change_items', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('change_case_id')->constrained('meeting_participant_change_cases')->cascadeOnDelete();
+            $table->foreignId('change_case_id')->constrained('meeting_participant_change_cases', 'id', 'mpci_case_fk')->cascadeOnDelete();
             $table->string('operation', 16);
-            $table->foreignId('old_employee_id')->nullable()->constrained('employees')->restrictOnDelete();
-            $table->foreignId('new_employee_id')->nullable()->constrained('employees')->restrictOnDelete();
+            $table->foreignId('old_employee_id')->nullable()->constrained('employees', 'id', 'mpci_old_employee_fk')->restrictOnDelete();
+            $table->foreignId('new_employee_id')->nullable()->constrained('employees', 'id', 'mpci_new_employee_fk')->restrictOnDelete();
             $table->string('participant_role')->nullable();
             $table->timestamps();
-            $table->index(['change_case_id', 'operation']);
+            $table->index(['change_case_id', 'operation'], 'mpci_case_operation_idx');
         });
 
         Schema::table('meeting_participant_change_cases', function (Blueprint $table): void {

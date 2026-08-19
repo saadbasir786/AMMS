@@ -13,6 +13,7 @@ use App\Models\MeetingUnit;
 use App\Models\TerminalMeetingSession;
 use App\Models\User;
 use App\Support\BiometricCandidateSetBuilder;
+use App\Support\TerminalManifestBuilder;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,9 +49,15 @@ class Flow10ACandidateSetTest extends TestCase
         $this->assertSame(1, $payload['candidate_count'] ?? count($payload['candidates']));
         $this->assertSame(1, $payload['biometric_ready']);
         $this->assertSame($active->uuid, $payload['candidates'][0]['template_uuid']);
-        $this->assertArrayNotHasKey('template_data', $payload['candidates'][0]);
-        $this->assertArrayNotHasKey('template_checksum', $payload['candidates'][0]);
+        $this->assertSame('ACTIVE_TEMPLATE', $payload['candidates'][0]['template_data']);
+        $this->assertSame(hash('sha256', 'ACTIVE_TEMPLATE'), $payload['candidates'][0]['template_checksum']);
         $this->assertSame($payload['candidate_set_checksum'], app(BiometricCandidateSetBuilder::class)->build($session)['candidate_set_checksum']);
+        $manifest = app(TerminalManifestBuilder::class)->build($session);
+        $this->assertStringNotContainsString('template_data', json_encode($manifest, JSON_UNESCAPED_SLASHES));
+        $this->withHeader('Authorization', 'Bearer candidate-session')
+            ->getJson('/api/terminal/v1/sessions/'.$session->uuid.'/biometric-candidates')
+            ->assertOk()
+            ->assertJsonPath('data.candidates.0.template_data', 'ACTIVE_TEMPLATE');
     }
 
     public function test_schedule_change_rejects_old_candidate_session(): void

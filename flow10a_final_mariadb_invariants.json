@@ -1,0 +1,15 @@
+{
+    "artifact": "FLOW10A_FINAL_MARIADB_INVARIANTS",
+    "database": "amms_concurrency_test",
+    "active_terminal_sessions": 0,
+    "active_enrollment_sessions": 0,
+    "active_terminals": 6,
+    "active_template_rows": 0,
+    "revoked_or_superseded_template_history": 6,
+    "attendance_rows": 1,
+    "duplicate_meeting_employee_identities": 0,
+    "plaintext_probe_columns_present": [],
+    "meeting_status_counts": {
+        "SCHEDULED": 5
+    }
+}

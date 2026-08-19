@@ -24,10 +24,10 @@ return new class extends Migration
 
         Schema::create('meeting_request_unit_reviews', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'mru_review_request_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'mru_review_unit_fk')->restrictOnDelete();
             $table->string('review_status', 40)->default('PENDING_REVIEW');
-            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('reviewed_by')->nullable()->constrained('users', 'id', 'mru_review_user_fk')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->text('comment')->nullable();
             $table->timestamps();
@@ -37,9 +37,9 @@ return new class extends Migration
 
         Schema::create('meeting_schedule_proposal_acceptances', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_schedule_proposal_id')->constrained('meeting_schedule_proposals')->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('accepted_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_schedule_proposal_id')->constrained('meeting_schedule_proposals', 'id', 'mspa_proposal_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'mspa_unit_fk')->restrictOnDelete();
+            $table->foreignId('accepted_by')->constrained('users', 'id', 'mspa_user_fk')->restrictOnDelete();
             $table->timestamp('accepted_at');
             $table->timestamps();
             $table->unique(['meeting_schedule_proposal_id', 'organizational_unit_id'], 'schedule_acceptance_unit_unique');
@@ -48,9 +48,9 @@ return new class extends Migration
 
         Schema::create('meeting_request_unit_participant_confirmations', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('confirmed_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'mru_confirm_request_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'mru_confirm_unit_fk')->restrictOnDelete();
+            $table->foreignId('confirmed_by')->constrained('users', 'id', 'mru_confirm_user_fk')->restrictOnDelete();
             $table->timestamp('confirmed_at');
             $table->timestamps();
             $table->unique(['meeting_request_id', 'organizational_unit_id'], 'participant_confirmation_unit_unique');

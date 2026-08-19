@@ -38,6 +38,10 @@ Enrollment routes are terminal-credential scoped but require a human-created enr
 
 Human routes create and manage enrollment sessions, list safe biometric metadata, revoke templates, and view attendance; no human route returns `template_data`.
 
+## Strict-closure correction: terminal-only candidate bytes
+
+The session-authenticated `/api/terminal/v1/sessions/{session}/biometric-candidates` endpoint is the sole API boundary allowed to return active template payloads. Its payload is restricted to the authenticated active terminal session, the exact bound `participant_version_id`, active templates only, and the checksum-bound candidate set. React/human resources, audit metadata, and the ordinary FLOW-09 manifest never return `template_data`. This enables the Android terminal to perform local 1:N matching without widening the human or manifest privacy boundary.
+
 ## Candidate set contract
 
 Candidate sets are built only from `terminal_meeting_sessions.participant_version_id`. For each exact participant-version member, only active templates are included. Unenrolled participants remain in official participant counts but are absent from candidate bytes and are reported separately as `biometric_ready=false`. Candidate checksums are deterministic over employee/template UUID/version identities and template checksums, while the actual package sent to a terminal includes only the exact candidate template bytes and minimal matching metadata. No email, phone, RBAC, password, salary, or unrelated HR data is included.

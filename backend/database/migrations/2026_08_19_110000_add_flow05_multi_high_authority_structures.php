@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::create('meeting_authority_schedule_unit_acknowledgements', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('meeting_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('meeting_schedule_proposal_id')->constrained('meeting_schedule_proposals')->cascadeOnDelete();
-            $table->foreignId('organizational_unit_id')->constrained('organizational_units')->restrictOnDelete();
-            $table->foreignId('acknowledged_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('meeting_request_id')->constrained('meeting_requests', 'id', 'mhsua_request_fk')->cascadeOnDelete();
+            $table->foreignId('meeting_schedule_proposal_id')->constrained('meeting_schedule_proposals', 'id', 'mhsua_proposal_fk')->cascadeOnDelete();
+            $table->foreignId('organizational_unit_id')->constrained('organizational_units', 'id', 'mhsua_unit_fk')->restrictOnDelete();
+            $table->foreignId('acknowledged_by')->constrained('users', 'id', 'mhsua_user_fk')->restrictOnDelete();
             $table->timestamp('acknowledged_at');
             $table->timestamps();
             $table->unique(['meeting_request_id', 'meeting_schedule_proposal_id', 'organizational_unit_id'], 'multi_high_schedule_unit_ack_unique');

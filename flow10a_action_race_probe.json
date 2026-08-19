@@ -1,0 +1,86 @@
+{
+    "concurrent_enrollment_same_employee": [
+        {
+            "ok": true,
+            "result": "ENROLLMENT_COMMITTED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "BIOMETRIC_ENROLLMENT_ALREADY_ACTIVE",
+            "status": 422
+        }
+    ],
+    "concurrent_enrollment_final_active_sessions": 1,
+    "two_terminal_attendance_submissions": [
+        {
+            "ok": true,
+            "result": "ATTENDANCE_COMMITTED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "ATTENDANCE_ALREADY_RECORDED",
+            "status": 409
+        }
+    ],
+    "two_terminal_attendance_final_rows": 1,
+    "reenrollment_vs_revocation": [
+        {
+            "ok": true,
+            "result": "REENROLL_COMMITTED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "BIOMETRIC_TEMPLATE_REVOKED",
+            "status": 422
+        }
+    ],
+    "reenrollment_vs_revocation_active_rows": 1,
+    "flow07_schedule_vs_attendance": [
+        {
+            "ok": true,
+            "result": "SCHEDULE_CHANGED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "TERMINAL_SESSION_STALE",
+            "status": 422
+        }
+    ],
+    "flow07_schedule_final_session_stale": 1,
+    "flow08_participant_vs_attendance": [
+        {
+            "ok": true,
+            "result": "PARTICIPANTS_CHANGED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "TERMINAL_SESSION_STALE",
+            "status": 422
+        }
+    ],
+    "template_revocation_vs_attendance": [
+        {
+            "ok": true,
+            "result": "REVOKE_COMMITTED"
+        },
+        {
+            "ok": false,
+            "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+            "message": "",
+            "code": "BIOMETRIC_TEMPLATE_REVOKED",
+            "status": 422
+        }
+    ],
+    "template_revocation_vs_attendance_final_status": "REVOKED",
+    "status": "ACTION_LEVEL_RACE_PROBE_COMPLETED"
+}

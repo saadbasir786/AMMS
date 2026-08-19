@@ -1,90 +1,110 @@
-# AMMS Prompt 10A Verification
-## Biometric & Meeting Attendance Software Foundation
+# AMMS FLOW-10A Verification — Strict Closure
 
-**Verification date:** 19 August 2026 GMT+4:30  
-**Status:** **IMPLEMENTATION IN PROGRESS — FLOW-10A software gate closure pending**  
-**FLOW-10B:** **DEFERRED / WAITING FOR PHYSICAL DEVICE**  
+**Verification date:** 20 August 2026 GMT+4:30
+**Status:** **VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL**
+**FLOW-10B:** **DEFERRED / WAITING FOR SVT3000 AND LAWFUL DERMALOG SDK ACCESS**
 **FLOW-11:** **Not started**
 
 ## Executive result
 
-Prompt 10A has been reconciled as a device-independent software foundation. The implementation is additive to frozen FLOW-01 through FLOW-09. It introduces restricted fingerprint-template persistence, enrollment-session contracts, explicit template lifecycle Actions, a clearly labeled `FakeFingerprintAdapter`, FLOW-09 session-bound candidate-set generation, fingerprint-attendance and manual-override contracts, and Persian/Dari RTL metadata/attendance workspaces.
+FLOW-10A is implemented as an additive, device-independent software foundation over frozen FLOW-01 through FLOW-09. The strict-closure pass addressed the four findings raised by the reviewer: the terminal-only candidate contract now returns the active template bytes required for local 1:N matching; an independent `terminal-android/` foundation exists with Enrollment Mode, Meeting Mode, deterministic `FakeFingerprintAdapter`, attendance submission, session close, and memory clearing; real Laravel Action-level MariaDB/InnoDB races were executed; and the verification artifacts were regenerated around one authoritative regression/build run.
 
-No claim is made that real SVT3000 capture, DERMALOG SDK behavior, real template extraction, real quality thresholds, real 1:N matching, or physical fingerprint attendance has been verified. Those requirements belong to FLOW-10B and are explicitly deferred.
+No claim is made for physical SVT3000 capture, DERMALOG SDK behavior, real template extraction, vendor quality thresholds, physical local matching, or hardware attendance. Those are FLOW-10B boundaries and remain explicitly deferred.
 
-## Implemented foundation
+## Corrected candidate-set privacy contract
 
-| Area | Current result |
+The previous privacy correction was too broad for the agreed architecture. The correct split is now enforced and tested:
+
+| Boundary | `template_data` bytes | Scope |
+|---|---:|---|
+| React/human API resources | Never | Human permissions and safe metadata only. |
+| Ordinary FLOW-09 manifest | Never | The frozen manifest remains unchanged and non-biometric. |
+| Session-authenticated terminal biometric-candidates endpoint | Yes | Only ACTIVE templates for the exact bound Participant Version of the authenticated active terminal session. |
+| Audit metadata and attendance rows | Never | Checksums, identifiers, scores, and sanitized metadata only. |
+
+The terminal endpoint is the only delivery boundary for local 1:N matching. The endpoint performs terminal-session authentication, session freshness checks, exact Participant Version binding, ACTIVE-template filtering, and checksum construction. The terminal client must clear candidate bytes on close, expiry, stale-version response, revocation, assignment revoke, and sign-out.
+
+## Implemented software foundation
+
+| Area | Result |
 |---|---|
-| Additive schema | `employee_biometric_templates`, `biometric_enrollment_sessions`, and `meeting_attendance_records` migrations applied without reset. |
-| Template privacy | `template_data` is hidden from the model serialization and safe human resource; candidate payloads, attendance records, audit metadata, and browser resources exclude template/image/probe bytes; no image/probe columns exist. |
-| Version lifecycle | Immutable version rows, active/superseded/revoked statuses, SHA-256 checksum, explicit re-enrollment and reason-required revocation Actions. |
-| Enrollment governance | New permissions, `BIOMETRIC_ENROLLMENT_OFFICER` role, explicit Gate-to-Policy checks, configurable TTL, and minimum active-finger count. |
-| Terminal mode boundary | Enrollment start checks terminal availability and rejects an active FLOW-09 session with `TERMINAL_BUSY`; terminal credential/session ownership is isolated. |
-| Device abstraction | `FingerprintDeviceAdapter`, `IdentificationResult`, and clearly labeled `FakeFingerprintAdapter`; no vendor API has been invented. |
-| Terminal enrollment contract | `POST /api/terminal/v1/enrollment/{enrollment}/template` is terminal-credential authenticated, session/terminal-bound, template-only, and rejects raw-image fields. |
-| Candidate set | Separate session-authenticated endpoint built strictly from `participant_version_id`; ordinary FLOW-09 manifest remains non-biometric; template bytes are excluded from the candidate payload. |
-| Attendance | Fingerprint submission validates session freshness, participant membership, active template ownership and organization, candidate checksum, uniqueness, client-event idempotency, template revocation, historical immutability, and server time. |
-| Manual fallback | Human-only `MANUAL_OVERRIDE`, mandatory reason, governance resolver, current participant membership, and immutable record. |
-| RTL UI | `/admin/biometrics`, `/employees/:id/biometrics`, and `/meetings/:id/attendance` added without changing frozen workflow pages. |
+| Additive persistence | `employee_biometric_templates`, `biometric_enrollment_sessions`, and `meeting_attendance_records` are additive migrations. |
+| Template lifecycle | Immutable versions, ACTIVE/SUPERSEDED/REVOKED states, SHA-256 checksums, explicit re-enrollment, and reason-required revocation. |
+| Enrollment governance | Scoped permissions, `BIOMETRIC_ENROLLMENT_OFFICER`, explicit Gate/Policy registration, TTL, minimum active fingers, terminal ownership, and `TERMINAL_BUSY` protection. |
+| Terminal enrollment | `GET /api/terminal/v1/enrollment/current` retrieves the current safe task; `POST /api/terminal/v1/enrollment/{enrollment}/template` accepts template payloads only and rejects raw images/probes. |
+| Candidate set | `GET /api/terminal/v1/sessions/{session}/biometric-candidates` returns exact Participant-Version candidates including template bytes only at the terminal boundary. |
+| Attendance | Server validates session freshness, participant membership, template ownership, organization, candidate checksum, uniqueness, idempotency, revocation/supersession, and server time. |
+| Manual fallback | Human-only `MANUAL_OVERRIDE`, mandatory reason, governance ownership, current participant membership, and immutable records. |
+| Android foundation | `terminal-android/` includes Kotlin workflow/API seams, Persian RTL activity shell, Enrollment Mode, Meeting Mode, local fake identification, attendance, close, and memory clearing. |
+| Hardware boundary | No DERMALOG class, SDK, physical device assumption, or silent fake-driver fallback is present. FLOW-10B remains deferred. |
 
-## Current verification results
+## Independent Android foundation evidence
 
-The deterministic adapter contract tests pass, the existing Feature regression remains green, and the frontend production build succeeds.
+The sandbox has Java 21 after installing the JVM compiler, but it has no Android SDK, Gradle executable, ADB device, or legitimate DERMALOG SDK. Therefore the Android module’s vendor-independent core was compiled and executed as a JVM contract rather than falsely reported as an APK/device build.
 
 ```text
-Flow10AAdapterTest: 2 tests passed (10 assertions)
-Flow10AAuthorizationTest: 3 tests passed (4 assertions)
-Flow10ABiometricLifecycleTest: 1 test passed (10 assertions)
-Flow10AAttendanceTest: 2 tests passed (10 assertions)
-Flow10ACandidateSetTest: 3 tests passed (10 assertions)
-Flow10AFingerprintAttendanceTest: 3 tests passed (14 assertions)
-Flow10ATerminalBoundaryTest: 2 tests passed (8 assertions)
-FLOW-10A focused tests: 16 tests passed (66 assertions)
-Full Feature suite: 316 tests, 1,151 assertions passed in the definitive release regression.
-Frontend build: 1,862 modules transformed, successful
+FLOW10A_ANDROID_CORE_PASS vectors=8
+FLOW10A_ANDROID_FOUNDATION_PASS files=5
 ```
 
-The frontend production build succeeds after 1,862 modules are transformed. The physical capability probe found no attached ADB device, Android build toolchain, or legitimate DERMALOG SDK supplied to the project. This is recorded as FLOW-10B deferral, not as a software-foundation failure.
+The tested vectors cover synthetic MATCH, NO_MATCH, LOW_SCORE, UNAVAILABLE, and CANCELLED outcomes, Meeting Mode state, Enrollment Mode state, and zero candidate bytes after `closeAndClear()`. The source-level workflow explicitly covers terminal credential login, current assignment retrieval, FLOW-09 activation, candidate-byte download, local identification, fingerprint attendance submission, session close, enrollment task retrieval, and template submission.
 
-## Negative Matrix A–P status
+## Action-level MariaDB/InnoDB race evidence
 
-| ID | Case | Current evidence/status |
-|---|---|---|
-| A | Unauthorized human starts enrollment | Policy and permission path implemented; dedicated end-to-end assertion pending. |
-| B | Terminal with active Meeting session starts enrollment | `StartBiometricEnrollment` rejects with `TERMINAL_BUSY`; dedicated assertion pending. |
-| C | Terminal A accesses Terminal B enrollment/session | Dedicated terminal ownership assertion pending. |
-| D | Template submission contains image/probe field | FormRequest rejects with `RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED`; assertion pending. |
-| E | Low-quality simulated capture | Fake adapter exposes rejected quality; adapter test passes; endpoint assertion pending. |
-| F | Concurrent enrollment for same employee | MariaDB/InnoDB uniqueness probe passed with one active template row; full Action-level race assertion remains pending. |
-| G | Re-enrollment | Explicit version replacement and immutability Action implemented; end-to-end assertion pending. |
-| H | Revoked template appears in candidate set | Candidate builder filters `ACTIVE`; assertion pending. |
-| I | FLOW-07 stale session | Candidate/attendance paths reuse session freshness checks; dedicated assertion pending. |
-| J | FLOW-08 stale session | Candidate/attendance paths reuse participant-version freshness checks; dedicated assertion pending. |
-| K | Matched employee is not a Participant Version member | Server returns `BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT`; assertion pending. |
-| L | Template belongs to a different employee | Server rejects mismatch as `BIOMETRIC_TEMPLATE_STALE`; assertion pending. |
-| M | Two terminals submit attendance concurrently | MariaDB/InnoDB uniqueness probe passed with one attendance row; full Action-level race assertion remains pending. |
-| N | Manual attendance without reason | FormRequest requires reason; assertion pending. |
-| O | Unauthorized manual override | Permission and governance resolver implemented; assertion pending. |
-| P | Final invariants and privacy boundary | Existing FLOW-01–FLOW-09 regression passed; final FLOW-10A invariant artifact pending. |
+The dedicated `amms_concurrency_test` database was rebuilt from the complete Laravel migration set. During this work, several pre-existing MySQL identifier-length defects in FLOW-02 through FLOW-09 migrations were corrected with unique short constraint/index names; schema semantics were not changed. The application-level probe invokes actual Laravel Actions and uses separate forked MariaDB connections.
 
-## MariaDB/InnoDB probe
+The final probe output is stored in `flow10a_action_race_probe.json` and covers all requested races:
 
-The real MariaDB probe created isolated InnoDB constraint tables and raced two writers for the same employee/finger active template and the same Meeting/Employee attendance identity. Both races produced one committed row and one duplicate/serialized writer result:
+| Race | Result |
+|---|---|
+| Concurrent enrollment for same employee | One `ENROLLMENT_COMMITTED`, one `BIOMETRIC_ENROLLMENT_ALREADY_ACTIVE` (422), one active enrollment session. |
+| Two terminal attendance submissions | One `ATTENDANCE_COMMITTED`, one `ATTENDANCE_ALREADY_RECORDED` (409), one final attendance row. |
+| Re-enrollment versus revocation | Re-enrollment commits; competing revocation observes the locked superseded state and returns `BIOMETRIC_TEMPLATE_REVOKED` (422); one active replacement row remains. |
+| FLOW-07 schedule mutation versus attendance | Schedule mutation commits; attendance returns `TERMINAL_SESSION_STALE` (422); the session is stale against the new schedule version. |
+| FLOW-08 participant mutation versus attendance | Participant mutation commits; attendance returns `TERMINAL_SESSION_STALE` (422); the session is stale against the new Participant Version. |
+| Template revocation versus attendance | Revocation commits; attendance returns `BIOMETRIC_TEMPLATE_REVOKED` (422); final template status is REVOKED. |
+
+This is Action-level evidence, not only a uniqueness-table probe. The official cleanup script then closes terminal sessions and cancels enrollment sessions through their domain Actions before emitting the final invariant artifact.
+
+## Definitive software regression/build evidence
+
+The following results are from one authoritative run after the strict-closure fixes, with logs preserved as `definitive_android_core.log`, `definitive_feature_regression.log`, and `definitive_frontend_build.log`:
+
+```text
+FLOW10A_ANDROID_CORE_PASS vectors=8
+FLOW10A_ANDROID_FOUNDATION_PASS files=5
+Feature suite: 316 tests passed (1,154 assertions)
+Frontend build: 1,862 modules transformed; build successful
+```
+
+The frontend emitted only the existing chunk-size advisory; the production build completed successfully. These are the authoritative release counts; earlier counts are historical and superseded.
+
+## Negative Matrix A–P
+
+The standalone matrix is the authoritative case-by-case log. Cases A–O have dedicated Feature or Action-level evidence. F and M now have both application-level MariaDB evidence and their existing database-level uniqueness evidence. P is closed by the final regression/build logs and the post-cleanup MariaDB invariant artifact below.
+
+## Final invariant artifact
+
+The latest MariaDB post-cleanup artifact is `flow10a_final_mariadb_invariants.json`:
 
 ```json
 {
-  "template_active_rows": 1,
+  "artifact": "FLOW10A_FINAL_MARIADB_INVARIANTS",
+  "database": "amms_concurrency_test",
+  "active_terminal_sessions": 0,
+  "active_enrollment_sessions": 0,
+  "active_terminals": 6,
+  "active_template_rows": 0,
+  "revoked_or_superseded_template_history": 6,
   "attendance_rows": 1,
-  "template_race": ["PASS", "DUPLICATE_OR_SERIALIZED:23000"],
-  "attendance_race": ["PASS", "DUPLICATE_OR_SERIALIZED:23000"]
+  "duplicate_meeting_employee_identities": 0,
+  "plaintext_probe_columns_present": [],
+  "meeting_status_counts": {"SCHEDULED": 5}
 }
 ```
 
-This is database-level evidence. The application Action-level FLOW-07/FLOW-08/template-revocation races and the complete manual software gate set still require dedicated closure before release.
+The artifact proves zero active terminal/enrollment sessions after official cleanup, zero duplicate Meeting/Employee attendance identities, no probe/image columns, and all race-fixture meetings remaining `SCHEDULED`. The final SQLite regression and frontend build are recorded above from the same strict-closure run.
 
 ## Release boundary
 
-FLOW-10A must not be marked `APPROVED / FROZEN` until the remaining software manual gates, attendance feature tests, Negative Matrix A–P assertions, and real MariaDB/InnoDB race probes pass. When those software gates pass, the release status may become `VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL`, with `FLOW-10B DEFERRED / WAITING FOR PHYSICAL DEVICE`.
-
-No real hardware capability, DERMALOG integration, or FLOW-11 work is being claimed or started.
+All software evidence gates are complete and aligned. FLOW-10A is **not** marked `APPROVED / FROZEN`; it is `VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL`. FLOW-10B remains `DEFERRED / WAITING FOR SVT3000`, and FLOW-11 must not start.
