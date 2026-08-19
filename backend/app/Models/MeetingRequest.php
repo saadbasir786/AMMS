@@ -31,5 +31,6 @@ class MeetingRequest extends Model
     public function participantConfirmations(): HasMany { return $this->hasMany(MeetingRequestUnitParticipantConfirmation::class); }
     public function authorityContext(): HasOne { return $this->hasOne(MeetingRequestAuthorityContext::class); }
     public function authorityScheduleAcknowledgements(): HasMany { return $this->hasMany(MeetingAuthorityScheduleAcknowledgement::class); }
+    public function authorityScheduleUnitAcknowledgements(): HasMany { return $this->hasMany(MeetingAuthorityScheduleUnitAcknowledgement::class); }
     public function authorityParticipantConfirmations(): HasMany { return $this->hasMany(MeetingAuthorityParticipantConfirmation::class); }
 }

@@ -35,4 +35,9 @@ class MeetingScheduleProposal extends Model
     {
         return $this->hasMany(MeetingAuthorityScheduleAcknowledgement::class, 'meeting_schedule_proposal_id');
     }
+
+    public function authorityUnitAcknowledgements(): HasMany
+    {
+        return $this->hasMany(MeetingAuthorityScheduleUnitAcknowledgement::class, 'meeting_schedule_proposal_id');
+    }
 }

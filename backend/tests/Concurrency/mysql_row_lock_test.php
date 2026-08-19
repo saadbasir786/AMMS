@@ -22,6 +22,10 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow03_request_probe (id
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow04_request_probe (id BIGINT UNSIGNED PRIMARY KEY, status VARCHAR(64) NOT NULL, office_status VARCHAR(32) NOT NULL, authority_status VARCHAR(32) NOT NULL, requester_ack INT NOT NULL, requester_confirm INT NOT NULL, authority_confirm INT NOT NULL, finalize_transitions INT NOT NULL) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow04_ack_probe (proposal_id BIGINT UNSIGNED NOT NULL, requester_unit_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY (proposal_id, requester_unit_id)) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow04_authority_context_probe (meeting_request_id BIGINT UNSIGNED PRIMARY KEY, authority_employee_id BIGINT UNSIGNED NOT NULL, authority_type VARCHAR(64) NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_request_probe (id BIGINT UNSIGNED PRIMARY KEY, status VARCHAR(64) NOT NULL, office_status VARCHAR(32) NOT NULL, authority_status VARCHAR(32) NOT NULL, finalize_transitions INT NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_ack_probe (proposal_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, acknowledged_by BIGINT UNSIGNED NOT NULL, PRIMARY KEY (proposal_id, unit_id)) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_context_probe (meeting_request_id BIGINT UNSIGNED PRIMARY KEY, authority_employee_id BIGINT UNSIGNED NOT NULL, authority_type VARCHAR(64) NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_meeting_unit_probe (meeting_request_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY (meeting_request_id, unit_id)) ENGINE=InnoDB');
 $pdo->exec('DELETE FROM amms_concurrency_probe');
 $pdo->exec('DELETE FROM amms_concurrency_meeting_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow02_request_probe');
@@ -32,6 +36,10 @@ $pdo->exec('DELETE FROM amms_concurrency_flow03_request_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow04_request_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow04_ack_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow04_authority_context_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow05_request_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow05_ack_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow05_context_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow05_meeting_unit_probe');
 $pdo->exec('INSERT INTO amms_concurrency_probe (id, value) VALUES (1, 0)');
 
 $runConcurrent = static function (callable $work): array {
@@ -267,4 +275,39 @@ if ($flow04Status !== 'CONVERTED_TO_MEETING' || $flow04Meetings !== 1 || $flow04
     throw new RuntimeException('FLOW-04 parallel finalization failed: ' . json_encode(['results' => $flow04FinalizeResults, 'status' => $flow04Status, 'meetings' => $flow04Meetings, 'contexts' => $flow04Contexts, 'transitions' => $flow04Transitions]));
 }
 
-echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context.\n";
+$pdo->exec("INSERT INTO amms_concurrency_flow05_request_probe (id, status, office_status, authority_status, finalize_transitions) VALUES (5, 'UNDER_AUTHORITY_OFFICE_REVIEW', 'UNDER_REVIEW', 'PENDING', 0)");
+$pdo = null;
+$flow05ForwardResults = $runConcurrent(static function () use ($connect): void {
+    $db = $connect(); $db->beginTransaction();
+    $row = $db->query("SELECT status, office_status FROM amms_concurrency_flow05_request_probe WHERE id = 5 FOR UPDATE")->fetch();
+    if ($row['status'] === 'UNDER_AUTHORITY_OFFICE_REVIEW' && $row['office_status'] === 'UNDER_REVIEW') $db->exec("UPDATE amms_concurrency_flow05_request_probe SET status = 'PENDING_HIGH_AUTHORITY_DECISION', office_status = 'COMPLETED' WHERE id = 5");
+    $db->commit();
+});
+$pdo = $connect(); $flow05ForwardState = $pdo->query('SELECT status, office_status FROM amms_concurrency_flow05_request_probe WHERE id = 5')->fetch();
+if ($flow05ForwardState['status'] !== 'PENDING_HIGH_AUTHORITY_DECISION' || $flow05ForwardState['office_status'] !== 'COMPLETED' || count(array_filter($flow05ForwardResults, fn ($r) => $r['status'] !== 0)) > 0) throw new RuntimeException('FLOW-05 office forward serialization failed: '.json_encode(['results'=>$flow05ForwardResults,'state'=>$flow05ForwardState]));
+$flow05AckResults = $runConcurrent(static function () use ($connect): void {
+    $db = $connect(); $db->beginTransaction();
+    try { $db->prepare('INSERT INTO amms_concurrency_flow05_ack_probe (proposal_id, unit_id, acknowledged_by) VALUES (?,?,?)')->execute([55, 1, 101]); $db->commit(); }
+    catch (PDOException $e) { if ($db->inTransaction()) $db->rollBack(); if ($e->getCode() !== '23000') throw $e; }
+});
+$pdo = $connect(); $flow05AckCount = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow05_ack_probe WHERE proposal_id = 55 AND unit_id = 1')->fetchColumn();
+if ($flow05AckCount !== 1 || count(array_filter($flow05AckResults, fn ($r) => $r['status'] !== 0)) > 0) throw new RuntimeException('FLOW-05 acknowledgement uniqueness failed: '.json_encode(['results'=>$flow05AckResults,'count'=>$flow05AckCount]));
+$pdo->exec("UPDATE amms_concurrency_flow05_request_probe SET status = 'SCHEDULE_CONFIRMED', office_status = 'COMPLETED', authority_status = 'APPROVED', finalize_transitions = 0 WHERE id = 5");
+$pdo->exec('DELETE FROM amms_concurrency_flow05_context_probe'); $pdo->exec('DELETE FROM amms_concurrency_flow05_meeting_unit_probe'); $pdo = null;
+$flow05FinalizeResults = $runConcurrent(static function () use ($connect): void {
+    $db = $connect(); $db->beginTransaction();
+    $state = $db->query("SELECT status, office_status, authority_status FROM amms_concurrency_flow05_request_probe WHERE id = 5 FOR UPDATE")->fetch();
+    if ($state['status'] === 'SCHEDULE_CONFIRMED' && $state['office_status'] === 'COMPLETED' && $state['authority_status'] === 'APPROVED') {
+        try {
+            $db->prepare('INSERT INTO amms_concurrency_meeting_probe (meeting_request_id) VALUES (?)')->execute([5]);
+            foreach ([1,2,3] as $unitId) $db->prepare('INSERT INTO amms_concurrency_flow05_meeting_unit_probe (meeting_request_id, unit_id) VALUES (?,?)')->execute([5,$unitId]);
+            $db->prepare('INSERT INTO amms_concurrency_flow05_context_probe (meeting_request_id, authority_employee_id, authority_type) VALUES (?,?,?)')->execute([5,30,'DIRECTOR_GENERAL']);
+            $db->exec("UPDATE amms_concurrency_flow05_request_probe SET status = 'CONVERTED_TO_MEETING', finalize_transitions = finalize_transitions + 1 WHERE id = 5");
+        } catch (PDOException $e) { if ($e->getCode() !== '23000') throw $e; }
+    }
+    $db->commit();
+});
+$pdo = $connect(); $flow05Status = (string) $pdo->query('SELECT status FROM amms_concurrency_flow05_request_probe WHERE id = 5')->fetchColumn(); $flow05Meetings = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_meeting_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Contexts = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow05_context_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Units = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow05_meeting_unit_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Transitions = (int) $pdo->query('SELECT finalize_transitions FROM amms_concurrency_flow05_request_probe WHERE id = 5')->fetchColumn();
+if ($flow05Status !== 'CONVERTED_TO_MEETING' || $flow05Meetings !== 1 || $flow05Contexts !== 1 || $flow05Units !== 3 || $flow05Transitions !== 1 || count(array_filter($flow05FinalizeResults, fn ($r) => $r['status'] !== 0)) > 0) throw new RuntimeException('FLOW-05 parallel finalization failed: '.json_encode(['results'=>$flow05FinalizeResults,'status'=>$flow05Status,'meetings'=>$flow05Meetings,'contexts'=>$flow05Contexts,'units'=>$flow05Units,'transitions'=>$flow05Transitions]));
+
+echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context.\n";

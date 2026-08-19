@@ -50,7 +50,7 @@ class MeetingRequestController extends Controller
     public function show(MeetingRequest $meetingRequest)
     {
         $this->authorize('view', $meetingRequest);
-        return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityScheduleAcknowledgements','authorityParticipantConfirmations'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
+        return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityScheduleAcknowledgements','authorityScheduleUnitAcknowledgements.unit','authorityParticipantConfirmations'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
     }
 
     public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest)

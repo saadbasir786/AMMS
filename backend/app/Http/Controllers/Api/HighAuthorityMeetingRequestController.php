@@ -184,7 +184,7 @@ class HighAuthorityMeetingRequestController extends Controller
         $officeIds = array_unique(array_merge($request->user()->scopedRoleUnitIds('AUTHORITY_OFFICE'), $request->user()->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
         abort_unless($request->user()->can('authority-request.view') && $officeIds, 403, 'UNAUTHORIZED_AUTHORITY_OFFICE_USER');
         $query = MeetingRequest::with(['requestingUnit', 'authorityContext.authorityOfficeUnit', 'creator.employee', 'actions.actor'])
-            ->where('flow_type', 'DIRECTORATE_WITH_HIGH_AUTHORITY')
+            ->whereIn('flow_type', ['DIRECTORATE_WITH_HIGH_AUTHORITY', 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY'])
             ->whereHas('authorityContext', fn ($q) => $q->whereIn('authority_office_unit_id', $officeIds));
         if ($request->filled('status')) $query->where('status', $request->string('status'));
         return MeetingRequestResource::collection($query->latest()->paginate(15))->additional(['success' => true, 'message' => 'درخواست‌های مقام عالی در دفتر.']);
@@ -194,7 +194,7 @@ class HighAuthorityMeetingRequestController extends Controller
     {
         abort_unless($request->user()?->isActive() && $request->user()->can('authority-request.view') && $request->user()->employee_id, 403, 'UNAUTHORIZED_HIGH_AUTHORITY_DECISION');
         $query = MeetingRequest::with(['requestingUnit', 'authorityContext.authorityEmployee', 'authorityContext.authorityPosition', 'creator.employee', 'actions.actor'])
-            ->where('flow_type', 'DIRECTORATE_WITH_HIGH_AUTHORITY')
+            ->whereIn('flow_type', ['DIRECTORATE_WITH_HIGH_AUTHORITY', 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY'])
             ->where('status', 'PENDING_HIGH_AUTHORITY_DECISION')
             ->whereHas('authorityContext', fn ($q) => $q->where('authority_employee_id', $request->user()->employee_id));
         return MeetingRequestResource::collection($query->latest()->paginate(15))->additional(['success' => true, 'message' => 'درخواست‌های منتظر تصمیم مقام عالی.']);

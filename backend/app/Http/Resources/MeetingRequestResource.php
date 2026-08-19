@@ -48,6 +48,7 @@ class MeetingRequestResource extends JsonResource
             'participant_confirmations' => MeetingRequestUnitParticipantConfirmationResource::collection($this->whenLoaded('participantConfirmations')),
             'authority_context' => new MeetingRequestAuthorityContextResource($this->whenLoaded('authorityContext')),
             'authority_schedule_acknowledgements' => MeetingAuthorityScheduleAcknowledgementResource::collection($this->whenLoaded('authorityScheduleAcknowledgements')),
+            'authority_schedule_unit_acknowledgements' => MeetingAuthorityScheduleUnitAcknowledgementResource::collection($this->whenLoaded('authorityScheduleUnitAcknowledgements')),
             'authority_participant_confirmations' => MeetingAuthorityParticipantConfirmationResource::collection($this->whenLoaded('authorityParticipantConfirmations')),
             'meeting' => new MeetingResource($this->whenLoaded('meeting')),
             'created_at' => $this->created_at,

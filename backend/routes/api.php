@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MeetingRequestAttachmentController;
 use App\Http\Controllers\Api\InterDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\MultiDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
+use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -85,6 +86,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meeting-requests/{meetingRequest}/multi/units/{unit}/participants/confirm', [MultiDirectorateMeetingRequestController::class, 'confirmParticipants']);
     Route::post('/meeting-requests/{meetingRequest}/confirm-multi-schedule', [MultiDirectorateMeetingRequestController::class, 'confirmSchedule']);
     Route::post('/meeting-requests/{meetingRequest}/finalize-multi', [MultiDirectorateMeetingRequestController::class, 'finalize']);
+
+    Route::post('/meeting-requests/multi-high-authority', [MultiHighAuthorityMeetingRequestController::class, 'store']);
+    Route::put('/meeting-requests/{meetingRequest}/multi-high', [MultiHighAuthorityMeetingRequestController::class, 'update']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/submit', [MultiHighAuthorityMeetingRequestController::class, 'submit']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-approve', [MultiHighAuthorityMeetingRequestController::class, 'requesterApprove']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-return', [MultiHighAuthorityMeetingRequestController::class, 'requesterReturn']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-reject', [MultiHighAuthorityMeetingRequestController::class, 'requesterReject']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/resubmit', [MultiHighAuthorityMeetingRequestController::class, 'resubmit']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/review', [MultiHighAuthorityMeetingRequestController::class, 'unitReview']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/approve', [MultiHighAuthorityMeetingRequestController::class, 'unitApprove']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/return', [MultiHighAuthorityMeetingRequestController::class, 'unitReturn']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/reject', [MultiHighAuthorityMeetingRequestController::class, 'unitReject']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/submit', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeSubmit']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/review', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeReview']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/return', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeReturn']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/resubmit', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeResubmit']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/forward', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeForward']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/approve', [MultiHighAuthorityMeetingRequestController::class, 'authorityApprove']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/return', [MultiHighAuthorityMeetingRequestController::class, 'authorityReturn']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/reject', [MultiHighAuthorityMeetingRequestController::class, 'authorityReject']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-scheduling/start', [MultiHighAuthorityMeetingRequestController::class, 'schedulingStart']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/proposals', [MultiHighAuthorityMeetingRequestController::class, 'schedulePropose']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/acknowledge', [MultiHighAuthorityMeetingRequestController::class, 'scheduleAcknowledge']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/request-alternative', [MultiHighAuthorityMeetingRequestController::class, 'scheduleAlternative']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/confirm', [MultiHighAuthorityMeetingRequestController::class, 'scheduleConfirm']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/units/{unit}/participants', [MultiHighAuthorityMeetingRequestController::class, 'unitParticipants']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/units/{unit}/participants/confirm', [MultiHighAuthorityMeetingRequestController::class, 'unitParticipantsConfirm']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipants']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants/confirm', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipantsConfirm']);
+    Route::post('/meeting-requests/{meetingRequest}/multi-high/finalize', [MultiHighAuthorityMeetingRequestController::class, 'finalize']);
 
     Route::post('/meeting-requests/high-authority', [HighAuthorityMeetingRequestController::class, 'store']);
     Route::get('/incoming-high-authority-office-meeting-requests', [HighAuthorityMeetingRequestController::class, 'officeInbox']);
