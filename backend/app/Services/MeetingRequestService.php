@@ -129,7 +129,7 @@ class MeetingRequestService
     {
         return DB::transaction(function () use ($actor, $request, $data) {
             abort_unless($actor->isActive(), 403, 'UNAUTHORIZED');
-            $locked = MeetingRequest::query()->lockForUpdate()->with('participants.employee')->findOrFail($request->id);
+            $locked = MeetingRequest::query()->lockForUpdate()->with(['participants.employee', 'units.unit', 'authorityContext'])->findOrFail($request->id);
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current === MeetingRequestStatus::SCHEDULE_CONFIRMED && $current->canTransitionTo(MeetingRequestStatus::CONVERTED_TO_MEETING), 422, 'SCHEDULE_INCOMPLETE');
             abort_unless(!$locked->meeting()->exists(), 422, 'MEETING_ALREADY_CREATED');
@@ -137,6 +137,7 @@ class MeetingRequestService
             $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...$locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all()]);
             $meeting = Meeting::create(['meeting_request_id' => $locked->id, 'meeting_number' => $this->nextNumber('meetings', 'MT'), 'title' => $locked->subject, 'description' => $locked->description, 'organizing_unit_id' => $locked->requesting_unit_id, 'coordinator_id' => $locked->coordinator_id ?: $actor->id, 'chairperson_employee_id' => $data['chairperson_employee_id'], 'meeting_date' => $data['meeting_date'], 'start_time' => $data['start_time'], 'end_time' => $data['end_time'], 'location' => $data['location'], 'agenda' => $data['agenda'] ?? null, 'status' => 'SCHEDULED']);
             foreach ($locked->participants->where('participant_type', 'FINAL') as $participant) $meeting->participants()->create(['employee_id' => $participant->employee_id, 'organizational_unit_id' => $participant->employee->organizational_unit_id]);
+            app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $current->value; $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
             $this->action($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value);
             $recipientEmployeeIds = array_merge([$meeting->chairperson_employee_id], $locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all());

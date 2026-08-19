@@ -1,5 +1,49 @@
 <?php
+
 namespace App\Http\Resources;
+
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-class MeetingResource extends JsonResource { public function toArray(Request $request): array { return ['id'=>$this->id,'meeting_number'=>$this->meeting_number,'meeting_request_id'=>$this->meeting_request_id,'request'=>new MeetingRequestResource($this->whenLoaded('request')),'title'=>$this->title,'description'=>$this->description,'organizing_unit_id'=>$this->organizing_unit_id,'coordinator_id'=>$this->coordinator_id,'units'=>MeetingUnitResource::collection($this->whenLoaded('units')),'authority_context'=>new MeetingAuthorityContextResource($this->whenLoaded('authorityContext')),'chairperson'=>new EmployeeResource($this->whenLoaded('chairperson')),'meeting_date'=>$this->meeting_date?->toDateString(),'start_time'=>$this->start_time,'end_time'=>$this->end_time,'location'=>$this->location,'agenda'=>$this->agenda,'status'=>$this->status,'current_schedule_version_id'=>$this->current_schedule_version_id,'active_reschedule_case_id'=>$this->active_reschedule_case_id,'reschedule_pending'=>(bool) $this->active_reschedule_case_id,'current_schedule_version'=>$this->whenLoaded('currentScheduleVersion'),'schedule_versions'=>$this->whenLoaded('scheduleVersions'),'active_reschedule_case'=>$this->whenLoaded('activeRescheduleCase'),'reschedule_actions'=>$this->whenLoaded('rescheduleActions'),'participants'=>MeetingParticipantResource::collection($this->whenLoaded('participants')),'created_at'=>$this->created_at,'updated_at'=>$this->updated_at]; } }
+
+class MeetingResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'meeting_number' => $this->meeting_number,
+            'meeting_request_id' => $this->meeting_request_id,
+            'request' => new MeetingRequestResource($this->whenLoaded('request')),
+            'title' => $this->title,
+            'description' => $this->description,
+            'organizing_unit_id' => $this->organizing_unit_id,
+            'coordinator_id' => $this->coordinator_id,
+            'units' => MeetingUnitResource::collection($this->whenLoaded('units')),
+            'authority_context' => new MeetingAuthorityContextResource($this->whenLoaded('authorityContext')),
+            'chairperson' => new EmployeeResource($this->whenLoaded('chairperson')),
+            'meeting_date' => $this->meeting_date?->toDateString(),
+            'start_time' => $this->start_time,
+            'end_time' => $this->end_time,
+            'location' => $this->location,
+            'agenda' => $this->agenda,
+            'status' => $this->status,
+            'current_schedule_version_id' => $this->current_schedule_version_id,
+            'active_reschedule_case_id' => $this->active_reschedule_case_id,
+            'reschedule_pending' => (bool) $this->active_reschedule_case_id,
+            'current_participant_version_id' => $this->current_participant_version_id,
+            'active_participant_change_case_id' => $this->active_participant_change_case_id,
+            'participant_change_pending' => (bool) $this->active_participant_change_case_id,
+            'current_schedule_version' => $this->whenLoaded('currentScheduleVersion'),
+            'schedule_versions' => $this->whenLoaded('scheduleVersions'),
+            'active_reschedule_case' => $this->whenLoaded('activeRescheduleCase'),
+            'reschedule_actions' => $this->whenLoaded('rescheduleActions'),
+            'current_participant_version' => $this->whenLoaded('currentParticipantVersion'),
+            'participant_versions' => $this->whenLoaded('participantVersions'),
+            'active_participant_change_case' => $this->whenLoaded('activeParticipantChangeCase'),
+            'participant_change_cases' => $this->whenLoaded('participantChangeCases'),
+            'participants' => MeetingParticipantResource::collection($this->whenLoaded('participants')),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}

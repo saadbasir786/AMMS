@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
 use App\Http\Controllers\Api\MeetingRescheduleController;
+use App\Http\Controllers\Api\MeetingParticipantChangeController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -46,6 +47,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/request-alternative', [MeetingRescheduleController::class, 'requestAlternative']);
     Route::post('/meetings/{meeting}/reschedule/alternative-requests/{alternative}/resolve', [MeetingRescheduleController::class, 'resolveAlternative']);
     Route::post('/meetings/{meeting}/reschedule/confirm', [MeetingRescheduleController::class, 'confirm']);
+    Route::get('/meetings/{meeting}/participant-change', [MeetingParticipantChangeController::class, 'workspace']);
+    Route::get('/meetings/{meeting}/participant-history', [MeetingParticipantChangeController::class, 'history']);
+    Route::post('/meetings/{meeting}/participant-change-cases', [MeetingParticipantChangeController::class, 'createCase']);
+    Route::put('/meetings/{meeting}/participant-change/{case}', [MeetingParticipantChangeController::class, 'updateCase']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/items', [MeetingParticipantChangeController::class, 'addItem']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/remove-item', [MeetingParticipantChangeController::class, 'removeItem']);
+    Route::delete('/meetings/{meeting}/participant-change/{case}/items/{item}', [MeetingParticipantChangeController::class, 'deleteItem']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/submit', [MeetingParticipantChangeController::class, 'submit']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/return', [MeetingParticipantChangeController::class, 'returnForCorrection']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/reject', [MeetingParticipantChangeController::class, 'reject']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/refresh-baseline', [MeetingParticipantChangeController::class, 'refreshBaseline']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/confirm', [MeetingParticipantChangeController::class, 'confirm']);
 
     Route::get('/meeting-requests', [MeetingRequestController::class, 'index']);
     Route::post('/meeting-requests/inter-directorate', [InterDirectorateMeetingRequestController::class, 'store']);

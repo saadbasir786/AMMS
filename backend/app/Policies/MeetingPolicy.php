@@ -87,6 +87,41 @@ class MeetingPolicy
         return $user->id === $meeting->coordinator_id || in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
     }
 
+    public function flow08ViewHistory(User $user, Meeting $meeting): bool
+    {
+        return app(\App\Support\ParticipantGovernanceResolver::class)->mayView($meeting, $user);
+    }
+
+    public function flow08CreateCase(User $user, Meeting $meeting): bool
+    {
+        if (!$user->isActive() || !$user->can('meeting-participant-change.create') || !$this->view($user, $meeting)) return false;
+        $owner = app(\App\Support\ParticipantGovernanceResolver::class)->actorOwner($meeting, $user);
+        return $owner && app(\App\Support\ParticipantGovernanceResolver::class)->mayPrepare($meeting, $user, $owner['owner_type'], $owner['owner_unit_id']);
+    }
+
+    public function flow08ManageCase(User $user, Meeting $meeting, ?string $ownerType = null, ?int $ownerUnitId = null): bool
+    {
+        if (!$user->isActive() || !$this->view($user, $meeting)) return false;
+        $owner = $ownerType ? ['owner_type' => $ownerType, 'owner_unit_id' => $ownerUnitId] : app(\App\Support\ParticipantGovernanceResolver::class)->actorOwner($meeting, $user);
+        return $owner && app(\App\Support\ParticipantGovernanceResolver::class)->mayPrepare($meeting, $user, $owner['owner_type'], $owner['owner_unit_id']);
+    }
+
+    public function flow08Confirm(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    {
+        return $this->view($user, $meeting)
+            && app(\App\Support\ParticipantGovernanceResolver::class)->mayConfirm($meeting, $user, $ownerType, $ownerUnitId);
+    }
+
+    public function flow08Return(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    {
+        return $this->flow08Confirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.return');
+    }
+
+    public function flow08Reject(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    {
+        return $this->flow08Confirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.reject');
+    }
+
     private function canView(User $user, Meeting $meeting): bool
     {
         return $this->view($user, $meeting);

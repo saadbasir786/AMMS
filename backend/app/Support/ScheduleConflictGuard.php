@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\Meeting;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ScheduleConflictGuard
@@ -21,6 +20,11 @@ class ScheduleConflictGuard
 
     public function assertNoConflict(Meeting $meeting, array $schedule, ?User $actor = null): void
     {
+        $this->assertEmployeeIdsNoConflict($meeting, $schedule, $this->employeeIds($meeting));
+    }
+
+    public function assertEmployeeIdsNoConflict(Meeting $meeting, array $schedule, array $employeeIds): void
+    {
         $date = $schedule['meeting_date'];
         $start = substr($schedule['start_time'], 0, 5);
         $end = substr($schedule['end_time'], 0, 5);
@@ -32,7 +36,7 @@ class ScheduleConflictGuard
             ->where('end_time', '>', $start)
             ->with(['participants', 'authorityContext'])
             ->get();
-        $targetEmployees = $this->employeeIds($meeting);
+        $targetEmployees = array_values(array_unique(array_map('intval', $employeeIds)));
 
         foreach ($candidates as $other) {
             $otherEmployees = $this->employeeIds($other);
@@ -40,7 +44,7 @@ class ScheduleConflictGuard
             if ($shared === []) continue;
             $authorityEmployee = (int) ($meeting->authorityContext?->authority_employee_id ?? 0);
             $otherAuthorityEmployee = (int) ($other->authorityContext?->authority_employee_id ?? 0);
-            if ($authorityEmployee && in_array($authorityEmployee, $shared, true) || $otherAuthorityEmployee && in_array($otherAuthorityEmployee, $shared, true)) {
+            if (($authorityEmployee && in_array($authorityEmployee, $shared, true)) || ($otherAuthorityEmployee && in_array($otherAuthorityEmployee, $shared, true))) {
                 throw new HttpException(422, 'HIGH_AUTHORITY_SCHEDULE_CONFLICT');
             }
             if (in_array((int) $meeting->chairperson_employee_id, $shared, true) || in_array((int) $other->chairperson_employee_id, $shared, true)) {

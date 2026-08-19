@@ -1,0 +1,313 @@
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\ExampleTest[39m
+  [32;1m✓[39;22m[90m [39m[90mthe application returns a successful response[39m[90m                       [39m [90m0.06s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow01Test[39m
+  [32;1m✓[39;22m[90m [39m[90mtechnology flow can be approved scheduled and converted once[39m[90m        [39m [90m0.41s[39m
+  [32;1m✓[39;22m[90m [39m[90mlogin contract and disabled account rejection[39m[90m                       [39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mattachment download requires request access[39m[90m                         [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90minactive user cannot submit request[39m[90m                                 [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mnon admin cannot access admin directory[39m[90m                             [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mfinance director cannot approve technology request[39m[90m                  [39m [90m0.05s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow02Test[39m
+  [32;1m✓[39;22m[90m [39m[90mtwo directorate request completes bilateral workflow[39m[90m                [39m [90m0.17s[39m
+  [32;1m✓[39;22m[90m [39m[90mtarget return requires resubmit and cannot be approved before resub[39m[90m…[39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mopposite side cannot nominate requester participant and third direc[39m[90m…[39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90msame directorate and target scope are rejected[39m[90m                      [39m [90m0.04s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow03Test[39m
+  [32;1m✓[39;22m[90m [39m[90mthree directorate request completes multilateral workflow[39m[90m           [39m [90m0.23s[39m
+  [32;1m✓[39;22m[90m [39m[90mmaterial change resets target reviews and wrong unit is forbidden[39m[90m   [39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mfinance director cannot approve hr target[39m[90m                           [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mtech cannot confirm finance participants[39m[90m                            [39m [90m0.16s[39m
+  [32;1m✓[39;22m[90m [39m[90mparticipant outside multi directorate scope is rejected[39m[90m             [39m [90m0.16s[39m
+  [32;1m✓[39;22m[90m [39m[90mschedule cannot be finalized before all units accept[39m[90m                [39m [90m0.15s[39m
+  [32;1m✓[39;22m[90m [39m[90mfinalization rejects end time not after start time[39m[90m                  [39m [90m0.22s[39m
+  [32;1m✓[39;22m[90m [39m[90mduplicate finalization creates only one meeting[39m[90m                     [39m [90m0.24s[39m
+  [32;1m✓[39;22m[90m [39m[90mmulti request requires at least two targets[39m[90m                         [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mrequester cannot also be target[39m[90m                                     [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mduplicate target cannot be added[39m[90m                                    [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mcross organization target is rejected[39m[90m                               [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90munauthorized creator cannot create for other scope[39m[90m                  [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mtargets do not receive request before requester approval[39m[90m            [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mwrong requester director cannot approve[39m[90m                             [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mrequester return and resubmit work[39m[90m                                  [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mrequester rejection is terminal[39m[90m                                     [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mall target units appear after requester approval[39m[90m                    [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mfinance can start only finance review[39m[90m                               [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mhr can start only hr review[39m[90m                                         [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90meach target approves independently[39m[90m                                  [39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90mpartial target approval does not produce multilateral approval[39m[90m      [39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mnon material correction preserves unrelated approval[39m[90m                [39m [90m0.12s[39m
+  [32;1m✓[39;22m[90m [39m[90mmaterial correction invalidates target approvals[39m[90m                    [39m [90m0.11s[39m
+  [32;1m✓[39;22m[90m [39m[90mtarget rejection is terminal[39m[90m                                        [39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mscheduling cannot begin before all target approvals[39m[90m                 [39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90many authorized participating coordinator can propose schedule[39m[90m       [39m [90m0.14s[39m
+  [32;1m✓[39;22m[90m [39m[90mschedule proposal history is append only[39m[90m                            [39m [90m0.14s[39m
+  [32;1m✓[39;22m[90m [39m[90mcounter proposal supersedes previous active proposal[39m[90m                [39m [90m0.14s[39m
+  [32;1m✓[39;22m[90m [39m[90mold proposal acceptances do not transfer[39m[90m                            [39m [90m0.16s[39m
+  [32;1m✓[39;22m[90m [39m[90meach unit can accept active schedule independently[39m[90m                  [39m [90m0.14s[39m
+  [32;1m✓[39;22m[90m [39m[90meach directorate can nominate only its own employee[39m[90m                 [39m [90m0.15s[39m
+  [32;1m✓[39;22m[90m [39m[90mmeeting cannot finalize until all participant lists confirmed[39m[90m       [39m [90m0.21s[39m
+  [32;1m✓[39;22m[90m [39m[90mtimeline stores unit specific target events[39m[90m                         [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90minactive user cannot perform privileged operation[39m[90m                   [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90maudit history is immutable[39m[90m                                          [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mtarget cannot be approved twice[39m[90m                                     [39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90mtarget cannot approve before review started[39m[90m                         [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mduplicate schedule acceptance is rejected[39m[90m                           [39m [90m0.14s[39m
+  [32;1m✓[39;22m[90m [39m[90mduplicate participant confirmation is rejected[39m[90m                      [39m [90m0.17s[39m
+  [32;1m✓[39;22m[90m [39m[90mrequester approval cannot be repeated[39m[90m                               [39m [90m0.07s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow04ContractCoverageTest[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "01 organi[39m[90m…[39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "02 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "03 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "04 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "05 meetin[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "06 organi[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "07 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "08 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "09 partic[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "10 meetin[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "11 create[39m[90m…[39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "12 submit[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "13 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "14 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "15 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "16 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "17 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "18 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "19 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "20 propos[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "21 acknow[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "22 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "23 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "24 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "25 finali[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "26 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "27 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "28 create[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "29 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "30 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "31 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "32 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "33 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "34 propos[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "35 acknow[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "36 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "37 reques[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "38 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "39 finali[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "40 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "41 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "42 office[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "43 author[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "44 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "45 schedu[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "46 partic[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "47 finali[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "48 approv[39m[90m…[39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mprompt04 required contract case is present with data set "49 conver[39m[90m…[39m [90m0.03s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow04NegativeMatrixTest[39m
+  [32;1m✓[39;22m[90m [39m[90ma unrelated finance director cannot view or approve technology requ[39m[90m…[39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mb authority office cannot make high authority decision[39m[90m              [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mc high authority cannot decide before office forward[39m[90m                [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90md scheduler cannot start before high authority approval[39m[90m             [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90me requester cannot manage authority side participants[39m[90m               [39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mf multi directorate payload is rejected by flow04 boundary[39m[90m          [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mg duplicate finalization creates exactly one meeting[39m[90m                [39m [90m0.18s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow04Test[39m
+  [32;1m✓[39;22m[90m [39m[90mhigh authority workflow completes with explicit decision schedule a[39m[90m…[39m [90m0.18s[39m
+  [32;1m✓[39;22m[90m [39m[90mwrong director cannot decide and office cannot decide[39m[90m               [39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90moffice return requires reason and non material resubmit preserves r[39m[90m…[39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mmaterial change after high authority return requires requester reap[39m[90m…[39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mschedule cannot confirm without requester acknowledgement[39m[90m           [39m [90m0.12s[39m
+  [32;1m✓[39;22m[90m [39m[90mparticipant ownership is separated between requester and authority[39m[90m… [39m [90m0.10s[39m
+  [32;1m✓[39;22m[90m [39m[90mforward stops when current high authority holder is inactive[39m[90m        [39m [90m0.08s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow05ContractCoverageTest[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #0[39m[90m                               [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #1[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #2[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #3[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #4[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #5[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #6[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #7[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #8[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #9[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #10[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #11[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #12[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #13[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #14[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #15[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #16[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #17[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #18[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #19[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #20[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #21[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #22[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #23[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #24[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #25[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #26[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #27[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #28[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #29[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #30[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #31[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #32[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #33[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #34[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #35[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #36[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #37[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #38[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #39[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #40[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #41[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #42[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #43[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #44[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #45[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #46[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #47[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #48[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #49[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #50[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #51[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #52[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #53[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #54[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #55[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #56[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #57[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #58[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #59[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #60[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #61[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #62[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #63[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 contract case with data set #64[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow05Test[39m
+  [32;1m✓[39;22m[90m [39m[90mmulti high authority workflow completes with per unit acknowledgeme[39m[90m…[39m [90m0.28s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 requires multiple directorates and rejects cross scope actio[39m[90m…[39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mschedule confirmation requires every formal directorate acknowledge[39m[90m…[39m [90m0.16s[39m
+  [32;1m✓[39;22m[90m [39m[90mauthority office cannot decide and high authority cannot decide bef[39m[90m…[39m [90m0.11s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow06ContractCoverageTest[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #0[39m[90m                               [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #1[39m[90m                               [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #2[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #3[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #4[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #5[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #6[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #7[39m[90m                               [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #8[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #9[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #10[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #11[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #12[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #13[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #14[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #15[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #16[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #17[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #18[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #19[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #20[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #21[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #22[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #23[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #24[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #25[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #26[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #27[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #28[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #29[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #30[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #31[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #32[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #33[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #34[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #35[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #36[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #37[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #38[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #39[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #40[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #41[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #42[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #43[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #44[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #45[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #46[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #47[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #48[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #49[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #50[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #51[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #52[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #53[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #54[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #55[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #56[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #57[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #58[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #59[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #60[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #61[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #62[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #63[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #64[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #65[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #66[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #67[39m[90m                              [39m [90m0.01s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #68[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 contract case with data set #69[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow06Test[39m
+  [32;1m✓[39;22m[90m [39m[90mauthority initiated flow completes without requester and creates pa[39m[90m…[39m [90m0.28s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 rejects missing duplicate and cross organization directorate[39m[90m…[39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 draft visibility and issuance boundary are enforced[39m[90m          [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 returned draft becomes editable and can be resubmitted[39m[90m       [39m [90m0.09s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 material revision requires reissuance and invalidates old ac[39m[90m…[39m [90m0.13s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 directorate has no approve or reject operation and cross uni[39m[90m…[39m [90m0.08s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow07Test[39m
+  [32;1m✓[39;22m[90m [39m[90mbackfill is idempotent and preserves original schedule[39m[90m              [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mgovernance resolver maps all originating flow types[39m[90m                 [39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mauthority reschedule preserves request and meeting identity[39m[90m         [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mreason active case no change and started meeting are blocked[39m[90m        [39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90malternative blocks confirmation and revised proposal requires new a[39m[90m…[39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mdirect schedule mutation route does not exist[39m[90m                       [39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90mauthority conflict is rechecked before confirmation[39m[90m                 [39m [90m0.04s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow08Test[39m
+  [32;1m✓[39;22m[90m [39m[90mbackfill creates version one without mutating projection[39m[90m            [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mreplace is atomic and preserves identity and closed request[39m[90m         [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mdraft does not mutate current projection and one active case is enf[39m[90m…[39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mcross unit candidate is rejected[39m[90m                                    [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mchairperson and high authority are protected[39m[90m                        [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mreturn resubmit and reject keep projection unchanged[39m[90m                [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mschedule baseline change requires refresh before confirmation[39m[90m       [39m [90m0.08s[39m
+  [32;1m✓[39;22m[90m [39m[90mdirect participant mutation route is blocked[39m[90m                        [39m [90m0.04s[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Prompt01AFinalTest[39m
+  [32;1m✓[39;22m[90m [39m[90mpermission matrix and seeded assignments are present[39m[90m                [39m [90m0.04s[39m
+  [32;1m✓[39;22m[90m [39m[90mpermission is required in addition to valid scope[39m[90m                   [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mdirectorate scope is enforced even when role exists[39m[90m                 [39m [90m0.03s[39m
+  [32;1m✓[39;22m[90m [39m[90ma request cannot be approved twice or rejected request approved[39m[90m     [39m [90m0.07s[39m
+  [32;1m✓[39;22m[90m [39m[90mrejected request cannot start scheduling and meeting requires sched[39m[90m…[39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90maudit history cannot be updated or deleted by application models[39m[90m    [39m [90m0.05s[39m
+  [32;1m✓[39;22m[90m [39m[90mreturned request uses resubmit transition and audit action[39m[90m          [39m [90m0.06s[39m
+
+  [90mTests:[39m    [32;1m282 passed[39;22m[90m (1003 assertions)[39m
+  [90mDuration:[39m [39m11.53s[39m

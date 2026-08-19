@@ -518,3 +518,75 @@ Final database invariant artifact: `flow07_final_invariants2.json`. It records t
 ## Release decision
 
 All FLOW-07 implementation, behavioral, browser, negative, invariant, concurrency, regression, and production-build gates are **Passed**, including the three gates previously identified as incomplete: Finance-originated Peer Counter-Proposal, Authority Alternative → Revised Proposal with fresh acknowledgements, and authenticated High Authority conflict rejection. In accordance with the release rule, FLOW-07 is intentionally **not declared APPROVED / FROZEN** in this report. It is ready for the user's explicit manual approval; no subsequent workflow will be started before that approval.
+
+
+## FLOW-08 — Post-Creation Participant Change and Versioning
+
+FLOW-08 adds an additive, immutable participant-version layer after Meeting creation. The existing `MeetingParticipant` projection remains the current operational read model, while `meeting_participant_versions` and `meeting_participant_version_members` preserve complete historical snapshots. Each Meeting has at most one current participant-version pointer, and each MeetingRequest remains `CONVERTED_TO_MEETING`; participant changes never reopen a request, create a new Meeting, mutate schedule fields, or introduce a `RESCHEDULING` status.
+
+The change lifecycle is implemented as an explicit case workflow: `DRAFT → PENDING_CONFIRMATION → CONFIRMED`, with `RETURNED_FOR_CORRECTION` and terminal `REJECTED` branches. A Meeting has at most one active participant-change case. ADD, REMOVE, and REPLACE items are independently audited and editable only before submission. Confirmation locks the Meeting and active case in deterministic order, validates the baseline participant and schedule pointers, re-checks candidate employee conflicts, creates one complete successor snapshot, updates the current projection atomically, clears the active-case pointer, records immutable audit, and sends in-app notifications.
+
+### FLOW-08 governance and invariants
+
+| Contract | Result | Evidence |
+|---|---|---|
+| Preparation is owner-domain scoped | **Passed** | `ParticipantGovernanceResolver` distinguishes UNIT and AUTHORITY ownership; `mayPrepare` requires active actor, FLOW-08 permission, scope, and owner domain. |
+| Peer governance | **Passed** | A scoped Executive Management actor prepares a unit-owned case; confirmation is available to a Director from a formal Peer unit while preparation remains owner-scoped. |
+| Authority governance | **Passed** | Authority Office/Executive Secretary owns authority-side cases; High Authority is represented by its real employee/context and is not treated as a fake Directorate acknowledgement. |
+| Current projection is immutable before confirmation | **Passed** | Flow08Test and browser fixtures show the current list remains unchanged through DRAFT and PENDING_CONFIRMATION. |
+| One active case per Meeting | **Passed** | Database uniqueness and `Flow08Test::test_draft_does_not_mutate_current_projection_and_one_active_case_is_enforced`. |
+| Chairperson protection | **Passed** | REMOVE/REPLACE of chairperson returns `CHAIRPERSON_PARTICIPANT_REQUIRED`. |
+| High Authority protection | **Passed** | REMOVE/REPLACE of the current High Authority returns `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE`. |
+| Candidate validity and scope | **Passed** | Inactive/out-of-domain candidates are rejected with `EMPLOYEE_OUTSIDE_PARTICIPANT_DOMAIN`; only scoped employee options are returned to the workspace. |
+| Schedule conflict semantics | **Passed** | Only ADD/REPLACE candidate employee IDs are re-checked; pre-existing accepted participants do not create a false conflict during a later participant change. |
+| Stale schedule baseline | **Passed** | A schedule-version change between submission and confirmation returns `MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED`; refresh-baseline is explicit and audited. |
+| No generic participant mutation | **Passed** | Direct `PATCH /api/meetings/{id}/participants/{participant}` returns 404; all mutations use case action endpoints. |
+| Meeting identity/request invariant | **Passed** | Confirmed cases preserve Meeting ID, Meeting number, `SCHEDULED` status, and `CONVERTED_TO_MEETING` request status. |
+
+### FLOW-08 negative matrix
+
+| Case | Expected result | Status |
+|---|---|---|
+| A. Empty case reason | `REASON_REQUIRED` | **Passed** |
+| B. Second active case | `ACTIVE_PARTICIPANT_CHANGE_CASE_EXISTS` | **Passed** |
+| C. ADD inactive employee | `INVALID_EMPLOYEE` | **Passed** |
+| D. ADD employee outside owner domain | `EMPLOYEE_OUTSIDE_PARTICIPANT_DOMAIN` | **Passed** |
+| E. REMOVE missing current employee | `PARTICIPANT_NOT_IN_CURRENT_VERSION` | **Passed** |
+| F. REPLACE with same employee | `NO_PARTICIPANT_CHANGE` | **Passed** |
+| G. REMOVE/REPLACE chairperson | `CHAIRPERSON_PARTICIPANT_REQUIRED` | **Passed** |
+| H. REMOVE/REPLACE High Authority | `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE` | **Passed** |
+| I. Confirm stale schedule baseline | `MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED` | **Passed** |
+| J. Confirm without submitted case | `PARTICIPANT_CHANGE_NOT_READY_FOR_CONFIRMATION` | **Passed** |
+| K. Direct generic participant mutation | HTTP 404 / no projection mutation | **Passed** |
+| L. Duplicate concurrent confirmation | one applied successor version; duplicate rejected | **Passed** |
+
+### FLOW-08 positive browser gates
+
+The Authority-side gate was executed through the real RTL workspace on Meeting 4 while authenticated as `executive.secretary@example.test`. The workspace created a case, displayed authority-scoped employee options, rejected an attempted High Authority removal with HTTP 422 `HIGH_AUTHORITY_PARTICIPANT_IMMUTABLE`, then successfully added `مریم نورستانی` from the Authority Office and confirmed the case. The UI displayed participant version 2, five current participants, immutable versions 1 and 2, and the complete participant-change timeline.
+
+The Peer-side gate used the independent Meeting 11 fixture `FLOW08-PEER-BROWSER`. `tech.exec@example.test` created a case and replaced `احمد احمدی` with `فاطمه رحیمی` within the Technology domain. The current projection remained unchanged until submission and confirmation. `finance.director@example.test`, a Director from another formal Peer unit, then confirmed through the real UI. The UI displayed participant version 2, the new projection, no active case, and `MEETING_PARTICIPANTS_CHANGED` in the timeline.
+
+The complete browser record is stored in `flow08_browser_findings.md`.
+
+### FLOW-08 automated and concurrency results
+
+```text
+cd backend && php artisan test --testsuite=Feature > flow08_feature_test_final_release.log 2>&1
+Tests: 282 passed (1003 assertions)
+
+sudo php scripts/flow08_mariadb_concurrency_probe.php > flow08_mariadb_concurrency_final.log 2>&1
+MariaDB FLOW-08 concurrency checks passed: duplicate confirmation serialized to one applied transition and one rejected duplicate; final participant version=2; active case cleared; one-active-case uniqueness held.
+
+cd frontend && pnpm build > flow08_frontend_build_final_release.log 2>&1
+✓ 1860 modules transformed.
+✓ built successfully
+
+php scripts/flow08_final_invariants.php
+meeting_count=11; request_meeting_duplicates=0; change_case_count=2
+```
+
+The final invariant artifact is `flow08_final_invariants.json`. It records zero duplicate Meeting-per-request identities, participant version pointers for all live Meetings, Meeting 4 at participant version 2 after the successful Authority-side browser gate, and Meeting 11 at participant version 2 after the successful Peer-side browser gate. Both confirmed cases have cleared their active-case pointers.
+
+## FLOW-08 release decision
+
+All implemented FLOW-08 schema, backfill, governance, action, API, RTL workspace, negative, browser, invariant, MariaDB concurrency, regression, and production-build gates are **Passed**. FLOW-01 through FLOW-07 behavior remains green in the same 282-test Feature suite. FLOW-08 is intentionally **not declared APPROVED / FROZEN** until the user explicitly approves this workflow. No subsequent workflow will be started before that approval.
