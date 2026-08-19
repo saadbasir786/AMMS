@@ -29,4 +29,4 @@ The candidate-set endpoint is intentionally distinct from the ordinary FLOW-09 m
 
 ## Build boundary
 
-The repository intentionally records the Android Gradle project even when the current verification sandbox has no Android SDK, Gradle, ADB device, or vendor SDK. The JVM-testable core is independently verifiable now. FLOW-10B replaces only the `FakeFingerprintAdapter` implementation with a lawful `DermalogFingerprintAdapter` after an SVT3000 and SDK are supplied; FLOW-10A does not claim hardware evidence.
+The repository includes a checked-in Gradle wrapper and AndroidX configuration. The strict-closure verification passed `./gradlew --no-daemon --max-workers=1 assembleDebug` with Android SDK API 35 and build-tools 35.0.0. The JVM contract remains independently verifiable through `tools/run_core_contract.py`. This build proves only the software project compiles; it is not a physical device or vendor SDK test. FLOW-10B replaces only the `FakeFingerprintAdapter` implementation with a lawful `DermalogFingerprintAdapter` after an SVT3000 and SDK are supplied; FLOW-10A does not claim hardware evidence.

@@ -204,5 +204,56 @@ $results['template_revocation_vs_attendance'] = $runTwo(static function (int $wo
 });
 $results['template_revocation_vs_attendance_final_status'] = DB::table('employee_biometric_templates')->where('id', $f['template']->id)->value('status');
 
+$f = $fixture('SCHED-ATT-FIRST');
+$checksum = app(BiometricCandidateSetBuilder::class)->build($f['session'])['candidate_set_checksum'];
+$results['flow07_attendance_first_then_schedule'] = $runTwo(static function (int $worker) use ($f, $checksum, $attendanceData): string {
+    if ($worker === 0) {
+        app(RecordFingerprintAttendance::class)->execute(TerminalMeetingSession::findOrFail($f['session']->id), $attendanceData($f, $checksum));
+        return 'ATTENDANCE_COMMITTED_FIRST';
+    }
+    usleep(120000);
+    DB::transaction(function () use ($f): void {
+        $meeting = Meeting::query()->lockForUpdate()->findOrFail($f['meeting']->id);
+        $next = app(ScheduleVersionService::class)->createNext($meeting, ['meeting_date' => now()->addDays(31)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'FLOW10A-SCHEDULE-ATT-FIRST'], $f['actor']->id);
+        app(ScheduleVersionService::class)->applyToMeeting($meeting, $next);
+    });
+    return 'SCHEDULE_CHANGED_AFTER_ATTENDANCE';
+});
+$results['flow07_attendance_first_final_attendance_rows'] = DB::table('meeting_attendance_records')->where('meeting_id', $f['meeting']->id)->where('employee_id', $f['employee']->id)->count();
+$results['flow07_attendance_first_final_schedule_version'] = (int) DB::table('meetings')->where('id', $f['meeting']->id)->value('current_schedule_version_id');
+
+$f = $fixture('PART-ATT-FIRST');
+$checksum = app(BiometricCandidateSetBuilder::class)->build($f['session'])['candidate_set_checksum'];
+$changeCase = MeetingParticipantChangeCase::create(['meeting_id' => $f['meeting']->id, 'owner_type' => 'UNIT', 'owner_unit_id' => $f['unit']->id, 'baseline_participant_version_id' => $f['meeting']->current_participant_version_id, 'baseline_schedule_version_id' => $f['meeting']->current_schedule_version_id, 'initiated_by_user_id' => $f['actor']->id, 'reason' => 'FLOW10A participant reverse race', 'status' => 'CONFIRMED', 'confirmed_at' => now()]);
+$results['flow08_attendance_first_then_participants'] = $runTwo(static function (int $worker) use ($f, $checksum, $attendanceData, $changeCase): string {
+    if ($worker === 0) {
+        app(RecordFingerprintAttendance::class)->execute(TerminalMeetingSession::findOrFail($f['session']->id), $attendanceData($f, $checksum));
+        return 'ATTENDANCE_COMMITTED_FIRST';
+    }
+    usleep(120000);
+    DB::transaction(function () use ($f, $changeCase): void {
+        $meeting = Meeting::query()->lockForUpdate()->findOrFail($f['meeting']->id);
+        $members = $meeting->currentParticipantVersion->members->map(fn ($m): array => ['employee_id' => $m->employee_id, 'organizational_unit_id' => $m->organizational_unit_id, 'participant_role' => $m->participant_role, 'owner_type' => $m->owner_type, 'owner_unit_id' => $m->owner_unit_id, 'is_mandatory' => $m->is_mandatory])->all();
+        app(ParticipantVersionService::class)->createConfirmedVersion($meeting, $changeCase, $members, $f['actor']->id);
+    });
+    return 'PARTICIPANTS_CHANGED_AFTER_ATTENDANCE';
+});
+$results['flow08_attendance_first_final_attendance_rows'] = DB::table('meeting_attendance_records')->where('meeting_id', $f['meeting']->id)->where('employee_id', $f['employee']->id)->count();
+$results['flow08_attendance_first_final_participant_version'] = (int) DB::table('meetings')->where('id', $f['meeting']->id)->value('current_participant_version_id');
+
+$f = $fixture('TREV-ATT-FIRST');
+$checksum = app(BiometricCandidateSetBuilder::class)->build($f['session'])['candidate_set_checksum'];
+$results['template_revocation_attendance_first'] = $runTwo(static function (int $worker) use ($f, $checksum, $attendanceData): string {
+    if ($worker === 0) {
+        app(RecordFingerprintAttendance::class)->execute(TerminalMeetingSession::findOrFail($f['session']->id), $attendanceData($f, $checksum));
+        return 'ATTENDANCE_COMMITTED_FIRST';
+    }
+    usleep(120000);
+    app(RevokeFingerprintTemplate::class)->execute($f['actor'], EmployeeBiometricTemplate::findOrFail($f['template']->id), 'reverse race revoke after attendance');
+    return 'REVOKE_COMMITTED_AFTER_ATTENDANCE';
+});
+$results['template_revocation_attendance_first_final_status'] = DB::table('employee_biometric_templates')->where('id', $f['template']->id)->value('status');
+$results['template_revocation_attendance_first_final_rows'] = DB::table('meeting_attendance_records')->where('meeting_id', $f['meeting']->id)->where('employee_id', $f['employee']->id)->count();
+
 $results['status'] = 'ACTION_LEVEL_RACE_PROBE_COMPLETED';
 echo json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;

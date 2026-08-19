@@ -82,5 +82,41 @@
         }
     ],
     "template_revocation_vs_attendance_final_status": "REVOKED",
+    "flow07_attendance_first_then_schedule": [
+        {
+            "ok": true,
+            "result": "ATTENDANCE_COMMITTED_FIRST"
+        },
+        {
+            "ok": true,
+            "result": "SCHEDULE_CHANGED_AFTER_ATTENDANCE"
+        }
+    ],
+    "flow07_attendance_first_final_attendance_rows": 1,
+    "flow07_attendance_first_final_schedule_version": 8,
+    "flow08_attendance_first_then_participants": [
+        {
+            "ok": true,
+            "result": "ATTENDANCE_COMMITTED_FIRST"
+        },
+        {
+            "ok": true,
+            "result": "PARTICIPANTS_CHANGED_AFTER_ATTENDANCE"
+        }
+    ],
+    "flow08_attendance_first_final_attendance_rows": 1,
+    "flow08_attendance_first_final_participant_version": 9,
+    "template_revocation_attendance_first": [
+        {
+            "ok": true,
+            "result": "ATTENDANCE_COMMITTED_FIRST"
+        },
+        {
+            "ok": true,
+            "result": "REVOKE_COMMITTED_AFTER_ATTENDANCE"
+        }
+    ],
+    "template_revocation_attendance_first_final_status": "REVOKED",
+    "template_revocation_attendance_first_final_rows": 1,
     "status": "ACTION_LEVEL_RACE_PROBE_COMPLETED"
 }

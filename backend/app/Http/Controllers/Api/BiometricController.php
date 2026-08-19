@@ -45,7 +45,7 @@ class BiometricController extends Controller
 
     public function complete(BiometricEnrollmentSession $enrollment, CompleteBiometricEnrollment $action): BiometricEnrollmentSessionResource
     {
-        $this->authorize('enroll', $enrollment->employee);
+        $this->authorize('biometric.enroll', $enrollment->employee);
         return new BiometricEnrollmentSessionResource($action->execute(request()->user(), $enrollment));
     }
 

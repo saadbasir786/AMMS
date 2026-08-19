@@ -1,15 +1,129 @@
 {
     "artifact": "FLOW10A_FINAL_MARIADB_INVARIANTS",
+    "generated_at": "2026-08-19T21:35:52+00:00",
     "database": "amms_concurrency_test",
-    "active_terminal_sessions": 0,
-    "active_enrollment_sessions": 0,
-    "active_terminals": 6,
-    "active_template_rows": 0,
-    "revoked_or_superseded_template_history": 6,
-    "attendance_rows": 1,
-    "duplicate_meeting_employee_identities": 0,
+    "canonical_fixture_snapshot": {
+        "employee_id": 1,
+        "employee_email": "tech.director@example.test",
+        "biometric_status": "ENROLLED",
+        "active_finger_count": 2,
+        "fingers": [
+            {
+                "finger_position": "LEFT_INDEX",
+                "version_number": 1,
+                "status": "ACTIVE",
+                "template_checksum": "c041d4a52c93b5e9056567ceda5ff7a4c27051978560236f696dbe25a008b765"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 1,
+                "status": "REVOKED",
+                "template_checksum": "fee3b5fca8e75a1eb2a07b4ee31843f9da1754ba421cc335b74612645e7cbf92"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 2,
+                "status": "SUPERSEDED",
+                "template_checksum": "ab1f64727b3a5b477edf4d8e18fbb129dc59a96510827c694a5f78a4c763a39f"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 3,
+                "status": "REVOKED",
+                "template_checksum": "7b89d4fdd6c05ec9e363bc3be48e90f7be3a4edb504a6abbf6985499624b8a29"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 4,
+                "status": "REVOKED",
+                "template_checksum": "c084708a64b44cdc2497c62efa414a2a5cc2c1a967faf30f000195a7633a591d"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 5,
+                "status": "REVOKED",
+                "template_checksum": "e1a7227aef415f9aa78552e54d1f45fdbb133d84e3b4ed91232253ac2e6b1515"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 6,
+                "status": "REVOKED",
+                "template_checksum": "e0a92505752c583510eaee7ab7b0839735f29a29bcebdca3208610da7b79cf25"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 7,
+                "status": "REVOKED",
+                "template_checksum": "3632d103a9d839a2c70d54de11ee4f304138d09070249f849481769e4f6c310f"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 8,
+                "status": "REVOKED",
+                "template_checksum": "8ed841c36f18c8068a9b1e71bf4f1bf0f40a9f9bba437f05ffd33b94c21794e1"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 9,
+                "status": "REVOKED",
+                "template_checksum": "27278f467b8417fba6091a9870ce7bf6e39d70fa9bfda2b1bf02383e426e346b"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 10,
+                "status": "SUPERSEDED",
+                "template_checksum": "a6d2950ee700cff36da2d886864853f5261c38395a239a1a75a4aabb6fd678bc"
+            },
+            {
+                "finger_position": "RIGHT_INDEX",
+                "version_number": 11,
+                "status": "ACTIVE",
+                "template_checksum": "7d5365444d64dbe33ebbaef0a521fd5da9c16e685bb1ccc853796a902a257be3"
+            }
+        ],
+        "human_template_exposure": false
+    },
+    "canonical_meeting_snapshot": {
+        "meeting_id": 9,
+        "meeting_request_id": 9,
+        "request_status": "CONVERTED_TO_MEETING",
+        "meeting_status": "SCHEDULED",
+        "schedule_version": {
+            "id": 11,
+            "version_number": 1
+        },
+        "participant_version": {
+            "id": 11,
+            "version_number": 1
+        },
+        "terminal_id": 10,
+        "terminal_session_id": 9,
+        "candidate_count": 2,
+        "biometric_ready_participant_count": 1,
+        "without_biometrics": 1,
+        "attendance_employee_ids": [
+            1,
+            3
+        ],
+        "attendance_methods": [
+            "FINGERPRINT",
+            "MANUAL_OVERRIDE"
+        ]
+    },
+    "duplicate_attendance_count": 0,
+    "request_meeting_duplicate_count": 0,
     "plaintext_probe_columns_present": [],
-    "meeting_status_counts": {
-        "SCHEDULED": 5
+    "post_cleanup_invariants": {
+        "active_terminal_sessions": 0,
+        "active_enrollment_sessions": 0,
+        "active_terminals": 10,
+        "active_template_rows": 0,
+        "revoked_or_superseded_template_history": 12,
+        "attendance_rows": 6,
+        "duplicate_meeting_employee_identities": 0,
+        "plaintext_probe_columns_present": [],
+        "meeting_status_counts": {
+            "SCHEDULED": 9
+        }
     }
 }

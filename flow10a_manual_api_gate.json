@@ -1,0 +1,1027 @@
+{
+  "status": "MANUAL_FLOW10A_API_GATE_PASS",
+  "checks": 35,
+  "steps": [
+    {
+      "step": "login:system.admin@example.test",
+      "method": "POST",
+      "path": "/api/login",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "token": "<redacted>",
+          "user": {
+            "id": 1,
+            "name": "مدیر سیستم",
+            "email": "system.admin@example.test",
+            "status": "ACTIVE",
+            "employee_id": null,
+            "employee": null,
+            "roles": [
+              {
+                "role": "SYSTEM_ADMIN",
+                "organizational_unit_id": null,
+                "unit": null
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      }
+    },
+    {
+      "step": "login:tech.exec@example.test",
+      "method": "POST",
+      "path": "/api/login",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "token": "<redacted>",
+          "user": {
+            "id": 2,
+            "name": "مدیریت اجرائیه تکنالوژی",
+            "email": "tech.exec@example.test",
+            "status": "ACTIVE",
+            "employee_id": 2,
+            "employee": {
+              "id": 2,
+              "employee_number": "EMP-TECH-002",
+              "first_name": "فاطمه",
+              "last_name": "رحیمی",
+              "father_name": "علی",
+              "full_name": "فاطمه رحیمی",
+              "email": "tech.exec@example.test",
+              "phone": "0700000002",
+              "status": "ACTIVE",
+              "organizational_unit_id": 4,
+              "unit": {
+                "id": 4,
+                "organization_id": 1,
+                "parent_id": 1,
+                "name": "مدیریت اجرائیه تکنالوژی",
+                "code": "TECH-EXEC",
+                "unit_type": "MANAGEMENT",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "EXECUTIVE_MANAGEMENT",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              },
+              {
+                "role": "BIOMETRIC_ENROLLMENT_OFFICER",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      }
+    },
+    {
+      "step": "login:tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/login",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "token": "<redacted>",
+          "user": {
+            "id": 8,
+            "name": "هماهنگ‌کننده جلسات تکنالوژی",
+            "email": "tech.coordinator@example.test",
+            "status": "ACTIVE",
+            "employee_id": 2,
+            "employee": {
+              "id": 2,
+              "employee_number": "EMP-TECH-002",
+              "first_name": "فاطمه",
+              "last_name": "رحیمی",
+              "father_name": "علی",
+              "full_name": "فاطمه رحیمی",
+              "email": "tech.exec@example.test",
+              "phone": "0700000002",
+              "status": "ACTIVE",
+              "organizational_unit_id": 4,
+              "unit": {
+                "id": 4,
+                "organization_id": 1,
+                "parent_id": 1,
+                "name": "مدیریت اجرائیه تکنالوژی",
+                "code": "TECH-EXEC",
+                "unit_type": "MANAGEMENT",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "MEETING_COORDINATOR",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      }
+    },
+    {
+      "step": "unauthorized human biometric metadata",
+      "method": "GET",
+      "path": "/api/employees/1/biometrics",
+      "status": 403,
+      "body": {
+        "success": false,
+        "code": "FORBIDDEN",
+        "message": "This action is unauthorized.",
+        "errors": {}
+      }
+    },
+    {
+      "step": "scoped human biometric metadata",
+      "method": "GET",
+      "path": "/api/employees/1/biometrics",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی",
+            "organizational_unit_id": 1
+          },
+          "biometric_status": "NOT_ENROLLED",
+          "required_active_fingers": 2,
+          "active_finger_count": 0,
+          "templates": []
+        }
+      }
+    },
+    {
+      "step": "start enrollment",
+      "method": "POST",
+      "path": "/api/biometric/enrollment-sessions",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "6f849d6e-161c-4154-afd5-9523f52405fb",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "PENDING_CAPTURE",
+          "required_finger_count": 2,
+          "active_finger_count": 0,
+          "started_at": "2026-08-19T21:29:12.000000Z",
+          "expires_at": "2026-08-19T21:44:12.000000Z",
+          "completed_at": null,
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      }
+    },
+    {
+      "step": "terminal credential identity",
+      "method": "GET",
+      "path": "/api/terminal/v1/me",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "terminal_uuid": "e38cc71e-f069-4ce6-982f-c05b2fc51d20",
+          "code": "FLOW10A-MANUAL-1-HKIHSCM3",
+          "name": "FLOW-10A Manual Evidence Terminal 1",
+          "manufacturer": null,
+          "model": null,
+          "platform": null,
+          "os_version": null,
+          "app_version": null,
+          "status": "ACTIVE"
+        }
+      }
+    },
+    {
+      "step": "terminal current enrollment",
+      "method": "GET",
+      "path": "/api/terminal/v1/enrollment/current",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "enrollment": {
+            "uuid": "6f849d6e-161c-4154-afd5-9523f52405fb",
+            "employee_id": 1,
+            "terminal_id": 5,
+            "status": "PENDING_CAPTURE",
+            "required_finger_count": 2,
+            "active_finger_count": 0,
+            "started_at": "2026-08-19T21:29:12.000000Z",
+            "expires_at": "2026-08-19T21:44:12.000000Z",
+            "completed_at": null,
+            "cancelled_at": null,
+            "cancel_reason": null,
+            "employee": {
+              "id": 1,
+              "employee_number": "EMP-TECH-001",
+              "full_name": "احمد احمدی"
+            }
+          },
+          "finger_positions": [
+            "RIGHT_THUMB",
+            "RIGHT_INDEX",
+            "RIGHT_MIDDLE",
+            "RIGHT_RING",
+            "RIGHT_LITTLE",
+            "LEFT_THUMB",
+            "LEFT_INDEX",
+            "LEFT_MIDDLE",
+            "LEFT_RING",
+            "LEFT_LITTLE"
+          ]
+        }
+      }
+    },
+    {
+      "step": "reject raw enrollment image",
+      "method": "POST",
+      "path": "/api/terminal/v1/enrollment/6f849d6e-161c-4154-afd5-9523f52405fb/template",
+      "status": 422,
+      "body": {
+        "success": false,
+        "code": "RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED",
+        "message": "دادهٔ خام بایومتریک پذیرفته نیست.",
+        "errors": []
+      }
+    },
+    {
+      "step": "submit template:RIGHT_INDEX",
+      "method": "POST",
+      "path": "/api/terminal/v1/enrollment/6f849d6e-161c-4154-afd5-9523f52405fb/template",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "259332e7-c497-4361-ab8d-307734b2c46d",
+          "employee_id": 1,
+          "modality": "FINGERPRINT",
+          "finger_position": "RIGHT_INDEX",
+          "template_vendor": "FAKE",
+          "template_format": "SIMULATOR-V1",
+          "algorithm_version": "SIMULATOR-V1",
+          "template_checksum": "a3d8139721a54b3fd06930684728d599425b2744e8e83f400cf9e4ed1588813a",
+          "quality_score": "95.000",
+          "version_number": 1,
+          "status": "ACTIVE",
+          "source_terminal_id": 5,
+          "enrollment_session_id": 1,
+          "enrolled_at": "2026-08-19T21:29:12.000000Z",
+          "superseded_at": null,
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      }
+    },
+    {
+      "step": "submit template:LEFT_INDEX",
+      "method": "POST",
+      "path": "/api/terminal/v1/enrollment/6f849d6e-161c-4154-afd5-9523f52405fb/template",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+          "employee_id": 1,
+          "modality": "FINGERPRINT",
+          "finger_position": "LEFT_INDEX",
+          "template_vendor": "FAKE",
+          "template_format": "SIMULATOR-V1",
+          "algorithm_version": "SIMULATOR-V1",
+          "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8",
+          "quality_score": "95.000",
+          "version_number": 1,
+          "status": "ACTIVE",
+          "source_terminal_id": 5,
+          "enrollment_session_id": 1,
+          "enrolled_at": "2026-08-19T21:29:12.000000Z",
+          "superseded_at": null,
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      }
+    },
+    {
+      "step": "complete two-finger enrollment",
+      "method": "POST",
+      "path": "/api/biometric/enrollment-sessions/1/complete",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "6f849d6e-161c-4154-afd5-9523f52405fb",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "COMPLETED",
+          "required_finger_count": 2,
+          "active_finger_count": 2,
+          "started_at": "2026-08-19T21:29:12.000000Z",
+          "expires_at": "2026-08-19T21:44:12.000000Z",
+          "completed_at": "2026-08-19T21:29:12.000000Z",
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      }
+    },
+    {
+      "step": "verify enrolled metadata without bytes",
+      "method": "GET",
+      "path": "/api/employees/1/biometrics",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی",
+            "organizational_unit_id": 1
+          },
+          "biometric_status": "ENROLLED",
+          "required_active_fingers": 2,
+          "active_finger_count": 2,
+          "templates": [
+            {
+              "uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+              "employee_id": 1,
+              "modality": "FINGERPRINT",
+              "finger_position": "LEFT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8",
+              "quality_score": "95.000",
+              "version_number": 1,
+              "status": "ACTIVE",
+              "source_terminal_id": 5,
+              "enrollment_session_id": 1,
+              "enrolled_at": "2026-08-19T21:29:12.000000Z",
+              "superseded_at": null,
+              "revoked_at": null,
+              "revoke_reason": null
+            },
+            {
+              "uuid": "259332e7-c497-4361-ab8d-307734b2c46d",
+              "employee_id": 1,
+              "modality": "FINGERPRINT",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_checksum": "a3d8139721a54b3fd06930684728d599425b2744e8e83f400cf9e4ed1588813a",
+              "quality_score": "95.000",
+              "version_number": 1,
+              "status": "ACTIVE",
+              "source_terminal_id": 5,
+              "enrollment_session_id": 1,
+              "enrolled_at": "2026-08-19T21:29:12.000000Z",
+              "superseded_at": null,
+              "revoked_at": null,
+              "revoke_reason": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "start re-enrollment",
+      "method": "POST",
+      "path": "/api/biometric/enrollment-sessions",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "234282bc-fcca-4987-9a80-4655d8463b0d",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "PENDING_CAPTURE",
+          "required_finger_count": 2,
+          "active_finger_count": 2,
+          "started_at": "2026-08-19T21:29:12.000000Z",
+          "expires_at": "2026-08-19T21:44:12.000000Z",
+          "completed_at": null,
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      }
+    },
+    {
+      "step": "submit re-enrollment right finger",
+      "method": "POST",
+      "path": "/api/terminal/v1/enrollment/234282bc-fcca-4987-9a80-4655d8463b0d/template",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "94b0105f-d470-4543-b39d-7d72223afb57",
+          "employee_id": 1,
+          "modality": "FINGERPRINT",
+          "finger_position": "RIGHT_INDEX",
+          "template_vendor": "FAKE",
+          "template_format": "SIMULATOR-V1",
+          "algorithm_version": "SIMULATOR-V1",
+          "template_checksum": "b15dfa36c9ef9ed90e313728a058ac92a24a0a698b33141c88d7fa60c7cdee18",
+          "quality_score": "96.000",
+          "version_number": 2,
+          "status": "ACTIVE",
+          "source_terminal_id": 5,
+          "enrollment_session_id": 2,
+          "enrolled_at": "2026-08-19T21:29:12.000000Z",
+          "superseded_at": null,
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      }
+    },
+    {
+      "step": "complete re-enrollment",
+      "method": "POST",
+      "path": "/api/biometric/enrollment-sessions/2/complete",
+      "status": 200,
+      "body": {
+        "data": {
+          "uuid": "234282bc-fcca-4987-9a80-4655d8463b0d",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "COMPLETED",
+          "required_finger_count": 2,
+          "active_finger_count": 2,
+          "started_at": "2026-08-19T21:29:12.000000Z",
+          "expires_at": "2026-08-19T21:44:12.000000Z",
+          "completed_at": "2026-08-19T21:29:12.000000Z",
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      }
+    },
+    {
+      "step": "verify versioned biometric lifecycle",
+      "method": "GET",
+      "path": "/api/employees/1/biometrics",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی",
+            "organizational_unit_id": 1
+          },
+          "biometric_status": "ENROLLED",
+          "required_active_fingers": 2,
+          "active_finger_count": 2,
+          "templates": [
+            {
+              "uuid": "94b0105f-d470-4543-b39d-7d72223afb57",
+              "employee_id": 1,
+              "modality": "FINGERPRINT",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_checksum": "b15dfa36c9ef9ed90e313728a058ac92a24a0a698b33141c88d7fa60c7cdee18",
+              "quality_score": "96.000",
+              "version_number": 2,
+              "status": "ACTIVE",
+              "source_terminal_id": 5,
+              "enrollment_session_id": 2,
+              "enrolled_at": "2026-08-19T21:29:12.000000Z",
+              "superseded_at": null,
+              "revoked_at": null,
+              "revoke_reason": null
+            },
+            {
+              "uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+              "employee_id": 1,
+              "modality": "FINGERPRINT",
+              "finger_position": "LEFT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8",
+              "quality_score": "95.000",
+              "version_number": 1,
+              "status": "ACTIVE",
+              "source_terminal_id": 5,
+              "enrollment_session_id": 1,
+              "enrolled_at": "2026-08-19T21:29:12.000000Z",
+              "superseded_at": null,
+              "revoked_at": null,
+              "revoke_reason": null
+            },
+            {
+              "uuid": "259332e7-c497-4361-ab8d-307734b2c46d",
+              "employee_id": 1,
+              "modality": "FINGERPRINT",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_checksum": "a3d8139721a54b3fd06930684728d599425b2744e8e83f400cf9e4ed1588813a",
+              "quality_score": "95.000",
+              "version_number": 1,
+              "status": "SUPERSEDED",
+              "source_terminal_id": 5,
+              "enrollment_session_id": 1,
+              "enrolled_at": "2026-08-19T21:29:12.000000Z",
+              "superseded_at": "2026-08-19T21:29:12.000000Z",
+              "revoked_at": null,
+              "revoke_reason": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "activate terminal 1 meeting session",
+      "method": "POST",
+      "path": "/api/terminal/v1/assignments/3ac9dc44-d3f3-484f-b5ef-6b075b6d101d/activate",
+      "status": 201,
+      "body": {
+        "success": true,
+        "message": "نشست ترمینال فعال شد. کلید نشست فقط یک‌بار نمایش داده می‌شود.",
+        "data": {
+          "session": {
+            "id": 6,
+            "uuid": "73036971-c175-48e3-ae3d-c0d3ef4f960a",
+            "assignment_id": 5,
+            "terminal_id": 5,
+            "meeting_id": 21,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "status": "ACTIVE",
+            "activated_at": "2026-08-19T21:29:12.000000Z",
+            "expires_at": "2026-09-28T21:29:11.000000Z",
+            "closed_at": null,
+            "close_reason": null
+          },
+          "session_token": "<redacted>"
+        }
+      }
+    },
+    {
+      "step": "ordinary FLOW-09 manifest remains byte-free",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/manifest",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "session_uuid": "73036971-c175-48e3-ae3d-c0d3ef4f960a",
+          "terminal_uuid": "e38cc71e-f069-4ce6-982f-c05b2fc51d20",
+          "meeting_id": 21,
+          "meeting_number": "FLOW10A-MANUAL-M-RLPNUKKS",
+          "subject": "FLOW-10A Manual Evidence Meeting",
+          "schedule_version_id": 26,
+          "participant_version_id": 29,
+          "meeting_date": "2026-09-18",
+          "start_time": "10:00",
+          "end_time": "11:00",
+          "location": "FLOW10A-MANUAL",
+          "participants": [
+            {
+              "employee_id": 1,
+              "display_name": "احمد احمدی",
+              "organizational_unit_id": 1,
+              "organizational_unit_name": "ریاست تکنالوژی",
+              "participant_role": "PARTICIPATING"
+            },
+            {
+              "employee_id": 3,
+              "display_name": "حامد کریمی",
+              "organizational_unit_id": 5,
+              "organizational_unit_name": "دیپارتمنت نرم‌افزار",
+              "participant_role": "PARTICIPATING"
+            }
+          ],
+          "manifest_checksum": "71860720520167f138843895dc493bd90e4557148029ef37c21b9eab3a6185d3"
+        }
+      }
+    },
+    {
+      "step": "terminal candidate set includes local bytes",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/biometric-candidates",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "session_uuid": "73036971-c175-48e3-ae3d-c0d3ef4f960a",
+          "meeting_id": 21,
+          "participant_version_id": 29,
+          "candidate_set_checksum": "8bbbfb87e5927c21a5cea92162e5a1cb667b8199a9d2468b1c3cd8d6f58eb31f",
+          "total_participants": 2,
+          "biometric_ready": 1,
+          "without_biometrics": 1,
+          "candidates": [
+            {
+              "employee_id": 1,
+              "template_uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+              "finger_position": "LEFT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8"
+            },
+            {
+              "employee_id": 1,
+              "template_uuid": "94b0105f-d470-4543-b39d-7d72223afb57",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "b15dfa36c9ef9ed90e313728a058ac92a24a0a698b33141c88d7fa60c7cdee18"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "valid fingerprint attendance",
+      "method": "POST",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/attendance/fingerprint",
+      "status": 201,
+      "body": {
+        "data": {
+          "uuid": "35ecb7b6-8b18-474d-a7c3-13952c4b8164",
+          "meeting_id": 21,
+          "employee_id": 1,
+          "participant_version_id": 29,
+          "terminal_id": 5,
+          "terminal_session_id": 6,
+          "attendance_method": "FINGERPRINT",
+          "finger_position": "LEFT_INDEX",
+          "matcher_vendor": "FAKE",
+          "matcher_algorithm_version": "SIMULATOR-V1",
+          "match_score": "99.00000",
+          "threshold_reference": "FAKE_ACCEPTED",
+          "recorded_at_server": "2026-08-19T21:29:12.000000Z",
+          "device_captured_at": null,
+          "recorded_by_user_id": null,
+          "manual_reason": null
+        }
+      }
+    },
+    {
+      "step": "duplicate employee fingerprint scan",
+      "method": "POST",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/attendance/fingerprint",
+      "status": 409,
+      "body": {
+        "success": false,
+        "code": "ATTENDANCE_ALREADY_RECORDED",
+        "message": "حضور قبلاً ثبت شده است.",
+        "errors": []
+      }
+    },
+    {
+      "step": "unknown fingerprint template",
+      "method": "POST",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/attendance/fingerprint",
+      "status": 422,
+      "body": {
+        "success": false,
+        "code": "BIOMETRIC_TEMPLATE_STALE",
+        "message": "قالب بایومتریک با کارمند هم‌خوان نیست.",
+        "errors": []
+      }
+    },
+    {
+      "step": "reject raw attendance probe",
+      "method": "POST",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/attendance/fingerprint",
+      "status": 422,
+      "body": {
+        "success": false,
+        "code": "RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED",
+        "message": "دادهٔ خام بایومتریک پذیرفته نیست.",
+        "errors": []
+      }
+    },
+    {
+      "step": "close primary terminal session",
+      "method": "POST",
+      "path": "/api/terminal/v1/sessions/73036971-c175-48e3-ae3d-c0d3ef4f960a/close",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": 6,
+          "uuid": "73036971-c175-48e3-ae3d-c0d3ef4f960a",
+          "assignment_id": 5,
+          "terminal_id": 5,
+          "meeting_id": 21,
+          "schedule_version_id": 26,
+          "participant_version_id": 29,
+          "status": "CLOSED",
+          "activated_at": "2026-08-19T21:29:12.000000Z",
+          "expires_at": "2026-09-28T21:29:11.000000Z",
+          "closed_at": "2026-08-19T21:29:13.000000Z",
+          "close_reason": "manual FLOW-10A evidence complete"
+        }
+      }
+    },
+    {
+      "step": "manual attendance override with reason",
+      "method": "POST",
+      "path": "/api/meetings/21/attendance/manual",
+      "status": 201,
+      "body": {
+        "data": {
+          "uuid": "d172bec0-dbe5-47ba-96c8-1d0724fe4d9a",
+          "meeting_id": 21,
+          "employee_id": 3,
+          "participant_version_id": 29,
+          "terminal_id": null,
+          "terminal_session_id": null,
+          "attendance_method": "MANUAL_OVERRIDE",
+          "finger_position": null,
+          "matcher_vendor": null,
+          "matcher_algorithm_version": null,
+          "match_score": null,
+          "threshold_reference": null,
+          "recorded_at_server": "2026-08-19T21:29:13.000000Z",
+          "device_captured_at": null,
+          "recorded_by_user_id": 8,
+          "manual_reason": "Manual FLOW-10A gate evidence"
+        }
+      }
+    },
+    {
+      "step": "activate terminal 2 for FLOW-07 stale test",
+      "method": "POST",
+      "path": "/api/terminal/v1/assignments/e9f5f6cb-1744-47ac-9bb4-5fc26fafef14/activate",
+      "status": 201,
+      "body": {
+        "success": true,
+        "message": "نشست ترمینال فعال شد. کلید نشست فقط یک‌بار نمایش داده می‌شود.",
+        "data": {
+          "session": {
+            "id": 7,
+            "uuid": "cc45ecae-5494-4aeb-a448-3525a1b749d9",
+            "assignment_id": 6,
+            "terminal_id": 6,
+            "meeting_id": 21,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "status": "ACTIVE",
+            "activated_at": "2026-08-19T21:30:14.000000Z",
+            "expires_at": "2026-09-28T21:29:11.000000Z",
+            "closed_at": null,
+            "close_reason": null
+          },
+          "session_token": "<redacted>"
+        }
+      }
+    },
+    {
+      "step": "load candidates before FLOW-07 mutation",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/cc45ecae-5494-4aeb-a448-3525a1b749d9/biometric-candidates",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "session_uuid": "cc45ecae-5494-4aeb-a448-3525a1b749d9",
+          "meeting_id": 21,
+          "participant_version_id": 29,
+          "candidate_set_checksum": "8bbbfb87e5927c21a5cea92162e5a1cb667b8199a9d2468b1c3cd8d6f58eb31f",
+          "total_participants": 2,
+          "biometric_ready": 1,
+          "without_biometrics": 1,
+          "candidates": [
+            {
+              "employee_id": 1,
+              "template_uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+              "finger_position": "LEFT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8"
+            },
+            {
+              "employee_id": 1,
+              "template_uuid": "94b0105f-d470-4543-b39d-7d72223afb57",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "b15dfa36c9ef9ed90e313728a058ac92a24a0a698b33141c88d7fa60c7cdee18"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "fixture_mutation:schedule",
+      "status": 200,
+      "body": {
+        "mutation": "schedule",
+        "schedule_version_id": 27
+      }
+    },
+    {
+      "step": "FLOW-07 stale candidate API denial",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/cc45ecae-5494-4aeb-a448-3525a1b749d9/biometric-candidates",
+      "status": 422,
+      "body": {
+        "success": false,
+        "code": "TERMINAL_SESSION_STALE",
+        "message": "نسخهٔ جلسه پس از فعال‌سازی تغییر کرده است.",
+        "errors": {
+          "schedule_changed": true,
+          "participants_changed": false
+        }
+      }
+    },
+    {
+      "step": "refresh terminal 3 assignment after FLOW-07 change",
+      "method": "POST",
+      "path": "/api/meetings/21/terminal-assignments/7/refresh",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": 7,
+          "uuid": "8c9b53b5-c3b6-470f-8120-5a34a878c860",
+          "meeting_id": 21,
+          "terminal_id": 7,
+          "terminal": {
+            "id": 7,
+            "uuid": "b0f5410c-992f-45b2-90bb-b45dd5e3d31d",
+            "organization_id": 1,
+            "code": "FLOW10A-MANUAL-3-ABKTQDUL",
+            "name": "FLOW-10A Manual Evidence Terminal 3",
+            "serial_number": null,
+            "manufacturer": null,
+            "model": null,
+            "platform": null,
+            "os_version": null,
+            "app_version": null,
+            "status": "ACTIVE",
+            "last_seen_at": null,
+            "registered_at": "2026-08-19T21:29:11.000000Z",
+            "current_session_id": null
+          },
+          "baseline_schedule_version_id": 27,
+          "baseline_participant_version_id": 29,
+          "valid_from": "2026-08-19T21:27:11.000000Z",
+          "valid_until": "2026-09-28T21:29:11.000000Z",
+          "status": "ASSIGNED",
+          "is_stale": false,
+          "schedule_changed": false,
+          "participants_changed": false,
+          "refreshed_at": "2026-08-19T21:30:14.000000Z",
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      }
+    },
+    {
+      "step": "activate terminal 3 for FLOW-08 stale test",
+      "method": "POST",
+      "path": "/api/terminal/v1/assignments/8c9b53b5-c3b6-470f-8120-5a34a878c860/activate",
+      "status": 201,
+      "body": {
+        "success": true,
+        "message": "نشست ترمینال فعال شد. کلید نشست فقط یک‌بار نمایش داده می‌شود.",
+        "data": {
+          "session": {
+            "id": 8,
+            "uuid": "0d1eef09-bc0d-497a-bc0a-625fbfe4c749",
+            "assignment_id": 7,
+            "terminal_id": 7,
+            "meeting_id": 21,
+            "schedule_version_id": 27,
+            "participant_version_id": 29,
+            "status": "ACTIVE",
+            "activated_at": "2026-08-19T21:31:15.000000Z",
+            "expires_at": "2026-09-28T21:29:11.000000Z",
+            "closed_at": null,
+            "close_reason": null
+          },
+          "session_token": "<redacted>"
+        }
+      }
+    },
+    {
+      "step": "load candidates before FLOW-08 mutation",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/0d1eef09-bc0d-497a-bc0a-625fbfe4c749/biometric-candidates",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "session_uuid": "0d1eef09-bc0d-497a-bc0a-625fbfe4c749",
+          "meeting_id": 21,
+          "participant_version_id": 29,
+          "candidate_set_checksum": "8bbbfb87e5927c21a5cea92162e5a1cb667b8199a9d2468b1c3cd8d6f58eb31f",
+          "total_participants": 2,
+          "biometric_ready": 1,
+          "without_biometrics": 1,
+          "candidates": [
+            {
+              "employee_id": 1,
+              "template_uuid": "e03a1e1e-8deb-4713-8236-c515d3848e27",
+              "finger_position": "LEFT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "70e175a8bf2f36c8e9ff327c06d19f6bcd654794e3ad245b1d2d5e8681e853b8"
+            },
+            {
+              "employee_id": 1,
+              "template_uuid": "94b0105f-d470-4543-b39d-7d72223afb57",
+              "finger_position": "RIGHT_INDEX",
+              "template_vendor": "FAKE",
+              "template_format": "SIMULATOR-V1",
+              "algorithm_version": "SIMULATOR-V1",
+              "template_data": "<bytes-present>",
+              "template_checksum": "b15dfa36c9ef9ed90e313728a058ac92a24a0a698b33141c88d7fa60c7cdee18"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "fixture_mutation:participants",
+      "status": 200,
+      "body": {
+        "mutation": "participants",
+        "participant_version_id": 30
+      }
+    },
+    {
+      "step": "FLOW-08 stale candidate API denial",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/0d1eef09-bc0d-497a-bc0a-625fbfe4c749/biometric-candidates",
+      "status": 422,
+      "body": {
+        "success": false,
+        "code": "TERMINAL_SESSION_STALE",
+        "message": "نسخهٔ جلسه پس از فعال‌سازی تغییر کرده است.",
+        "errors": {
+          "schedule_changed": false,
+          "participants_changed": true
+        }
+      }
+    }
+  ]
+}

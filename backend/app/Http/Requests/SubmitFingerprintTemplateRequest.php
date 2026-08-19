@@ -17,6 +17,7 @@ class SubmitFingerprintTemplateRequest extends FormRequest
             'template_data' => ['required', 'string'],
             'quality_score' => ['nullable', 'numeric'],
             'quality_accepted' => ['sometimes', 'boolean'],
+            'replace_active' => ['sometimes', 'boolean'],
             'fingerprint_image' => ['prohibited'],
             'raw_image' => ['prohibited'],
             'probe_image' => ['prohibited'],

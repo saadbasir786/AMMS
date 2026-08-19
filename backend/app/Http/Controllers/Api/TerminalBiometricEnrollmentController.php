@@ -19,9 +19,9 @@ class TerminalBiometricEnrollmentController extends Controller
         $terminal = $request->attributes->get('terminal');
         $enrollment = BiometricEnrollmentSession::query()->with('employee')->active()->where('terminal_id', $terminal->id)->latest('id')->first();
         if (!$enrollment || !$enrollment->isActive()) {
-            return response()->json(['success' => true, 'data' => ['enrollment' => null, 'finger_positions' => BiometricFingerPosition::all()]]);
+            return response()->json(['success' => true, 'data' => ['enrollment' => null, 'finger_positions' => BiometricFingerPosition::ALL]]);
         }
-        return response()->json(['success' => true, 'data' => ['enrollment' => new BiometricEnrollmentSessionResource($enrollment), 'finger_positions' => BiometricFingerPosition::all()]]);
+        return response()->json(['success' => true, 'data' => ['enrollment' => new BiometricEnrollmentSessionResource($enrollment), 'finger_positions' => BiometricFingerPosition::ALL]]);
     }
 
     public function submit(SubmitFingerprintTemplateRequest $request, BiometricEnrollmentSession $enrollment, SubmitFingerprintTemplate $action): BiometricTemplateResource
@@ -34,6 +34,6 @@ class TerminalBiometricEnrollmentController extends Controller
         $actor = $enrollment->startedBy;
         if (!$actor) abort(response()->json(['success' => false, 'code' => 'BIOMETRIC_ENROLLMENT_SESSION_NOT_FOUND', 'message' => 'مالک نشست ثبت بایومتریک یافت نشد.', 'errors' => []], 404));
         $data = $request->validated();
-        return new BiometricTemplateResource($action->execute($actor, $enrollment, $data['finger_position'], $data['template_vendor'], $data['template_format'], $data['algorithm_version'], $data['template_data'], isset($data['quality_score']) ? (float) $data['quality_score'] : null, $data['quality_accepted'] ?? true));
+        return new BiometricTemplateResource($action->execute($actor, $enrollment, $data['finger_position'], $data['template_vendor'], $data['template_format'], $data['algorithm_version'], $data['template_data'], isset($data['quality_score']) ? (float) $data['quality_score'] : null, $data['quality_accepted'] ?? true, $data['replace_active'] ?? false));
     }
 }

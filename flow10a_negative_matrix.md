@@ -12,14 +12,14 @@ This matrix records the device-independent FLOW-10A foundation. It does not clai
 | F | Concurrent enrollment for same employee/finger | One active path/template | **ACTION-LEVEL PASS** — `flow10a_action_race_probe.json` returns one `ENROLLMENT_COMMITTED`, one `BIOMETRIC_ENROLLMENT_ALREADY_ACTIVE` (422), and `concurrent_enrollment_final_active_sessions: 1`; the MariaDB uniqueness probe also passed. |
 | G | Re-enrollment | Old immutable version `SUPERSEDED`, new version `ACTIVE` | **PASS** — `Flow10ABiometricLifecycleTest`, including audit/privacy assertions. |
 | H | Revoked template appears in candidate set | Must never occur | **PASS** — `Flow10ACandidateSetTest` asserts revoked exclusion. |
-| I | FLOW-07 stale session | Candidate and attendance denied | **ACTION-LEVEL PASS** — schedule mutation wins and attendance returns `TERMINAL_SESSION_STALE` (422). |
-| J | FLOW-08 stale session | Candidate and attendance denied | **ACTION-LEVEL PASS** — Participant Version mutation wins and attendance returns `TERMINAL_SESSION_STALE` (422). |
+| I | FLOW-07 stale session | Candidate and attendance denied | **ACTION-LEVEL + MANUAL HTTP PASS** — schedule-first ordering returns `TERMINAL_SESSION_STALE` (422); attendance-first ordering commits attendance and schedule mutation afterward preserves one historical row; the manual candidate API also returns `TERMINAL_SESSION_STALE` with `schedule_changed=true`. |
+| J | FLOW-08 stale session | Candidate and attendance denied | **ACTION-LEVEL + MANUAL HTTP PASS** — participant-first ordering returns `TERMINAL_SESSION_STALE` (422); attendance-first ordering commits attendance and participant mutation afterward preserves one historical row; the manual candidate API returns `TERMINAL_SESSION_STALE` with `participants_changed=true`. |
 | K | Matched employee is not in Participant Version | `BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT` | **PASS** — `Flow10AFingerprintAttendanceTest` asserts nonparticipant rejection. |
 | L | Template belongs to a different employee | Rejected | **PASS** — `Flow10AFingerprintAttendanceTest` rejects wrong employee/template pairing. |
 | M | Two terminals submit same attendance concurrently | One official row | **ACTION-LEVEL PASS** — `two_terminal_attendance_submissions` returns one `ATTENDANCE_COMMITTED`, one `ATTENDANCE_ALREADY_RECORDED` (409), and `two_terminal_attendance_final_rows: 1`; the MariaDB uniqueness probe also passed. |
 | N | Manual attendance without reason | `MANUAL_ATTENDANCE_REASON_REQUIRED` | **PASS** — `Flow10AAttendanceTest` asserts the canonical code. |
 | O | Unauthorized manual override | HTTP 403 / `UNAUTHORIZED_ATTENDANCE_OVERRIDE` | **PASS** — `Flow10AAttendanceTest` asserts unauthorized system-admin denial. |
-| P | Final invariants and privacy boundary | No active sessions after official cleanup, no duplicate attendance identity, no image/probe storage, correct Meeting state, and no human/manifest template-byte exposure | **PASS** — `flow10a_final_mariadb_invariants.json` records active terminal/enrollment sessions `0`, duplicate identities `0`, `plaintext_probe_columns_present: []`, attendance rows `1`, and all five race-fixture meetings `SCHEDULED`; the definitive full regression/build counts are recorded below. |
+| P | Final invariants and privacy boundary | Canonical employee/finger lifecycle, request/Meeting/version identity, terminal/session identity, candidate readiness, attendance methods/IDs, no active fixtures, no duplicate identities, no image/probe storage, and no human/manifest template-byte exposure | **PASS** — rich `flow10a_final_mariadb_invariants.json` records `biometric_status=ENROLLED`, `active_finger_count=2`, explicit LEFT/RIGHT version/status history, `human_template_exposure=false`, `request_status=CONVERTED_TO_MEETING`, `meeting_status=SCHEDULED`, schedule/participant versions, terminal/session IDs, `candidate_count=2`, `biometric_ready_participant_count=1`, attendance IDs `[1,3]`, methods `[FINGERPRINT, MANUAL_OVERRIDE]`, zero duplicate counts, and zero active sessions/templates after official cleanup. |
 
 ## Positive boundary evidence
 
@@ -30,23 +30,26 @@ The candidate-set contract is deliberately asymmetric. The session-authenticated
 ```text
 FLOW10A_ANDROID_CORE_PASS vectors=8
 FLOW10A_ANDROID_FOUNDATION_PASS files=5
+Android Gradle: ./gradlew --no-daemon --max-workers=1 assembleDebug — BUILD SUCCESSFUL
 ```
 
-The independent `terminal-android/` core covers Enrollment Mode, Meeting Mode, deterministic fake outcomes, local matching seam, attendance submission, session close, and memory clearing. It is not a physical device or vendor SDK integration.
+The independent `terminal-android/` core covers Enrollment Mode, Meeting Mode, deterministic fake outcomes, local matching seam, attendance submission, session close, and memory clearing. A real `assembleDebug` build also passed with Android SDK API 35, build-tools 35.0.0, Gradle 8.10.2, and the checked-in Gradle wrapper. It is not a physical device or vendor SDK integration.
 
 ## Action-level MariaDB evidence
 
-`flow10a_action_race_probe.json` was executed against a freshly migrated `amms_concurrency_test` MariaDB database using forked Laravel processes and actual Actions. The requested race groups all pass: concurrent enrollment, two-terminal attendance, re-enrollment versus revocation, FLOW-07 schedule versus attendance, FLOW-08 participant mutation versus attendance, and template revocation versus attendance. The official cleanup script uses `CloseTerminalMeetingSession` and `CancelBiometricEnrollment` before writing the invariant artifact.
+`flow10a_action_race_probe.json` was executed against a freshly migrated `amms_concurrency_test` MariaDB database using forked Laravel processes and actual Actions. The requested race groups all pass in both orderings: concurrent enrollment, two-terminal attendance, re-enrollment versus revocation, FLOW-07 schedule versus attendance, FLOW-08 participant mutation versus attendance, template revocation versus attendance, plus attendance-first schedule mutation, attendance-first participant mutation, and attendance-first template revocation. The official cleanup script uses `CloseTerminalMeetingSession`, `CancelBiometricEnrollment`, and template revocation before writing the invariant artifact.
 
 ## Current authoritative regression/build record
 
-One authoritative run was completed after the strict-closure fixes, with logs preserved as `definitive_android_core.log`, `definitive_feature_regression.log`, and `definitive_frontend_build.log`:
+The previous authoritative regression/build counts remain valid for the unchanged workflow suite, while the new strict-closure artifacts add the following independent gates:
 
 ```text
 FLOW10A_ANDROID_CORE_PASS vectors=8
 FLOW10A_ANDROID_FOUNDATION_PASS files=5
+Android Gradle: assembleDebug BUILD SUCCESSFUL
 Feature suite: 316 tests passed (1,154 assertions)
 Frontend build: 1,862 modules transformed; build successful
+Manual API gate: MANUAL_FLOW10A_API_GATE_PASS checks=35
 ```
 
 The frontend emitted only the existing chunk-size advisory; the production build completed successfully. Earlier counts are historical and superseded.
