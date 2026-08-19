@@ -51,17 +51,32 @@ The physical capability probe found no attached ADB device, Android build toolch
 | C | Terminal A accesses Terminal B enrollment/session | Dedicated terminal ownership assertion pending. |
 | D | Template submission contains image/probe field | FormRequest rejects with `RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED`; assertion pending. |
 | E | Low-quality simulated capture | Fake adapter exposes rejected quality; adapter test passes; endpoint assertion pending. |
-| F | Concurrent enrollment for same employee | Row-lock Action implemented; MariaDB race probe pending. |
+| F | Concurrent enrollment for same employee | MariaDB/InnoDB uniqueness probe passed with one active template row; full Action-level race assertion remains pending. |
 | G | Re-enrollment | Explicit version replacement and immutability Action implemented; end-to-end assertion pending. |
 | H | Revoked template appears in candidate set | Candidate builder filters `ACTIVE`; assertion pending. |
 | I | FLOW-07 stale session | Candidate/attendance paths reuse session freshness checks; dedicated assertion pending. |
 | J | FLOW-08 stale session | Candidate/attendance paths reuse participant-version freshness checks; dedicated assertion pending. |
 | K | Matched employee is not a Participant Version member | Server returns `BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT`; assertion pending. |
 | L | Template belongs to a different employee | Server rejects mismatch as `BIOMETRIC_TEMPLATE_STALE`; assertion pending. |
-| M | Two terminals submit attendance concurrently | Unique Meeting + Employee constraint is present; MariaDB race probe pending. |
+| M | Two terminals submit attendance concurrently | MariaDB/InnoDB uniqueness probe passed with one attendance row; full Action-level race assertion remains pending. |
 | N | Manual attendance without reason | FormRequest requires reason; assertion pending. |
 | O | Unauthorized manual override | Permission and governance resolver implemented; assertion pending. |
 | P | Final invariants and privacy boundary | Existing FLOW-01–FLOW-09 regression passed; final FLOW-10A invariant artifact pending. |
+
+## MariaDB/InnoDB probe
+
+The real MariaDB probe created isolated InnoDB constraint tables and raced two writers for the same employee/finger active template and the same Meeting/Employee attendance identity. Both races produced one committed row and one duplicate/serialized writer result:
+
+```json
+{
+  "template_active_rows": 1,
+  "attendance_rows": 1,
+  "template_race": ["PASS", "DUPLICATE_OR_SERIALIZED:23000"],
+  "attendance_race": ["PASS", "DUPLICATE_OR_SERIALIZED:23000"]
+}
+```
+
+This is database-level evidence. The application Action-level FLOW-07/FLOW-08/template-revocation races and the complete manual software gate set still require dedicated closure before release.
 
 ## Release boundary
 
