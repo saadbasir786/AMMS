@@ -26,6 +26,9 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_request_probe (id
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_ack_probe (proposal_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, acknowledged_by BIGINT UNSIGNED NOT NULL, PRIMARY KEY (proposal_id, unit_id)) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_context_probe (meeting_request_id BIGINT UNSIGNED PRIMARY KEY, authority_employee_id BIGINT UNSIGNED NOT NULL, authority_type VARCHAR(64) NOT NULL) ENGINE=InnoDB');
 $pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow05_meeting_unit_probe (meeting_request_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY (meeting_request_id, unit_id)) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_request_probe (id BIGINT UNSIGNED PRIMARY KEY, status VARCHAR(64) NOT NULL, requesting_unit_id BIGINT UNSIGNED NULL, participating_units INT NOT NULL, finalize_transitions INT NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_context_probe (meeting_request_id BIGINT UNSIGNED PRIMARY KEY, authority_employee_id BIGINT UNSIGNED NOT NULL, authority_type VARCHAR(64) NOT NULL) ENGINE=InnoDB');
+$pdo->exec('CREATE TABLE IF NOT EXISTS amms_concurrency_flow06_meeting_unit_probe (meeting_request_id BIGINT UNSIGNED NOT NULL, unit_id BIGINT UNSIGNED NOT NULL, role VARCHAR(32) NOT NULL, PRIMARY KEY (meeting_request_id, unit_id)) ENGINE=InnoDB');
 $pdo->exec('DELETE FROM amms_concurrency_probe');
 $pdo->exec('DELETE FROM amms_concurrency_meeting_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow02_request_probe');
@@ -40,6 +43,9 @@ $pdo->exec('DELETE FROM amms_concurrency_flow05_request_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow05_ack_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow05_context_probe');
 $pdo->exec('DELETE FROM amms_concurrency_flow05_meeting_unit_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow06_request_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow06_context_probe');
+$pdo->exec('DELETE FROM amms_concurrency_flow06_meeting_unit_probe');
 $pdo->exec('INSERT INTO amms_concurrency_probe (id, value) VALUES (1, 0)');
 
 $runConcurrent = static function (callable $work): array {
@@ -310,4 +316,31 @@ $flow05FinalizeResults = $runConcurrent(static function () use ($connect): void 
 $pdo = $connect(); $flow05Status = (string) $pdo->query('SELECT status FROM amms_concurrency_flow05_request_probe WHERE id = 5')->fetchColumn(); $flow05Meetings = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_meeting_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Contexts = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow05_context_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Units = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow05_meeting_unit_probe WHERE meeting_request_id = 5')->fetchColumn(); $flow05Transitions = (int) $pdo->query('SELECT finalize_transitions FROM amms_concurrency_flow05_request_probe WHERE id = 5')->fetchColumn();
 if ($flow05Status !== 'CONVERTED_TO_MEETING' || $flow05Meetings !== 1 || $flow05Contexts !== 1 || $flow05Units !== 3 || $flow05Transitions !== 1 || count(array_filter($flow05FinalizeResults, fn ($r) => $r['status'] !== 0)) > 0) throw new RuntimeException('FLOW-05 parallel finalization failed: '.json_encode(['results'=>$flow05FinalizeResults,'status'=>$flow05Status,'meetings'=>$flow05Meetings,'contexts'=>$flow05Contexts,'units'=>$flow05Units,'transitions'=>$flow05Transitions]));
 
-echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context.\n";
+$pdo->exec("INSERT INTO amms_concurrency_flow06_request_probe (id, status, requesting_unit_id, participating_units, finalize_transitions) VALUES (6, 'SCHEDULE_CONFIRMED', NULL, 3, 0)");
+$pdo->exec('DELETE FROM amms_concurrency_flow06_context_probe WHERE meeting_request_id = 6');
+$pdo->exec('DELETE FROM amms_concurrency_flow06_meeting_unit_probe WHERE meeting_request_id = 6');
+$pdo = null;
+$flow06FinalizeResults = $runConcurrent(static function () use ($connect): void {
+    $db = $connect();
+    $db->beginTransaction();
+    $state = $db->query("SELECT status, requesting_unit_id, participating_units FROM amms_concurrency_flow06_request_probe WHERE id = 6 FOR UPDATE")->fetch();
+    if ($state['status'] === 'SCHEDULE_CONFIRMED' && $state['requesting_unit_id'] === null && (int) $state['participating_units'] === 3) {
+        $db->prepare('INSERT INTO amms_concurrency_meeting_probe (meeting_request_id) VALUES (?)')->execute([6]);
+        foreach ([1, 2, 3] as $unitId) $db->prepare('INSERT INTO amms_concurrency_flow06_meeting_unit_probe (meeting_request_id, unit_id, role) VALUES (?, ?, ?)')->execute([6, $unitId, 'PARTICIPATING']);
+        $db->prepare('INSERT INTO amms_concurrency_flow06_context_probe (meeting_request_id, authority_employee_id, authority_type) VALUES (?, ?, ?)')->execute([6, 9, 'DIRECTOR_GENERAL']);
+        $db->exec("UPDATE amms_concurrency_flow06_request_probe SET status = 'CONVERTED_TO_MEETING', finalize_transitions = finalize_transitions + 1 WHERE id = 6");
+    }
+    $db->commit();
+});
+$pdo = $connect();
+$flow06State = $pdo->query('SELECT status, requesting_unit_id, participating_units, finalize_transitions FROM amms_concurrency_flow06_request_probe WHERE id = 6')->fetch();
+$flow06Meetings = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_meeting_probe WHERE meeting_request_id = 6')->fetchColumn();
+$flow06Units = (int) $pdo->query("SELECT COUNT(*) FROM amms_concurrency_flow06_meeting_unit_probe WHERE meeting_request_id = 6 AND role = 'PARTICIPATING'")->fetchColumn();
+$flow06RequestingUnits = (int) $pdo->query("SELECT COUNT(*) FROM amms_concurrency_flow06_meeting_unit_probe WHERE meeting_request_id = 6 AND role = 'REQUESTING'")->fetchColumn();
+$flow06Contexts = (int) $pdo->query('SELECT COUNT(*) FROM amms_concurrency_flow06_context_probe WHERE meeting_request_id = 6')->fetchColumn();
+$flow06AuthorityEmployee = (int) $pdo->query('SELECT authority_employee_id FROM amms_concurrency_flow06_context_probe WHERE meeting_request_id = 6')->fetchColumn();
+if ($flow06State['status'] !== 'CONVERTED_TO_MEETING' || $flow06State['requesting_unit_id'] !== null || (int) $flow06State['participating_units'] !== 3 || (int) $flow06State['finalize_transitions'] !== 1 || $flow06Meetings !== 1 || $flow06Units !== 3 || $flow06RequestingUnits !== 0 || $flow06Contexts !== 1 || $flow06AuthorityEmployee !== 9 || count(array_filter($flow06FinalizeResults, fn ($r) => $r['status'] !== 0)) > 0) {
+    throw new RuntimeException('FLOW-06 parallel finalization failed: ' . json_encode(['results' => $flow06FinalizeResults, 'state' => $flow06State, 'meetings' => $flow06Meetings, 'participating_units' => $flow06Units, 'requesting_units' => $flow06RequestingUnits, 'contexts' => $flow06Contexts, 'authority_employee' => $flow06AuthorityEmployee]));
+}
+
+echo "MariaDB concurrency checks passed: row lock final value={$finalValue}; one-meeting uniqueness held; FLOW-02 and FLOW-03 parallel finalization each produced one meeting; FLOW-03 target approvals produced one multilateral transition; FLOW-03 schedule acceptance uniqueness held; FLOW-04 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with one authority context; FLOW-05 office forward serialized, acknowledgement uniqueness held, and parallel finalization produced one meeting with three formal units and one authority context; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9.\n";

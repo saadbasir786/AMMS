@@ -32,7 +32,13 @@ class MeetingRequestController extends Controller
         $query = MeetingRequest::with(['requestingUnit','units.unit','creator.employee','participants.employee','nominations.employee.unit','scheduleProposals.proposedByUnit','meeting'])->latest();
         if (!$user->hasScopedRole('SYSTEM_ADMIN')) {
             $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('MEETING_COORDINATOR')));
-            $query->where(fn($q) => $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', $unitIds ?: [-1]));
+            $officeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
+            $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
+                $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', $unitIds ?: [-1]);
+                if ($officeIds) $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
+                if ($user->employee_id) $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
+                if ($unitIds) $q->orWhereHas('units', fn ($units) => $units->where('role', 'PARTICIPATING')->whereIn('organizational_unit_id', $unitIds));
+            });
         }
         if ($request->filled('status')) $query->where('status', $request->string('status'));
         if ($request->filled('priority')) $query->where('priority', $request->string('priority'));
@@ -50,7 +56,7 @@ class MeetingRequestController extends Controller
     public function show(MeetingRequest $meetingRequest)
     {
         $this->authorize('view', $meetingRequest);
-        return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityScheduleAcknowledgements','authorityScheduleUnitAcknowledgements.unit','authorityParticipantConfirmations'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
+        return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityContext.currentDirectiveVersion','authorityContext.organizationAuthority','authorityScheduleAcknowledgements','authorityScheduleUnitAcknowledgements.unit','authorityParticipantConfirmations','directiveVersions.preparedBy','directiveVersions.issuer','currentDirectiveVersion','unitResponses.unit','unitResponses.directiveVersion','unitResponses.coordinationStarter','unitResponses.acknowledger','directiveClarifications.unit','directiveClarifications.requester','directiveClarifications.responder'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
     }
 
     public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest)

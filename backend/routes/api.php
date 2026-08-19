@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\InterDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\MultiDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
+use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -116,6 +117,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipants']);
     Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants/confirm', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipantsConfirm']);
     Route::post('/meeting-requests/{meetingRequest}/multi-high/finalize', [MultiHighAuthorityMeetingRequestController::class, 'finalize']);
+
+    Route::post('/meeting-requests/authority-initiated', [AuthorityInitiatedMeetingRequestController::class, 'store']);
+    Route::get('/incoming-authority-initiated-meeting-requests', [AuthorityInitiatedMeetingRequestController::class, 'officeInbox']);
+    Route::put('/meeting-requests/{meetingRequest}/authority-initiated', [AuthorityInitiatedMeetingRequestController::class, 'update']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/submit', [AuthorityInitiatedMeetingRequestController::class, 'submit']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/return', [AuthorityInitiatedMeetingRequestController::class, 'returnDraft']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/resubmit', [AuthorityInitiatedMeetingRequestController::class, 'resubmit']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/issue', [AuthorityInitiatedMeetingRequestController::class, 'issue']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/distribute', [AuthorityInitiatedMeetingRequestController::class, 'distribute']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/coordinate', [AuthorityInitiatedMeetingRequestController::class, 'startCoordination']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/acknowledge', [AuthorityInitiatedMeetingRequestController::class, 'acknowledge']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/clarification', [AuthorityInitiatedMeetingRequestController::class, 'requestClarification']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/clarifications/{clarification}/respond', [AuthorityInitiatedMeetingRequestController::class, 'respondClarification']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/revision', [AuthorityInitiatedMeetingRequestController::class, 'prepareRevision']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/reissue', [AuthorityInitiatedMeetingRequestController::class, 'reissue']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/scheduling/start', [AuthorityInitiatedMeetingRequestController::class, 'startScheduling']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/proposals', [AuthorityInitiatedMeetingRequestController::class, 'proposeSchedule']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/acknowledge', [AuthorityInitiatedMeetingRequestController::class, 'acknowledgeSchedule']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/alternative', [AuthorityInitiatedMeetingRequestController::class, 'scheduleAlternative']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/confirm', [AuthorityInitiatedMeetingRequestController::class, 'confirmSchedule']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/participants', [AuthorityInitiatedMeetingRequestController::class, 'unitParticipants']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/participants/confirm', [AuthorityInitiatedMeetingRequestController::class, 'unitParticipantsConfirm']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/authority-participants', [AuthorityInitiatedMeetingRequestController::class, 'authorityParticipants']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/authority-participants/confirm', [AuthorityInitiatedMeetingRequestController::class, 'authorityParticipantsConfirm']);
+    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/finalize', [AuthorityInitiatedMeetingRequestController::class, 'finalize']);
 
     Route::post('/meeting-requests/high-authority', [HighAuthorityMeetingRequestController::class, 'store']);
     Route::get('/incoming-high-authority-office-meeting-requests', [HighAuthorityMeetingRequestController::class, 'officeInbox']);

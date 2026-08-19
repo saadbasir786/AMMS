@@ -15,7 +15,7 @@ class OrganizationalUnitPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->isActive() && ($user->can('organization.manage') || $user->can('meeting-request.view'));
+        return $user->isActive() && ($user->can('organization.manage') || $user->can('meeting-request.view') || $user->can('authority-initiated-meeting.prepare'));
     }
 
     public function view(User $user, OrganizationalUnit $unit): bool

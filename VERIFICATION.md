@@ -240,3 +240,131 @@ cd frontend && pnpm build
 ## Release decision
 
 **FLOW-05 is APPROVED / FROZEN as of 19 August 2026.** All required gates passed: 69 FLOW-05 automated cases, complete positive multi-account RTL UI scenario, negative authorization checks, material workflow invariants already covered by the action/state tests, real MariaDB concurrency verification, production build, and regression preservation for FLOW-01 through FLOW-04. No FLOW-06/07 behavior, delegation, or acting-authority behavior was introduced.
+
+# FLOW-06 Verification — High Authority Initiated Meeting
+
+**Verification date:** 19 August 2026  
+**Canonical live request:** `meeting_request_id=5`  
+**Flow type:** `HIGH_AUTHORITY_INITIATED`  
+**Release status:** **APPROVED / FROZEN**
+
+## Executive result
+
+FLOW-06 completed through the real Persian/Dari RTL browser UI using all nine required accounts: High Authority, Authority Office Reviewer, Executive Secretary, Technology Executive, Technology Director, Finance Executive, Finance Director, HR Executive, and HR Director. The canonical scenario used the subject `جلسه رهنمود مقام در مورد تطبیق پلان تحول دیجیتال` and three formal receiving Directorates: Technology, Finance, and Human Resources.
+
+The High Authority was the originator. The request therefore retained `requesting_unit_id = null`; no requester Directorate was created, and all three formal units were persisted as `PARTICIPATING`. The workflow included independent coordination, a non-material HR clarification path without rejection, independent schedule acknowledgements, per-Directorate participant ownership, mandatory High Authority participation, official schedule confirmation, and exactly-once conversion to a meeting.
+
+## FLOW-06 gate matrix
+
+| Gate | Result | Evidence |
+|---|---|---|
+| High Authority origin with no requester Directorate | **Passed** | Browser creation form exposes no requester field; Request ID 5 persisted `requesting_unit_id=null`. |
+| Three-Directorate formal model | **Passed** | Technology, Finance, and HR are the only formal units; each has role `PARTICIPATING`. |
+| Authority Office issuance boundary | **Passed** | Authority Office could submit and distribute, while issuance remained restricted to High Authority; automated boundary test returned 403 for Office issuance. |
+| Immutable directive versioning | **Passed** | Version 1 was issued and rendered in the browser; dedicated reissuance test created version 2 and invalidated old acknowledgements. |
+| Independent Directorate coordination | **Passed** | Technology, Finance, and HR actions were independently scoped; HR clarification did not reject the request. |
+| Clarification without rejection semantics | **Passed** | HR requested clarification, Authority Office responded, and HR later acknowledged; no reject operation was exposed or executed. |
+| Independent schedule acknowledgement | **Passed** | Technology, Finance, and HR each acknowledged the same official proposal. |
+| Participant-list ownership | **Passed** | Executives saved only their own Directorate lists; Directors confirmed only their own lists; Authority Office alone managed authority-side participants. |
+| Mandatory High Authority participant and chairperson | **Passed** | Employee `عبدالقیوم احمدزی`, employee id 9, was selected in the authority panel and persisted as `HIGH_AUTHORITY`; the authority context resolved the same holder. |
+| Exactly-once finalization | **Passed** | Request 5 created meeting id 4 exactly once; MariaDB InnoDB probe also serialized two concurrent finalizers. |
+| Automated FLOW-06 coverage | **Passed** | 5 behavioral tests plus 70 contract cases; all passed within the final 266-test, 933-assertion Feature suite. |
+| Regression preservation | **Passed** | FLOW-01 through FLOW-05 tests remained green in the same final Feature suite. |
+| MariaDB concurrency | **Passed** | Real MariaDB row-lock probe verified one FLOW-06 meeting, three participating units, zero requester units, one authority context, and High Authority employee 9. |
+| React production build | **Passed** | TypeScript/Vite production build completed with 1,858 transformed modules. |
+
+## Positive nine-account UI scenario
+
+| Step | Account | Result |
+|---|---|---|
+| Create authority-initiated draft | `authority.office@example.test` | Draft created with Technology, Finance, and HR as `PARTICIPATING`; requester Directorate absent. |
+| Submit for issuance | Authority Office Reviewer | `PENDING_HIGH_AUTHORITY_ISSUANCE`; immutable draft submission event recorded. |
+| Issue directive | `high.authority@example.test` | `ISSUED_BY_HIGH_AUTHORITY`; version 1 issued and attributed to High Authority. |
+| Distribute directive | Authority Office Reviewer | `DISTRIBUTED_TO_DIRECTORATES`; per-unit response rows created. |
+| Technology coordination and acknowledgement | Technology Executive, then Technology Director | Technology independently reached `ACKNOWLEDGED`. |
+| Finance coordination and acknowledgement | Finance Executive, then Finance Director | Finance independently reached `ACKNOWLEDGED`. |
+| HR clarification | HR Executive, then HR Director | HR requested clarification; the request entered clarification state without rejection. |
+| Clarification response | Authority Office Reviewer | Office response returned HR to coordination while preserving Technology and Finance acknowledgements. |
+| Complete Directorate acknowledgements | HR Director | HR acknowledged; all three Directorates reached `DIRECTORATES_ACKNOWLEDGED`. |
+| Start official scheduling | Executive Secretary | `AUTHORITY_SCHEDULING`. |
+| Propose official slot | Executive Secretary | 5 September 2026, 09:00–10:30, `تالار جلسات مقام`; immutable proposal recorded. |
+| Schedule acknowledgements | Technology Director, Finance Director, HR Director | All three independent acknowledgements became `تأیید شده`. |
+| Technology participants | Technology Executive, then Technology Director | Technology list saved and confirmed; cross-unit controls were absent. |
+| Finance participants | Finance Executive, then Finance Director | Finance list saved and confirmed; cross-unit controls were absent. |
+| HR participants | HR Executive, then HR Director | HR list saved and confirmed; Director write attempt was rejected. |
+| Authority-side participants | Authority Office Reviewer | Mandatory High Authority holder selected, saved, and confirmed. |
+| Confirm official schedule | Executive Secretary | `SCHEDULE_CONFIRMED`; all current proposal acknowledgements present. |
+| Finalize meeting | Executive Secretary | `CONVERTED_TO_MEETING`; `MEETING_CREATED` recorded exactly once. |
+
+The immutable Request ID 5 timeline records the complete chain from `AUTHORITY_INITIATED_DRAFT_CREATED` through `AUTHORITY_SCHEDULE_CONFIRMED` and `MEETING_CREATED`. The final browser evidence also records the Executive Secretary reopening the completed scheduling workspace, seeing the proposal as `تأییدشده` with all three Directorate acknowledgements, returning to the request detail page, and navigating through the visible «مشاهدهٔ جلسهٔ رسمی» link to Meeting ID 4.
+
+## Negative UI Matrix A–L
+
+The following matrix is the explicit negative gate. Browser observations are identified separately from automated policy/contract and MariaDB evidence; no case is undocumented.
+
+| ID | Negative case | Evidence | Result |
+|---|---|---|---|
+| A | Authority Office attempts to issue the directive | Automated `Flow06Test::test_flow06_draft_visibility_and_issuance_boundary_are_enforced` asserts HTTP 403 for the Office issuance endpoint. The live UI exposed issuance only to High Authority. | **Passed** |
+| B | Finance Director attempts to acknowledge for HR or another unit | Automated `Flow06Test::test_flow06_directorate_has_no_approve_or_reject_operation_and_cross_unit_write_is_denied` and policy contract cases enforce target-unit scope with HTTP 403. | **Passed** |
+| C | Procurement/non-invited Directorate attempts to view | FLOW-06 visibility and boundary contract coverage denies access to a Directorate outside the formal participating set. | **Passed** |
+| D | Directorate attempts approve/reject semantics | The FLOW-06 controller has no Directorate approve/reject operation; the behavioral test checks the absent `approveDirectorate` operation and the UI exposes acknowledge/clarification only. | **Passed** |
+| E | Scheduling starts before all formal Directorate acknowledgements | FLOW-06 contract coverage exercises the state precondition; scheduling is only available after `DIRECTORATES_ACKNOWLEDGED`. | **Passed** |
+| F | Technology acknowledges a schedule for Finance | Schedule acknowledgement is unit-scoped in the policy and contract matrix; the payload target cannot be changed to another Directorate. | **Passed** |
+| G | Final schedule is attempted while HR alternative/acknowledgement is unresolved | Contract coverage requires every current proposal acknowledgement before `schedule/confirm`; the canonical UI did not expose final confirmation until all three rows showed confirmed. | **Passed** |
+| H | Finance attempts to manage Technology participants | Browser and behavioral evidence: the Finance-scoped user receives unauthorized response, while the UI renders only the Finance save control. | **Passed** |
+| I | Technology attempts to modify Authority participants | FLOW-06 contract coverage denies authority-side participant mutation outside Authority Office ownership. | **Passed** |
+| J | Manipulated payload inserts an employee outside the permitted Directorate | Participant payload contract coverage rejects an employee outside the target unit with validation failure. | **Passed** |
+| K | Creation includes a fake requester Directorate | FLOW-06 contract coverage rejects requester-side input with the authority-initiated boundary; the live create form has no requester field and the persisted value is null. | **Passed** |
+| L | Duplicate or concurrent finalization | Final Feature coverage rejects duplicate conversion; the real MariaDB InnoDB probe uses row locking and verifies exactly one FLOW-06 meeting, one transition, three participating units, zero requester units, one authority context, and High Authority employee 9. | **Passed** |
+
+## Final live database invariants
+
+```text
+request_id=5
+request_status=CONVERTED_TO_MEETING
+requesting_unit_id=null
+meeting_id=4
+meeting_count=1
+formal_meeting_units_count=3
+formal_meeting_unit_roles=[PARTICIPATING, PARTICIPATING, PARTICIPATING]
+formal_meeting_unit_ids=[1, 2, 3]
+requesting_unit_count=0
+authority_context_count=1
+authority_employee_id=9
+chairperson_employee_id=9
+meeting_participant_count=4
+meeting_participants=[employee_id=1/unit_id=1/PARTICIPATING, employee_id=5/unit_id=2/PARTICIPATING, employee_id=7/unit_id=3/PARTICIPATING, employee_id=9/unit_id=9/HIGH_AUTHORITY]
+authority_office_as_formal_peer=false
+```
+
+The canonical invariant artifact is `flow06_request5_final_invariants.json`, generated by `backend/scripts/flow06_final_invariants.php`. Every count is scoped to Request ID 5 or Meeting ID 4; in particular, `meeting_authority_context_count_for_meeting=1`. The raw direct-table artifact `flow06_request5_direct_invariants.json` is retained as supporting evidence. The earlier unscoped relation count of 4 was a reporting-only defect and is no longer used.
+
+## Implementation corrections during FLOW-06 verification
+
+The following corrections were made and re-tested during the live scenario:
+
+1. High Authority visibility and action detection were corrected to use the role assignment (`hasRole(user,'HIGH_AUTHORITY')`) rather than relying only on an employee-id snapshot.
+2. High Authority draft preparation was corrected to use position/scoped-role resolution without incorrectly requiring a Directorate unit scope.
+3. Directorate participant confirmation was granted to the `DIRECTOR` role while participant-list writes remained restricted to `EXECUTIVE_MANAGEMENT`.
+4. Organizational-unit visibility for the authority-initiated preparation permission was added to `OrganizationalUnitPolicy::viewAny()`.
+5. Authority participant selection was corrected in `flow06.tsx`: the sentinel `-1` used by the UI is now mapped to the `authority` selection key, preventing an empty `employee_ids` payload. The corrected UI was rebuilt, refreshed, and used successfully to save and confirm the mandatory High Authority holder.
+
+## Automated verification commands and results
+
+```text
+cd backend && php artisan test --testsuite=Feature
+Tests: 266 passed (933 assertions)
+
+php tests/Concurrency/mysql_row_lock_test.php
+MariaDB concurrency checks passed; FLOW-06 parallel finalization produced one meeting with three PARTICIPATING units, zero REQUESTING units, one authority context, and High Authority employee 9.
+
+cd frontend && pnpm build
+1,858 modules transformed
+built successfully
+```
+
+The dedicated FLOW-06 reissuance test (`Flow06Test::test_flow06_material_revision_requires_reissuance_and_invalidates_old_acknowledgements`) passed. It verifies material revision, version increment, High Authority-only reissuance, and invalidation of acknowledgements tied to the prior directive version. The 70-case contract matrix passed in full, and FLOW-01 through FLOW-05 regression tests remained green.
+
+## Release decision
+
+**FLOW-06 is APPROVED / FROZEN as of 19 August 2026.** The decision is based on the completed nine-account RTL browser scenario, no-requester and three-participating-unit invariants, explicit negative Matrix A–L, dedicated reissuance coverage, 266 passing Feature tests with 933 assertions, real MariaDB concurrency verification, and the successful 1,858-module production build. No delegation, acting authority, cancellation, attendance, minutes, or unsupported meeting-management behavior was introduced.

@@ -14,6 +14,8 @@ class MeetingRequestAuthorityContext extends Model
         'authority_office_unit_id',
         'authority_position_id',
         'authority_employee_id',
+        'origin_type',
+        'current_directive_version_id',
         'office_review_status',
         'office_reviewed_by',
         'office_reviewed_at',
@@ -40,4 +42,5 @@ class MeetingRequestAuthorityContext extends Model
     public function officeReviewer(): BelongsTo { return $this->belongsTo(User::class, 'office_reviewed_by'); }
     public function forwarder(): BelongsTo { return $this->belongsTo(User::class, 'forwarded_by'); }
     public function authorityDecider(): BelongsTo { return $this->belongsTo(User::class, 'authority_decided_by'); }
+    public function currentDirectiveVersion(): BelongsTo { return $this->belongsTo(MeetingRequestDirectiveVersion::class, 'current_directive_version_id'); }
 }
