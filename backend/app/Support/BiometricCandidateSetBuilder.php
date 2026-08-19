@@ -52,7 +52,6 @@ class BiometricCandidateSetBuilder
                     'template_vendor' => $template->template_vendor,
                     'template_format' => $template->template_format,
                     'algorithm_version' => $template->algorithm_version,
-                    'template_data' => $template->template_data,
                 ];
                 if (config('biometric.device_driver') === 'fake') $item['fake_probe_fixture'] = 'EMPLOYEE_' . $template->employee_id;
                 return $item;

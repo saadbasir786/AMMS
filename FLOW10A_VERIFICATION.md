@@ -17,13 +17,13 @@ No claim is made that real SVT3000 capture, DERMALOG SDK behavior, real template
 | Area | Current result |
 |---|---|
 | Additive schema | `employee_biometric_templates`, `biometric_enrollment_sessions`, and `meeting_attendance_records` migrations applied without reset. |
-| Template privacy | `template_data` is hidden from the model serialization and safe human resource; no image/probe columns exist. |
+| Template privacy | `template_data` is hidden from the model serialization and safe human resource; candidate payloads, attendance records, audit metadata, and browser resources exclude template/image/probe bytes; no image/probe columns exist. |
 | Version lifecycle | Immutable version rows, active/superseded/revoked statuses, SHA-256 checksum, explicit re-enrollment and reason-required revocation Actions. |
 | Enrollment governance | New permissions, `BIOMETRIC_ENROLLMENT_OFFICER` role, Policy checks, configurable TTL and minimum active-finger count. |
 | Terminal mode boundary | Enrollment start checks terminal availability and rejects an active FLOW-09 session with `TERMINAL_BUSY`. |
 | Device abstraction | `FingerprintDeviceAdapter`, `IdentificationResult`, and clearly labeled `FakeFingerprintAdapter`; no vendor API has been invented. |
 | Terminal enrollment contract | `POST /api/terminal/v1/enrollment/{enrollment}/template` is terminal-credential authenticated, session/terminal-bound, template-only, and rejects raw-image fields. |
-| Candidate set | Separate session-authenticated endpoint built strictly from `participant_version_id`; ordinary FLOW-09 manifest remains non-biometric. |
+| Candidate set | Separate session-authenticated endpoint built strictly from `participant_version_id`; ordinary FLOW-09 manifest remains non-biometric; template bytes are excluded from the candidate payload. |
 | Attendance | Fingerprint submission validates session, freshness, participant membership, active template ownership, candidate checksum, uniqueness, and client-event idempotency. |
 | Manual fallback | Human-only `MANUAL_OVERRIDE`, mandatory reason, governance resolver, current participant membership, and immutable record. |
 | RTL UI | `/admin/biometrics`, `/employees/:id/biometrics`, and `/meetings/:id/attendance` added without changing frozen workflow pages. |
