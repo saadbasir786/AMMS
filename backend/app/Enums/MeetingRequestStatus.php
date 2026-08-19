@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Enums;
+
+enum MeetingRequestStatus: string
+{
+    case DRAFT = 'DRAFT';
+    case PENDING_INTERNAL_APPROVAL = 'PENDING_INTERNAL_APPROVAL';
+    case APPROVED = 'APPROVED';
+    case RETURNED_FOR_REVISION = 'RETURNED_FOR_REVISION';
+    case REJECTED = 'REJECTED';
+    case SCHEDULING = 'SCHEDULING';
+    case SCHEDULE_CONFIRMED = 'SCHEDULE_CONFIRMED';
+    case CONVERTED_TO_MEETING = 'CONVERTED_TO_MEETING';
+
+    case PENDING_REQUESTER_APPROVAL = 'PENDING_REQUESTER_APPROVAL';
+    case RETURNED_TO_REQUESTER = 'RETURNED_TO_REQUESTER';
+    case REQUESTER_APPROVED = 'REQUESTER_APPROVED';
+    case REJECTED_INTERNAL = 'REJECTED_INTERNAL';
+    case SUBMITTED_TO_TARGET = 'SUBMITTED_TO_TARGET';
+    case UNDER_TARGET_REVIEW = 'UNDER_TARGET_REVIEW';
+    case RETURNED_BY_TARGET = 'RETURNED_BY_TARGET';
+    case RESUBMITTED_TO_TARGET = 'RESUBMITTED_TO_TARGET';
+    case TARGET_APPROVED = 'TARGET_APPROVED';
+    case REJECTED_BY_TARGET = 'REJECTED_BY_TARGET';
+    case BILATERAL_APPROVED = 'BILATERAL_APPROVED';
+
+    case SUBMITTED_TO_TARGETS = 'SUBMITTED_TO_TARGETS';
+    case UNDER_MULTI_TARGET_REVIEW = 'UNDER_MULTI_TARGET_REVIEW';
+    case TARGET_ACTION_REQUIRED = 'TARGET_ACTION_REQUIRED';
+    case MULTILATERAL_APPROVED = 'MULTILATERAL_APPROVED';
+
+    case SUBMITTED_TO_AUTHORITY_OFFICE = 'SUBMITTED_TO_AUTHORITY_OFFICE';
+    case UNDER_AUTHORITY_OFFICE_REVIEW = 'UNDER_AUTHORITY_OFFICE_REVIEW';
+    case RETURNED_BY_AUTHORITY_OFFICE = 'RETURNED_BY_AUTHORITY_OFFICE';
+    case PENDING_HIGH_AUTHORITY_DECISION = 'PENDING_HIGH_AUTHORITY_DECISION';
+    case RETURNED_BY_HIGH_AUTHORITY = 'RETURNED_BY_HIGH_AUTHORITY';
+    case HIGH_AUTHORITY_APPROVED = 'HIGH_AUTHORITY_APPROVED';
+    case REJECTED_BY_HIGH_AUTHORITY = 'REJECTED_BY_HIGH_AUTHORITY';
+    case AUTHORITY_SCHEDULING = 'AUTHORITY_SCHEDULING';
+
+    /** @return array<string, list<self>> */
+    public static function transitions(): array
+    {
+        return [
+            self::DRAFT->value => [self::PENDING_INTERNAL_APPROVAL, self::PENDING_REQUESTER_APPROVAL],
+            self::PENDING_INTERNAL_APPROVAL->value => [self::APPROVED, self::RETURNED_FOR_REVISION, self::REJECTED],
+            self::RETURNED_FOR_REVISION->value => [self::PENDING_INTERNAL_APPROVAL],
+            self::APPROVED->value => [self::SCHEDULING, self::SCHEDULE_CONFIRMED],
+            self::SCHEDULING->value => [self::SCHEDULE_CONFIRMED],
+            self::SCHEDULE_CONFIRMED->value => [self::CONVERTED_TO_MEETING],
+            self::REJECTED->value => [],
+            self::CONVERTED_TO_MEETING->value => [],
+
+            self::PENDING_REQUESTER_APPROVAL->value => [self::REQUESTER_APPROVED, self::RETURNED_TO_REQUESTER, self::REJECTED_INTERNAL],
+            self::RETURNED_TO_REQUESTER->value => [self::PENDING_REQUESTER_APPROVAL],
+            self::REQUESTER_APPROVED->value => [self::SUBMITTED_TO_TARGET, self::SUBMITTED_TO_TARGETS],
+            self::REJECTED_INTERNAL->value => [],
+            self::SUBMITTED_TO_TARGET->value => [self::UNDER_TARGET_REVIEW],
+            self::UNDER_TARGET_REVIEW->value => [self::TARGET_APPROVED, self::RETURNED_BY_TARGET, self::REJECTED_BY_TARGET],
+            self::RETURNED_BY_TARGET->value => [self::RESUBMITTED_TO_TARGET, self::PENDING_REQUESTER_APPROVAL],
+            self::RESUBMITTED_TO_TARGET->value => [self::UNDER_TARGET_REVIEW],
+            self::TARGET_APPROVED->value => [self::BILATERAL_APPROVED],
+            self::REJECTED_BY_TARGET->value => [],
+            self::BILATERAL_APPROVED->value => [self::SCHEDULING],
+
+            self::SUBMITTED_TO_TARGETS->value => [self::UNDER_MULTI_TARGET_REVIEW],
+            self::UNDER_MULTI_TARGET_REVIEW->value => [self::TARGET_ACTION_REQUIRED, self::REJECTED_BY_TARGET, self::MULTILATERAL_APPROVED],
+            self::TARGET_ACTION_REQUIRED->value => [self::UNDER_MULTI_TARGET_REVIEW, self::PENDING_REQUESTER_APPROVAL],
+            self::MULTILATERAL_APPROVED->value => [self::SCHEDULING],
+
+            self::SUBMITTED_TO_AUTHORITY_OFFICE->value => [self::UNDER_AUTHORITY_OFFICE_REVIEW],
+            self::UNDER_AUTHORITY_OFFICE_REVIEW->value => [self::RETURNED_BY_AUTHORITY_OFFICE, self::PENDING_HIGH_AUTHORITY_DECISION],
+            self::RETURNED_BY_AUTHORITY_OFFICE->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE],
+            self::PENDING_HIGH_AUTHORITY_DECISION->value => [self::RETURNED_BY_HIGH_AUTHORITY, self::HIGH_AUTHORITY_APPROVED, self::REJECTED_BY_HIGH_AUTHORITY],
+            self::RETURNED_BY_HIGH_AUTHORITY->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE, self::PENDING_REQUESTER_APPROVAL],
+            self::HIGH_AUTHORITY_APPROVED->value => [self::AUTHORITY_SCHEDULING],
+            self::REJECTED_BY_HIGH_AUTHORITY->value => [],
+            self::AUTHORITY_SCHEDULING->value => [self::SCHEDULE_CONFIRMED],
+        ];
+    }
+
+    public function canTransitionTo(self $next): bool
+    {
+        return collect(self::transitions()[$this->value] ?? [])->contains($next);
+    }
+
+    public function isEditable(): bool
+    {
+        return in_array($this, [self::DRAFT, self::RETURNED_FOR_REVISION, self::RETURNED_TO_REQUESTER, self::RETURNED_BY_TARGET, self::RETURNED_BY_AUTHORITY_OFFICE, self::RETURNED_BY_HIGH_AUTHORITY], true);
+    }
+
+    public function isReviewable(): bool
+    {
+        return $this === self::PENDING_INTERNAL_APPROVAL;
+    }
+
+    public function isFlow03(): bool
+    {
+        return in_array($this, [
+            self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED,
+            self::REJECTED_INTERNAL, self::SUBMITTED_TO_TARGETS, self::UNDER_MULTI_TARGET_REVIEW,
+            self::TARGET_ACTION_REQUIRED, self::REJECTED_BY_TARGET, self::MULTILATERAL_APPROVED,
+            self::SCHEDULING, self::SCHEDULE_CONFIRMED, self::CONVERTED_TO_MEETING,
+        ], true);
+    }
+
+    public function isFlow04(): bool
+    {
+        return in_array($this, [
+            self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED,
+            self::REJECTED_INTERNAL, self::SUBMITTED_TO_AUTHORITY_OFFICE, self::UNDER_AUTHORITY_OFFICE_REVIEW,
+            self::RETURNED_BY_AUTHORITY_OFFICE, self::PENDING_HIGH_AUTHORITY_DECISION, self::RETURNED_BY_HIGH_AUTHORITY,
+            self::HIGH_AUTHORITY_APPROVED, self::REJECTED_BY_HIGH_AUTHORITY, self::AUTHORITY_SCHEDULING,
+            self::SCHEDULE_CONFIRMED, self::CONVERTED_TO_MEETING,
+        ], true);
+    }
+
+    public function isFlow02(): bool
+    {
+        return in_array($this, [
+            self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED, self::REJECTED_INTERNAL,
+            self::SUBMITTED_TO_TARGET, self::UNDER_TARGET_REVIEW, self::RETURNED_BY_TARGET, self::RESUBMITTED_TO_TARGET,
+            self::TARGET_APPROVED, self::REJECTED_BY_TARGET, self::BILATERAL_APPROVED,
+        ], true);
+    }
+
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+}

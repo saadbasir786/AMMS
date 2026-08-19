@@ -1,0 +1,14 @@
+# Local secrets and runtime state
+backend/.env
+frontend/.env
+backend/database/*.sqlite
+backend/storage/logs/*
+
+# Dependencies and build output
+backend/vendor/
+frontend/node_modules/
+frontend/dist/
+
+# Generated release archives
+*.zip
+*.sha256

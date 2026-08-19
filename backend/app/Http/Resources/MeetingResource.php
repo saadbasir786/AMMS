@@ -1,0 +1,5 @@
+<?php
+namespace App\Http\Resources;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+class MeetingResource extends JsonResource { public function toArray(Request $request): array { return ['id'=>$this->id,'meeting_number'=>$this->meeting_number,'meeting_request_id'=>$this->meeting_request_id,'request'=>new MeetingRequestResource($this->whenLoaded('request')),'title'=>$this->title,'description'=>$this->description,'organizing_unit_id'=>$this->organizing_unit_id,'coordinator_id'=>$this->coordinator_id,'units'=>MeetingUnitResource::collection($this->whenLoaded('units')),'authority_context'=>new MeetingAuthorityContextResource($this->whenLoaded('authorityContext')),'chairperson'=>new EmployeeResource($this->whenLoaded('chairperson')),'meeting_date'=>$this->meeting_date?->toDateString(),'start_time'=>$this->start_time,'end_time'=>$this->end_time,'location'=>$this->location,'agenda'=>$this->agenda,'status'=>$this->status,'participants'=>MeetingParticipantResource::collection($this->whenLoaded('participants')),'created_at'=>$this->created_at,'updated_at'=>$this->updated_at]; } }
