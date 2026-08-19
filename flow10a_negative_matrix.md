@@ -4,21 +4,21 @@ This matrix is an evidence log for the device-independent FLOW-10A foundation. I
 
 | ID | Negative case | Expected result | Evidence state |
 |---|---|---|---|
-| A | Unauthorized human starts enrollment | HTTP 403 | **Implemented; dedicated endpoint assertion pending** — `BiometricPolicy` and `StartBiometricEnrollmentRequest`. |
-| B | Terminal with active Meeting session starts enrollment | `TERMINAL_BUSY` | **Implemented; dedicated assertion pending** — `StartBiometricEnrollment` checks active FLOW-09 sessions. |
-| C | Terminal A accesses Terminal B enrollment/session | Denied | **Implemented; dedicated isolation assertion pending** — terminal enrollment controller compares session terminal ownership. |
-| D | Template submission contains fingerprint image/probe field | `RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED` | **Implemented; dedicated request assertion pending** — terminal enrollment and attendance requests prohibit raw fields. |
-| E | Low-quality simulated capture | `FINGERPRINT_QUALITY_TOO_LOW` | **PASS at adapter contract level** — Fake adapter exposes rejected quality; endpoint assertion remains pending. |
+| A | Unauthorized human starts enrollment | HTTP 403 | **PASS** — `Flow10AAuthorizationTest` asserts the human API denial. |
+| B | Terminal with active Meeting session starts enrollment | `TERMINAL_BUSY` | **PASS** — `Flow10ATerminalBoundaryTest` asserts the active-session block. |
+| C | Terminal A accesses Terminal B enrollment/session | Denied | **PASS** — `Flow10ATerminalBoundaryTest` asserts cross-terminal enrollment denial. |
+| D | Template submission contains fingerprint image/probe field | `RAW_BIOMETRIC_IMAGE_NOT_ACCEPTED` | **PASS** — `Flow10ATerminalBoundaryTest` asserts raw-image rejection. |
+| E | Low-quality simulated capture | `FINGERPRINT_QUALITY_TOO_LOW` | **PASS** — `Flow10ATerminalBoundaryTest` asserts the terminal enrollment endpoint rejection. |
 | F | Concurrent enrollment for same employee/finger | One active path/template | **Database probe PASS** — one active template row under MariaDB/InnoDB uniqueness race; Action-level race assertion pending. |
-| G | Re-enrollment | Old immutable version `SUPERSEDED`, new version `ACTIVE` | **PASS** — `Flow10ABiometricLifecycleTest`, 8 assertions. |
-| H | Revoked template appears in candidate set | Must never occur | **Implemented; candidate-set assertion pending** — builder filters only `ACTIVE`. |
-| I | FLOW-07 stale session | Candidate and attendance denied | **Implemented; dedicated assertion pending** — session schedule-version freshness guard. |
-| J | FLOW-08 stale session | Candidate and attendance denied | **Implemented; dedicated assertion pending** — session participant-version freshness guard. |
-| K | Matched employee is not in Participant Version | `BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT` | **Implemented; dedicated assertion pending** — attendance Action checks exact member projection. |
-| L | Template belongs to a different employee | Rejected | **Implemented; dedicated assertion pending** — attendance Action checks employee/template identity. |
+| G | Re-enrollment | Old immutable version `SUPERSEDED`, new version `ACTIVE` | **PASS** — `Flow10ABiometricLifecycleTest`, including audit/privacy assertions. |
+| H | Revoked template appears in candidate set | Must never occur | **PASS** — `Flow10ACandidateSetTest` asserts revoked exclusion. |
+| I | FLOW-07 stale session | Candidate and attendance denied | **PASS** — `Flow10ACandidateSetTest` rejects old candidate access after schedule change. |
+| J | FLOW-08 stale session | Candidate and attendance denied | **PASS** — `Flow10ACandidateSetTest` rejects old candidate access after participant-version change. |
+| K | Matched employee is not in Participant Version | `BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT` | **PASS** — `Flow10AFingerprintAttendanceTest` asserts nonparticipant rejection. |
+| L | Template belongs to a different employee | Rejected | **PASS** — `Flow10AFingerprintAttendanceTest` rejects wrong employee/template pairing. |
 | M | Two terminals submit same attendance concurrently | One official row | **Database probe PASS** — one Meeting+Employee row under MariaDB/InnoDB uniqueness race; Action-level race assertion pending. |
-| N | Manual attendance without reason | `MANUAL_ATTENDANCE_REASON_REQUIRED` | **Implemented; dedicated request assertion pending** — manual request requires a non-empty reason. |
-| O | Unauthorized manual override | HTTP 403 / `UNAUTHORIZED_ATTENDANCE_OVERRIDE` | **Implemented; dedicated authorization assertion pending** — permission plus `AttendanceGovernanceResolver`. |
+| N | Manual attendance without reason | `MANUAL_ATTENDANCE_REASON_REQUIRED` | **PASS** — `Flow10AAttendanceTest` asserts the canonical code. |
+| O | Unauthorized manual override | HTTP 403 / `UNAUTHORIZED_ATTENDANCE_OVERRIDE` | **PASS** — `Flow10AAttendanceTest` asserts unauthorized system-admin denial. |
 | P | Final invariants | Official Meeting identity, `SCHEDULED`, request `CONVERTED_TO_MEETING`, no image/probe storage, no browser template exposure | **FLOW-01–FLOW-09 regression PASS; final FLOW-10A invariant artifact and full manual closure pending**. |
 
 ## Current automated evidence

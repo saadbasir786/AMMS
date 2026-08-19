@@ -8,7 +8,7 @@ class StartBiometricEnrollmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isActive() === true && $this->user()->can('biometric.enroll');
+        return $this->user()?->isActive() === true && $this->user()->hasPermissionTo('biometric.enroll', 'sanctum');
     }
 
     public function rules(): array

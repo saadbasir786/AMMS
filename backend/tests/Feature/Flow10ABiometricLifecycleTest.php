@@ -8,6 +8,7 @@ use App\Actions\Biometrics\RevokeFingerprintTemplate;
 use App\Actions\Biometrics\StartBiometricEnrollment;
 use App\Actions\Biometrics\SubmitFingerprintTemplate;
 use App\Models\Employee;
+use App\Models\TerminalAuditEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,6 +30,9 @@ class Flow10ABiometricLifecycleTest extends TestCase
         $start = app(StartBiometricEnrollment::class)->execute($actor, $employee);
         $first = app(SubmitFingerprintTemplate::class)->execute($actor, $start, 'RIGHT_INDEX', 'FAKE', 'SIMULATOR-V1', 'SIMULATOR-V1', 'TEST_TEMPLATE_EMPLOYEE_12_RIGHT_INDEX', 95.0);
         $this->assertSame('PARTIALLY_ENROLLED', $this->statusFor($employee));
+        $audit = TerminalAuditEvent::query()->where('action', 'BIOMETRIC_TEMPLATE_ENROLLED')->latest('id')->firstOrFail();
+        $this->assertStringNotContainsString('template_data', json_encode($audit->metadata, JSON_UNESCAPED_SLASHES));
+        $this->assertStringNotContainsString('TEST_TEMPLATE_EMPLOYEE_12_RIGHT_INDEX', json_encode($audit->metadata, JSON_UNESCAPED_SLASHES));
         $second = app(SubmitFingerprintTemplate::class)->execute($actor, $start, 'LEFT_INDEX', 'FAKE', 'SIMULATOR-V1', 'SIMULATOR-V1', 'TEST_TEMPLATE_EMPLOYEE_12_LEFT_INDEX', 95.0);
         app(CompleteBiometricEnrollment::class)->execute($actor, $start);
         $this->assertSame('ENROLLED', $this->statusFor($employee));

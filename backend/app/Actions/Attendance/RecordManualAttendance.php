@@ -12,6 +12,7 @@ class RecordManualAttendance
 {
     public function execute(User $actor, Meeting $meeting, int $employeeId, string $reason): MeetingAttendanceRecord
     {
+        if (trim($reason) === '') abort(response()->json(['success' => false, 'code' => 'MANUAL_ATTENDANCE_REASON_REQUIRED', 'message' => 'ثبت دستی حضور به دلیل نیاز دارد.', 'errors' => []], 422));
         return DB::transaction(function () use ($actor, $meeting, $employeeId, $reason): MeetingAttendanceRecord {
             $lockedMeeting = Meeting::query()->with('currentParticipantVersion.members')->lockForUpdate()->findOrFail($meeting->id);
             $member = $lockedMeeting->currentParticipantVersion?->members->firstWhere('employee_id', $employeeId);

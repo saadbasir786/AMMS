@@ -6,34 +6,37 @@ use App\Models\EmployeeBiometricTemplate;
 use App\Models\MeetingAttendanceRecord;
 use App\Models\TerminalMeetingSession;
 use App\Support\BiometricCandidateSetBuilder;
+use App\Support\MeetingOrganizationResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class RecordFingerprintAttendance
 {
-    public function __construct(private BiometricCandidateSetBuilder $candidates) {}
+    public function __construct(private BiometricCandidateSetBuilder $candidates, private MeetingOrganizationResolver $organizations) {}
 
     public function execute(TerminalMeetingSession $session, array $data): MeetingAttendanceRecord
     {
         return DB::transaction(function () use ($session, $data): MeetingAttendanceRecord {
-            $lockedSession = TerminalMeetingSession::query()->with(['meeting', 'terminal', 'participantVersion.members'])->lockForUpdate()->findOrFail($session->id);
+            $lockedSession = TerminalMeetingSession::query()->with(['meeting.units.unit', 'terminal', 'participantVersion.members'])->lockForUpdate()->findOrFail($session->id);
             $this->candidates->assertValid($lockedSession);
             $clientEvent = (string) $data['client_event_uuid'];
             $existingEvent = MeetingAttendanceRecord::query()->where('client_event_uuid', $clientEvent)->lockForUpdate()->first();
             if ($existingEvent !== null) return $existingEvent->load(['employee', 'matchedTemplate']);
 
-            $package = $this->candidates->build($lockedSession);
-            if (!hash_equals($package['candidate_set_checksum'], (string) $data['candidate_set_checksum'])) {
-                $this->fail('BIOMETRIC_CANDIDATE_SET_STALE', 422, 'مجموعهٔ بایومتریک جلسه تازه نیست.');
-            }
             $employeeId = (int) $data['employee_id'];
             $member = $lockedSession->participantVersion->members->firstWhere('employee_id', $employeeId);
             if ($member === null) $this->fail('BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT', 422, 'کارمند عضو نسخهٔ رسمی اشتراک‌کنندگان نیست.');
 
             $template = EmployeeBiometricTemplate::query()->where('uuid', $data['matched_template_uuid'])->lockForUpdate()->first();
             if ($template === null || (int) $template->employee_id !== $employeeId) $this->fail('BIOMETRIC_TEMPLATE_STALE', 422, 'قالب بایومتریک با کارمند هم‌خوان نیست.');
-            if ($template->status !== EmployeeBiometricTemplate::ACTIVE) $this->fail('BIOMETRIC_TEMPLATE_REVOKED', 422, 'قالب بایومتریک فعال نیست.');
-            if ((int) $template->organization_id !== (int) $lockedSession->meeting->organization_id) $this->fail('BIOMETRIC_TEMPLATE_STALE', 422, 'قالب بایومتریک در محدودهٔ جلسه نیست.');
+            if ($template->status === EmployeeBiometricTemplate::REVOKED) $this->fail('BIOMETRIC_TEMPLATE_REVOKED', 422, 'قالب بایومتریک لغو شده است.');
+            if ($template->status !== EmployeeBiometricTemplate::ACTIVE) $this->fail('BIOMETRIC_TEMPLATE_STALE', 422, 'قالب بایومتریک منسوخ شده است.');
+            if ((int) $template->organization_id !== (int) $this->organizations->id($lockedSession->meeting)) $this->fail('BIOMETRIC_TEMPLATE_STALE', 422, 'قالب بایومتریک در محدودهٔ جلسه نیست.');
+
+            $package = $this->candidates->build($lockedSession);
+            if (!hash_equals($package['candidate_set_checksum'], (string) $data['candidate_set_checksum'])) {
+                $this->fail('BIOMETRIC_CANDIDATE_SET_STALE', 422, 'مجموعهٔ بایومتریک جلسه تازه نیست.');
+            }
             if (!collect($package['candidates'])->contains(fn (array $candidate): bool => $candidate['template_uuid'] === $template->uuid)) $this->fail('BIOMETRIC_TEMPLATE_STALE', 422, 'قالب در مجموعهٔ فعلی جلسه نیست.');
 
             $already = MeetingAttendanceRecord::query()->where('meeting_id', $lockedSession->meeting_id)->where('employee_id', $employeeId)->lockForUpdate()->first();

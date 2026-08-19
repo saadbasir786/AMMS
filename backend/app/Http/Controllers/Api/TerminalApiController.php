@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Terminals\ActivateTerminalMeetingSession;
 use App\Actions\Terminals\CloseTerminalMeetingSession;
+use App\Actions\Biometrics\BuildMeetingBiometricCandidateSet;
 use App\Actions\Attendance\RecordFingerprintAttendance;
 use App\Http\Requests\RecordFingerprintAttendanceRequest;
 use App\Http\Resources\MeetingAttendanceResource;
@@ -98,12 +99,12 @@ class TerminalApiController extends Controller
         return response()->json(['success' => true, 'data' => $builder->build($session)]);
     }
 
-    public function biometricCandidates(Request $request, BiometricCandidateSetBuilder $builder): JsonResponse
+    public function biometricCandidates(Request $request, BuildMeetingBiometricCandidateSet $action): JsonResponse
     {
         /** @var TerminalMeetingSession $session */
         $session = $request->attributes->get('terminalSession');
         $this->assertFresh($session);
-        return response()->json(['success' => true, 'data' => $builder->build($session)]);
+        return response()->json(['success' => true, 'data' => $action->execute($session)]);
     }
 
     public function fingerprintAttendance(RecordFingerprintAttendanceRequest $request, RecordFingerprintAttendance $action): MeetingAttendanceResource

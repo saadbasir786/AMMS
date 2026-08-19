@@ -11,7 +11,7 @@ class BiometricPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isActive() && $user->can('biometric.status.view');
+        return $user->isActive() && $user->hasPermissionTo('biometric.status.view', 'sanctum');
     }
 
     public function view(User $user, Employee $employee): bool
@@ -38,12 +38,12 @@ class BiometricPolicy
     {
         return $session->started_by_user_id === $user->id
             && $user->isActive()
-            && $user->can('biometric.enrollment.cancel');
+            && $user->hasPermissionTo('biometric.enrollment.cancel', 'sanctum');
     }
 
     private function employeeScoped(User $user, Employee $employee, string $permission): bool
     {
-        if (!$user->isActive() || !$user->can($permission)) return false;
+        if (!$user->isActive() || !$user->hasPermissionTo($permission, 'sanctum')) return false;
         $unitId = (int) $employee->organizational_unit_id;
         return $user->hasScopedRole('BIOMETRIC_ENROLLMENT_OFFICER', $unitId);
     }

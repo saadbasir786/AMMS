@@ -19,12 +19,12 @@ No claim is made that real SVT3000 capture, DERMALOG SDK behavior, real template
 | Additive schema | `employee_biometric_templates`, `biometric_enrollment_sessions`, and `meeting_attendance_records` migrations applied without reset. |
 | Template privacy | `template_data` is hidden from the model serialization and safe human resource; candidate payloads, attendance records, audit metadata, and browser resources exclude template/image/probe bytes; no image/probe columns exist. |
 | Version lifecycle | Immutable version rows, active/superseded/revoked statuses, SHA-256 checksum, explicit re-enrollment and reason-required revocation Actions. |
-| Enrollment governance | New permissions, `BIOMETRIC_ENROLLMENT_OFFICER` role, Policy checks, configurable TTL and minimum active-finger count. |
-| Terminal mode boundary | Enrollment start checks terminal availability and rejects an active FLOW-09 session with `TERMINAL_BUSY`. |
+| Enrollment governance | New permissions, `BIOMETRIC_ENROLLMENT_OFFICER` role, explicit Gate-to-Policy checks, configurable TTL, and minimum active-finger count. |
+| Terminal mode boundary | Enrollment start checks terminal availability and rejects an active FLOW-09 session with `TERMINAL_BUSY`; terminal credential/session ownership is isolated. |
 | Device abstraction | `FingerprintDeviceAdapter`, `IdentificationResult`, and clearly labeled `FakeFingerprintAdapter`; no vendor API has been invented. |
 | Terminal enrollment contract | `POST /api/terminal/v1/enrollment/{enrollment}/template` is terminal-credential authenticated, session/terminal-bound, template-only, and rejects raw-image fields. |
 | Candidate set | Separate session-authenticated endpoint built strictly from `participant_version_id`; ordinary FLOW-09 manifest remains non-biometric; template bytes are excluded from the candidate payload. |
-| Attendance | Fingerprint submission validates session, freshness, participant membership, active template ownership, candidate checksum, uniqueness, and client-event idempotency. |
+| Attendance | Fingerprint submission validates session freshness, participant membership, active template ownership and organization, candidate checksum, uniqueness, client-event idempotency, template revocation, historical immutability, and server time. |
 | Manual fallback | Human-only `MANUAL_OVERRIDE`, mandatory reason, governance resolver, current participant membership, and immutable record. |
 | RTL UI | `/admin/biometrics`, `/employees/:id/biometrics`, and `/meetings/:id/attendance` added without changing frozen workflow pages. |
 
@@ -34,13 +34,18 @@ The deterministic adapter contract tests pass, the existing Feature regression r
 
 ```text
 Flow10AAdapterTest: 2 tests passed (10 assertions)
-Flow10ABiometricLifecycleTest: 1 test passed (8 assertions)
-FLOW-10A tests: 3 tests passed (18 assertions)
-Full Feature suite: 303 tests, 1,103 assertions passed in the current working source after the lifecycle test was added
+Flow10AAuthorizationTest: 3 tests passed (4 assertions)
+Flow10ABiometricLifecycleTest: 1 test passed (10 assertions)
+Flow10AAttendanceTest: 2 tests passed (10 assertions)
+Flow10ACandidateSetTest: 3 tests passed (10 assertions)
+Flow10AFingerprintAttendanceTest: 3 tests passed (14 assertions)
+Flow10ATerminalBoundaryTest: 2 tests passed (8 assertions)
+FLOW-10A focused tests: 16 tests passed (66 assertions)
+Full Feature suite: 316 tests, 1,151 assertions passed in the definitive release regression.
 Frontend build: 1,862 modules transformed, successful
 ```
 
-The physical capability probe found no attached ADB device, Android build toolchain, or legitimate DERMALOG SDK supplied to the project. This is recorded as FLOW-10B deferral, not as a software-foundation failure.
+The frontend production build succeeds after 1,862 modules are transformed. The physical capability probe found no attached ADB device, Android build toolchain, or legitimate DERMALOG SDK supplied to the project. This is recorded as FLOW-10B deferral, not as a software-foundation failure.
 
 ## Negative Matrix A–P status
 
