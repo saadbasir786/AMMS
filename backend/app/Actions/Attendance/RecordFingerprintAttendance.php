@@ -20,6 +20,9 @@ class RecordFingerprintAttendance
             $sessionRow = TerminalMeetingSession::query()->findOrFail($session->id);
             $lockedMeeting = \App\Models\Meeting::query()->with(['units.unit'])->lockForUpdate()->findOrFail($sessionRow->meeting_id);
             $lockedSession = TerminalMeetingSession::query()->lockForUpdate()->findOrFail($sessionRow->id)->load(['terminal', 'participantVersion.members'])->setRelation('meeting', $lockedMeeting);
+            if (in_array($lockedMeeting->status, ['POSTPONED', 'CANCELLED'], true)) {
+                $this->fail('MEETING_NOT_EXECUTABLE', 422, 'حضور برای جلسهٔ متوقف یا لغوشده مجاز نیست.');
+            }
             if (in_array($lockedMeeting->status, ['HELD', 'COMPLETED'], true)) {
                 $this->fail('MEETING_ATTENDANCE_CLOSED', 422, 'حضور جلسه پس از پایان بسته شده است.');
             }

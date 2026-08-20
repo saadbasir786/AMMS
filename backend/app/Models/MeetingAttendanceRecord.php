@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MeetingAttendanceRecord extends Model
 {
@@ -22,6 +23,7 @@ class MeetingAttendanceRecord extends Model
     public function terminal(): BelongsTo { return $this->belongsTo(Terminal::class); }
     public function terminalSession(): BelongsTo { return $this->belongsTo(TerminalMeetingSession::class, 'terminal_session_id'); }
     public function matchedTemplate(): BelongsTo { return $this->belongsTo(EmployeeBiometricTemplate::class, 'matched_template_id'); }
+    public function invalidation(): HasOne { return $this->hasOne(MeetingAttendanceInvalidation::class, 'meeting_attendance_record_id'); }
     public function recordedBy(): BelongsTo { return $this->belongsTo(User::class, 'recorded_by_user_id'); }
 
     protected static function booted(): void

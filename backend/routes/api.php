@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\MeetingExecutionController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\DecisionFollowUpController;
+use App\Http\Controllers\Api\MeetingExceptionController;
 use App\Http\Controllers\Api\TerminalBiometricEnrollmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,6 +100,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meetings/{meeting}/reschedule/confirm', [MeetingRescheduleController::class, 'confirm']);
     Route::get('/meetings/{meeting}/participant-change', [MeetingParticipantChangeController::class, 'workspace']);
     Route::get('/meetings/{meeting}/participant-history', [MeetingParticipantChangeController::class, 'history']);
+    Route::get('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'index']);
+    Route::post('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'store']);
+    Route::get('/meeting-exceptions/{case}', [MeetingExceptionController::class, 'show']);
+    Route::put('/meeting-exceptions/{case}/draft', [MeetingExceptionController::class, 'updateDraft']);
+    Route::post('/meeting-exceptions/{case}/submit', [MeetingExceptionController::class, 'submit']);
+    Route::post('/meeting-exception-reviews/{review}/acknowledge', [MeetingExceptionController::class, 'acknowledge']);
+    Route::post('/meeting-exception-reviews/{review}/approve', [MeetingExceptionController::class, 'approve']);
+    Route::post('/meeting-exception-reviews/{review}/correction', [MeetingExceptionController::class, 'correction']);
+    Route::post('/meeting-exceptions/{case}/reject', [MeetingExceptionController::class, 'reject']);
+    Route::post('/meeting-exceptions/{case}/withdraw', [MeetingExceptionController::class, 'withdraw']);
+    Route::post('/meeting-exceptions/{case}/apply', [MeetingExceptionController::class, 'apply']);
+    Route::post('/meeting-exceptions/{case}/resume', [MeetingExceptionController::class, 'resume']);
     Route::post('/meetings/{meeting}/participant-change-cases', [MeetingParticipantChangeController::class, 'createCase']);
     Route::put('/meetings/{meeting}/participant-change/{case}', [MeetingParticipantChangeController::class, 'updateCase']);
     Route::post('/meetings/{meeting}/participant-change/{case}/items', [MeetingParticipantChangeController::class, 'addItem']);

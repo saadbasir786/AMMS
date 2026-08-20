@@ -1,0 +1,69 @@
+{
+    "pass": true,
+    "meeting_id": 2,
+    "meeting_number": "FLOW13-HTTP-M-6a86af7537ae9",
+    "before": {
+        "meeting_status": "SCHEDULED",
+        "baseline_schedule_version_id": 3
+    },
+    "after": {
+        "meeting_status": "POSTPONED",
+        "current_schedule_version_id": 4,
+        "schedule_version_count": 2
+    },
+    "exception_case_count": 4,
+    "exception_case_statuses": {
+        "APPLIED": 4,
+        "DRAFT": 0,
+        "UNDER_REVIEW": 0,
+        "RETURNED_FOR_CORRECTION": 0,
+        "READY_TO_APPLY": 0,
+        "REJECTED": 0,
+        "WITHDRAWN": 0
+    },
+    "exception_version_count": 4,
+    "review_statuses": {
+        "APPROVED": 4,
+        "PENDING": 0,
+        "ACKNOWLEDGED": 0,
+        "CORRECTION_REQUESTED": 0,
+        "REJECTED": 0
+    },
+    "attendance_raw_count": 0,
+    "attendance_invalidation_count": 0,
+    "official_attendance_count": 0,
+    "terminal_assignment_statuses": {
+        "ASSIGNED": 0,
+        "REVOKED": 0,
+        "EXPIRED": 0
+    },
+    "terminal_session_statuses": {
+        "ACTIVE": 0,
+        "CLOSED": 0,
+        "REVOKED": 0,
+        "EXPIRED": 0
+    },
+    "audit_actions": [
+        "MEETING_EXCEPTION_CASE_CREATED",
+        "MEETING_EXCEPTION_CASE_SUBMITTED",
+        "MEETING_EXCEPTION_REVIEW_APPROVED",
+        "MEETING_POSTPONED",
+        "MEETING_EXCEPTION_CASE_CREATED",
+        "MEETING_EXCEPTION_CASE_SUBMITTED",
+        "MEETING_EXCEPTION_REVIEW_APPROVED",
+        "MEETING_RESUMED",
+        "MEETING_EXCEPTION_CASE_CREATED",
+        "MEETING_EXCEPTION_CASE_SUBMITTED",
+        "MEETING_EXCEPTION_REVIEW_APPROVED",
+        "MEETING_CANCELLED",
+        "MEETING_EXCEPTION_CASE_CREATED",
+        "MEETING_EXCEPTION_CASE_SUBMITTED",
+        "MEETING_EXCEPTION_REVIEW_APPROVED",
+        "MEETING_REOPENED"
+    ],
+    "race_group_count": 4,
+    "race_pass": true,
+    "source_mutation_count": 0,
+    "duplicate_active_case_count": 0,
+    "terminal_cases_with_pending_review": 0
+}

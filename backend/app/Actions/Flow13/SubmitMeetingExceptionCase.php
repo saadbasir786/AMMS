@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Flow13;
+
+use App\Actions\Flow13\Concerns\Flow13ActionSupport;
+use App\Models\MeetingExceptionCase;
+use App\Models\MeetingExceptionReview;
+use App\Models\User;
+use App\Support\MeetingExceptionGovernanceResolver;
+use Illuminate\Support\Facades\DB;
+
+class SubmitMeetingExceptionCase
+{
+    use Flow13ActionSupport;
+
+    public function __construct(private MeetingExceptionGovernanceResolver $governance) {}
+
+    public function execute(MeetingExceptionCase $case, User $actor): MeetingExceptionCase
+    {
+        $case->loadMissing(['meeting', 'currentVersion']);
+        abort_unless($this->governance->maySubmit($case, $actor), 403, 'UNAUTHORIZED_MEETING_EXCEPTION');
+        return DB::transaction(function () use ($case, $actor): MeetingExceptionCase {
+            $locked = MeetingExceptionCase::query()->with(['meeting.request', 'meeting.units', 'meeting.authorityContext', 'currentVersion'])->lockForUpdate()->findOrFail($case->id);
+            abort_unless(in_array($locked->status, [MeetingExceptionCase::DRAFT, MeetingExceptionCase::RETURNED_FOR_CORRECTION], true), 409, 'MEETING_EXCEPTION_NOT_ALLOWED');
+            $version = $locked->currentVersion;
+            abort_unless($version && trim((string) $version->reason) !== '', 422, 'MEETING_EXCEPTION_REASON_REQUIRED');
+            if ($locked->case_type === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$version->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
+            $version->forceFill(['submitted_at' => now()])->save();
+            MeetingExceptionReview::where('exception_case_version_id', $version->id)->delete();
+            foreach ($this->governance->reviewRequirements($locked->meeting, $locked->case_type) as $requirement) {
+                MeetingExceptionReview::create(array_merge($requirement, ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'exception_case_version_id' => $version->id, 'status' => MeetingExceptionReview::PENDING, 'created_at' => now()]));
+            }
+            $locked->forceFill(['status' => MeetingExceptionCase::UNDER_REVIEW, 'updated_at' => now()])->save();
+            $this->audit($locked->meeting, $actor, 'MEETING_EXCEPTION_CASE_SUBMITTED', $version->reason, $this->exceptionMetadata($locked));
+            return $locked->fresh(['meeting', 'currentVersion.reviews', 'versions']);
+        });
+    }
+}

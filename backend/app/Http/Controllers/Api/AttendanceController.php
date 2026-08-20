@@ -8,16 +8,18 @@ use App\Http\Requests\RecordManualAttendanceRequest;
 use App\Http\Resources\MeetingAttendanceResource;
 use App\Models\Meeting;
 use App\Support\AttendanceGovernanceResolver;
+use App\Support\OfficialAttendanceResolver;
 use Illuminate\Http\JsonResponse;
 
 class AttendanceController extends Controller
 {
-    public function index(Meeting $meeting): JsonResponse
+    public function index(Meeting $meeting, OfficialAttendanceResolver $officialAttendance): JsonResponse
     {
         $this->authorize('view', $meeting);
         return response()->json(['success' => true, 'data' => [
             'meeting_id' => $meeting->id,
-            'records' => MeetingAttendanceResource::collection($meeting->attendanceRecords()->with(['employee', 'terminal'])->latest('recorded_at_server')->get()),
+            'official_count' => $officialAttendance->count($meeting),
+            'records' => MeetingAttendanceResource::collection($officialAttendance->query($meeting)->with(['employee', 'terminal'])->latest('recorded_at_server')->get()),
         ]]);
     }
 

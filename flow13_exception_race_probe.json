@@ -1,0 +1,83 @@
+{
+    "active_case_creation": {
+        "workers": [
+            {
+                "worker": "create-a",
+                "outcome": 1,
+                "ok": true
+            },
+            {
+                "worker": "create-b",
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_EXCEPTION_ACTIVE_CASE_EXISTS",
+                    "code": 0
+                }
+            }
+        ],
+        "active_case_count": 1
+    },
+    "duplicate_application": {
+        "workers": [
+            {
+                "worker": "apply-a",
+                "outcome": "APPLIED",
+                "ok": true
+            },
+            {
+                "worker": "apply-b",
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_EXCEPTION_REVIEW_INCOMPLETE",
+                    "code": 0
+                }
+            }
+        ],
+        "case_status": "APPLIED",
+        "meeting_status": "CANCELLED"
+    },
+    "approval_vs_correction": {
+        "workers": [
+            {
+                "worker": "approve",
+                "outcome": "APPROVED",
+                "ok": true
+            },
+            {
+                "worker": "correction",
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_EXCEPTION_REVIEW_INCOMPLETE",
+                    "code": 0
+                }
+            }
+        ],
+        "case_status": "READY_TO_APPLY",
+        "review_status": "APPROVED"
+    },
+    "cancellation_vs_attendance": {
+        "workers": [
+            {
+                "worker": "apply-cancellation",
+                "outcome": "APPLIED",
+                "ok": true
+            },
+            {
+                "worker": "manual-attendance",
+                "ok": false,
+                "error": {
+                    "class": "Illuminate\\Http\\Exceptions\\HttpResponseException",
+                    "message": "",
+                    "code": 0
+                }
+            }
+        ],
+        "meeting_status": "CANCELLED",
+        "official_attendance_rows": 0
+    },
+    "pass": true,
+    "race_group_count": 4
+}
