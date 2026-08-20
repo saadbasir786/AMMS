@@ -179,6 +179,40 @@ class Flow12DecisionFollowUpTest extends TestCase
         $this->actingAs($owner, 'sanctum')->get('/api/action-items/'.$item['id'].'/evidence/'.$evidenceId)->assertOk();
     }
 
+    public function test_completion_verification_withdraws_pending_extension_atomically(): void
+    {
+        [$meeting, $owner, $decision] = $this->finalizedFixture();
+        $employeeUser = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $originalDueDate = now()->addDays(2)->format('Y-m-d');
+
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/follow-up/initialize')->assertCreated();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/follow-up/classify', ['classification' => 'ACTION_REQUIRED'])->assertOk();
+        $item = $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/action-items', [
+            'title' => 'اقدام دارای تمدید معلق',
+            'responsible_unit_id' => $meeting->organizing_unit_id,
+            'assigned_employee_id' => $employeeUser->employee_id,
+            'due_date' => $originalDueDate,
+        ])->assertCreated()->json('data');
+
+        $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/start')->assertOk();
+        $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/progress', ['progress_percent' => 100, 'note' => 'کار تکمیل شد'])->assertOk();
+        $extension = $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/extensions', [
+            'requested_due_date' => now()->addDays(12)->format('Y-m-d'),
+            'reason' => 'درخواست تمدید پیش از تأیید',
+        ])->assertCreated()->json('data');
+        $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/submit', ['completion_note' => 'برای تأیید ارسال شد'])->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/verify')->assertOk()->assertJsonPath('data.status', 'COMPLETED');
+
+        $resolved = \App\Models\MeetingActionItemExtensionRequest::findOrFail($extension['id']);
+        $this->assertSame(\App\Models\MeetingActionItemExtensionRequest::WITHDRAWN, $resolved->status);
+        $this->assertNotNull($resolved->reviewed_at);
+        $this->assertSame('ACTION_ITEM_COMPLETED_BEFORE_EXTENSION_REVIEW', $resolved->review_reason);
+        $this->assertSame(0, \App\Models\MeetingActionItemExtensionRequest::where('action_item_id', $item['id'])->where('status', 'PENDING')->count());
+        $this->assertSame($originalDueDate, MeetingActionItem::findOrFail($item['id'])->due_date?->format('Y-m-d'));
+        $this->assertSame($decision->target_date?->format('Y-m-d'), $decision->fresh()->target_date?->format('Y-m-d'));
+        $this->assertDatabaseHas('meeting_actions', ['action' => 'ACTION_ITEM_EXTENSION_WITHDRAWN']);
+    }
+
     private function finalizedFixture(): array
     {
         $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();

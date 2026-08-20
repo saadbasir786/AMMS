@@ -12,19 +12,19 @@ FLOW-12 begins only from a Meeting whose status is `COMPLETED` and whose Minutes
 
 Classification and operational lifecycle are separate concerns. `classification` is `UNCLASSIFIED`, `ACTION_REQUIRED`, or `NO_ACTION_REQUIRED`; `status` is the operational lifecycle `OPEN`, `ACTIVE`, or `CLOSED`. `ACTION_REQUIRED` remains `OPEN` until its first Action Item is created, then becomes `ACTIVE`; `NO_ACTION_REQUIRED` closes immediately. This prevents classification from being incorrectly represented as an operational state.
 
-Action Items implement `OPEN → IN_PROGRESS → PENDING_VERIFICATION → COMPLETED`, the `IN_PROGRESS ↔ BLOCKED` loop, controlled completion return, administrative cancellation, derived overdue state, progress 0–100, mandatory completion note policy, controlled assignment, due-date extension requests, append-only updates, assignment history, private evidence metadata, audit events, notifications, and owner-only verification. Completion submission now revalidates the locked Action Item’s current assignee and governance scope inside the transaction, so a stale assignee cannot submit after reassignment wins a concurrent race.
+Action Items implement `OPEN → IN_PROGRESS → PENDING_VERIFICATION → COMPLETED`, the `IN_PROGRESS ↔ BLOCKED` loop, controlled completion return, administrative cancellation, derived overdue state, progress 0–100, mandatory completion note policy, controlled assignment, due-date extension requests, append-only updates, assignment history, private evidence metadata, audit events, notifications, and owner-only verification. Completion submission now revalidates the locked Action Item’s current assignee and governance scope inside the transaction, so a stale assignee cannot submit after reassignment wins a concurrent race. Completion verification also atomically withdraws every pending extension as `WITHDRAWN` with reason `ACTION_ITEM_COMPLETED_BEFORE_EXTENSION_REVIEW`, review metadata, notification, and audit event; therefore `COMPLETED + PENDING extension` is impossible.
 
 ## Evidence summary
 
 | Gate | Result | Evidence |
 |---|---:|---|
-| Focused FLOW-12 Feature suite | **9 tests / 99 assertions — PASS** | `backend/tests/Feature/Flow12DecisionFollowUpTest.php` |
+| Focused FLOW-12 Feature suite | **10 tests / 115 assertions — PASS** | `backend/tests/Feature/Flow12DecisionFollowUpTest.php` |
 | Independent per-flow FLOW-01–FLOW-06 governance suite | **6 tests / 31 assertions — PASS** | `backend/tests/Feature/Flow12PerFlowGovernanceTest.php` |
-| Full Laravel regression | **346 tests / 1,449 assertions — PASS** | [`flow12_full_regression.log`][1] |
+| Full Laravel regression | **347 tests / 1,465 assertions — PASS** | [`flow12_full_regression.log`][1] |
 | Frontend production build | **PASS / 1,864 modules transformed** | [`flow12_frontend_build.log`][2] |
 | Extended real HTTP manual gate | **42 / 42 — PASS** | [`flow12_manual_gate.json`][3] |
 | FLOW-05/FLOW-06 completion-governance HTTP gate | **27 / 27 — PASS** | [`flow12_manual_governance_gate.json`][4] |
-| MariaDB action-level races | **7 race groups — PASS** | [`flow12_action_race_probe.json`][5] |
+| MariaDB action-level races | **11 deterministic race groups — PASS** | [`flow12_action_race_probe.json`][5] |
 | Canonical final invariants | **PASS** | [`flow12_final_invariants.json`][6] |
 | Negative matrix | **42 documented boundaries; static-only rows explicitly labeled** | [`flow12_negative_matrix.md`][7] |
 | Private-evidence privacy boundary | **PASS; public URL false; unauthorized and cross-item downloads rejected; audit attachment bytes 0** | [`flow12_manual_gate.json`][3] [`flow12_final_invariants.json`][6] |
@@ -41,22 +41,24 @@ Passwords, bearer tokens, raw evidence bytes, and biometric data are not recorde
 
 ## MariaDB concurrency
 
-The isolated MariaDB probe verified seven race groups with transactional row locking and uniqueness protections. Concurrent Follow-up initialization produced exactly one root row. Concurrent Action Item creation produced unique sequence allocation. Concurrent extension requests produced one pending request and one `ACTION_ITEM_EXTENSION_ALREADY_PENDING` rejection. Concurrent extension approval versus rejection produced one terminal review and one `ACTION_ITEM_EXTENSION_NOT_PENDING` rejection. Progress versus cancellation serialized into a valid terminal outcome.
+The isolated MariaDB probe verified **11 deterministic race groups** with transactional row locking and uniqueness protections. Concurrent Follow-up initialization produced exactly one root row. Concurrent Action Item creation produced distinct sequence identities, emitted Action Item IDs, sequence numbers, and Action Numbers, and produced `duplicate_sequence_count=0`. Concurrent extension requests produced one pending request and one `ACTION_ITEM_EXTENSION_ALREADY_PENDING` rejection. Concurrent extension approval versus rejection produced one terminal review and one `ACTION_ITEM_EXTENSION_NOT_PENDING` rejection. Progress versus cancellation serialized into a valid outcome.
 
-The newly added completion-submission-versus-reassignment race produced a valid serialized result: in the final run, reassignment won, the Action Item remained `IN_PROGRESS` with the new employee assignment, and the stale completion submission was rejected with `UNAUTHORIZED_ACTION_ITEM_UPDATE`. The opposite valid ordering is also accepted by the probe: if submission wins, the item remains `PENDING_VERIFICATION` with its original assignment and reassignment is rejected by terminal-state validation.
+Both submission-versus-reassignment orderings are now forced and recorded. In ordering A, reassignment commits first, the new employee remains authoritative, and the old assignee’s submission is rejected with `UNAUTHORIZED_ACTION_ITEM_UPDATE`. In ordering B, completion submission commits first, the Action Item becomes `PENDING_VERIFICATION` with the original assignee, and the later reassignment is rejected with `ACTION_ITEM_INVALID_STATE`.
 
-Completion verification versus reassignment produced one completion and rejected the invalid competing mutation. Extension approval versus completion verification produced a completed Action Item whose due date remained unchanged when completion won; the losing extension approval did not mutate the terminal item. Concurrent completion verification produced exactly one completion audit event. Overdue is explicitly a read-time derived property in this implementation; no scheduled overdue checker or notification command exists, so an overdue-check-versus-completion race is recorded as `NOT IMPLEMENTED / NOT APPLICABLE`, not as a falsely claimed runtime pass. The canonical probe artifact reports `pass=true`.
+Both extension-versus-completion orderings are now forced and recorded. In ordering A, extension approval commits first, the due date changes to the requested date, completion follows, and the extension is `APPROVED` with zero pending extensions. In ordering B, completion commits first, the due date remains unchanged, the pending extension is atomically resolved as `WITHDRAWN`, an `ACTION_ITEM_EXTENSION_WITHDRAWN` audit event is recorded, and later approval is rejected with `ACTION_ITEM_EXTENSION_NOT_PENDING`. The probe reports `completed_items_with_pending_extensions=0` and `pending_extensions_on_terminal_items=0`.
+
+Completion verification versus reassignment produced one completion and rejected the invalid competing mutation. Concurrent completion verification produced exactly one completion audit event. Overdue is explicitly a read-time derived property in this implementation; no scheduled overdue checker or notification command exists, so an overdue-check-versus-completion race is recorded as `NOT IMPLEMENTED / NOT APPLICABLE`, not as a falsely claimed runtime pass. The authoritative final probe reports `race_group_count=11` and `pass=true`.
 
 ## Canonical invariant snapshot
 
 | Invariant | Observed value |
 |---|---:|
-| Meeting ID / number | `50` / `F12-HTTP-BPFENQNF-MEETING` |
-| Meeting Request ID | `53` |
+| Meeting ID / number | `53` / `F12-HTTP-WFRRMB5O-MEETING` |
+| Meeting Request ID | `56` |
 | Request status | `CONVERTED_TO_MEETING` |
 | Meeting status | `COMPLETED` |
 | Minutes status | `FINALIZED` |
-| Final Minutes version | `30` |
+| Final Minutes version | `33` |
 | Decision rows | `2` |
 | Follow-up root rows | `2` |
 | Unclassified / action-required / no-action-required Follow-ups | `0 / 1 / 1` |
@@ -68,6 +70,8 @@ Completion verification versus reassignment produced one completion and rejected
 | Duplicate Action Item sequences | `0` |
 | Duplicate completion records | `0` |
 | Duplicate pending-extension markers | `0` |
+| Completed Items with pending extensions | `0` |
+| Pending extensions on terminal Items | `0` |
 | Request-to-Meeting duplicates | `0` |
 | Assignment history rows | `2` |
 | Progress update rows | `5` |
@@ -77,11 +81,14 @@ Completion verification versus reassignment produced one completion and rejected
 | Meeting / Minutes status mutations | `0 / 0` |
 | Documentary responsibility / target-date mutations | `0 / 0` |
 | Audit attachment bytes / base64 / body content | `0` |
+| Extension/completion ordering A / B | `PASS / PASS` |
+| Submission/reassignment ordering A / B | `PASS / PASS` |
+| Sequence race IDs / numbers | `33, 32` / `3, 2`; duplicate count `0` |
 | Biometric-sensitive FLOW-12 fields | `0` |
 | Public evidence URLs | `0`; resource explicitly returns `public_url=false` |
 | Raw tokens/passwords in evidence | `0` |
 
-The complete before/after source snapshots, all explicit zero-valued Action Item status keys, mutation counters, duplicate counters, and privacy counters are stored in [`flow12_final_invariants.json`][6]. The artifact reports `pass=true`.
+The complete before/after source snapshots, all explicit zero-valued Action Item status keys, terminal-extension counters, forced ordering invariants, mutation counters, duplicate counters, sequence identities, and privacy counters are stored in [`flow12_final_invariants.json`][6] and [`flow12_action_race_probe.json`][5]. The artifacts report `pass=true`.
 
 ## Authorization and immutability
 
@@ -114,6 +121,8 @@ The canonical evidence set is:
 - [`flow12_frontend_build.log`](flow12_frontend_build.log)
 - `backend/database/migrations/2026_08_20_120020_separate_flow12_classification.php`
 - `backend/app/Actions/Flow12/SubmitActionItemCompletion.php`
+- `backend/app/Actions/Flow12/VerifyActionItemCompletion.php`
+- `backend/app/Actions/Flow12/Concerns/Flow12ActionSupport.php`
 - `backend/app/Http/Resources/MeetingActionItemEvidenceResource.php`
 - [`backend/tests/Feature/Flow12DecisionFollowUpTest.php`](backend/tests/Feature/Flow12DecisionFollowUpTest.php)
 - [`backend/tests/Feature/Flow12PerFlowGovernanceTest.php`](backend/tests/Feature/Flow12PerFlowGovernanceTest.php)

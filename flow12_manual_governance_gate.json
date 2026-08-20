@@ -56,7 +56,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/meetings/51/follow-up/initialize",
+      "route": "/api/meetings/54/follow-up/initialize",
       "http_status": 201,
       "canonical_code": null,
       "response_fields": {},
@@ -67,7 +67,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/decisions/40/follow-up/classify",
+      "route": "/api/decisions/44/follow-up/classify",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -81,7 +81,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/decisions/40/action-items",
+      "route": "/api/decisions/44/action-items",
       "http_status": 201,
       "canonical_code": null,
       "response_fields": {
@@ -94,7 +94,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/20/start",
+      "route": "/api/action-items/24/start",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -107,7 +107,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/20/progress",
+      "route": "/api/action-items/24/progress",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -121,7 +121,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/20/completion/submit",
+      "route": "/api/action-items/24/completion/submit",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -134,7 +134,7 @@
       "actor": "authority.office@example.test",
       "role": "authority_office",
       "method": "POST",
-      "route": "/api/action-items/20/completion/verify",
+      "route": "/api/action-items/24/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -145,7 +145,7 @@
       "actor": "system.admin@example.test",
       "role": "system_admin",
       "method": "POST",
-      "route": "/api/action-items/20/completion/verify",
+      "route": "/api/action-items/24/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -156,7 +156,7 @@
       "actor": "high.authority@example.test",
       "role": "high_authority",
       "method": "POST",
-      "route": "/api/action-items/20/completion/verify",
+      "route": "/api/action-items/24/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -167,7 +167,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/action-items/20/completion/verify",
+      "route": "/api/action-items/24/completion/verify",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -180,22 +180,22 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "GET",
-      "route": "/api/meetings/51/follow-up",
+      "route": "/api/meetings/54/follow-up",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
         "meeting": {
-          "id": 51,
-          "meeting_number": "F12-GOV-HTTP-Q6IJB67-MEETING",
+          "id": 54,
+          "meeting_number": "F12-GOV-HTTP-5VAVS2Z-MEETING",
           "title": "FLOW-12 owner gate DIRECTORATE_WITH_HIGH_AUTHORITY",
           "status": "COMPLETED"
         },
         "minutes": {
-          "id": 30,
+          "id": 33,
           "status": "FINALIZED",
-          "final_version_id": 31,
+          "final_version_id": 34,
           "version_number": 1,
-          "finalized_at": "2026-08-20T06:27:56.000000Z"
+          "finalized_at": "2026-08-20T06:48:45.000000Z"
         }
       },
       "pass": true
@@ -205,7 +205,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/meetings/52/follow-up/initialize",
+      "route": "/api/meetings/55/follow-up/initialize",
       "http_status": 201,
       "canonical_code": null,
       "response_fields": {},
@@ -216,7 +216,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/decisions/41/follow-up/classify",
+      "route": "/api/decisions/45/follow-up/classify",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -230,7 +230,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/decisions/41/action-items",
+      "route": "/api/decisions/45/action-items",
       "http_status": 201,
       "canonical_code": null,
       "response_fields": {
@@ -243,7 +243,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/21/start",
+      "route": "/api/action-items/25/start",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -256,7 +256,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/21/progress",
+      "route": "/api/action-items/25/progress",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -270,7 +270,7 @@
       "actor": "tech.director@example.test",
       "role": "responsible_employee",
       "method": "POST",
-      "route": "/api/action-items/21/completion/submit",
+      "route": "/api/action-items/25/completion/submit",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -283,7 +283,7 @@
       "actor": "authority.office@example.test",
       "role": "authority_office",
       "method": "POST",
-      "route": "/api/action-items/21/completion/verify",
+      "route": "/api/action-items/25/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -294,7 +294,7 @@
       "actor": "system.admin@example.test",
       "role": "system_admin",
       "method": "POST",
-      "route": "/api/action-items/21/completion/verify",
+      "route": "/api/action-items/25/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -305,7 +305,7 @@
       "actor": "high.authority@example.test",
       "role": "high_authority",
       "method": "POST",
-      "route": "/api/action-items/21/completion/verify",
+      "route": "/api/action-items/25/completion/verify",
       "http_status": 403,
       "canonical_code": "FORBIDDEN",
       "response_fields": {},
@@ -316,7 +316,7 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "POST",
-      "route": "/api/action-items/21/completion/verify",
+      "route": "/api/action-items/25/completion/verify",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
@@ -329,22 +329,22 @@
       "actor": "executive.secretary@example.test",
       "role": "owner",
       "method": "GET",
-      "route": "/api/meetings/52/follow-up",
+      "route": "/api/meetings/55/follow-up",
       "http_status": 200,
       "canonical_code": null,
       "response_fields": {
         "meeting": {
-          "id": 52,
-          "meeting_number": "F12-GOV-HTTP-7MZ2EJS-MEETING",
+          "id": 55,
+          "meeting_number": "F12-GOV-HTTP-JILM6JW-MEETING",
           "title": "FLOW-12 owner gate HIGH_AUTHORITY_INITIATED",
           "status": "COMPLETED"
         },
         "minutes": {
-          "id": 31,
+          "id": 34,
           "status": "FINALIZED",
-          "final_version_id": 32,
+          "final_version_id": 35,
           "version_number": 1,
-          "finalized_at": "2026-08-20T06:27:56.000000Z"
+          "finalized_at": "2026-08-20T06:48:45.000000Z"
         }
       },
       "pass": true

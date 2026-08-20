@@ -1,6 +1,168 @@
 {
     "probe": "FLOW-12 MariaDB action-level race probe",
-    "fixture_tag": "F12-RACE-UEQRETZ",
+    "fixture_tag": "F12-RACE-GOCGXJQ",
+    "race_group_count": 11,
+    "race_groups": [
+        {
+            "name": "concurrent_followup_initialization",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "FOLLOWUP_INITIALIZED"
+                },
+                {
+                    "ok": true,
+                    "result": "FOLLOWUP_INITIALIZED"
+                }
+            ]
+        },
+        {
+            "name": "concurrent_action_item_sequence_creation",
+            "results": [
+                {
+                    "ok": true,
+                    "result": {
+                        "id": 33,
+                        "sequence_number": 3,
+                        "action_number": "RACE-DEC-001-A03"
+                    }
+                },
+                {
+                    "ok": true,
+                    "result": {
+                        "id": 32,
+                        "sequence_number": 2,
+                        "action_number": "RACE-DEC-001-A02"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "concurrent_extension_requests",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "EXTENSION_REQUESTED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_EXTENSION_ALREADY_PENDING"
+                }
+            ]
+        },
+        {
+            "name": "concurrent_extension_review",
+            "results": [
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_EXTENSION_NOT_PENDING"
+                },
+                {
+                    "ok": true,
+                    "result": "EXTENSION_REJECTED"
+                }
+            ]
+        },
+        {
+            "name": "concurrent_progress_cancel",
+            "results": [
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_INVALID_STATE"
+                },
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_CANCELLED"
+                }
+            ]
+        },
+        {
+            "name": "submission_vs_reassignment_ordering_a_reassignment_first",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_REASSIGNED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "UNAUTHORIZED_ACTION_ITEM_UPDATE"
+                }
+            ]
+        },
+        {
+            "name": "submission_vs_reassignment_ordering_b_submission_first",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "COMPLETION_SUBMITTED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_INVALID_STATE"
+                }
+            ]
+        },
+        {
+            "name": "concurrent_completion_verification_reassignment",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_COMPLETED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_INVALID_STATE"
+                }
+            ]
+        },
+        {
+            "name": "extension_vs_completion_ordering_a_extension_first",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "EXTENSION_APPROVED"
+                },
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_COMPLETED"
+                }
+            ]
+        },
+        {
+            "name": "extension_vs_completion_ordering_b_completion_first",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_COMPLETED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_EXTENSION_NOT_PENDING"
+                }
+            ]
+        },
+        {
+            "name": "concurrent_completion_verification",
+            "results": [
+                {
+                    "ok": true,
+                    "result": "ACTION_ITEM_COMPLETED"
+                },
+                {
+                    "ok": false,
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "ACTION_ITEM_NOT_PENDING_VERIFICATION"
+                }
+            ]
+        }
+    ],
     "concurrent_followup_initialization": [
         {
             "ok": true,
@@ -15,34 +177,55 @@
     "concurrent_action_item_sequence_creation": [
         {
             "ok": true,
-            "result": "ACTION_ITEM_CREATED"
+            "result": {
+                "id": 33,
+                "sequence_number": 3,
+                "action_number": "RACE-DEC-001-A03"
+            }
         },
         {
             "ok": true,
-            "result": "ACTION_ITEM_CREATED"
+            "result": {
+                "id": 32,
+                "sequence_number": 2,
+                "action_number": "RACE-DEC-001-A02"
+            }
         }
     ],
-    "action_item_rows_after_sequence_race": 7,
+    "created_action_item_ids": [
+        33,
+        32
+    ],
+    "created_sequence_numbers": [
+        3,
+        2
+    ],
+    "created_action_numbers": [
+        "RACE-DEC-001-A03",
+        "RACE-DEC-001-A02"
+    ],
+    "duplicate_sequence_count": 0,
+    "action_item_rows_after_sequence_race": 9,
     "concurrent_extension_requests": [
+        {
+            "ok": true,
+            "result": "EXTENSION_REQUESTED"
+        },
         {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_EXTENSION_ALREADY_PENDING"
-        },
-        {
-            "ok": true,
-            "result": "EXTENSION_REQUESTED"
         }
     ],
     "concurrent_extension_review": [
         {
-            "ok": true,
-            "result": "EXTENSION_APPROVED"
-        },
-        {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_EXTENSION_NOT_PENDING"
+        },
+        {
+            "ok": true,
+            "result": "EXTENSION_REJECTED"
         }
     ],
     "pending_extension_rows_after_review": 0,
@@ -59,21 +242,43 @@
         }
     ],
     "progress_cancel_terminal_rows": 1,
-    "concurrent_completion_submission_reassignment": [
-        {
-            "ok": false,
-            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
-            "message": "UNAUTHORIZED_ACTION_ITEM_UPDATE"
-        },
-        {
-            "ok": true,
-            "result": "ACTION_ITEM_REASSIGNED"
-        }
-    ],
-    "completion_submission_reassignment_final": {
-        "status": "IN_PROGRESS",
-        "assigned_employee_id": 3,
-        "lock_version": 1
+    "submission_vs_reassignment_ordering_a": {
+        "before_assigned_employee_id": 1,
+        "after_assigned_employee_id": 3,
+        "submission_actor_employee_id": 1,
+        "final_status": "IN_PROGRESS",
+        "lock_version": 1,
+        "results": [
+            {
+                "ok": true,
+                "result": "ACTION_ITEM_REASSIGNED"
+            },
+            {
+                "ok": false,
+                "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                "message": "UNAUTHORIZED_ACTION_ITEM_UPDATE"
+            }
+        ],
+        "loser_result_code": "UNAUTHORIZED_ACTION_ITEM_UPDATE"
+    },
+    "submission_vs_reassignment_ordering_b": {
+        "before_assigned_employee_id": 1,
+        "after_assigned_employee_id": 1,
+        "submission_actor_employee_id": 1,
+        "final_status": "PENDING_VERIFICATION",
+        "lock_version": 1,
+        "results": [
+            {
+                "ok": true,
+                "result": "COMPLETION_SUBMITTED"
+            },
+            {
+                "ok": false,
+                "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                "message": "ACTION_ITEM_INVALID_STATE"
+            }
+        ],
+        "loser_result_code": "ACTION_ITEM_INVALID_STATE"
     },
     "concurrent_completion_verification_reassignment": [
         {
@@ -87,35 +292,74 @@
         }
     ],
     "completion_reassignment_completed_rows": 1,
-    "concurrent_extension_approval_verification": [
-        {
-            "ok": false,
-            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
-            "message": "ACTION_ITEM_INVALID_STATE"
-        },
+    "extension_vs_completion_ordering_a": {
+        "action_item_status": "COMPLETED",
+        "old_due_date": "2026-08-25",
+        "final_due_date": "2026-09-09",
+        "extension_status": "APPROVED",
+        "pending_extension_count": 0,
+        "results": [
+            {
+                "ok": true,
+                "result": "EXTENSION_APPROVED"
+            },
+            {
+                "ok": true,
+                "result": "ACTION_ITEM_COMPLETED"
+            }
+        ],
+        "audit_events": [
+            "ACTION_ITEM_CREATED",
+            "ACTION_ITEM_EXTENSION_REQUESTED",
+            "ACTION_ITEM_EXTENSION_APPROVED",
+            "ACTION_ITEM_COMPLETED"
+        ]
+    },
+    "extension_vs_completion_ordering_b": {
+        "action_item_status": "COMPLETED",
+        "old_due_date": "2026-08-26",
+        "final_due_date": "2026-08-26",
+        "extension_status": "WITHDRAWN",
+        "pending_extension_count": 0,
+        "results": [
+            {
+                "ok": true,
+                "result": "ACTION_ITEM_COMPLETED"
+            },
+            {
+                "ok": false,
+                "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                "message": "ACTION_ITEM_EXTENSION_NOT_PENDING"
+            }
+        ],
+        "audit_events": [
+            "ACTION_ITEM_CREATED",
+            "ACTION_ITEM_EXTENSION_REQUESTED",
+            "ACTION_ITEM_EXTENSION_WITHDRAWN",
+            "ACTION_ITEM_COMPLETED"
+        ]
+    },
+    "completed_items_with_pending_extensions": 0,
+    "pending_extensions_on_terminal_items": 0,
+    "overdue_check_applicability": "NOT_IMPLEMENTED / NOT_APPLICABLE: overdue is a read-time derived property; no scheduled checker or notification command exists",
+    "concurrent_completion_verification": [
         {
             "ok": true,
             "result": "ACTION_ITEM_COMPLETED"
-        }
-    ],
-    "extension_approval_verification_final": {
-        "status": "COMPLETED",
-        "due_date": "2026-08-25",
-        "extension_status": "PENDING"
-    },
-    "overdue_check_applicability": "NOT_IMPLEMENTED / NOT_APPLICABLE: overdue is a read-time derived property; no scheduled checker or notification command exists",
-    "concurrent_completion_verification": [
+        },
         {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_NOT_PENDING_VERIFICATION"
-        },
-        {
-            "ok": true,
-            "result": "ACTION_ITEM_COMPLETED"
         }
     ],
-    "completed_action_item_rows": 1,
-    "completed_audit_rows": 3,
+    "completed_action_item_rows": 4,
+    "completed_audit_rows": 4,
+    "ordering_invariants": {
+        "extension_vs_completion_ordering_a": "PASS",
+        "extension_vs_completion_ordering_b": "PASS",
+        "submission_vs_reassignment_ordering_a": "PASS",
+        "submission_vs_reassignment_ordering_b": "PASS"
+    },
     "pass": true
 }

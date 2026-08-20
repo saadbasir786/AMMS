@@ -43,7 +43,7 @@ This matrix records the required rejection boundaries for Decision Follow-up and
 | F12-N37 | Follow-up closure mutates Meeting status | Meeting remains `COMPLETED` | FEATURE TEST PASS | TESTED PASS |
 | F12-N38 | Follow-up closure mutates finalized Decision text/target date | Source fields unchanged | FEATURE TEST PASS | TESTED PASS |
 | F12-N39 | Completion submission versus reassignment | If submission wins, item is `PENDING_VERIFICATION` with old assignee and reassignment is rejected; if reassignment wins, old-assignee submission is rejected and new assignment remains | MARIADB PASS | MARIADB PASS |
-| F12-N40 | Extension approval versus completion verification | Completion remains authoritative; a completed item’s due date is not mutated by a losing extension approval | MARIADB PASS | MARIADB PASS |
+| F12-N40 | Extension approval versus completion verification | Extension-first: `APPROVED` then completion with the requested due date; completion-first: due date unchanged, pending extension atomically becomes `WITHDRAWN`, later approval rejected, and no terminal item retains a pending extension | MARIADB PASS | MARIADB PASS |
 | F12-N41 | Overdue check versus completion | `NOT IMPLEMENTED / NOT APPLICABLE`: overdue is a read-time derived property; no scheduled checker or notification command exists | STATIC INSPECTION ONLY | STATIC INSPECTION ONLY |
 | F12-N42 | Audit metadata contains evidence bytes, base64, or request-body content | `0`; audit stores metadata only | CANONICAL DB INVARIANT PASS | CANONICAL DB INVARIANT PASS |
 

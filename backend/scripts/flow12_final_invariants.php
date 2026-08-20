@@ -18,6 +18,9 @@ $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $fixturePath = getenv('FLOW12_MANUAL_FIXTURE_PATH') ?: '/tmp/flow12_manual_fixture.json';
 $fixture = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+$raceArtifactPath = dirname(__DIR__, 2).'/flow12_action_race_probe.json';
+$raceArtifact = is_file($raceArtifactPath) ? json_decode((string) file_get_contents($raceArtifactPath), true, 512, JSON_THROW_ON_ERROR) : [];
+$raceOrderingInvariants = $raceArtifact['ordering_invariants'] ?? [];
 $meeting = Meeting::query()->with(['minutes.currentVersion', 'request'])->findOrFail($fixture['meeting_id']);
 $version = $meeting->minutes->currentVersion;
 $decisions = MeetingMinuteVersionDecision::where('meeting_minute_version_id', $version->id)->orderBy('sequence_number')->get();
@@ -57,6 +60,8 @@ $duplicateFollowupRootCount = DB::table('meeting_decision_followups')->select('m
 $duplicateActionSequenceCount = DB::table('meeting_action_items')->select('decision_followup_id', 'sequence_number')->groupBy('decision_followup_id', 'sequence_number')->havingRaw('COUNT(*) > 1')->get()->count();
 $duplicateCompletionCount = DB::table('meeting_actions')->where('meeting_id', $meeting->id)->where('action', 'ACTION_ITEM_COMPLETED')->select('entity_id')->groupBy('entity_id')->havingRaw('COUNT(*) > 1')->get()->count();
 $pendingExtensionDuplicateCount = DB::table('meeting_action_item_extension_requests')->whereIn('action_item_id', $items->pluck('id'))->where('status', 'PENDING')->select('action_item_id')->groupBy('action_item_id')->havingRaw('COUNT(*) > 1')->get()->count();
+$completedItemsWithPendingExtensions = DB::table('meeting_action_items as items')->join('meeting_action_item_extension_requests as extensions', 'extensions.action_item_id', '=', 'items.id')->whereIn('items.id', $items->pluck('id'))->whereIn('items.status', [MeetingActionItem::COMPLETED, MeetingActionItem::CANCELLED])->where('extensions.status', 'PENDING')->count();
+$pendingExtensionsOnTerminalItems = $completedItemsWithPendingExtensions;
 $requestMeetingDuplicateCount = DB::table('meetings')->where('meeting_request_id', $meeting->meeting_request_id)->select('meeting_request_id')->groupBy('meeting_request_id')->havingRaw('COUNT(*) > 1')->get()->count();
 $sourceDecisionMutationCount = ($before['decision_text'] !== $after['decision_text']) ? 1 : 0;
 $documentaryResponsibilityMutationCount = ($before['decision_responsible_unit_id'] !== $after['decision_responsible_unit_id'] || $before['decision_responsible_employee_id'] !== $after['decision_responsible_employee_id']) ? 1 : 0;
@@ -69,6 +74,10 @@ $out = [
     'meeting_number' => $meeting->meeting_number,
     'meeting_request_id' => $meeting->meeting_request_id,
     'request_status' => $meeting->request?->status,
+    'mariadb_race_group_count' => $raceArtifact['race_group_count'] ?? 0,
+    'mariadb_sequence_created_action_item_ids' => $raceArtifact['created_action_item_ids'] ?? [],
+    'mariadb_sequence_created_numbers' => $raceArtifact['created_sequence_numbers'] ?? [],
+    'mariadb_sequence_created_action_numbers' => $raceArtifact['created_action_numbers'] ?? [],
     'final_minutes_version_id' => $version->id,
     'meeting_status' => $meeting->status,
     'minutes_status' => $meeting->minutes?->status,
@@ -88,6 +97,8 @@ $out = [
     'duplicate_action_item_sequence_count' => $duplicateActionSequenceCount,
     'duplicate_completion_count' => $duplicateCompletionCount,
     'pending_extension_duplicate_count' => $pendingExtensionDuplicateCount,
+    'completed_items_with_pending_extensions' => $completedItemsWithPendingExtensions,
+    'pending_extensions_on_terminal_items' => $pendingExtensionsOnTerminalItems,
     'request_meeting_duplicate_count' => $requestMeetingDuplicateCount,
     'assignment_history_count' => MeetingActionItemAssignmentHistory::whereIn('action_item_id', $items->pluck('id'))->count(),
     'progress_update_count' => MeetingActionItemUpdate::whereIn('action_item_id', $items->pluck('id'))->whereIn('update_type', [MeetingActionItemUpdate::PROGRESS, MeetingActionItemUpdate::BLOCKED, MeetingActionItemUpdate::UNBLOCKED])->count(),
@@ -102,9 +113,17 @@ $out = [
     'documentary_responsibility_mutation_count' => $documentaryResponsibilityMutationCount,
     'documentary_target_date_mutation_count' => $documentaryTargetDateMutationCount,
     'audit_attachment_bytes_count' => $auditAttachmentBytesCount,
+    'extension_vs_completion_ordering_a' => $raceOrderingInvariants['extension_vs_completion_ordering_a'] ?? 'NOT_RUN',
+    'extension_vs_completion_ordering_b' => $raceOrderingInvariants['extension_vs_completion_ordering_b'] ?? 'NOT_RUN',
+    'submission_vs_reassignment_ordering_a' => $raceOrderingInvariants['submission_vs_reassignment_ordering_a'] ?? 'NOT_RUN',
+    'submission_vs_reassignment_ordering_b' => $raceOrderingInvariants['submission_vs_reassignment_ordering_b'] ?? 'NOT_RUN',
     'privacy' => ['biometric_sensitive_fields_in_flow12' => 0, 'public_evidence_urls' => 0, 'raw_tokens_or_passwords' => 0, 'audit_attachment_bytes' => $auditAttachmentBytesCount],
 ];
 $out['pass'] = $out['request_status'] === 'CONVERTED_TO_MEETING'
+    && $out['mariadb_race_group_count'] === 11
+    && count($out['mariadb_sequence_created_action_item_ids']) === 2
+    && count($out['mariadb_sequence_created_numbers']) === 2
+    && count(array_unique($out['mariadb_sequence_created_numbers'])) === 2
     && $out['meeting_status'] === 'COMPLETED'
     && $out['minutes_status'] === 'FINALIZED'
     && $out['decision_count'] === 2
@@ -126,6 +145,12 @@ $out['pass'] = $out['request_status'] === 'CONVERTED_TO_MEETING'
     && $out['duplicate_action_item_sequence_count'] === 0
     && $out['duplicate_completion_count'] === 0
     && $out['pending_extension_duplicate_count'] === 0
+    && $out['completed_items_with_pending_extensions'] === 0
+    && $out['pending_extensions_on_terminal_items'] === 0
+    && $out['extension_vs_completion_ordering_a'] === 'PASS'
+    && $out['extension_vs_completion_ordering_b'] === 'PASS'
+    && $out['submission_vs_reassignment_ordering_a'] === 'PASS'
+    && $out['submission_vs_reassignment_ordering_b'] === 'PASS'
     && $out['request_meeting_duplicate_count'] === 0
     && $out['source_decision_mutation_count'] === 0
     && $out['meeting_status_mutation_count'] === 0

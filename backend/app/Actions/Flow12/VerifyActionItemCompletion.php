@@ -21,6 +21,7 @@ class VerifyActionItemCompletion
             $locked = MeetingActionItem::query()->with('followup')->lockForUpdate()->findOrFail($item->id);
             abort_unless($locked->status === MeetingActionItem::PENDING_VERIFICATION, 409, 'ACTION_ITEM_NOT_PENDING_VERIFICATION');
             $locked->update(['status' => MeetingActionItem::COMPLETED, 'progress_percent' => 100, 'completed_at' => now(), 'completed_by_user_id' => $actor->id, 'lock_version' => $locked->lock_version + 1]);
+            $this->withdrawPendingExtensions($locked, $actor);
             $this->auditItem($locked, $actor, 'ACTION_ITEM_COMPLETED');
             $this->notifyUser($locked->submitted_by_user_id, 'ACTION_ITEM_COMPLETED', 'تکمیل اقدام تأیید شد', 'تکمیل اقدام عملیاتی شما تأیید شد.', ['action_item_id' => $locked->id]);
             $followup = $locked->followup->fresh(['actionItems']);

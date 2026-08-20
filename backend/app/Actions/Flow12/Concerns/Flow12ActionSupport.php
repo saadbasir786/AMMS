@@ -84,6 +84,43 @@ trait Flow12ActionSupport
         $extension->save();
     }
 
+    /**
+     * Resolve pending extension requests when a terminal completion wins.
+     * Must be called inside the caller's transaction after the Action Item row is locked.
+     */
+    protected function withdrawPendingExtensions(MeetingActionItem $item, User $actor): int
+    {
+        $reason = 'ACTION_ITEM_COMPLETED_BEFORE_EXTENSION_REVIEW';
+        $extensions = MeetingActionItemExtensionRequest::query()
+            ->where('action_item_id', $item->id)
+            ->where('status', MeetingActionItemExtensionRequest::PENDING)
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($extensions as $extension) {
+            $extension->update([
+                'status' => MeetingActionItemExtensionRequest::WITHDRAWN,
+                'pending_marker' => null,
+                'reviewed_by_user_id' => $actor->id,
+                'reviewed_at' => now(),
+                'review_reason' => $reason,
+            ]);
+            $this->auditItem($item, $actor, 'ACTION_ITEM_EXTENSION_WITHDRAWN', $reason, [
+                'extension_request_id' => $extension->id,
+                'resolution' => MeetingActionItemExtensionRequest::WITHDRAWN,
+            ]);
+            $this->notifyUser(
+                $extension->requested_by_user_id,
+                'ACTION_ITEM_EXTENSION_WITHDRAWN',
+                'درخواست تمدید بسته شد',
+                'تکمیل اقدام قبل از بررسی درخواست تمدید تأیید شد؛ درخواست تمدید بسته شد.',
+                ['action_item_id' => $item->id, 'extension_request_id' => $extension->id, 'reason' => $reason],
+            );
+        }
+
+        return $extensions->count();
+    }
+
     protected function notifyUser(?int $userId, string $type, string $title, string $message, array $data = []): void
     {
         if (!$userId) return;

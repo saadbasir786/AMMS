@@ -1,16 +1,16 @@
 {
     "fixture": {
-        "tag": "F12-HTTP-BPFENQNF",
-        "meeting_id": 50,
-        "meeting_number": "F12-HTTP-BPFENQNF-MEETING",
-        "meeting_request_id": 53,
-        "decision_id": 38
+        "tag": "F12-HTTP-WFRRMB5O",
+        "meeting_id": 53,
+        "meeting_number": "F12-HTTP-WFRRMB5O-MEETING",
+        "meeting_request_id": 56,
+        "decision_id": 42
     },
     "before_source_snapshot": {
         "request_status": "CONVERTED_TO_MEETING",
         "meeting_status": "COMPLETED",
         "minutes_status": "FINALIZED",
-        "meeting_minute_version_id": 30,
+        "meeting_minute_version_id": 33,
         "decision_text": "اقدام آزمایشی اجرا گردد.",
         "decision_target_date": "2026-08-19",
         "decision_responsible_unit_id": 1,
@@ -20,17 +20,30 @@
         "request_status": "CONVERTED_TO_MEETING",
         "meeting_status": "COMPLETED",
         "minutes_status": "FINALIZED",
-        "meeting_minute_version_id": 30,
+        "meeting_minute_version_id": 33,
         "decision_text": "اقدام آزمایشی اجرا گردد.",
         "decision_target_date": "2026-08-19",
         "decision_responsible_unit_id": 1,
         "decision_responsible_employee_id": 1
     },
-    "meeting_id": 50,
-    "meeting_number": "F12-HTTP-BPFENQNF-MEETING",
-    "meeting_request_id": 53,
+    "meeting_id": 53,
+    "meeting_number": "F12-HTTP-WFRRMB5O-MEETING",
+    "meeting_request_id": 56,
     "request_status": "CONVERTED_TO_MEETING",
-    "final_minutes_version_id": 30,
+    "mariadb_race_group_count": 11,
+    "mariadb_sequence_created_action_item_ids": [
+        33,
+        32
+    ],
+    "mariadb_sequence_created_numbers": [
+        3,
+        2
+    ],
+    "mariadb_sequence_created_action_numbers": [
+        "RACE-DEC-001-A03",
+        "RACE-DEC-001-A02"
+    ],
+    "final_minutes_version_id": 33,
     "meeting_status": "COMPLETED",
     "minutes_status": "FINALIZED",
     "decision_count": 2,
@@ -63,6 +76,8 @@
     "duplicate_action_item_sequence_count": 0,
     "duplicate_completion_count": 0,
     "pending_extension_duplicate_count": 0,
+    "completed_items_with_pending_extensions": 0,
+    "pending_extensions_on_terminal_items": 0,
     "request_meeting_duplicate_count": 0,
     "assignment_history_count": 2,
     "progress_update_count": 5,
@@ -77,6 +92,10 @@
     "documentary_responsibility_mutation_count": 0,
     "documentary_target_date_mutation_count": 0,
     "audit_attachment_bytes_count": 0,
+    "extension_vs_completion_ordering_a": "PASS",
+    "extension_vs_completion_ordering_b": "PASS",
+    "submission_vs_reassignment_ordering_a": "PASS",
+    "submission_vs_reassignment_ordering_b": "PASS",
     "privacy": {
         "biometric_sensitive_fields_in_flow12": 0,
         "public_evidence_urls": 0,
