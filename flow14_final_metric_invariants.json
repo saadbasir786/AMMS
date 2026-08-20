@@ -136,6 +136,13 @@
         "system_admin_business_denied": true,
         "sensitive_fields_redacted": true
     },
+    "cross_artifact_consistency": {
+        "negative_matrix_original_ids_preserved": true,
+        "canonical_rationale_consistent": true,
+        "final_invariants_alias_consistent": true,
+        "verification_report_consistent": true,
+        "stale_artifact_count": 0
+    },
     "mariadb_invariants": {
         "large_fixture": {
             "meeting_count": 137,
@@ -199,6 +206,9 @@
         "biometric_material_in_business_analytics": 0
     },
     "evidence_files": [
+        "FLOW14_Negative_Matrix.md",
+        "FLOW14_VERIFICATION.md",
+        "FLOW-14_Verification_Report.md",
         "flow14_canonical_fixture.json",
         "flow14_exact_metric_gate.json",
         "flow14_exact_http_metric_gate.json",
