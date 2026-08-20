@@ -1,0 +1,41 @@
+{
+    "probe": "FLOW-12 MariaDB action-level race probe",
+    "fixture_tag": "F12-RACE-YYGLNM8",
+    "concurrent_followup_initialization": [
+        {
+            "ok": true,
+            "result": "FOLLOWUP_INITIALIZED"
+        },
+        {
+            "ok": true,
+            "result": "FOLLOWUP_INITIALIZED"
+        }
+    ],
+    "followup_root_rows": 1,
+    "concurrent_extension_requests": [
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_EXTENSION_ALREADY_PENDING"
+        },
+        {
+            "ok": true,
+            "result": "EXTENSION_REQUESTED"
+        }
+    ],
+    "pending_extension_rows": 1,
+    "concurrent_completion_verification": [
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_COMPLETED"
+        },
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_NOT_PENDING_VERIFICATION"
+        }
+    ],
+    "completed_action_item_rows": 1,
+    "completed_audit_rows": 1,
+    "pass": true
+}

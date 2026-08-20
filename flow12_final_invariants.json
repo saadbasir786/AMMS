@@ -1,0 +1,53 @@
+{
+    "fixture": {
+        "tag": "F12-HTTP-NI6ICB60",
+        "meeting_id": 25,
+        "decision_id": 5
+    },
+    "meeting": {
+        "status": "COMPLETED",
+        "meeting_number": "F12-HTTP-NI6ICB60-MEETING"
+    },
+    "minutes": {
+        "status": "FINALIZED",
+        "current_version_id": 5,
+        "version_number": 1
+    },
+    "immutable_source": {
+        "decision_number": "HTTP-DEC-001",
+        "decision_text": "اقدام آزمایشی اجرا گردد.",
+        "responsible_unit_id": 1,
+        "responsible_employee_id": 1,
+        "target_date": "2026-08-27"
+    },
+    "followup": {
+        "root_count": 1,
+        "statuses": [
+            "CLOSED"
+        ],
+        "action_item_count": 1
+    },
+    "action_items": {
+        "status_counts": {
+            "COMPLETED": 1
+        },
+        "progress_100_count": 1,
+        "overdue_count": 0,
+        "update_count": 5
+    },
+    "extensions": {
+        "total_count": 1,
+        "approved_count": 1,
+        "pending_count": 0
+    },
+    "audit": {
+        "followup_and_item_events": 11,
+        "completed_event_count": 1
+    },
+    "privacy": {
+        "biometric_sensitive_fields_in_flow12": 0,
+        "public_evidence_urls": 0,
+        "raw_tokens_or_passwords": 0
+    },
+    "pass": true
+}
