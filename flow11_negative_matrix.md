@@ -1,48 +1,56 @@
-# FLOW-11 Negative Matrix and Evidence Log
+# FLOW-11 Final Strict-Closure Negative Matrix
 
 **Status:** Verification complete — pending explicit user approval
-**Evidence basis:** final Feature regression, final frontend build, real HTTP manual gate, Action-level MariaDB race probe, and canonical invariant artifact.
+**Evidence basis:** independent per-flow Feature suite, strict real-HTTP manual transcript, visual PDF inspection, MariaDB Action-level race probe, rich canonical invariant artifact, final regression, and frontend build.
 
-| ID | Negative or boundary scenario | Expected behavior | Evidence | Status |
+| ID | Boundary or negative scenario | Expected result | Evidence | Status |
 |---|---|---|---|---|
-| A | Unauthorized user starts execution | Policy and governance reject the request; Meeting remains `SCHEDULED` | `Flow11ExecutionTest`, full regression | **PASS** |
-| B | System administrator starts or ends an ordinary Meeting without execution ownership | Permission alone is insufficient; organizational governance rejects the action | `Flow11ExecutionTest` | **PASS** |
-| C | Two workers start one Meeting | One execution session is created; loser receives `MEETING_EXECUTION_ALREADY_STARTED` | `flow11_action_race_probe.json` | **PASS** |
-| D | Two workers end one Meeting | One session becomes `ENDED`; loser receives `MEETING_EXECUTION_ALREADY_ENDED` | `flow11_action_race_probe.json` | **PASS** |
-| E | Meeting starts without current schedule version | Start is rejected by `MEETING_SCHEDULE_VERSION_REQUIRED` | `Flow11ExecutionTest` and Action guards | **PASS** |
-| F | Meeting starts without current participant version | Start is rejected by `MEETING_PARTICIPANT_VERSION_REQUIRED` | `Flow11ExecutionTest` and Action guards | **PASS** |
-| G | FLOW-07 schedule mutation after execution start | Existing post-start mutation guard rejects the change | `Flow11ExecutionTest`, frozen FLOW-07 regression | **PASS** |
-| H | FLOW-08 participant mutation after execution start | Existing participant validator rejects the change with started-meeting boundary | `Flow11ExecutionTest`, frozen FLOW-08 regression | **PASS** |
-| I | Attendance after execution end | No new attendance row is created; canonical `MEETING_ATTENDANCE_CLOSED` is returned | `Flow11ExecutionTest`, reverse-order MariaDB probe, full regression | **PASS** |
-| J | Attendance before execution end followed by end | Existing attendance remains and Meeting ends normally | `flow11_action_race_probe.json` attendance-first scenario | **PASS** |
-| K | Concurrent Minutes-root creation | One root exists for the Meeting; the unique loser resolves to the existing root | `flow11_action_race_probe.json` | **PASS** |
-| L | Minutes draft creation before execution | Draft creation is rejected as unavailable | `Flow11MinutesTest` | **PASS** |
-| M | Minutes submission while Meeting is `IN_PROGRESS` | Submission is rejected with `MINUTES_MEETING_NOT_HELD` | `Flow11MinutesTest`, manual HTTP gate | **PASS** |
-| N | Concurrent submission of one draft | One immutable version is submitted; the other worker receives a stale-version rejection | `flow11_action_race_probe.json` | **PASS** |
-| O | Update of submitted version without correction state | Historical submitted version is not modified; update is rejected unless root is `RETURNED_FOR_CORRECTION` | `Flow11MinutesReviewTest` and Action guard | **PASS** |
-| P | Correction request without reason | Validation/domain boundary rejects the request | `Flow11MinutesReviewTest`, manual reason field | **PASS** |
-| Q | Correction and resubmission | Correction changes root to `RETURNED_FOR_CORRECTION`; resubmission creates version 2 and preserves version 1 | `Flow11MinutesReviewTest` | **PASS** |
-| R | Wrong Directorate acknowledges | Scope and resource policy reject acknowledgement | `Flow11MinutesReviewTest`, governance resolver | **PASS** |
-| S | Concurrent Directorate acknowledgement | Exactly one version-bound review row becomes `ACKNOWLEDGED` | `flow11_action_race_probe.json` | **PASS** |
-| T | Authority Office attempts High Authority approval | Office actor is rejected; no approval is recorded | `Flow11HighAuthorityMinutesTest` | **PASS** |
-| U | Non-holder attempts High Authority approval | Exact `authority_employee_id` binding rejects the request | `MinutesGovernanceResolver`, High Authority test | **PASS** |
-| V | High Authority approval before all Directorate acknowledgements | Approval is blocked until all required unit reviews are acknowledged | `ApproveHighAuthorityMeetingMinutes` guard | **PASS** |
-| W | Finalization before review completion | Finalization is rejected; Meeting remains `HELD` | `FinalizeMeetingMinutes` guard | **PASS** |
-| X | Concurrent finalization | One finalization transition occurs; duplicate receives `MINUTES_ALREADY_FINALIZED` | `flow11_action_race_probe.json` | **PASS** |
-| Y | Repeated official PDF generation | One document identity remains; checksum is identical | `flow11_action_race_probe.json`, PDF Feature test | **PASS** |
-| Z | PDF before finalization | Document endpoint is unavailable until Minutes is finalized | `GenerateFinalMeetingMinutesDocument` guard | **PASS** |
-| AA | Biometric or terminal fields in Minutes API/PDF | No template bytes, raw frames, candidate sets, matcher fields, or terminal secrets are exposed | `Flow11` resources, PDF test, canonical privacy artifact | **PASS** |
-| AB | Post-finalization Minutes mutation | Finalized root and historical versions remain immutable | `Flow11MinutesReviewTest`, finalization state guards | **PASS** |
-| AC | Post-finalization Meeting execution mutation | Meeting remains `COMPLETED`; execution cannot restart or end again | `FinalizeMeetingMinutes`, execution guards | **PASS** |
-| AD | Stale client timestamps | Server timestamps are used for execution and reviews; client cannot control lifecycle time | Action implementations and Feature regression | **PASS** |
-| AE | One official document per Minutes root | Unique root and version identities prevent duplicates | Canonical MariaDB invariants | **PASS** |
-| AF | Active session leakage after verification | Official cleanup leaves zero active execution, terminal, and biometric-enrollment sessions | `flow11_final_mariadb_invariants.json` | **PASS** |
-| AG | Full frozen-flow regression | FLOW-01 through FLOW-10A behavior remains green | `flow11_definitive_feature_regression.log` | **PASS** |
-| AH | RTL production UI build | FLOW-11 execution and Minutes workspaces compile with the existing RTL shell | `flow11_definitive_frontend_build.log` | **PASS** |
-| AI | Real software workflow | HTTP login, execution, Minutes, review, finalization, duplicate protection, and PDF all work outside Feature Tests | `flow11_manual_api_gate.json`: 14/14 | **PASS** |
+| A | Unauthorized execution start | Policy/governance rejection; Meeting remains `SCHEDULED` | `Flow11ExecutionTest` | **PASS** |
+| B | Concurrent execution start | One session; loser `MEETING_EXECUTION_ALREADY_STARTED` | `flow11_action_race_probe.json` | **PASS** |
+| C | Concurrent execution end | One ended session; loser `MEETING_EXECUTION_ALREADY_ENDED` | MariaDB Action race | **PASS** |
+| D | Schedule change after execution start | FLOW-07 mutation guard rejects it | FLOW-07 regression and execution guard | **PASS** |
+| E | Participant change after execution start | FLOW-08 mutation guard rejects it | FLOW-08 regression and execution guard | **PASS** |
+| F | Attendance before end followed by end | Attendance row is preserved; Meeting reaches `HELD` | MariaDB attendance-first race | **PASS** |
+| G | Fingerprint attendance after `HELD` | No new row; `MEETING_ATTENDANCE_CLOSED` | Strict manual HTTP gate | **PASS** |
+| H | Concurrent Minutes-root creation | Exactly one root for the Meeting | MariaDB Action race | **PASS** |
+| I | Minutes draft before execution | `MINUTES_NOT_AVAILABLE` | `Flow11MinutesTest` | **PASS** |
+| J | Submit while `IN_PROGRESS` | `MINUTES_MEETING_NOT_HELD` | Feature and manual HTTP gates | **PASS** |
+| K | Concurrent Minutes submission | One immutable submitted version; stale loser | MariaDB Action race | **PASS** |
+| L | Update submitted version without correction | Historical version cannot be changed | `Flow11MinutesReviewTest` | **PASS** |
+| M | Correction request without reason | Validation/domain rejection | `Flow11MinutesReviewTest` | **PASS** |
+| N | FLOW-03 cross-unit acknowledgement | Finance Director cannot acknowledge HR unit | Independent FLOW-03 Feature and manual gate | **PASS** |
+| O | FLOW-03 correction/resubmission | V2 is created; V1 remains historical; V1 ACKs do not transfer | Independent FLOW-03 Feature and manual gate | **PASS** |
+| P | FLOW-03 fresh review | A/B/C must acknowledge V2 again | Independent FLOW-03 Feature and manual gate | **PASS** |
+| Q | FLOW-02 exact review count | Exactly two formal Directorate ACKs are recorded | Independent FLOW-02 Feature | **PASS** |
+| R | FLOW-04 requester rule | Requester acknowledgement plus High Authority approval required | Independent FLOW-04 Feature | **PASS** |
+| S | FLOW-05 all formal Directorates | TECH, FIN, and HR must acknowledge | Independent FLOW-05 Feature and manual gate | **PASS** |
+| T | FLOW-05 Authority Office versus High Authority | Authority Office denied; exact High Authority accepted | Independent FLOW-05 Feature and manual gate | **PASS** |
+| U | FLOW-06 no requester | `requesting_unit_id = null` and no requester ACK required | Independent FLOW-06 Feature and manual gate | **PASS** |
+| V | FLOW-06 participating Directorates | All participating Directorates acknowledge before authority approval | Independent FLOW-06 Feature and manual gate | **PASS** |
+| W | Concurrent Directorate acknowledgement | One version-bound acknowledgement state | MariaDB Action race | **PASS** |
+| X | Wrong High Authority actor | Exact `authority_employee_id` binding rejects approval | High Authority Feature and manual gate | **PASS** |
+| Y | Finalization before review completion | Finalization rejected; Meeting stays `HELD` | Finalization Action guard | **PASS** |
+| Z | Concurrent finalization | One finalization; loser `MINUTES_ALREADY_FINALIZED` | MariaDB Action race | **PASS** |
+| AA | Repeated PDF generation | One official document identity; checksum unchanged | MariaDB Action race and PDF Feature | **PASS** |
+| AB | PDF before finalization | Official document unavailable before `FINALIZED` | Document Action guard | **PASS** |
+| AC | Visual RTL PDF rendering | Persian/Dari text, RTL tables, required content readable and unclipped | `flow11_pdf_visual_inspection.md` plus rendered PDF image | **PASS** |
+| AD | Biometric fields in Minutes/PDF | No template bytes, raw frames, candidate fields, matcher fields, or terminal secrets | Privacy Feature and visual/text inspection | **PASS** |
+| AE | Post-finalization mutation | Minutes and Meeting lifecycle remain immutable | Finalization guards and regression | **PASS** |
+| AF | Server-authoritative timestamps | Client cannot control start/end/review time | Action implementations and tests | **PASS** |
+| AG | Duplicate decision sequence | Zero duplicate decision sequence numbers | Rich canonical invariant artifact | **PASS** |
+| AH | Attendance after end in canonical fixture | `attendance_after_end_count = 0` | Rich canonical invariant artifact | **PASS** |
+| AI | Duplicate execution sessions | `duplicate_execution_session_count = 0` | Rich canonical invariant artifact | **PASS** |
+| AJ | Duplicate Minutes roots | `duplicate_minutes_root_count = 0` | Rich canonical invariant artifact | **PASS** |
+| AK | Duplicate finalization | `duplicate_finalization_count = 0` | Rich canonical invariant artifact | **PASS** |
+| AL | Request-to-Meeting duplicates | `request_meeting_duplicate_count = 0` | Rich canonical invariant artifact | **PASS** |
+| AM | Sensitive fields in Minutes | `biometric_sensitive_fields_in_minutes = 0` and plaintext column list empty | Rich canonical invariant artifact | **PASS** |
+| AN | Active session leakage | Active execution, terminal, and enrollment session counts are zero after official cleanup | Rich canonical invariant artifact | **PASS** |
+| AO | Full frozen-flow regression | FLOW-01 through FLOW-10A remain green | Final regression: 325 tests, 1,255 assertions | **PASS** |
+| AP | RTL production build | FLOW-11 frontend compiles in existing shell | Final build: 1,863 modules | **PASS** |
+| AQ | Manual FLOW-03/FLOW-05/FLOW-06/attendance gate | All real HTTP checks pass outside Feature Tests | Strict transcript: 55/55 | **PASS** |
 
 ## Summary
 
-All FLOW-11 negative and boundary scenarios in this matrix are **PASS**. The authoritative regression contains **325 passing tests and 1,255 assertions**. The frontend production build transforms **1,863 modules** successfully. The MariaDB Action-level probe passes eight FLOW-11 race groups, and the real HTTP manual gate passes **14 of 14** checks.
+All newly requested strict-review gates are **PASS**. The independent per-flow suite passes **6 tests and 64 assertions**. The final full regression passes **331 tests and 1,319 assertions**. The strict manual transcript passes **55 of 55** checks. The visual PDF gate passes for Persian/Dari RTL, required content, and biometric-field absence. The rich canonical artifact contains the completed-fixture request, flow, decision, review, acknowledgement, High Authority, attendance-after-end, duplicate, and privacy invariants.
 
-The matrix does not mark FLOW-11 as approved or frozen. It records technical verification only; formal approval remains pending explicit user decision. FLOW-10B physical DERMALOG integration remains deferred, and no later action-item workflow has been started.
+This matrix records technical verification only. FLOW-11 remains **NOT APPROVED / NOT FROZEN** pending explicit user approval. FLOW-10B physical DERMALOG integration remains deferred, and FLOW-12 has not started.

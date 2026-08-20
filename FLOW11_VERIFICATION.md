@@ -7,124 +7,151 @@
 
 > FLOW-11 is implemented additively on the frozen FLOW-01 through FLOW-10A architecture. It has not been marked `APPROVED / FROZEN` automatically. FLOW-10B remains deferred, and no later action-item workflow has been started.
 
-## 1. Implemented scope
+## 1. Scope delivered
 
-FLOW-11 introduces a formal execution session for each Meeting. The server captures the immutable schedule and participant-version baseline when a meeting starts, records server-authoritative start and end timestamps, and enforces the lifecycle `SCHEDULED → IN_PROGRESS → HELD → COMPLETED`. Meeting status is never inferred from a client timestamp.
+FLOW-11 adds a formal Meeting execution session with the lifecycle `SCHEDULED → IN_PROGRESS → HELD → COMPLETED`. The server captures immutable schedule and participant-version baselines at start, uses server-authoritative timestamps, and enforces one execution session per Meeting.
 
-The Minutes subsystem introduces one root per Meeting and immutable, version-bound Minutes records. Each submitted version binds to the execution session, schedule version, and participant version. The version contains a general summary, structured discussion items, documentary decisions, privacy-safe attendance status, and version-specific review rows. Correction creates a new version and preserves the submitted historical version.
+The Minutes subsystem adds one root per Meeting and immutable version-bound Minutes. A submitted version binds to the execution session, schedule version, and participant version. It stores official summary, discussion items, documentary decisions, privacy-safe attendance status, and version-specific review rows. Correction preserves the historical submitted version and creates a new version whose acknowledgements must be collected again.
 
-The review workflow supports Directorate acknowledgement, mandatory correction reasons, exact High Authority approval by the employee bound to the Meeting authority context, and finalization only after all required review gates are complete. Finalization atomically changes the Meeting from `HELD` to `COMPLETED`, writes immutable audit events, and prevents further attendance or Minutes mutation.
+The review workflow supports exact unit-scoped acknowledgement, mandatory correction reasons, exact High Authority approval by the employee in `MeetingAuthorityContext`, and finalization only after every required review gate is complete. Finalization atomically completes the Meeting and creates one official checksum-bound PDF identity.
 
-The official PDF is generated with Dompdf from the finalized immutable version. The document contains only official meeting data, attendance status, discussion content, decisions, review-finalization metadata, and a checksum reference. Biometric templates, raw sensor frames, candidate-set data, matcher implementation fields, and terminal secrets are not included.
+The final PDF is generated with Dompdf as a Persian/Dari RTL document containing only official meeting content, attendance status, discussion, decisions, version, and checksum. It does not contain biometric templates, raw sensor frames, candidate sets, matcher fields, or terminal secrets.
 
-## 2. Additive schema and domain components
+## 2. Independent per-flow governance evidence
 
-| Area | Delivered components | Verification boundary |
+The strict reviewer required independent FLOW-01 through FLOW-06 evidence rather than relying only on the frozen-flow regression. `Flow11PerFlowGovernanceTest` now contains six independent scenarios and all pass.
+
+| Flow | Independent evidence | Result |
 |---|---|---|
-| Execution | `meeting_execution_sessions`, `MeetingExecutionSession`, `StartMeetingExecution`, `EndMeetingExecution` | One execution session per Meeting; immutable schedule and participant baselines; exactly-once start/end behavior |
-| Governance | `MeetingExecutionGovernanceResolver`, MeetingPolicy abilities, FLOW-11 permissions | Coordinator ownership for ordinary flows; Executive Secretary ownership for authority-controlled flows; active-user and scope checks |
-| Attendance boundary | Attendance Actions updated for `HELD` and `COMPLETED` | Existing attendance remains immutable; new attendance is rejected after execution end |
-| Minutes root/version | `meeting_minutes`, `meeting_minute_versions` | One root per Meeting; immutable submitted versions; version number increments after correction |
-| Minutes content | Discussion items, structured decisions, attendance snapshots | No action-progress/status fields; attendance stores only identity/unit/role/status |
-| Reviews | Unit review, correction request, High Authority approval | Version-specific review history; required reason for correction; exact authority employee binding |
-| Final document | `meeting_minute_documents`, Dompdf builder, final PDF endpoint | One official document identity per finalized Minutes root; checksum-bound bytes; no pre-finalization access |
-| RTL UI | `frontend/src/flow11.tsx`, Meeting Detail navigation and status labels | Persian/Dari RTL execution and Minutes workspaces with real API actions |
+| FLOW-01 | One formal Directorate acknowledgement is accepted | **PASS** |
+| FLOW-02 | Exactly two formal Directorate acknowledgements are required and produce `READY_TO_FINALIZE` | **PASS** |
+| FLOW-03 | Cross-unit acknowledgement is denied; correction creates V2; old acknowledgements do not transfer; all three units re-acknowledge V2 | **PASS** |
+| FLOW-04 | Requester acknowledgement plus exact High Authority approval | **PASS** |
+| FLOW-05 | All formal Directorates acknowledge; Authority Office is denied; exact High Authority approves | **PASS** |
+| FLOW-06 | `requesting_unit_id = null`; all participating Directorates acknowledge; Authority Office is denied; High Authority approves | **PASS** |
 
-All FLOW-11 foreign keys use explicit short MariaDB-safe names. No existing FLOW-01 through FLOW-10A migration is reset or redesigned.
+The independent suite passes **6 tests and 64 assertions**. The dedicated High Authority scenario also passes, including Executive Secretary finalization. The complete final Feature suite therefore passes **331 tests and 1,319 assertions**.
 
-## 3. API and frontend surface
+## 3. API and RTL frontend
 
-The authenticated API adds the following routes without changing frozen routes:
+The authenticated API adds execution, Minutes workspace, draft/version, review, High Authority, finalization, and PDF routes without altering frozen FLOW-01 through FLOW-10A endpoints. The RTL frontend adds real execution and Minutes workspaces from the existing Meeting Detail page, including status, baseline, draft, review matrix, version history, finalization, and PDF access.
 
-| Route | Function |
+| API/UI area | Result |
 |---|---|
-| `GET /api/meetings/{meeting}/execution` | Current execution state and immutable baseline references |
-| `POST /api/meetings/{meeting}/execution/start` | Start execution with optional notes and server timestamp |
-| `POST /api/meetings/{meeting}/execution/end` | End execution with optional notes and server timestamp |
-| `GET /api/meetings/{meeting}/minutes` | Minutes workspace and current immutable version |
-| `POST /api/meetings/{meeting}/minutes/draft` | Create exactly one draft root |
-| `PUT /api/meetings/{meeting}/minutes/draft` | Save draft or create a new version after correction |
-| `POST /api/meetings/{meeting}/minutes/submit` | Submit the current version and create review rows |
-| `POST /api/meetings/{meeting}/minutes/reviews/correction` | Request correction with mandatory reason |
-| `POST /api/meetings/{meeting}/minutes/reviews/{unit}/acknowledge` | Directorate acknowledgement for a specific unit |
-| `POST /api/meetings/{meeting}/minutes/authority-approve` | Exact High Authority approval |
-| `POST /api/meetings/{meeting}/minutes/finalize` | Finalize Minutes and complete the Meeting |
-| `GET /api/meetings/{meeting}/minutes/final.pdf` | Official finalized PDF with checksum header |
+| Execution state/start/end routes | **PASS** |
+| Minutes workspace/draft/update/submit routes | **PASS** |
+| Correction and version-specific review routes | **PASS** |
+| Unit acknowledgement and High Authority approval | **PASS** |
+| Finalization and official PDF route | **PASS** |
+| Persian/Dari RTL frontend build | **PASS** |
 
-The RTL frontend exposes `اجرای جلسه` and `صورت‌جلسه` from the existing Meeting Detail page. The execution workspace shows the formal schedule and participant baselines, real start/end timestamps, attendance boundary, and execution status. The Minutes workspace supports draft editing, discussion items, decisions, review matrix, correction, version history, finalization, and PDF access.
+## 4. Final automated verification
 
-## 4. Automated verification
-
-The authoritative final regression was executed after the final backend and frontend changes:
+The authoritative final regression was run after the strict-closure changes:
 
 | Gate | Result |
 |---|---:|
-| Full Laravel Feature regression, FLOW-01 through FLOW-11 | **325 tests passed** |
-| Assertions | **1,255 assertions** |
+| Full Laravel Feature regression, FLOW-01 through FLOW-11 | **331 tests passed** |
+| Assertions | **1,319 assertions** |
 | Frontend TypeScript/Vite production build | **PASS** |
 | Frontend modules transformed | **1,863** |
-| Focused FLOW-11 Minutes tests | **5 tests passed, 71 assertions** |
-| High Authority Minutes scenario | **1 test passed, 13 assertions** |
-| Real HTTP manual gate | **14/14 checks passed** |
-| Official PDF response | **HTTP 200, `%PDF` prefix, 23,781 bytes** |
+| Independent FLOW-01 through FLOW-06 governance suite | **6 tests, 64 assertions** |
+| High Authority Minutes scenario | **1 test, 13 assertions** |
+| Frozen FLOW-10A manual foundation | **PASS** |
 
-The full Feature run includes the complete FLOW-01 through FLOW-10A regression suite. The final logs are preserved in `flow11_definitive_feature_regression.log` and `flow11_definitive_frontend_build.log`.
+The final logs are stored in `flow11_final_definitive_feature_regression.log` and `flow11_final_definitive_frontend_build.log`.
 
-## 5. Action-level MariaDB race verification
+## 5. Real manual strict gate
 
-The dedicated `amms_concurrency_test` MariaDB database was rebuilt from the complete migration set and seeded with the canonical AMMS roles, accounts, organizational scopes, and authority context. The probe uses separate forked Laravel processes and actual domain Actions rather than direct test-table simulations.
+The strict manual gate ran against a dedicated Laravel HTTP server backed by a copied SQLite database. It used real login sessions and real API calls, not Feature Test helpers.
+
+The manual FLOW-03 path executed V1 submission, Directorate A and B acknowledgement, Directorate C correction, V2 update and resubmission, verification that V1 acknowledgements did not transfer to V2, and fresh A/B/C acknowledgements. The manual FLOW-05 and FLOW-06 paths executed all formal Directorate acknowledgements, denied Authority Office approval, exact High Authority approval, and Executive Secretary finalization. FLOW-06 explicitly used `requesting_unit_id = null`.
+
+The same real HTTP transcript performed two-finger enrollment, terminal activation, a fingerprint attendance submission while the Meeting was `IN_PROGRESS`, execution end to `HELD`, and a second real fingerprint submission. The second submission was rejected by the API with the exact code `MEETING_ATTENDANCE_CLOSED`.
+
+| Manual gate | Result |
+|---|---:|
+| Strict real HTTP checks | **55/55 passed** |
+| FLOW-03 V1/V2 correction and fresh acknowledgements | **PASS** |
+| FLOW-05 Directorate/Authority Office/High Authority/Secretary path | **PASS** |
+| FLOW-06 no-requester path | **PASS** |
+| Fingerprint attendance before end | **PASS** |
+| Fingerprint attendance after `HELD` | **PASS — `MEETING_ATTENDANCE_CLOSED`** |
+
+Evidence is stored in `flow11_manual_strict_gate.json` and `flow11_manual_strict_gate.log`.
+
+## 6. MariaDB Action-level concurrency
+
+The dedicated `amms_concurrency_test` MariaDB database was rebuilt from the complete migration set. The probe uses separate forked Laravel processes and actual Actions.
 
 | Race group | Expected invariant | Result |
 |---|---|---|
-| Concurrent execution start | One `IN_PROGRESS` session; loser receives `MEETING_EXECUTION_ALREADY_STARTED` | **PASS** |
-| Concurrent execution end | One `ENDED` session; loser receives `MEETING_EXECUTION_ALREADY_ENDED` | **PASS** |
-| Attendance first versus execution end | Attendance commits and is preserved; end commits afterward | **PASS** |
-| Execution end first versus attendance | No post-end attendance row; `MEETING_ATTENDANCE_CLOSED` | **PASS** |
-| Concurrent Minutes-root creation | Exactly one Minutes root per Meeting | **PASS** |
-| Concurrent Minutes submission | One submitted version; one stale-version rejection | **PASS** |
-| Concurrent Directorate acknowledgement | One review row and one acknowledged state | **PASS** |
-| Concurrent Minutes finalization | One finalized Minutes root and one completed Meeting | **PASS** |
-| Repeated official document generation | One document identity and identical checksum | **PASS** |
+| Concurrent execution start | One session; loser gets `MEETING_EXECUTION_ALREADY_STARTED` | **PASS** |
+| Concurrent execution end | One ended session; loser gets `MEETING_EXECUTION_ALREADY_ENDED` | **PASS** |
+| Attendance first versus end | Attendance is preserved and end commits | **PASS** |
+| End first versus attendance | No post-end attendance row; `MEETING_ATTENDANCE_CLOSED` | **PASS** |
+| Concurrent Minutes-root creation | Exactly one root per Meeting | **PASS** |
+| Concurrent Minutes submission | One submitted version; stale loser | **PASS** |
+| Concurrent Directorate acknowledgement | One version-bound review acknowledgement | **PASS** |
+| Concurrent finalization | One finalized root and one completed Meeting | **PASS** |
+| Repeated official PDF generation | One document identity and identical checksum | **PASS** |
 
-The Action-level output is stored in `flow11_action_race_probe.json`. The canonical cleanup and invariant output is stored in `flow11_final_mariadb_invariants.json`.
+The probe output is `flow11_action_race_probe.json`.
 
-## 6. Canonical MariaDB invariants
+## 7. Visual PDF gate
 
-The canonical artifact was generated after official domain cleanup through `EndMeetingExecution` and `CloseTerminalMeetingSession`. It covers eight isolated FLOW-11 race fixtures.
+The finalized FLOW-05 PDF was captured through the real HTTP endpoint and rendered as an image for visual inspection. It is a one-page A4 PDF produced by Dompdf 3.1.6 + CPDF.
 
-| Invariant | Observed result |
+| Visual/content requirement | Result |
+|---|---|
+| Persian/Dari title, labels, and RTL layout | **PASS** |
+| Meeting number, subject, schedule, location | **PASS** |
+| Actual server start/end timestamps | **PASS** |
+| Chairperson and formal participant units | **PASS** |
+| Present/Absent attendance status | **PASS** |
+| Agenda and discussion summary | **PASS** |
+| Decisions and `DEC-001` | **PASS** |
+| Version number | **PASS** |
+| SHA-256 checksum reference | **PASS** |
+| Biometric or terminal implementation fields | **ABSENT / PASS** |
+
+The captured PDF is `flow11_manual_final_minutes.pdf`, its extracted text is `flow11_manual_final_minutes.txt`, and the visual inspection record is `flow11_pdf_visual_inspection.md`. The response was HTTP 200, `application/pdf`, 24,038 bytes, and `%PDF` prefixed.
+
+## 8. Rich canonical MariaDB invariants
+
+The canonical artifact is generated after official domain cleanup through `EndMeetingExecution` and `CloseTerminalMeetingSession`. It reports eight race fixtures plus one explicit completed High Authority fixture.
+
+The completed fixture records `meeting_request_id`, `request_status = CONVERTED_TO_MEETING`, `flow_type`, `decision_count`, `duplicate_decision_sequence_count`, `review_requirement_count`, `acknowledgement_count`, `high_authority_approval_count`, `attendance_after_end_count`, `duplicate_execution_session_count`, `duplicate_minutes_root_count`, `duplicate_finalization_count`, `request_meeting_duplicate_count`, and `biometric_sensitive_fields_in_minutes`.
+
+| Canonical/global invariant | Result |
 |---|---:|
-| Active execution sessions | `0` |
-| Active terminal sessions | `0` |
-| Active biometric enrollment sessions | `0` |
-| Execution sessions remaining | `8`, all `ENDED` |
-| Minutes roots | `4`, with no duplicate Meeting roots |
-| Official final document rows | `1` |
-| Duplicate official documents | `0` |
-| Attendance rows | `1` |
-| Attendance methods | `FINGERPRINT: 1` |
-| Attendance employee IDs | `[1]` |
-| Meeting status counts | `COMPLETED: 1`, `HELD: 7` |
-| Plaintext probe columns in FLOW-11 tables | `[]` |
+| Canonical completed fixture | **1** |
+| Canonical completed Meeting status | **COMPLETED** |
+| Canonical request status | **CONVERTED_TO_MEETING** |
+| Canonical requesting unit | `null` |
+| Canonical decision count | **1** |
+| Duplicate decision sequence count | **0** |
+| Canonical review requirement count | **4** |
+| Canonical Directorate acknowledgement count | **3** |
+| Canonical High Authority approval count | **1** |
+| Official final document rows | **2**, one for each finalized Minutes root |
+| Attendance after end count | **0** |
+| Duplicate execution sessions | **0** |
+| Duplicate Minutes roots | **0** |
+| Duplicate finalization count | **0** |
+| Request-to-Meeting duplicate count | **0** |
+| Biometric-sensitive fields in Minutes | **0** |
+| Active execution sessions after cleanup | **0** |
+| Active terminal sessions after cleanup | **0** |
+| Active enrollment sessions after cleanup | **0** |
+| Plaintext sensitive probe columns | `[]` |
 
-The `HELD` fixtures are intentionally retained as review-stage evidence: one is `DRAFT`, one `UNDER_REVIEW`, and one `READY_TO_FINALIZE`. The finalized fixture is the only `COMPLETED` Meeting and has exactly one official document.
+The complete artifact is `flow11_final_mariadb_invariants.json`.
 
-## 7. Manual real-HTTP gate
+## 9. Release boundary
 
-The manual gate ran against a dedicated Laravel HTTP server backed by a copied SQLite database, not against a Feature Test harness. The transcript used real login sessions for the meeting coordinator and Directorate Director and executed the actual routes.
-
-The verified path was: read execution state, start Meeting, create Minutes draft, save summary/discussion/decision data, reject submission while the Meeting was still `IN_PROGRESS`, end the Meeting, submit the Minutes version, acknowledge the required Directorate review, finalize the Minutes and Meeting, download the official PDF, and reject duplicate finalization. All **14/14 checks passed**. The sanitized transcript is stored in `flow11_manual_api_gate.json` and summarized in `flow11_manual_api_gate.log`.
-
-## 8. Privacy and frozen-flow boundaries
-
-No FLOW-11 table contains biometric template bytes, fingerprint images, raw sensor frames, probe templates, matcher candidate sets, or terminal session secrets. Minutes attendance snapshots contain only participant identity, organizational unit, participant role, display name, and `PRESENT` or `ABSENT` status. The final PDF follows the same boundary.
-
-FLOW-07 schedule mutation and FLOW-08 participant mutation are blocked after execution starts. FLOW-10A attendance is accepted during execution and closed after `HELD` or `COMPLETED`; existing attendance history is never deleted or rewritten. FLOW-10B physical DERMALOG SVT3000 SE integration has not been attempted or claimed. FLOW-11 does not include action-item execution, follow-up automation, or any FLOW-12 scope.
-
-## 9. Approval boundary
-
-The implementation and verification gates are complete. The formal release decision remains external to this run:
+The implementation and all newly requested evidence gates are complete. The technical status is:
 
 > **FLOW-11: VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL.**
 
-No automatic `APPROVED / FROZEN` status has been applied. FLOW-01 through FLOW-10A remain frozen, FLOW-10B remains deferred pending physical device access, and no subsequent workflow has started.
+No automatic `APPROVED / FROZEN` status has been applied. FLOW-01 through FLOW-10A remain frozen, FLOW-10B physical DERMALOG SVT3000 SE integration remains deferred, and FLOW-12 Decision & Action Item Follow-up has not started.
