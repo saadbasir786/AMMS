@@ -31,7 +31,7 @@ This matrix is additive to the frozen FLOW-01 through FLOW-12 evidence. Runtime 
 | N25 | Active terminal session after postponement | Session and assignment revoked atomically | Feature | PASS |
 | N26 | Active terminal session after cancellation | Session and assignment revoked atomically | Feature | PASS |
 | N27 | Manual attendance after POSTPONED | 422 `MEETING_NOT_EXECUTABLE` | Feature / Action | PASS |
-| N28 | Fingerprint attendance after CANCELLED | 422 `MEETING_NOT_EXECUTABLE` | Static + Action boundary | PASS |
+| N28 | Fingerprint attendance after CANCELLED | Revoked terminal session fingerprint submission is denied; action boundary remains `MEETING_NOT_EXECUTABLE` for new attendance | REAL HTTP + ACTION PASS (`flow13_strict_http_gate.json`; biometric-candidate denial also proven) | PASS |
 | N29 | Invalidated attendance counted as official | Excluded by resolver; immutable raw row retained | Feature / resolver | PASS |
 | N30 | Old schedule overwritten during resumption | Old version remains immutable; new current pointer | Real HTTP / Feature | PASS |
 | N31 | Old participant version overwritten | Version history remains append-only | Static + Feature | PASS |

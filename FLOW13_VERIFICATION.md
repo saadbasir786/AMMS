@@ -70,13 +70,15 @@ The authoritative artifact `flow13_exception_race_probe_strict.json` records **t
 
 ## Canonical enriched invariants
 
-The regenerated `flow13_final_invariants.json` includes request provenance, current and historical schedule/participant pointers, applied exception counts, duplicate-case and duplicate-application counters, duplicate schedule-version-number detection, terminal and attendance safety counters, source-mutation counters, finalized-minutes and finalized-decision counters, FLOW-12 history count, lifecycle identity and immutability fields, cancellation attendance identity fields, and sensitive-field exposure counters.
+The regenerated `flow13_final_invariants.json` includes request provenance, current and historical schedule/participant pointers, applied exception counts, duplicate-case and duplicate-application counters, duplicate schedule-version-number detection, terminal and attendance safety counters, source-mutation counters, finalized-minutes and finalized-decision counters, FLOW-12 history count, lifecycle identity and immutability fields, cancellation attendance identity fields, and sensitive-field exposure counters. Its mutation semantics distinguish append-only version creation from in-place historical mutation: two new schedule versions are created, while zero historical schedule rows are mutated in place.
 
 | Invariant family | Result |
 |---|---:|
 | Request identity and originating flow type | **Present** |
 | Current and historical schedule versions | **Present; V1/V2/V3 immutable** |
-| Current and historical participant versions | **Present; append-only** |
+| Historical schedule rows mutated in place | **0** |
+| New Schedule Versions appended | **2; total version count 3; version numbers [1,2,3]** |
+| Current and historical participant versions | **Present; append-only; historical mutation count 0** |
 | Applied postponement/cancellation/reopening/resumption counts | **Present** |
 | Duplicate active case and duplicate apply counts | **0 / 0** |
 | Duplicate schedule version number count | **0** |
@@ -86,10 +88,11 @@ The regenerated `flow13_final_invariants.json` includes request provenance, curr
 | Request-to-Meeting duplicate count | **0** |
 | Terminal-secret and biometric-sensitive exposure counters | **0** |
 | MariaDB race result | **12 groups; PASS** |
+| Fingerprint and biometric-candidate denial classification | **REAL HTTP + ACTION PASS; strict artifact referenced by N28** |
 
 ## Negative matrix
 
-`flow13_negative_matrix.md` contains the complete **44-boundary** matrix. N35 now describes cancellation versus FLOW-08 participant confirmation rather than incorrectly describing resumption creation. N43 covers cancellation versus FLOW-09 terminal activation, and N44 covers all four exceptional operations against a `COMPLETED` Meeting with finalized minutes and preserved FLOW-12 history. All MariaDB rows cite the twelve-group strict race artifact and are classified **PASS**. The matrix retains explicit repository-audit boundaries confirming that FLOW-10B hardware integration remains deferred and FLOW-14 has not started.
+`flow13_negative_matrix.md` contains the complete **44-boundary** matrix. N28 now cites the real HTTP strict artifact for revoked-session fingerprint and biometric-candidate denial. N35 describes cancellation versus FLOW-08 participant confirmation rather than incorrectly describing resumption creation. N43 covers cancellation versus FLOW-09 terminal activation, and N44 covers all four exceptional operations against a `COMPLETED` Meeting with finalized minutes and preserved FLOW-12 history. All MariaDB rows cite the twelve-group strict race artifact and are classified **PASS**. The matrix retains explicit repository-audit boundaries confirming that FLOW-10B hardware integration remains deferred and FLOW-14 has not started.
 
 ## UI verification
 
