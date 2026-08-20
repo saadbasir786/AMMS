@@ -16,6 +16,8 @@ use App\Policies\MeetingDecisionFollowUpPolicy;
 use App\Policies\MeetingActionItemPolicy;
 use App\Policies\MeetingExceptionCasePolicy;
 use App\Policies\MeetingExceptionReviewPolicy;
+use App\Policies\ReportExportPolicy;
+use App\Models\ReportExport;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,5 +38,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(MeetingActionItemEvidence::class, MeetingActionItemPolicy::class);
         Gate::policy(MeetingExceptionCase::class, MeetingExceptionCasePolicy::class);
         Gate::policy(MeetingExceptionReview::class, MeetingExceptionReviewPolicy::class);
+        Gate::policy(ReportExport::class, ReportExportPolicy::class);
     }
 }

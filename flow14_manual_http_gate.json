@@ -1,0 +1,201 @@
+{
+  "pass": true,
+  "step_count": 30,
+  "results": [
+    {
+      "name": "executive dashboard returns 200",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "dashboard has reporting metadata",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "dashboard cards are server-defined",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "dashboard payload excludes sensitive fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "SYSTEM_ADMIN without business permission denied executive dashboard",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "Directorate dashboard allowed for scoped Director",
+      "pass": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "Personal dashboard allowed for employee",
+      "pass": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "Technical dashboard allowed for technical admin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "/reporting/meetings returns scoped response",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "has_pagination_or_error": true
+      }
+    },
+    {
+      "name": "/reporting/meeting-requests returns scoped response",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "has_pagination_or_error": true
+      }
+    },
+    {
+      "name": "/reporting/decisions returns scoped response",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "has_pagination_or_error": true
+      }
+    },
+    {
+      "name": "/reporting/action-items returns scoped response",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "has_pagination_or_error": true
+      }
+    },
+    {
+      "name": "/reporting/exceptions returns scoped response",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "has_pagination_or_error": true
+      }
+    },
+    {
+      "name": "arbitrary SQL sort denied",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "overlong search denied",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "reversed date range denied",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "PDF export request accepted",
+      "pass": true,
+      "detail": {
+        "status": 201,
+        "uuid_present": true
+      }
+    },
+    {
+      "name": "PDF export completed",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "file_name": "AMMS-MEETING_REGISTER-20260820-101813.pdf",
+        "checksum": "9c3785e586e5b105bdb660281be572217779b9af1de56068da79387e2735099f"
+      }
+    },
+    {
+      "name": "PDF metadata has no sensitive/internal fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "PDF authorized private download",
+      "pass": true,
+      "detail": {
+        "content_type": "application/pdf",
+        "size": 41026
+      }
+    },
+    {
+      "name": "PDF can be parsed",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "PDF unauthorized owner download denied",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "XLSX export request accepted",
+      "pass": true,
+      "detail": {
+        "status": 201,
+        "uuid_present": true
+      }
+    },
+    {
+      "name": "XLSX export completed",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "file_name": "AMMS-MEETING_REGISTER-20260820-101814.xlsx",
+        "checksum": "d77d741a44ce60fb02649eb0eebe114d0d89a50aa8ddf221f35b67b1a9c5c966"
+      }
+    },
+    {
+      "name": "XLSX metadata has no sensitive/internal fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "XLSX authorized private download",
+      "pass": true,
+      "detail": {
+        "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "size": 2386
+      }
+    },
+    {
+      "name": "XLSX is a valid package",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "XLSX contains no formula tags",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "XLSX unauthorized owner download denied",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "export UUIDs are distinct",
+      "pass": true,
+      "detail": null
+    }
+  ]
+}
