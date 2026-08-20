@@ -1,0 +1,88 @@
+{
+    "gate": "FLOW-12 TRUE FLOW-05 REAL-HTTP GOVERNANCE CLOSURE",
+    "tag": "F12-FLOW05-HTTP-9DBSZBZN",
+    "fixture": {
+        "actual_flow_type": "MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY",
+        "meeting_request_id": 152,
+        "request_number": "F12-FLOW05-HTTP-9DBSZBZN-REQ",
+        "meeting_id": 111,
+        "meeting_number": "F12-FLOW05-HTTP-9DBSZBZN-MEETING",
+        "meeting_status": "COMPLETED",
+        "requesting_unit": {
+            "id": 1,
+            "code": "TECH",
+            "name": "ریاست تکنالوژی",
+            "role": "REQUESTING"
+        },
+        "participating_units": [
+            {
+                "id": 2,
+                "code": "FIN",
+                "name": "ریاست مالی",
+                "role": "PARTICIPATING"
+            }
+        ],
+        "high_authority_context": {
+            "meeting_authority_context_id": 16,
+            "organization_authority_id": 1,
+            "employee_id": 9,
+            "employee_number": "EMP-AUTH-001",
+            "position_id": 8,
+            "office_unit_id": 9,
+            "office_unit_code": "AUTH-OFFICE",
+            "office_unit_name": "ریاست دفتر مقام"
+        },
+        "minutes_id": 20,
+        "minutes_status": "FINALIZED",
+        "finalized_minute_version_id": 28,
+        "decision_id": 28,
+        "decision_number": "F12-FLOW05-HTTP-9DBSZBZN-DEC-001",
+        "responsible_unit": {
+            "id": 2,
+            "code": "FIN",
+            "name": "ریاست مالی"
+        },
+        "responsible_unit_id": 2,
+        "responsible_employee_id": 5,
+        "responsible_employee_email": "finance.director@example.test",
+        "executive_secretary_email": "executive.secretary@example.test"
+    },
+    "source_snapshot": {
+        "request": {
+            "id": 152,
+            "flow_type": "MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY",
+            "status": "CONVERTED_TO_MEETING",
+            "meeting_id": 111
+        },
+        "meeting": {
+            "id": 111,
+            "status": "COMPLETED",
+            "meeting_number": "F12-FLOW05-HTTP-9DBSZBZN-MEETING"
+        },
+        "minutes": {
+            "id": 20,
+            "status": "FINALIZED",
+            "current_version_id": 28
+        },
+        "version": {
+            "id": 28,
+            "version_number": 1,
+            "summary": "FLOW-05 finalized governance decision",
+            "schedule_version_id": 133,
+            "participant_version_id": 117
+        },
+        "decision": {
+            "id": 28,
+            "decision_number": "F12-FLOW05-HTTP-9DBSZBZN-DEC-001",
+            "decision_text": "تصمیم معتبر برای آزمون بسته‌شدن پیگیری ثبت شد.",
+            "sequence_number": 1,
+            "responsible_unit_id": 2,
+            "responsible_employee_id": 5
+        },
+        "schedule_version_count": 1,
+        "participant_version_count": 1,
+        "meeting_count": 1,
+        "minutes_count": 1,
+        "decision_count": 1
+    }
+}

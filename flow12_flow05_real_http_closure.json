@@ -1,0 +1,746 @@
+{
+  "gate": "FLOW-12 TRUE FLOW-05 REAL-HTTP GOVERNANCE CLOSURE",
+  "base_url": "http://127.0.0.1:8013",
+  "fixture": {
+    "actual_flow_type": "MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY",
+    "meeting_request_id": 152,
+    "request_number": "F12-FLOW05-HTTP-9DBSZBZN-REQ",
+    "meeting_id": 111,
+    "meeting_number": "F12-FLOW05-HTTP-9DBSZBZN-MEETING",
+    "meeting_status": "COMPLETED",
+    "requesting_unit": {
+      "id": 1,
+      "code": "TECH",
+      "name": "ریاست تکنالوژی",
+      "role": "REQUESTING"
+    },
+    "participating_units": [
+      {
+        "id": 2,
+        "code": "FIN",
+        "name": "ریاست مالی",
+        "role": "PARTICIPATING"
+      }
+    ],
+    "high_authority_context": {
+      "meeting_authority_context_id": 16,
+      "organization_authority_id": 1,
+      "employee_id": 9,
+      "employee_number": "EMP-AUTH-001",
+      "position_id": 8,
+      "office_unit_id": 9,
+      "office_unit_code": "AUTH-OFFICE",
+      "office_unit_name": "ریاست دفتر مقام"
+    },
+    "minutes_id": 20,
+    "minutes_status": "FINALIZED",
+    "finalized_minute_version_id": 28,
+    "decision_id": 28,
+    "decision_number": "F12-FLOW05-HTTP-9DBSZBZN-DEC-001",
+    "responsible_unit": {
+      "id": 2,
+      "code": "FIN",
+      "name": "ریاست مالی"
+    },
+    "responsible_unit_id": 2,
+    "responsible_employee_id": 5,
+    "responsible_employee_email": "finance.director@example.test",
+    "executive_secretary_email": "executive.secretary@example.test"
+  },
+  "http_steps": [
+    {
+      "step": 1,
+      "method": "POST",
+      "path": "/api/login",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "resulting_state": "AUTHENTICATED",
+      "pass": true
+    },
+    {
+      "step": 2,
+      "method": "POST",
+      "path": "/api/login",
+      "actor": "finance.director@example.test",
+      "actor_role": "responsible_employee",
+      "actor_user_id": 5,
+      "actor_employee_id": 5,
+      "actor_scope": [
+        {
+          "role": "DIRECTOR",
+          "organizational_unit_id": 2,
+          "unit": {
+            "id": 2,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست مالی",
+            "code": "FIN",
+            "unit_type": "DIRECTORATE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "resulting_state": "AUTHENTICATED",
+      "pass": true
+    },
+    {
+      "step": 3,
+      "method": "POST",
+      "path": "/api/login",
+      "actor": "authority.office@example.test",
+      "actor_role": "authority_office_non_exec_secretary",
+      "actor_user_id": 10,
+      "actor_employee_id": 10,
+      "actor_scope": [
+        {
+          "role": "AUTHORITY_OFFICE",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "resulting_state": "AUTHENTICATED",
+      "pass": true
+    },
+    {
+      "step": 4,
+      "method": "POST",
+      "path": "/api/login",
+      "actor": "high.authority@example.test",
+      "actor_role": "high_authority",
+      "actor_user_id": 12,
+      "actor_employee_id": 9,
+      "actor_scope": [
+        {
+          "role": "HIGH_AUTHORITY",
+          "organizational_unit_id": 10,
+          "unit": {
+            "id": 10,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "مقام ریاست عمومی",
+            "code": "AUTHORITY",
+            "unit_type": "HIGH_AUTHORITY",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "resulting_state": "AUTHENTICATED",
+      "pass": true
+    },
+    {
+      "step": 5,
+      "method": "POST",
+      "path": "/api/login",
+      "actor": "system.admin@example.test",
+      "actor_role": "system_admin",
+      "actor_user_id": 1,
+      "actor_employee_id": null,
+      "actor_scope": [
+        {
+          "role": "SYSTEM_ADMIN",
+          "organizational_unit_id": null,
+          "unit": null
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "resulting_state": "AUTHENTICATED",
+      "pass": true
+    },
+    {
+      "step": 6,
+      "method": "GET",
+      "path": "/api/meetings/111/follow-up",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 7,
+      "method": "POST",
+      "path": "/api/meetings/111/follow-up/initialize",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 201,
+      "actual_status": 201,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 8,
+      "method": "POST",
+      "path": "/api/decisions/28/follow-up/classify",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "classification": "ACTION_REQUIRED",
+        "status": "OPEN"
+      },
+      "actual_fields": {
+        "classification": "ACTION_REQUIRED",
+        "status": "OPEN"
+      },
+      "resulting_state": {
+        "classification": "ACTION_REQUIRED",
+        "status": "OPEN"
+      },
+      "checks": {
+        "http_status": true,
+        "classification": true,
+        "status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 9,
+      "method": "POST",
+      "path": "/api/decisions/28/action-items",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 201,
+      "actual_status": 201,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "status": "OPEN",
+        "decision_id": 28,
+        "decision_followup_id": 20
+      },
+      "actual_fields": {
+        "status": "OPEN",
+        "decision_id": 28,
+        "decision_followup_id": 20
+      },
+      "resulting_state": {
+        "status": "OPEN",
+        "decision_id": 28,
+        "decision_followup_id": 20
+      },
+      "checks": {
+        "http_status": true,
+        "status": true,
+        "decision_id": true,
+        "decision_followup_id": true
+      },
+      "pass": true
+    },
+    {
+      "step": 10,
+      "method": "POST",
+      "path": "/api/action-items/81/start",
+      "actor": "finance.director@example.test",
+      "actor_role": "responsible_employee",
+      "actor_user_id": 5,
+      "actor_employee_id": 5,
+      "actor_scope": [
+        {
+          "role": "DIRECTOR",
+          "organizational_unit_id": 2,
+          "unit": {
+            "id": 2,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست مالی",
+            "code": "FIN",
+            "unit_type": "DIRECTORATE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "status": "IN_PROGRESS"
+      },
+      "actual_fields": {
+        "status": "IN_PROGRESS"
+      },
+      "resulting_state": {
+        "status": "IN_PROGRESS"
+      },
+      "checks": {
+        "http_status": true,
+        "status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 11,
+      "method": "POST",
+      "path": "/api/action-items/81/progress",
+      "actor": "finance.director@example.test",
+      "actor_role": "responsible_employee",
+      "actor_user_id": 5,
+      "actor_employee_id": 5,
+      "actor_scope": [
+        {
+          "role": "DIRECTOR",
+          "organizational_unit_id": 2,
+          "unit": {
+            "id": 2,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست مالی",
+            "code": "FIN",
+            "unit_type": "DIRECTORATE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "status": "IN_PROGRESS",
+        "progress_percent": 100
+      },
+      "actual_fields": {
+        "status": "IN_PROGRESS",
+        "progress_percent": 100
+      },
+      "resulting_state": {
+        "status": "IN_PROGRESS",
+        "progress_percent": 100
+      },
+      "checks": {
+        "http_status": true,
+        "status": true,
+        "progress_percent": true
+      },
+      "pass": true
+    },
+    {
+      "step": 12,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/submit",
+      "actor": "finance.director@example.test",
+      "actor_role": "responsible_employee",
+      "actor_user_id": 5,
+      "actor_employee_id": 5,
+      "actor_scope": [
+        {
+          "role": "DIRECTOR",
+          "organizational_unit_id": 2,
+          "unit": {
+            "id": 2,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست مالی",
+            "code": "FIN",
+            "unit_type": "DIRECTORATE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "status": "PENDING_VERIFICATION"
+      },
+      "actual_fields": {
+        "status": "PENDING_VERIFICATION"
+      },
+      "resulting_state": {
+        "status": "PENDING_VERIFICATION"
+      },
+      "checks": {
+        "http_status": true,
+        "status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 13,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/verify",
+      "actor": "finance.director@example.test",
+      "actor_role": "responsible_employee",
+      "actor_user_id": 5,
+      "actor_employee_id": 5,
+      "actor_scope": [
+        {
+          "role": "DIRECTOR",
+          "organizational_unit_id": 2,
+          "unit": {
+            "id": 2,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست مالی",
+            "code": "FIN",
+            "unit_type": "DIRECTORATE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 403,
+      "actual_status": 403,
+      "business_code": "FORBIDDEN",
+      "message": "This action is unauthorized.",
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 14,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/verify",
+      "actor": "authority.office@example.test",
+      "actor_role": "authority_office_non_exec_secretary",
+      "actor_user_id": 10,
+      "actor_employee_id": 10,
+      "actor_scope": [
+        {
+          "role": "AUTHORITY_OFFICE",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 403,
+      "actual_status": 403,
+      "business_code": "FORBIDDEN",
+      "message": "This action is unauthorized.",
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 15,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/verify",
+      "actor": "high.authority@example.test",
+      "actor_role": "high_authority",
+      "actor_user_id": 12,
+      "actor_employee_id": 9,
+      "actor_scope": [
+        {
+          "role": "HIGH_AUTHORITY",
+          "organizational_unit_id": 10,
+          "unit": {
+            "id": 10,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "مقام ریاست عمومی",
+            "code": "AUTHORITY",
+            "unit_type": "HIGH_AUTHORITY",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 403,
+      "actual_status": 403,
+      "business_code": "FORBIDDEN",
+      "message": "This action is unauthorized.",
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 16,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/verify",
+      "actor": "system.admin@example.test",
+      "actor_role": "system_admin",
+      "actor_user_id": 1,
+      "actor_employee_id": null,
+      "actor_scope": [
+        {
+          "role": "SYSTEM_ADMIN",
+          "organizational_unit_id": null,
+          "unit": null
+        }
+      ],
+      "expected_status": 403,
+      "actual_status": 403,
+      "business_code": "FORBIDDEN",
+      "message": "This action is unauthorized.",
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 17,
+      "method": "POST",
+      "path": "/api/action-items/81/completion/verify",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {
+        "status": "COMPLETED"
+      },
+      "actual_fields": {
+        "status": "COMPLETED"
+      },
+      "resulting_state": {
+        "status": "COMPLETED"
+      },
+      "checks": {
+        "http_status": true,
+        "status": true
+      },
+      "pass": true
+    },
+    {
+      "step": 18,
+      "method": "GET",
+      "path": "/api/meetings/111/follow-up",
+      "actor": "executive.secretary@example.test",
+      "actor_role": "executive_secretary",
+      "actor_user_id": 11,
+      "actor_employee_id": 11,
+      "actor_scope": [
+        {
+          "role": "EXECUTIVE_SECRETARY",
+          "organizational_unit_id": 9,
+          "unit": {
+            "id": 9,
+            "organization_id": 1,
+            "parent_id": null,
+            "name": "ریاست دفتر مقام",
+            "code": "AUTH-OFFICE",
+            "unit_type": "AUTHORITY_OFFICE",
+            "status": "ACTIVE"
+          }
+        }
+      ],
+      "expected_status": 200,
+      "actual_status": 200,
+      "business_code": null,
+      "message": null,
+      "expected_fields": {},
+      "actual_fields": {},
+      "resulting_state": {},
+      "checks": {
+        "http_status": true
+      },
+      "pass": true
+    }
+  ],
+  "negative_verification": {
+    "responsible_employee": 403,
+    "authority_office_non_exec_secretary": 403,
+    "high_authority": 403,
+    "system_admin": 403
+  },
+  "positive_verification": {
+    "executive_secretary": 200
+  },
+  "final_state": {
+    "action_item_status": "COMPLETED",
+    "followup_status": "CLOSED",
+    "classification": "ACTION_REQUIRED",
+    "progress_percent": 100
+  },
+  "immutability": {
+    "request_unchanged": true,
+    "meeting_identity_unchanged": true,
+    "meeting_status_completed": true,
+    "minutes_finalized_unchanged": true,
+    "finalized_version_unchanged": true,
+    "decision_unchanged": true,
+    "new_meeting_count": 0,
+    "new_minutes_count": 0,
+    "new_decision_count": 0,
+    "new_schedule_version_count": 0,
+    "new_participant_version_count": 0,
+    "frozen_approval_state_mutation_count": 0,
+    "pass": true
+  },
+  "audit_notification_evidence": {
+    "audit_count": 8,
+    "audit_actions": [
+      "DECISION_FOLLOWUP_INITIALIZED",
+      "DECISION_CLASSIFIED_ACTION_REQUIRED",
+      "ACTION_ITEM_CREATED",
+      "ACTION_ITEM_STARTED",
+      "ACTION_ITEM_PROGRESS_RECORDED",
+      "ACTION_ITEM_COMPLETION_SUBMITTED",
+      "ACTION_ITEM_COMPLETED",
+      "DECISION_FOLLOWUP_CLOSED"
+    ],
+    "notification_count": 5,
+    "notification_types": [
+      "ACTION_ITEM_CREATED",
+      "ACTION_ITEM_CREATED",
+      "ACTION_ITEM_ASSIGNED",
+      "ACTION_ITEM_COMPLETION_SUBMITTED",
+      "ACTION_ITEM_COMPLETED"
+    ]
+  },
+  "overall_pass": true
+}
