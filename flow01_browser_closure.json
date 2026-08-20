@@ -1,0 +1,96 @@
+{
+  "flow": "FLOW-01",
+  "title": "Master Browser E2E Closure",
+  "final_status": "FLOW-01 MASTER BROWSER CLOSURE VERIFICATION COMPLETE",
+  "environment": {
+    "frontend_url": "http://localhost:5173",
+    "backend_url": "http://127.0.0.1:8000",
+    "database_engine": "MariaDB 10.11.14 / InnoDB",
+    "database_name": "amms_browser_e2e",
+    "browser": "Chromium sandbox browser",
+    "api_path": "Real React -> Laravel HTTP -> MariaDB/InnoDB"
+  },
+  "actors": [
+    {
+      "email": "tech.exec@example.test",
+      "role": "EXECUTIVE_MANAGEMENT",
+      "unit": "Technology Directorate",
+      "purpose": "Created and submitted MR-2026-00001"
+    },
+    {
+      "email": "tech.director@example.test",
+      "role": "DIRECTOR",
+      "unit": "Technology Directorate",
+      "purpose": "Approved the request and verified coordinator-only control visibility"
+    },
+    {
+      "email": "tech.coordinator@example.test",
+      "role": "MEETING_COORDINATOR",
+      "unit": "Technology Directorate",
+      "purpose": "Discovered, scheduled, and finalized the request through the normal UI"
+    }
+  ],
+  "request": {
+    "id": 1,
+    "number": "MR-2026-00001",
+    "subject": "بررسی پلان توسعه سامانه‌های اداری",
+    "final_status": "CONVERTED_TO_MEETING"
+  },
+  "meeting": {
+    "id": 1,
+    "number": "MT-2026-00001",
+    "status": "SCHEDULED",
+    "meeting_date": "2026-08-25",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "location": "اتاق جلسات ریاست تکنالوژی",
+    "chairperson_employee_id": 1,
+    "participant_employee_ids": [1, 3, 2],
+    "participant_count": 3,
+    "duplicate_meeting_count": 0
+  },
+  "journey": [
+    {"step": 1, "actor": "tech.exec@example.test", "result": "PASS", "detail": "Created and submitted MR-2026-00001 through the real UI"},
+    {"step": 2, "actor": "tech.director@example.test", "result": "PASS", "detail": "Approved through the real UI"},
+    {"step": 3, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "Discovered MR-2026-00001 from the visible dashboard recent-activity path; no deep link was used for discovery"},
+    {"step": 4, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "Started scheduling through the visible request-detail control"},
+    {"step": 5, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "Opened the scheduling workspace through the visible ورود به فضای زمان‌بندی action"},
+    {"step": 6, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "DOM verification before submit: chairperson=1; time inputs=[09:00,10:00]; Persian/Dari agenda present; exactly three checked participants"},
+    {"step": 7, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "Finalization created MT-2026-00001 and redirected to the request detail"},
+    {"step": 8, "actor": "tech.coordinator@example.test", "result": "PASS", "detail": "Opened the created Meeting through the visible مشاهده جلسه ایجادشده link"}
+  ],
+  "coordinator_discoverability": true,
+  "coordinator_discoverability_path": ["login", "dashboard", "درخواست‌های اخیر", "MR-2026-00001", "request detail", "scheduling workspace"],
+  "director_forbidden_control_visible": false,
+  "director_forbidden_control": "شروع زمان‌بندی",
+  "director_backend_403": true,
+  "director_backend_403_http_status": 403,
+  "refresh_reopen_result": "pass",
+  "refresh_reopen_detail": "The Director used visible جلسات navigation, saw MT-2026-00001 in the normal future-Meetings list, and reopened its detail with SCHEDULED status, unchanged participants, times, chairperson, agenda, and timeline.",
+  "server_verification": {
+    "request_status": "CONVERTED_TO_MEETING",
+    "meeting_status": "SCHEDULED",
+    "top_level_meeting_count": 1,
+    "duplicate_meeting_count": 0,
+    "director_start_scheduling_http": 403
+  },
+  "frontend_build": {
+    "result": "PASS",
+    "command": "pnpm build",
+    "modules_transformed": 1866
+  },
+  "screenshots": [
+    "browser_failures/flow01_postfix_director_detail_no_scheduling.webp",
+    "browser_failures/flow01_postfix_coordinator_normal_queue.webp",
+    "browser_failures/flow01_postfix_meeting_scheduled.webp"
+  ],
+  "frontend_files_changed": ["frontend/src/main.tsx"],
+  "backend_files_changed": [],
+  "business_semantics_changed": false,
+  "authorization_semantics_changed": false,
+  "production_code_changed": true,
+  "production_code_change_scope": "Frontend presentation/authenticated-request wiring only; no backend business, state-transition, policy, or authorization code changed.",
+  "tests_rerun": false,
+  "unresolved_issues": [],
+  "overall_pass": true
+}
