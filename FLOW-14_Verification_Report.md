@@ -60,7 +60,7 @@ The HTTP artifact also proves that dashboard payloads and personal/register reso
 
 ## MariaDB InnoDB Performance and EXPLAIN Evidence
 
-The disposable MariaDB database `amms_concurrency_test` was migrated and seeded independently from the SQLite clone. The large fixture contains 120 additional performance Meetings, 120 Requests, 240 participant-version members, 120 attendance rows, 60 finalized Decisions, 60 Follow-ups, and 120 Action Items. Including the canonical rows, the measured database contained 129 Meetings, 134 Requests, 254 participant members, 122 attendance rows, 63 Decisions, 62 Follow-ups, and 130 Action Items.
+The authoritative final MariaDB measurement snapshot is recorded in `flow14_mariadb_performance_report.json`. It contains **137 Meetings, 142 Requests, 260 participant-version members, 128 attendance rows, 63 finalized Decisions, 62 Follow-ups, 134 Action Items, and 11 exception rows**. These are the final measured snapshot counts used by this report; earlier intermediate fixture counts are superseded and are not presented as the final measurement.
 
 The performance artifact now names the measured register accurately as `meeting_register_page_per_page_50`. That measurement returned one row for the selected `high.authority@example.test` visibility; it does **not** claim to be the authoritative 50-row measurement. The separate N+1 artifact returned exactly 50 rows.[^performance][^nplus]
 
@@ -73,7 +73,7 @@ The performance artifact now names the measured register accurately as `meeting_
 | Bounded query growth against one-row baseline | **PASS**, 20 queries versus an 8-query baseline; growth bounded at 12 |
 | EXPLAIN review | **PASS**, actual plan rows recorded |
 
-The EXPLAIN artifact no longer claims that the full plan is index-driven. For every relevant `type=ALL` or `Using filesort` result, it records table, estimated rows, type, possible keys, selected key, `Extra`, and a measured-cardinality justification. The documented acceptance is limited to this verification fixture: the scoped cardinality is bounded at 129 Meetings and the 50-row register completed under 10 ms. This is evidence at the measured cardinality, not a universal claim that every access path is indexed.[^nplus]
+The EXPLAIN artifact no longer claims that the full plan is index-driven. For every relevant `type=ALL` or `Using filesort` result, it records table, estimated rows, type, possible keys, selected key, `Extra`, and a measured-cardinality justification. The documented acceptance is limited to this verification fixture: the scoped cardinality is bounded at 137 Meetings and the 50-row register completed under 10 ms. This is evidence at the measured cardinality, not a universal claim that every access path is indexed.[^nplus]
 
 ## True MariaDB and Application Concurrency Evidence
 
