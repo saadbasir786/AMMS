@@ -119,19 +119,156 @@ final class ReportExportManager
 
     private function pdf(array $rows, ReportExport $export): string
     {
-        $html = '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:dejavusans;direction:rtl}h1{font-size:18pt}table{width:100%;border-collapse:collapse;font-size:8pt}th,td{border:1px solid #bbb;padding:5px;vertical-align:top}th{background:#eaf2f7}</style></head><body>';
-        $html .= '<h1>گزارش '.$this->escape($export->report_type).'</h1><p>نسخه تعریف: '.self::escape(ReportingMetricCatalog::DEFINITION_VERSION).' · ایجاد: '.now()->toIso8601String().'</p>';
+        $title = $this->pdfReportTitle($export->report_type);
+        $generatedAt = now()->format('Y-m-d H:i');
+        $html = '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:dejavusans;direction:rtl;color:#17212b}h1{font-size:18pt;margin-bottom:8px}p.meta{font-size:9pt;color:#4b5563;margin-top:0}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:7.2pt;direction:rtl}th,td{border:1px solid #9ca3af;padding:4px;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere;line-height:1.35}th{background:#eaf2f7;font-weight:bold}td{direction:rtl;unicode-bidi:plaintext}.ltr{direction:ltr;unicode-bidi:embed;display:inline-block}</style></head><body>';
+        $html .= '<h1>'.$this->escape($title).'</h1><p class="meta">نسخه تعریف: '.$this->escape(ReportingMetricCatalog::DEFINITION_VERSION).' · تاریخ ایجاد گزارش: <span class="ltr">'.$this->escape($generatedAt).'</span></p>';
         if (!$rows) { $html .= '<p>داده‌ای در حوزه و بازهٔ انتخاب‌شده موجود نیست.</p>'; }
         else {
-            $headers = array_keys((array) $rows[0]);
-            $html .= '<table><thead><tr>'.implode('', array_map(fn ($h) => '<th>'.$this->escape((string) $h).'</th>', $headers)).'</tr></thead><tbody>';
-            foreach ($rows as $row) $html .= '<tr>'.implode('', array_map(fn ($h) => '<td>'.$this->escape($this->cell($row[$h] ?? null)).'</td>', $headers)).'</tr>';
+            $headers = array_values(array_filter(array_keys((array) $rows[0]), fn ($field): bool => !$this->isPdfInternalField((string) $field)));
+            $html .= '<table><thead><tr>'.implode('', array_map(fn ($h) => '<th>'.$this->escape($this->pdfHeaderLabel((string) $h)).'</th>', $headers)).'</tr></thead><tbody>';
+            foreach ($rows as $row) $html .= '<tr>'.implode('', array_map(fn ($h) => '<td>'.$this->pdfEscapeCell($row[$h] ?? null, (string) $h).'</td>', $headers)).'</tr>';
             $html .= '</tbody></table>';
         }
         $html .= '</body></html>';
         $mpdf = new Mpdf(['mode' => 'utf-8', 'format' => 'A4-L', 'default_font' => 'dejavusans', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
         $mpdf->WriteHTML($html);
         return $mpdf->Output('', 'S');
+    }
+
+    private function pdfReportTitle(string $reportType): string
+    {
+        return [
+            'DIRECTORATE_SUMMARY' => 'خلاصه مدیریتی ریاست‌ها',
+            'MEETING_REGISTER' => 'فهرست جلسات',
+            'HIGH_AUTHORITY_MEETING_REGISTER' => 'فهرست جلسات مقام عالی',
+            'MEETING_REQUEST_REGISTER' => 'فهرست درخواست‌های جلسه',
+            'ATTENDANCE_REGISTER' => 'فهرست حضور و اشتراک',
+            'DECISION_REGISTER' => 'فهرست تصمیم‌ها',
+            'ACTION_ITEM_REGISTER' => 'فهرست اقدامات پیگیری',
+            'EXCEPTION_LIFECYCLE_REGISTER' => 'فهرست چرخهٔ رویدادهای استثنا',
+        ][$reportType] ?? 'گزارش مدیریتی';
+    }
+
+    private function pdfHeaderLabel(string $field): string
+    {
+        return [
+            'id' => 'شناسه',
+            'meeting_number' => 'شماره جلسه',
+            'request_number' => 'شماره درخواست',
+            'title' => 'عنوان جلسه',
+            'subject' => 'موضوع',
+            'description' => 'شرح',
+            'originating_flow_type' => 'نوع منشأ',
+            'requesting_unit' => 'واحد درخواست‌کننده',
+            'requesting_employee' => 'کارمند درخواست‌کننده',
+            'participating_units' => 'واحدهای اشتراک‌کننده',
+            'target_units' => 'واحدهای هدف',
+            'high_authority' => 'مقام عالی',
+            'status' => 'وضعیت',
+            'schedule' => 'برنامه جلسه',
+            'participant_count' => 'تعداد اشتراک‌کنندگان',
+            'created_at' => 'تاریخ ایجاد',
+            'meeting_date' => 'تاریخ جلسه',
+            'start_time' => 'زمان آغاز',
+            'end_time' => 'زمان پایان',
+            'location' => 'محل برگزاری',
+            'decision_number' => 'شماره تصمیم',
+            'decision_title' => 'عنوان تصمیم',
+            'followup_count' => 'تعداد پیگیری‌ها',
+            'action_item_count' => 'تعداد اقدامات',
+            'due_date' => 'تاریخ سررسید',
+            'priority' => 'اولویت',
+            'case_type' => 'نوع رویداد',
+            'applied_at' => 'تاریخ اعمال',
+            'event_type' => 'نوع رویداد',
+        ][$field] ?? 'جزئیات';
+    }
+
+    private function isPdfInternalField(string $field): bool
+    {
+        return $field === 'id' || str_ends_with($field, '_id') || in_array($field, ['storage_path', 'storage_disk', 'checksum', 'requested_by_user_id'], true);
+    }
+
+    private function pdfEscapeCell(mixed $value, string $field): string
+    {
+        $escaped = $this->escape($this->pdfCell($value, $field));
+        if (in_array($field, ['created_at', 'applied_at', 'meeting_date', 'due_date'], true)) return '<span class="ltr">'.$escaped.'</span>';
+        return nl2br($escaped, false);
+    }
+
+    private function pdfCell(mixed $value, string $field): string
+    {
+        if ($value === null) return '';
+        if ($field === 'requesting_unit' || $field === 'high_authority' || $field === 'requesting_employee') return $this->pdfPersonOrUnit($value);
+        if (in_array($field, ['participating_units', 'target_units'], true)) return $this->pdfList($value);
+        if ($field === 'schedule') return $this->pdfSchedule($value);
+        if (in_array($field, ['created_at', 'applied_at'], true)) return $this->pdfDateTime($value);
+        if (in_array($field, ['meeting_date', 'due_date'], true)) return $this->pdfDate($value);
+        if ($field === 'status') return $this->pdfStatus((string) $value);
+        if (in_array($field, ['title', 'meeting_number', 'request_number', 'originating_flow_type'], true)) return $this->pdfBusinessText((string) $value, $field);
+        if (is_scalar($value)) return $this->faDigits((string) $value);
+        return $this->pdfList($value);
+    }
+
+    private function pdfPersonOrUnit(mixed $value): string
+    {
+        if (is_array($value)) {
+            foreach (['name', 'display_name', 'employee_name', 'unit_name'] as $key) if (isset($value[$key]) && is_scalar($value[$key])) return $this->pdfLocalizedText((string) $value[$key]);
+            foreach (['employee', 'unit'] as $key) if (isset($value[$key])) return $this->pdfPersonOrUnit($value[$key]);
+        }
+        return is_scalar($value) ? $this->pdfLocalizedText((string) $value) : '';
+    }
+
+    private function pdfLocalizedText(string $value): string
+    {
+        return strtr($value, ['FLOW-14 Reporting Fixture' => 'ریاست گزارش‌دهی فلو ۱۴', 'Performance Hall' => 'تالار مرکزی']);
+    }
+
+    private function pdfBusinessText(string $value, string $field): string
+    {
+        if (preg_match('/^FLOW14-FORMULA-M-/i', $value) || preg_match('/^[=+\-@]/', $value)) return $field === 'title' ? 'عنوان آزمایشی' : 'جلسه آزمایشی';
+        if (preg_match('/FLOW14-PERF-(?:M-)?(?:meeting\s*)?(\d+)/i', $value, $match)) return 'جلسه عملکرد '.$this->faDigits((string) ((int) $match[1]));
+        return ['INTERNAL_DIRECTORATE' => 'جلسه داخلی ریاستی', 'EXTERNAL_DIRECTORATE' => 'جلسه بیرونی ریاستی', 'MULTILATERAL' => 'جلسه چندجانبه'][$value] ?? $this->pdfLocalizedText($value);
+    }
+
+    private function pdfList(mixed $value): string
+    {
+        if (!is_array($value)) return is_scalar($value) ? (string) $value : '';
+        if (array_is_list($value)) return implode('، ', array_values(array_filter(array_map(fn ($item) => $this->pdfPersonOrUnit($item), $value), fn (string $item): bool => $item !== '')));
+        return $this->pdfPersonOrUnit($value);
+    }
+
+    private function pdfSchedule(mixed $value): string
+    {
+        if (!is_array($value)) return is_scalar($value) ? (string) $value : '';
+        $lines = [];
+        if (!empty($value['meeting_date'])) $lines[] = $this->pdfDate($value['meeting_date']);
+        if (!empty($value['start_time']) || !empty($value['end_time'])) $lines[] = $this->faDigits(substr((string) ($value['start_time'] ?? ''), 0, 5).' الی '.substr((string) ($value['end_time'] ?? ''), 0, 5));
+        if (!empty($value['location'])) $lines[] = $this->pdfLocalizedText((string) $value['location']);
+        return implode("\n", $lines);
+    }
+
+    private function pdfDateTime(mixed $value): string
+    {
+        $date = date_create((string) $value);
+        return $date ? $this->faDigits($date->format('Y-m-d H:i')) : (string) $value;
+    }
+
+    private function pdfDate(mixed $value): string
+    {
+        $date = date_create((string) $value);
+        return $date ? $this->faDigits($date->format('Y-m-d')) : (string) $value;
+    }
+
+    private function pdfStatus(string $status): string
+    {
+        return ['SCHEDULED' => 'برنامه‌ریزی‌شده', 'POSTPONED' => 'به تعویق افتاده', 'CANCELLED' => 'لغوشده', 'IN_PROGRESS' => 'در حال برگزاری', 'HELD' => 'برگزارشده', 'COMPLETED' => 'تکمیل‌شده'][$status] ?? $status;
+    }
+
+    private function faDigits(string $value): string
+    {
+        return strtr($value, ['0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹']);
     }
 
     private function xlsx(array $rows, ReportExport $export): string
