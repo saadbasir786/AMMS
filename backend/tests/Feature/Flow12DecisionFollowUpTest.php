@@ -174,7 +174,7 @@ class Flow12DecisionFollowUpTest extends TestCase
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/assignment', ['responsible_unit_id' => $finance->id, 'assigned_employee_id' => null, 'reason' => 'انتقال رسمی مسئولیت'])->assertOk();
         $upload = UploadedFile::fake()->create('completion.pdf', 10, 'application/pdf');
         $response = $this->actingAs($owner, 'sanctum')->post('/api/action-items/'.$item['id'].'/evidence', ['evidence' => $upload]);
-        $response->assertCreated()->assertJsonMissingPath('data.public_url');
+        $response->assertCreated()->assertJsonPath('data.public_url', false);
         $evidenceId = $response->json('data.id');
         $this->actingAs($owner, 'sanctum')->get('/api/action-items/'.$item['id'].'/evidence/'.$evidenceId)->assertOk();
     }

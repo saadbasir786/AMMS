@@ -24,6 +24,7 @@ class SubmitActionItemCompletion
 
         return DB::transaction(function () use ($item, $actor, $note, $evidence): MeetingActionItem {
             $locked = MeetingActionItem::query()->with('followup.meeting')->lockForUpdate()->findOrFail($item->id);
+            abort_unless($this->governance()->mayWorkItem($locked, $actor, 'action-item.submit-completion'), 403, 'UNAUTHORIZED_ACTION_ITEM_UPDATE');
             abort_unless(in_array($locked->status, [MeetingActionItem::IN_PROGRESS, MeetingActionItem::BLOCKED], true), 409, 'ACTION_ITEM_INVALID_STATE');
             abort_unless((int) $locked->progress_percent === 100, 422, 'ACTION_ITEM_COMPLETION_PROGRESS_REQUIRED');
             $locked->update(['status' => MeetingActionItem::PENDING_VERIFICATION, 'submitted_for_verification_at' => now(), 'submitted_by_user_id' => $actor->id, 'lock_version' => $locked->lock_version + 1]);

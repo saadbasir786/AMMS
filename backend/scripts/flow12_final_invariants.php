@@ -7,6 +7,7 @@ use App\Models\MeetingActionItem;
 use App\Models\MeetingActionItemAssignmentHistory;
 use App\Models\MeetingActionItemExtensionRequest;
 use App\Models\MeetingActionItemUpdate;
+use App\Models\MeetingAction;
 use App\Models\MeetingDecisionFollowUp;
 use App\Models\MeetingMinuteVersionDecision;
 use App\Models\MeetingRequest;
@@ -34,8 +35,24 @@ $after = [
     'decision_responsible_unit_id' => $sourceDecision->responsible_unit_id,
     'decision_responsible_employee_id' => $sourceDecision->responsible_employee_id,
 ];
-$statusCounts = $items->groupBy('status')->map->count()->all();
+$statusCounts = array_fill_keys([MeetingActionItem::OPEN, MeetingActionItem::IN_PROGRESS, MeetingActionItem::BLOCKED, MeetingActionItem::PENDING_VERIFICATION, MeetingActionItem::COMPLETED, MeetingActionItem::CANCELLED], 0);
+foreach ($items->groupBy('status')->map->count()->all() as $status => $count) $statusCounts[$status] = $count;
+$overdueDerivedCount = $items->filter(fn (MeetingActionItem $item): bool => (bool) $item->is_overdue)->count();
 $classificationCounts = $followups->groupBy('classification')->map->count()->all();
+$containsAttachmentBytes = static function ($value) use (&$containsAttachmentBytes): bool {
+    if (is_array($value)) {
+        foreach ($value as $key => $child) {
+            if (in_array(strtolower((string) $key), ['bytes', 'body', 'content', 'raw', 'base64', 'file_bytes', 'attachment_bytes'], true)) return true;
+            if ($containsAttachmentBytes($child)) return true;
+        }
+    }
+    return false;
+};
+$auditAttachmentBytesCount = 0;
+foreach (MeetingAction::query()->where('meeting_id', $meeting->id)->get(['metadata']) as $audit) {
+    $metadata = $audit->metadata;
+    if ($containsAttachmentBytes($metadata)) $auditAttachmentBytesCount++;
+}
 $duplicateFollowupRootCount = DB::table('meeting_decision_followups')->select('meeting_decision_id')->groupBy('meeting_decision_id')->havingRaw('COUNT(*) > 1')->get()->count();
 $duplicateActionSequenceCount = DB::table('meeting_action_items')->select('decision_followup_id', 'sequence_number')->groupBy('decision_followup_id', 'sequence_number')->havingRaw('COUNT(*) > 1')->get()->count();
 $duplicateCompletionCount = DB::table('meeting_actions')->where('meeting_id', $meeting->id)->where('action', 'ACTION_ITEM_COMPLETED')->select('entity_id')->groupBy('entity_id')->havingRaw('COUNT(*) > 1')->get()->count();
@@ -45,9 +62,11 @@ $sourceDecisionMutationCount = ($before['decision_text'] !== $after['decision_te
 $documentaryResponsibilityMutationCount = ($before['decision_responsible_unit_id'] !== $after['decision_responsible_unit_id'] || $before['decision_responsible_employee_id'] !== $after['decision_responsible_employee_id']) ? 1 : 0;
 $documentaryTargetDateMutationCount = ($before['decision_target_date'] !== $after['decision_target_date']) ? 1 : 0;
 $out = [
-    'fixture' => ['tag' => $fixture['tag'], 'meeting_id' => $meeting->id, 'meeting_request_id' => $meeting->meeting_request_id, 'decision_id' => $sourceDecision->id],
+    'fixture' => ['tag' => $fixture['tag'], 'meeting_id' => $meeting->id, 'meeting_number' => $meeting->meeting_number, 'meeting_request_id' => $meeting->meeting_request_id, 'decision_id' => $sourceDecision->id],
     'before_source_snapshot' => $before,
     'after_source_snapshot' => $after,
+    'meeting_id' => $meeting->id,
+    'meeting_number' => $meeting->meeting_number,
     'meeting_request_id' => $meeting->meeting_request_id,
     'request_status' => $meeting->request?->status,
     'final_minutes_version_id' => $version->id,
@@ -61,7 +80,10 @@ $out = [
     'active_followup_count' => $followups->where('status', MeetingDecisionFollowUp::ACTIVE)->count(),
     'open_followup_count' => $followups->where('status', MeetingDecisionFollowUp::OPEN)->count(),
     'closed_followup_count' => $followups->where('status', MeetingDecisionFollowUp::CLOSED)->count(),
+    'action_item_count' => $items->count(),
+    'action_item_status_counts' => $statusCounts,
     'all_action_item_status_counts' => $statusCounts,
+    'overdue_derived_count' => $overdueDerivedCount,
     'duplicate_followup_root_count' => $duplicateFollowupRootCount,
     'duplicate_action_item_sequence_count' => $duplicateActionSequenceCount,
     'duplicate_completion_count' => $duplicateCompletionCount,
@@ -73,12 +95,14 @@ $out = [
     'completion_verification_count' => DB::table('meeting_actions')->where('meeting_id', $meeting->id)->where('action', 'ACTION_ITEM_COMPLETED')->count(),
     'extension_count' => MeetingActionItemExtensionRequest::whereIn('action_item_id', $items->pluck('id'))->count(),
     'approved_extension_count' => MeetingActionItemExtensionRequest::whereIn('action_item_id', $items->pluck('id'))->where('status', 'APPROVED')->count(),
+    'pending_extension_count' => MeetingActionItemExtensionRequest::whereIn('action_item_id', $items->pluck('id'))->where('status', 'PENDING')->count(),
     'source_decision_mutation_count' => $sourceDecisionMutationCount,
     'meeting_status_mutation_count' => $before['meeting_status'] === $after['meeting_status'] ? 0 : 1,
     'minutes_status_mutation_count' => $before['minutes_status'] === $after['minutes_status'] ? 0 : 1,
     'documentary_responsibility_mutation_count' => $documentaryResponsibilityMutationCount,
     'documentary_target_date_mutation_count' => $documentaryTargetDateMutationCount,
-    'privacy' => ['biometric_sensitive_fields_in_flow12' => 0, 'public_evidence_urls' => 0, 'raw_tokens_or_passwords' => 0],
+    'audit_attachment_bytes_count' => $auditAttachmentBytesCount,
+    'privacy' => ['biometric_sensitive_fields_in_flow12' => 0, 'public_evidence_urls' => 0, 'raw_tokens_or_passwords' => 0, 'audit_attachment_bytes' => $auditAttachmentBytesCount],
 ];
 $out['pass'] = $out['request_status'] === 'CONVERTED_TO_MEETING'
     && $out['meeting_status'] === 'COMPLETED'
@@ -90,7 +114,14 @@ $out['pass'] = $out['request_status'] === 'CONVERTED_TO_MEETING'
     && $out['action_required_count'] === 1
     && $out['active_followup_count'] === 0
     && $out['closed_followup_count'] === 2
-    && (($out['all_action_item_status_counts'][MeetingActionItem::COMPLETED] ?? 0) === 1)
+    && $out['action_item_count'] >= 1
+    && $out['action_item_status_counts'][MeetingActionItem::OPEN] === 0
+    && $out['action_item_status_counts'][MeetingActionItem::IN_PROGRESS] === 0
+    && $out['action_item_status_counts'][MeetingActionItem::BLOCKED] === 0
+    && $out['action_item_status_counts'][MeetingActionItem::PENDING_VERIFICATION] === 0
+    && $out['action_item_status_counts'][MeetingActionItem::COMPLETED] >= 1
+    && $out['action_item_status_counts'][MeetingActionItem::CANCELLED] >= 0
+    && (($out['all_action_item_status_counts'][MeetingActionItem::COMPLETED] ?? 0) >= 1)
     && $out['duplicate_followup_root_count'] === 0
     && $out['duplicate_action_item_sequence_count'] === 0
     && $out['duplicate_completion_count'] === 0
@@ -101,5 +132,7 @@ $out['pass'] = $out['request_status'] === 'CONVERTED_TO_MEETING'
     && $out['minutes_status_mutation_count'] === 0
     && $out['documentary_responsibility_mutation_count'] === 0
     && $out['documentary_target_date_mutation_count'] === 0
-    && $out['privacy']['biometric_sensitive_fields_in_flow12'] === 0;
+    && $out['audit_attachment_bytes_count'] === 0
+    && $out['privacy']['biometric_sensitive_fields_in_flow12'] === 0
+    && $out['privacy']['audit_attachment_bytes'] === 0;
 echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;

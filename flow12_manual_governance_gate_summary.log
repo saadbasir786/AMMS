@@ -1,1 +1,1 @@
-{"gate": "FLOW-05/FLOW-06 real HTTP ownership gate", "passed_steps": 14, "total_steps": 14, "pass": true}
+{"gate": "FLOW-05/FLOW-06 real HTTP completion governance gate", "passed_steps": 27, "total_steps": 27, "pass": true}

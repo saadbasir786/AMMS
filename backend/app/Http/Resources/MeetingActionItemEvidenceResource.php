@@ -22,6 +22,7 @@ class MeetingActionItemEvidenceResource extends JsonResource
             'uploaded_by_user_id' => $this->uploaded_by_user_id,
             'created_at' => $this->created_at,
             'download_url' => route('action-items.evidence.download', ['actionItem' => $this->action_item_id, 'evidence' => $this->id]),
+            'public_url' => false,
         ];
     }
 }

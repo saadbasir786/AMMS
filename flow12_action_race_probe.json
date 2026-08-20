@@ -1,6 +1,6 @@
 {
     "probe": "FLOW-12 MariaDB action-level race probe",
-    "fixture_tag": "F12-RACE-SKGFVII",
+    "fixture_tag": "F12-RACE-UEQRETZ",
     "concurrent_followup_initialization": [
         {
             "ok": true,
@@ -22,16 +22,16 @@
             "result": "ACTION_ITEM_CREATED"
         }
     ],
-    "action_item_rows_after_sequence_race": 5,
+    "action_item_rows_after_sequence_race": 7,
     "concurrent_extension_requests": [
-        {
-            "ok": true,
-            "result": "EXTENSION_REQUESTED"
-        },
         {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_EXTENSION_ALREADY_PENDING"
+        },
+        {
+            "ok": true,
+            "result": "EXTENSION_REQUESTED"
         }
     ],
     "concurrent_extension_review": [
@@ -49,8 +49,9 @@
     "extension_terminal_rows": 1,
     "concurrent_progress_cancel": [
         {
-            "ok": true,
-            "result": "PROGRESS_RECORDED"
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_INVALID_STATE"
         },
         {
             "ok": true,
@@ -58,7 +59,23 @@
         }
     ],
     "progress_cancel_terminal_rows": 1,
-    "concurrent_completion_reassignment": [
+    "concurrent_completion_submission_reassignment": [
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "UNAUTHORIZED_ACTION_ITEM_UPDATE"
+        },
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_REASSIGNED"
+        }
+    ],
+    "completion_submission_reassignment_final": {
+        "status": "IN_PROGRESS",
+        "assigned_employee_id": 3,
+        "lock_version": 1
+    },
+    "concurrent_completion_verification_reassignment": [
         {
             "ok": true,
             "result": "ACTION_ITEM_COMPLETED"
@@ -70,6 +87,23 @@
         }
     ],
     "completion_reassignment_completed_rows": 1,
+    "concurrent_extension_approval_verification": [
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_INVALID_STATE"
+        },
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_COMPLETED"
+        }
+    ],
+    "extension_approval_verification_final": {
+        "status": "COMPLETED",
+        "due_date": "2026-08-25",
+        "extension_status": "PENDING"
+    },
+    "overdue_check_applicability": "NOT_IMPLEMENTED / NOT_APPLICABLE: overdue is a read-time derived property; no scheduled checker or notification command exists",
     "concurrent_completion_verification": [
         {
             "ok": false,
@@ -82,6 +116,6 @@
         }
     ],
     "completed_action_item_rows": 1,
-    "completed_audit_rows": 2,
+    "completed_audit_rows": 3,
     "pass": true
 }
