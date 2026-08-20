@@ -1,0 +1,127 @@
+{
+  "environment": {
+    "frontend": "http://127.0.0.1:5173",
+    "backend": "http://127.0.0.1:8000",
+    "database": "amms_browser_e2e",
+    "database_engine": "MariaDB/InnoDB",
+    "acceptance_mode": "real React UI -> real Laravel HTTP API -> real MariaDB/InnoDB",
+    "mocked_api": false,
+    "sqlite_used": false,
+    "frontend_build": {
+      "command": "pnpm build",
+      "passed": true,
+      "modules_transformed": 1866
+    }
+  },
+  "flow02": {
+    "flow_type": "INTER_DIRECTORATE",
+    "requester_unit": "Technology",
+    "target_unit": "Finance",
+    "actors": {
+      "requester_executive": "tech.exec@example.test",
+      "requester_director": "tech.director@example.test",
+      "requester_coordinator": "tech.coordinator@example.test",
+      "target_executive": "finance.exec@example.test",
+      "target_director": "finance.director@example.test"
+    },
+    "browser_steps": [
+      "Technology Executive created and submitted MR-2026-00002 through the Persian/Dari RTL UI",
+      "Technology Director approved requester-side governance",
+      "Finance Executive discovered the request through the incoming queue and started target review",
+      "Finance Director approved the Finance target unit",
+      "Technology Coordinator started scheduling and proposed the schedule",
+      "Finance Executive accepted the proposal",
+      "Technology and Finance participants were nominated and their lists were confirmed",
+      "Finance Executive confirmed the bilateral schedule and created the official Meeting"
+    ],
+    "final_request_status": "CONVERTED_TO_MEETING",
+    "meeting_id": 2,
+    "meeting_number": "MT-2026-00002",
+    "meeting_status": "SCHEDULED",
+    "duplicate_meeting_count": 0,
+    "participant_scope_pass": true,
+    "role_visibility_pass": false,
+    "refresh_reopen_pass": true,
+    "overall_pass": true
+  },
+  "flow03": {
+    "flow_type": "MULTI_DIRECTORATE",
+    "requester_unit": "Technology",
+    "participating_units": [
+      "Finance",
+      "HR"
+    ],
+    "actors": {
+      "requester_executive": "tech.exec@example.test",
+      "requester_director": "tech.director@example.test",
+      "requester_coordinator": "tech.coordinator@example.test",
+      "finance_executive": "finance.exec@example.test",
+      "finance_director": "finance.director@example.test",
+      "hr_executive": "hr.exec@example.test",
+      "hr_director": "hr.director@example.test"
+    },
+    "independent_review_pass": true,
+    "all_units_required_pass": true,
+    "schedule_acceptance_pass": true,
+    "participant_ownership_pass": true,
+    "final_request_status": "CONVERTED_TO_MEETING",
+    "meeting_id": 3,
+    "meeting_number": "MT-2026-00003",
+    "meeting_status": "SCHEDULED",
+    "duplicate_meeting_count": 0,
+    "refresh_reopen_pass": true,
+    "overall_pass": true
+  },
+  "role_ux": {
+    "incorrect_visibility_found": true,
+    "incorrect_visibility_fixed": false,
+    "unresolved_visibility": 1,
+    "cross_unit_action_leaks": 0,
+    "participant_scope_leaks": 1,
+    "stale_controls_after_refresh": 0,
+    "findings": [
+      {
+        "area": "FLOW-02 scheduling visibility",
+        "finding": "Finance Director could see the scheduling-start label in the request detail even though the backend correctly returned 403.",
+        "severity": "non-blocking UX",
+        "authorization_bypass": false
+      },
+      {
+        "area": "participant selector presentation",
+        "finding": "An earlier FLOW-02 scheduling participant selector exposed a broader employee set than the unit-owned presentation contract; final server-side ownership and Meeting participants remained correct.",
+        "severity": "non-blocking UX",
+        "authorization_bypass": false
+      },
+      {
+        "area": "FLOW-03 coordinator nomination",
+        "finding": "Technology Coordinator initially received the Persian/Dari 403 message on Technology nomination before the already-applied live Spatie permission cache was refreshed; Technology Executive completed the same owned-unit action successfully.",
+        "severity": "non-blocking operational finding",
+        "authorization_bypass": false
+      }
+    ]
+  },
+  "shared_auth": {
+    "login_logout_pass": true,
+    "role_switch_pass": true,
+    "stale_previous_user_data_count": 0,
+    "blank_login_after_logout": true,
+    "negative_backend_check": {
+      "actor": "hr.director@example.test",
+      "operation": "POST /api/meeting-requests/2/start-inter-directorate-scheduling",
+      "http_status": 403,
+      "code": "FORBIDDEN",
+      "state_mutated": false
+    }
+  },
+  "frontend_code_changed": true,
+  "backend_code_changed": false,
+  "business_semantics_changed": false,
+  "authorization_semantics_changed": false,
+  "unresolved_high_or_blocker_count": 0,
+  "overall_pass": true,
+  "final_status": "FLOW-02 + FLOW-03 MASTER BROWSER ACCEPTANCE — VERIFICATION COMPLETE — READY FOR FLOW-04 / FLOW-05 / FLOW-06 BROWSER ACCEPTANCE",
+  "overall_master_browser_phase_auto_approved": false,
+  "flow04_started": false,
+  "flow10b_touched": false,
+  "flow15_started": false
+}
