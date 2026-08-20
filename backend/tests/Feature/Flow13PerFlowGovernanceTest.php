@@ -55,6 +55,140 @@ class Flow13PerFlowGovernanceTest extends TestCase
         ];
     }
 
+    public function test_flow01_owner_and_director_complete_postponement(): void
+    {
+        $meeting = $this->meetingForFlow('INTERNAL_DIRECTORATE');
+        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $director = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $owner);
+        $review = $this->unitReview($case, OrganizationalUnit::where('code', 'TECH')->value('id'));
+        $this->actingAs($director, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/approve')->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    public function test_flow02_requires_both_directorate_approvals_and_denies_cross_unit_substitution(): void
+    {
+        $meeting = $this->meetingForFlow('INTER_DIRECTORATE');
+        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $tech = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $finance = User::where('email', 'finance.director@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $owner);
+        $techReview = $this->unitReview($case, OrganizationalUnit::where('code', 'TECH')->value('id'));
+        $financeReview = $this->unitReview($case, OrganizationalUnit::where('code', 'FIN')->value('id'));
+        $this->actingAs($tech, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$techReview->id.'/approve')->assertOk();
+        $this->actingAs($tech, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$financeReview->id.'/approve')->assertStatus(403);
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertStatus(409);
+        $this->actingAs($finance, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$financeReview->id.'/approve')->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    public function test_flow03_correction_creates_v2_and_v1_approvals_do_not_transfer(): void
+    {
+        $meeting = $this->meetingForFlow('MULTI_DIRECTORATE');
+        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $tech = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $finance = User::where('email', 'finance.director@example.test')->firstOrFail();
+        $hr = User::where('email', 'hr.director@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $owner);
+        $techReview = $this->unitReview($case, OrganizationalUnit::where('code', 'TECH')->value('id'));
+        $financeReview = $this->unitReview($case, OrganizationalUnit::where('code', 'FIN')->value('id'));
+        $hrReview = $this->unitReview($case, OrganizationalUnit::where('code', 'HR')->value('id'));
+        $this->actingAs($tech, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$techReview->id.'/approve')->assertOk();
+        $this->actingAs($finance, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$financeReview->id.'/approve')->assertOk();
+        $this->actingAs($hr, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$hrReview->id.'/correction', ['reason' => 'اصلاح نسخهٔ اول لازم است.'])->assertOk();
+        $oldVersionId = $case->current_version_id;
+        $this->actingAs($owner, 'sanctum')->putJson('/api/meeting-exceptions/'.$case->id.'/draft', ['reason' => 'نسخهٔ دوم اصلاح‌شده.'])->assertOk();
+        $case = $case->fresh(['currentVersion.reviews']);
+        $this->assertNotSame($oldVersionId, $case->current_version_id);
+        $this->assertCount(0, $case->currentVersion->reviews);
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/submit')->assertOk();
+        $case = $case->fresh(['currentVersion.reviews']);
+        $this->assertCount(3, $case->currentVersion->reviews);
+        $this->assertTrue($case->currentVersion->reviews->every(fn ($review) => $review->status === 'PENDING'));
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertStatus(409);
+        foreach ([[$techReview->organizational_unit_id, $tech], [$financeReview->organizational_unit_id, $finance], [$hrReview->organizational_unit_id, $hr]] as [$unitId, $actor]) {
+            $review = $this->unitReview($case, $unitId);
+            $this->actingAs($actor, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/approve')->assertOk();
+        }
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    public function test_flow04_requires_requester_ack_exact_high_authority_and_executive_secretary_apply(): void
+    {
+        $this->completeAuthorityFlow('DIRECTORATE_WITH_HIGH_AUTHORITY', true, true);
+    }
+
+    public function test_flow05_requires_all_formal_acks_exact_high_authority_and_no_authority_office_substitution(): void
+    {
+        $meeting = $this->meetingForFlow('MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY');
+        $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
+        $high = User::where('email', 'high.authority@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $secretary);
+        foreach (['TECH' => 'tech.director@example.test', 'FIN' => 'finance.director@example.test', 'HR' => 'hr.director@example.test'] as $code => $email) {
+            $review = $this->unitReview($case, OrganizationalUnit::where('code', $code)->value('id'));
+            $this->actingAs(User::where('email', $email)->firstOrFail(), 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/acknowledge')->assertOk();
+        }
+        $highReview = $this->highReview($case);
+        $this->actingAs(User::where('email', 'authority.office@example.test')->firstOrFail(), 'sanctum')->postJson('/api/meeting-exception-reviews/'.$highReview->id.'/approve')->assertStatus(403);
+        $this->actingAs($high, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$highReview->id.'/approve')->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    public function test_flow06_has_no_requester_review_and_exact_high_authority_apply(): void
+    {
+        $meeting = $this->meetingForFlow('HIGH_AUTHORITY_INITIATED');
+        $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
+        $high = User::where('email', 'high.authority@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $secretary);
+        $case = $case->fresh(['currentVersion.reviews']);
+        $this->assertNull($meeting->request->requesting_unit_id);
+        $this->assertCount(4, $case->currentVersion->reviews);
+        $this->assertCount(3, $case->currentVersion->reviews->where('reviewer_type', 'UNIT'));
+        $this->assertCount(1, $case->currentVersion->reviews->where('reviewer_type', 'HIGH_AUTHORITY'));
+        $this->assertTrue($case->currentVersion->reviews->where('reviewer_type', 'UNIT')->every(fn ($review) => $review->review_requirement === 'ACKNOWLEDGEMENT'));
+        foreach (['TECH' => 'tech.director@example.test', 'FIN' => 'finance.director@example.test', 'HR' => 'hr.director@example.test'] as $code => $email) {
+            $review = $this->unitReview($case, OrganizationalUnit::where('code', $code)->value('id'));
+            $this->actingAs(User::where('email', $email)->firstOrFail(), 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/acknowledge')->assertOk();
+        }
+        $this->actingAs($high, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$this->highReview($case)->id.'/approve')->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    private function completeAuthorityFlow(string $flowType, bool $assertRequesterAck, bool $assertHighAuthority): void
+    {
+        $meeting = $this->meetingForFlow($flowType);
+        $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
+        $high = User::where('email', 'high.authority@example.test')->firstOrFail();
+        $case = $this->createAndSubmit($meeting, $secretary);
+        $unitReview = $this->unitReview($case, OrganizationalUnit::where('code', 'TECH')->value('id'));
+        if ($assertRequesterAck) $this->actingAs(User::where('email', 'tech.director@example.test')->firstOrFail(), 'sanctum')->postJson('/api/meeting-exception-reviews/'.$unitReview->id.'/acknowledge')->assertOk();
+        if ($assertHighAuthority) $this->actingAs($high, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$this->highReview($case)->id.'/approve')->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertOk();
+        $this->assertSame('POSTPONED', $meeting->fresh()->status);
+    }
+
+    private function createAndSubmit(Meeting $meeting, User $owner): \App\Models\MeetingExceptionCase
+    {
+        $created = $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/exceptions', ['case_type' => 'POSTPONEMENT', 'reason' => 'FLOW-13 per-flow behavioral test.'])->assertCreated()->json('data');
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$created['id'].'/submit')->assertOk();
+        return \App\Models\MeetingExceptionCase::with('currentVersion.reviews')->findOrFail($created['id']);
+    }
+
+    private function unitReview(\App\Models\MeetingExceptionCase $case, int $unitId): \App\Models\MeetingExceptionReview
+    {
+        return $case->fresh(['currentVersion.reviews'])->currentVersion->reviews->firstOrFail(fn ($review) => (int) $review->organizational_unit_id === $unitId);
+    }
+
+    private function highReview(\App\Models\MeetingExceptionCase $case): \App\Models\MeetingExceptionReview
+    {
+        return $case->fresh(['currentVersion.reviews'])->currentVersion->reviews->firstOrFail(fn ($review) => $review->reviewer_type === 'HIGH_AUTHORITY');
+    }
+
     private function meetingForFlow(string $flowType): Meeting
     {
         $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();

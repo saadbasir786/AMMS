@@ -112,6 +112,17 @@ class Flow13ExceptionTest extends TestCase
         $this->assertSame('DRAFT', $updated['status']);
     }
 
+    public function test_duplicate_application_returns_terminal_already_applied_error(): void
+    {
+        [$meeting, $owner, $director] = $this->scheduledFixture();
+        $created = $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/exceptions', ['case_type' => 'CANCELLATION', 'reason' => 'لغو برای آزمون تکرار عملیات.'])->assertCreated()->json('data');
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$created['id'].'/submit')->assertOk();
+        $review = \App\Models\MeetingExceptionReview::where('exception_case_version_id', $created['current_version']['id'])->firstOrFail();
+        $this->actingAs($director, 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/approve')->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$created['id'].'/apply')->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$created['id'].'/apply')->assertStatus(409)->assertJsonPath('code', 'MEETING_EXCEPTION_ALREADY_APPLIED');
+    }
+
     public function test_non_owner_business_actors_cannot_create_or_apply_exception(): void
     {
         [$meeting, $owner] = $this->scheduledFixture();

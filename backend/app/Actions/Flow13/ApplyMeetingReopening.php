@@ -25,7 +25,7 @@ class ApplyMeetingReopening
         return DB::transaction(function () use ($case, $actor): MeetingExceptionCase {
             $locked = MeetingExceptionCase::query()->with(['meeting.request', 'currentVersion'])->lockForUpdate()->findOrFail($case->id);
             $meeting = Meeting::query()->with(['request'])->lockForUpdate()->findOrFail($locked->meeting_id);
-            abort_unless($locked->status === MeetingExceptionCase::READY_TO_APPLY, 409, 'MEETING_EXCEPTION_REVIEW_INCOMPLETE');
+            $this->assertCaseReadyForApplication($locked);
             abort_unless($meeting->status === 'CANCELLED', 409, $meeting->status === 'COMPLETED' ? 'COMPLETED_MEETING_REOPEN_NOT_ALLOWED' : ($meeting->status === 'HELD' ? 'HELD_MEETING_REOPEN_NOT_ALLOWED' : 'MEETING_REOPEN_NOT_ALLOWED'));
             $this->assertBaseline($locked, $meeting);
             $meeting->forceFill(['status' => 'POSTPONED'])->save();

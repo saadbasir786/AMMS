@@ -26,7 +26,7 @@ class ApplyMeetingPostponement
         return DB::transaction(function () use ($case, $actor): MeetingExceptionCase {
             $locked = MeetingExceptionCase::query()->with(['meeting.request', 'currentVersion'])->lockForUpdate()->findOrFail($case->id);
             $meeting = Meeting::query()->with(['request', 'terminalAssignments', 'attendanceRecords'])->lockForUpdate()->findOrFail($locked->meeting_id);
-            abort_unless($locked->status === MeetingExceptionCase::READY_TO_APPLY, 409, 'MEETING_EXCEPTION_REVIEW_INCOMPLETE');
+            $this->assertCaseReadyForApplication($locked);
             abort_unless($meeting->status === 'SCHEDULED', 409, 'MEETING_POSTPONEMENT_NOT_ALLOWED');
             abort_unless($locked->currentVersion && !$locked->currentVersion->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
             $this->assertBaseline($locked, $meeting);

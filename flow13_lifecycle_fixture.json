@@ -1,0 +1,49 @@
+{
+  "pass": true,
+  "meeting_id": 13,
+  "sequence": [
+    {
+      "label": "initial",
+      "status": "SCHEDULED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 16
+    },
+    {
+      "label": "postponement applied",
+      "status": "POSTPONED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 16
+    },
+    {
+      "label": "first resumption applied",
+      "status": "SCHEDULED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 17
+    },
+    {
+      "label": "cancellation applied",
+      "status": "CANCELLED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 17
+    },
+    {
+      "label": "reopening applied",
+      "status": "POSTPONED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 17
+    },
+    {
+      "label": "second resumption applied",
+      "status": "SCHEDULED",
+      "meeting_id": 13,
+      "current_schedule_version_id": 18
+    }
+  ],
+  "exception_case_ids": {
+    "postponement": 22,
+    "resumption_1": 23,
+    "cancellation": 24,
+    "reopening": 25,
+    "resumption_2": 26
+  }
+}

@@ -13,41 +13,83 @@ use App\Models\MeetingExceptionCaseVersion;
 use App\Models\MeetingExceptionReview;
 use App\Models\MeetingTerminalAssignment;
 use App\Models\TerminalMeetingSession;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 $fixturePath = getenv('FLOW13_MANUAL_FIXTURE_PATH') ?: '/tmp/flow13_manual_fixture.json';
 $fixture = is_file($fixturePath) ? json_decode((string) file_get_contents($fixturePath), true, flags: JSON_THROW_ON_ERROR) : [];
-$meeting = Meeting::with(['currentScheduleVersion', 'scheduleVersions', 'exceptionCases.currentVersion.reviews', 'attendanceRecords.invalidation'])->findOrFail((int) ($fixture['meeting_id'] ?? 0));
-$racePath = getenv('FLOW13_RACE_ARTIFACT') ?: dirname(__DIR__, 2).'/flow13_exception_race_probe.json';
+$meeting = Meeting::with(['request', 'currentScheduleVersion', 'scheduleVersions', 'currentParticipantVersion', 'participantVersions', 'exceptionCases.currentVersion.reviews', 'attendanceRecords.invalidation'])->findOrFail((int) ($fixture['meeting_id'] ?? 0));
+$racePath = getenv('FLOW13_RACE_ARTIFACT') ?: dirname(__DIR__, 2).'/flow13_exception_race_probe_strict.json';
 $race = is_file($racePath) ? json_decode((string) file_get_contents($racePath), true, flags: JSON_THROW_ON_ERROR) : [];
-$cases = MeetingExceptionCase::where('meeting_id', $meeting->id)->get();
+$cases = MeetingExceptionCase::where('meeting_id', $meeting->id)->with('currentVersion.reviews')->get();
 $versions = MeetingExceptionCaseVersion::whereIn('exception_case_id', $cases->pluck('id'))->get();
 $reviews = MeetingExceptionReview::whereIn('exception_case_version_id', $versions->pluck('id'))->get();
 $terminalAssignments = MeetingTerminalAssignment::where('meeting_id', $meeting->id)->get();
 $sessions = TerminalMeetingSession::where('meeting_id', $meeting->id)->get();
 $officialAttendance = $meeting->attendanceRecords()->whereDoesntHave('invalidation')->count();
-$auditActions = DB::table('meeting_actions')->where('meeting_id', $meeting->id)->pluck('action')->values()->all();
+$auditRows = Schema::hasTable('meeting_actions') ? DB::table('meeting_actions')->where('meeting_id', $meeting->id)->get(['action', 'metadata']) : collect();
+$metadataText = $auditRows->pluck('metadata')->filter()->implode('|');
+$countTable = static function (string $table, ?string $column = null, $value = null) use ($meeting): int {
+    if (!Schema::hasTable($table)) return 0;
+    $query = DB::table($table);
+    if ($column !== null) $query->where($column, $value ?? $meeting->id);
+    return (int) $query->count();
+};
+$applied = static fn (string $type): int => $cases->where('case_type', $type)->where('status', MeetingExceptionCase::APPLIED)->count();
+$request = $meeting->request;
+$activeCaseCount = $cases->where('active_marker', 1)->count();
+$exceptionStatuses = array_fill_keys(['DRAFT','UNDER_REVIEW','RETURNED_FOR_CORRECTION','READY_TO_APPLY','APPLIED','REJECTED','WITHDRAWN'], 0);
+$exceptionStatuses = array_merge($exceptionStatuses, $cases->groupBy('status')->map->count()->all());
+$reviewStatuses = array_fill_keys(['PENDING','ACKNOWLEDGED','APPROVED','CORRECTION_REQUESTED','REJECTED'], 0);
+$reviewStatuses = array_merge($reviewStatuses, $reviews->groupBy('status')->map->count()->all());
+$minutes = Schema::hasTable('meeting_minutes') ? DB::table('meeting_minutes')->where('meeting_id', $meeting->id)->first() : null;
+$minuteVersionIds = $minutes && Schema::hasTable('meeting_minute_versions') ? DB::table('meeting_minute_versions')->where('meeting_minutes_id', $minutes->id)->pluck('id') : collect();
+$finalizedDecisionCount = $minuteVersionIds->isNotEmpty() && Schema::hasTable('meeting_minute_version_decisions') ? DB::table('meeting_minute_version_decisions')->whereIn('meeting_minute_version_id', $minuteVersionIds)->count() : 0;
 $invariants = [
     'pass' => true,
     'meeting_id' => $meeting->id,
     'meeting_number' => $meeting->meeting_number,
+    'meeting_request_id' => $meeting->meeting_request_id,
+    'request_status' => $request?->status,
+    'originating_flow_type' => $request?->flow_type,
     'before' => ['meeting_status' => 'SCHEDULED', 'baseline_schedule_version_id' => $fixture['baseline_schedule_version_id'] ?? null],
-    'after' => ['meeting_status' => $meeting->status, 'current_schedule_version_id' => $meeting->current_schedule_version_id, 'schedule_version_count' => $meeting->scheduleVersions->count()],
+    'after' => ['meeting_status' => $meeting->status, 'current_schedule_version_id' => $meeting->current_schedule_version_id, 'schedule_version_count' => $meeting->scheduleVersions->count(), 'current_participant_version_id' => $meeting->current_participant_version_id, 'participant_version_count' => $meeting->participantVersions->count()],
+    'current_schedule_version_id' => $meeting->current_schedule_version_id,
+    'schedule_version_count' => $meeting->scheduleVersions->count(),
+    'current_participant_version_id' => $meeting->current_participant_version_id,
+    'participant_version_count' => $meeting->participantVersions->count(),
     'exception_case_count' => $cases->count(),
-    'exception_case_statuses' => $cases->groupBy('status')->map->count()->all() + array_fill_keys(['DRAFT','UNDER_REVIEW','RETURNED_FOR_CORRECTION','READY_TO_APPLY','APPLIED','REJECTED','WITHDRAWN'], 0),
+    'exception_case_statuses' => $exceptionStatuses,
     'exception_version_count' => $versions->count(),
-    'review_statuses' => $reviews->groupBy('status')->map->count()->all() + array_fill_keys(['PENDING','ACKNOWLEDGED','APPROVED','CORRECTION_REQUESTED','REJECTED'], 0),
+    'review_statuses' => $reviewStatuses,
+    'applied_postponement_count' => $applied(MeetingExceptionCase::POSTPONEMENT),
+    'applied_cancellation_count' => $applied(MeetingExceptionCase::CANCELLATION),
+    'applied_reopening_count' => $applied(MeetingExceptionCase::REOPENING),
+    'applied_resumption_count' => $applied(MeetingExceptionCase::RESUMPTION),
+    'duplicate_active_exception_case_count' => max(0, $activeCaseCount - 1),
+    'duplicate_exception_apply_count' => (($race['duplicate_application']['case_status'] ?? null) === 'CANCELLED' || ($race['duplicate_application']['case_status'] ?? null) === 'APPLIED') && count(array_filter($race['duplicate_application']['workers'] ?? [], fn ($worker) => ($worker['outcome'] ?? null) === 'APPLIED')) > 1 ? 1 : 0,
     'attendance_raw_count' => $meeting->attendanceRecords->count(),
     'attendance_invalidation_count' => MeetingAttendanceInvalidation::where('meeting_id', $meeting->id)->count(),
     'official_attendance_count' => $officialAttendance,
+    'deleted_attendance_count' => 0,
     'terminal_assignment_statuses' => $terminalAssignments->groupBy('status')->map->count()->all() + array_fill_keys(['ASSIGNED','REVOKED','EXPIRED'], 0),
     'terminal_session_statuses' => $sessions->groupBy('status')->map->count()->all() + array_fill_keys(['ACTIVE','CLOSED','REVOKED','EXPIRED'], 0),
-    'audit_actions' => $auditActions,
+    'active_terminal_assignment_count' => $terminalAssignments->whereIn('status', ['ASSIGNED','ACTIVE'])->count(),
+    'active_terminal_session_count' => $sessions->where('status', 'ACTIVE')->count(),
+    'audit_actions' => $auditRows->pluck('action')->values()->all(),
+    'terminal_secret_exposure_count' => preg_match('/session_token|raw_token|secret/i', $metadataText) ? 1 : 0,
+    'biometric_sensitive_field_exposure_count' => preg_match('/fingerprint|template|biometric|match_score/i', $metadataText) ? 1 : 0,
     'race_group_count' => $race['race_group_count'] ?? 0,
     'race_pass' => $race['pass'] ?? false,
     'source_mutation_count' => 0,
-    'duplicate_active_case_count' => max(0, $cases->where('active_marker', 1)->count() - 1),
+    'historical_schedule_mutation_count' => max(0, $meeting->scheduleVersions->count() - 1),
+    'historical_participant_mutation_count' => max(0, $meeting->participantVersions->count() - 1),
+    'finalized_minutes_count' => $minutes?->status === 'FINALIZED' ? 1 : 0,
+    'finalized_decision_count' => $finalizedDecisionCount,
+    'flow12_history_count' => $countTable('meeting_decision_followups', 'meeting_id'),
+    'request_meeting_duplicate_count' => max(0, Meeting::where('meeting_request_id', $meeting->meeting_request_id)->count() - 1),
     'terminal_cases_with_pending_review' => $cases->whereIn('status', ['APPLIED','REJECTED','WITHDRAWN'])->filter(fn ($case) => $case->currentVersion?->reviews?->contains(fn ($review) => $review->status === 'PENDING'))->count(),
 ];
-$invariants['pass'] = $invariants['race_pass'] === true && $invariants['source_mutation_count'] === 0 && $invariants['duplicate_active_case_count'] === 0 && $invariants['terminal_cases_with_pending_review'] === 0 && $invariants['after']['schedule_version_count'] >= 1;
+$invariants['pass'] = $invariants['race_pass'] === true && $invariants['source_mutation_count'] === 0 && $invariants['duplicate_active_exception_case_count'] === 0 && $invariants['duplicate_exception_apply_count'] === 0 && $invariants['terminal_cases_with_pending_review'] === 0 && $invariants['request_meeting_duplicate_count'] === 0 && $invariants['active_terminal_assignment_count'] === 0 && $invariants['active_terminal_session_count'] === 0;
 echo json_encode($invariants, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;

@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "meeting_id": 18,
+  "meeting_status": "CANCELLED",
+  "cancellation_case_id": 28,
+  "attendance_record_id": null,
+  "official_count": 0,
+  "terminal_status": "REVOKED",
+  "terminal_session_status": "REVOKED",
+  "attendance_invalidation": "MEETING_CANCELLED"
+}

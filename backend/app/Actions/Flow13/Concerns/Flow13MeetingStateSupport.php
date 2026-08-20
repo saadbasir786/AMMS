@@ -14,6 +14,14 @@ use Illuminate\Support\Str;
 
 trait Flow13MeetingStateSupport
 {
+    protected function assertCaseReadyForApplication(MeetingExceptionCase $case): void
+    {
+        if ($case->status === MeetingExceptionCase::APPLIED) {
+            abort(409, 'MEETING_EXCEPTION_ALREADY_APPLIED');
+        }
+        abort_unless($case->status === MeetingExceptionCase::READY_TO_APPLY, 409, 'MEETING_EXCEPTION_REVIEW_INCOMPLETE');
+    }
+
     protected function assertBaseline(MeetingExceptionCase $case, Meeting $meeting): void
     {
         abort_unless($meeting->status === $case->baseline_meeting_status

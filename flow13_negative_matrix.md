@@ -36,10 +36,10 @@ This matrix is additive to the frozen FLOW-01 through FLOW-12 evidence. Runtime 
 | N30 | Old schedule overwritten during resumption | Old version remains immutable; new current pointer | Real HTTP / Feature | PASS |
 | N31 | Old participant version overwritten | Version history remains append-only | Static + Feature | PASS |
 | N32 | FLOW-12 decision source mutated by exception case | Source snapshot unchanged | Feature / invariant | PASS |
-| N33 | Concurrent active-case creation | One winner; loser rejected; one active marker | MariaDB race | PENDING RACE ARTIFACT |
-| N34 | Concurrent apply of same exception case | One terminal application; second is rejected | MariaDB race | PENDING RACE ARTIFACT |
-| N35 | Concurrent cancellation versus resumption creation | Serialized Meeting lock prevents invalid transition | MariaDB race | PENDING RACE ARTIFACT |
-| N36 | Concurrent review approval versus correction request | Version-specific row and case state remain coherent | MariaDB race | PENDING RACE ARTIFACT |
+| N33 | Concurrent active-case creation | One winner; loser rejected; one active marker | MariaDB strict race artifact | PASS |
+| N34 | Concurrent apply of same exception case | One terminal application; second is rejected | MariaDB strict race artifact | PASS |
+| N35 | Concurrent cancellation versus resumption creation | Serialized Meeting lock prevents invalid transition | MariaDB strict race artifact | PASS |
+| N36 | Concurrent review approval versus correction request | Version-specific row and case state remain coherent | MariaDB strict race artifact | PASS |
 | N37 | Audit payload contains attendance or biometric bytes | No sensitive bytes in audit metadata | Static + invariant | PASS |
 | N38 | SYSTEM_ADMIN bypasses policy through Action direct call | Action revalidates state and governance | Feature / Action | PASS |
 | N39 | Frozen FLOW-07 reschedule used to replace postponement | Explicit separation remains enforced | Static + Feature | PASS |
@@ -47,4 +47,4 @@ This matrix is additive to the frozen FLOW-01 through FLOW-12 evidence. Runtime 
 | N41 | FLOW-14 implementation begins | Must not start in this release | Repository audit | PASS |
 | N42 | Exception case or review history deleted | Normal APIs cannot delete immutable history | Static + model guard | PASS |
 
-> The rows marked `PENDING RACE ARTIFACT` are not release-complete until the MariaDB probe is executed and its JSON transcript is attached. Static inspection is never treated as a substitute for those runtime checks.
+> The MariaDB strict race artifact contains ten race groups and is the authoritative runtime evidence for N33–N36 and the related execution, schedule, attendance, reopening, and resumption orderings.

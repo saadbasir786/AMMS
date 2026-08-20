@@ -1,0 +1,52 @@
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Flow13PerFlowGovernanceTest[39m
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.66s[39m  
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.03s[39m  
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.03s[39m  
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.03s[39m  
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.03s[39m  
+  [32;1m✓[39;22m[90m [39m[90meach frozen flow has independent exception owner and scope contract[39m[90m…[39m [90m0.03s[39m  
+  [32;1m✓[39;22m[90m [39m[90mflow01 owner and director complete postponement[39m[90m                     [39m [90m0.08s[39m  
+  [32;1m✓[39;22m[90m [39m[90mflow02 requires both directorate approvals and denies cross unit su[39m[90m…[39m [90m0.08s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mflow03 correction creates v2 and v1 approvals do not transfer[39m[90m       [39m [90m0.08s[39m  
+  [32;1m✓[39;22m[90m [39m[90mflow04 requires requester ack exact high authority and executive se[39m[90m…[39m [90m0.07s[39m  
+  [32;1m✓[39;22m[90m [39m[90mflow05 requires all formal acks exact high authority and no authori[39m[90m…[39m [90m0.09s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mflow06 has no requester review and exact high authority apply[39m[90m       [39m [90m0.06s[39m  
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Flow13PerFlowGovernanceTest[22m [90m>[39m flow03 correction cre…   
+[39;1m  Failed asserting that actual size 0 matches expected size 3.[39;22m
+
+  at [32mtests/Feature/Flow13PerFlowGovernanceTest.php[39m:[32m105[39m
+    101▕         $oldVersionId = $case->current_version_id;
+    102▕         $this->actingAs($owner, 'sanctum')->putJson('/api/meeting-exceptions/'.$case->id.'/draft', ['reason' => 'نسخهٔ دوم اصلاح‌شده.'])->assertOk();
+    103▕         $case = $case->fresh(['currentVersion.reviews']);
+    104▕         $this->assertNotSame($oldVersionId, $case->current_version_id);
+  ➜ 105▕         $this->assertCount(3, $case->currentVersion->reviews);
+    106▕         $this->assertTrue($case->currentVersion->reviews->every(fn ($review) => $review->status === 'PENDING'));
+    107▕         $this->actingAs($owner, 'sanctum')->postJson('/api/meeting-exceptions/'.$case->id.'/apply')->assertStatus(409);
+    108▕         foreach ([[$techReview->organizational_unit_id, $tech], [$financeReview->organizational_unit_id, $finance], [$hrReview->organizational_unit_id, $hr]] as [$unitId, $actor]) {
+    109▕             $review = $this->unitReview($case, $unitId);
+
+  [33m1   [39m[39;1mtests/Feature/Flow13PerFlowGovernanceTest.php[39;22m:[39;1m105[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Flow13PerFlowGovernanceTest[22m [90m>[39m flow06 has no request…   
+[39;1m  Failed asserting that actual size 4 matches expected size 3.[39;22m
+
+  at [32mtests/Feature/Flow13PerFlowGovernanceTest.php[39m:[32m146[39m
+    142▕         $high = User::where('email', 'high.authority@example.test')->firstOrFail();
+    143▕         $case = $this->createAndSubmit($meeting, $secretary);
+    144▕         $case = $case->fresh(['currentVersion.reviews']);
+    145▕         $this->assertNull($meeting->request->requesting_unit_id);
+  ➜ 146▕         $this->assertCount(3, $case->currentVersion->reviews);
+    147▕         $this->assertTrue($case->currentVersion->reviews->every(fn ($review) => $review->reviewer_type === 'UNIT' && $review->review_requirement === 'ACKNOWLEDGEMENT'));
+    148▕         foreach (['TECH' => 'tech.director@example.test', 'FIN' => 'finance.director@example.test', 'HR' => 'hr.director@example.test'] as $code => $email) {
+    149▕             $review = $this->unitReview($case, OrganizationalUnit::where('code', $code)->value('id'));
+    150▕             $this->actingAs(User::where('email', $email)->firstOrFail(), 'sanctum')->postJson('/api/meeting-exception-reviews/'.$review->id.'/acknowledge')->assertOk();
+
+  [33m1   [39m[39;1mtests/Feature/Flow13PerFlowGovernanceTest.php[39;22m:[39;1m146[39;22m
+
+
+  [90mTests:[39m    [31;1m2 failed[39;22m[90m,[39m[39m [39m[32;1m10 passed[39;22m[90m (73 assertions)[39m
+  [90mDuration:[39m [39m1.32s[39m
+

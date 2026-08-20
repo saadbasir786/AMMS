@@ -10,23 +10,7 @@
 
 The implementation is additive. Migration `2026_08_20_130000_add_flow13_exception_governance.php` adds exception cases, immutable case versions, version-bound review rows, and attendance-invalidation overlays without rewriting historical Meeting, schedule, participant, attendance, terminal, minutes, or decision rows. Permission migrations `2026_08_20_130010_seed_flow13_permissions.php` and `2026_08_20_130020_seed_flow13_director_approval.php` add FLOW-13 permissions while keeping `SYSTEM_ADMIN` outside business governance.
 
-The backend exposes canonical Meeting/Case/Review identities through the following authenticated routes:
-
-| Capability | Route |
-|---|---|
-| List exception cases | `GET /api/meetings/{meeting}/exceptions` |
-| Create case | `POST /api/meetings/{meeting}/exceptions` |
-| Show case and current version reviews | `GET /api/meeting-exceptions/{case}` |
-| Create correction version | `PUT /api/meeting-exceptions/{case}/draft` |
-| Submit current version | `POST /api/meeting-exceptions/{case}/submit` |
-| Acknowledge version-specific review | `POST /api/meeting-exception-reviews/{review}/acknowledge` |
-| Approve version-specific review | `POST /api/meeting-exception-reviews/{review}/approve` |
-| Request correction | `POST /api/meeting-exception-reviews/{review}/correction` |
-| Reject or withdraw case | `POST /api/meeting-exceptions/{case}/reject` and `/withdraw` |
-| Apply postponement/cancellation/reopening | `POST /api/meeting-exceptions/{case}/apply` |
-| Resume postponed Meeting | `POST /api/meeting-exceptions/{case}/resume` |
-
-Each mutation passes through a FormRequest, Policy, governance resolver, explicit Action, transaction, row locks, baseline revalidation, immutable audit/notification handling, and API Resource. Submitted versions are immutable. Corrections create version N+1 and preserve prior reviews and review outcomes.
+The backend exposes canonical Meeting/Case/Review identities through authenticated routes for creation, draft correction, submission, version-specific acknowledgement and approval, correction requests, rejection, withdrawal, application, and resumption. Each mutation passes through a FormRequest, Policy, governance resolver, explicit Action, transaction, row locks, baseline revalidation, immutable audit/notification handling, and API Resource. Submitted versions are immutable; corrections create version N+1 and preserve prior versions and review outcomes. Cross-unit visibility is limited to required formal-unit Directors and the exact High Authority identity, while operation authority remains review-type and unit scoped.
 
 ## State and governance invariants
 
@@ -40,74 +24,88 @@ When postponement, cancellation, or reopening is applied, active FLOW-09 termina
 
 | Gate | Result |
 |---|---:|
-| Full Laravel Feature regression | **359 tests / 1,550 assertions — PASS** |
-| FLOW-12 compatibility suite | **10 tests / 115 assertions — PASS** |
-| FLOW-13 Feature suite | **6 tests / 52 assertions — PASS** |
-| FLOW-13 per-flow governance suite | **6 tests / 33 assertions — PASS** |
-| FLOW-13 dedicated backend coverage | **12 tests / 85 assertions — PASS** |
+| Full Laravel Feature regression | **366 tests / 1,614 assertions — PASS** |
+| FLOW-13 exception suite | **7 tests / 58 assertions — PASS** |
+| FLOW-13 per-flow governance suite | **12 tests / 91 assertions — PASS** |
 | Frontend production build | **PASS — 1,865 modules transformed** |
-| Real HTTP FLOW-13 governance gate | **27 / 27 — PASS** |
-| MariaDB/InnoDB FLOW-13 race groups | **4 / 4 — PASS** |
-| Canonical FLOW-13 invariants | **PASS** |
-| Negative matrix | **42 boundaries classified** |
+| Real HTTP lifecycle gate | **27 / 27 — PASS** |
+| Real HTTP strict closure gate | **43 / 43 — PASS** |
+| MariaDB/InnoDB strict race groups | **10 / 10 — PASS** |
+| Stable lifecycle canonical fixture | **PASS — one Meeting ID across six labeled states** |
+| Cancellation canonical fixture | **PASS — CANCELLED, official attendance 0** |
+| Canonical enriched invariants | **PASS** |
+| Negative matrix | **42 boundaries, all classified PASS** |
 
-## Real HTTP gate
+## Real HTTP strict gates
 
-The fresh disposable HTTP fixture exercised the complete owner/reviewer path. The owner created and submitted a postponement case; High Authority and `SYSTEM_ADMIN` were denied creation; an unrelated Authority Office actor was denied unit-review approval; the exact scoped Director approved; and the owner applied postponement. The same fixture then created and applied resumption with a new exact schedule, created and applied cancellation, and finally created and applied formal reopening.
+The strict HTTP artifact `flow13_strict_http_gate.json` proves the remaining governance and lifecycle boundaries through the running Laravel API. FLOW-03 covers V1 approvals, a version-bound correction request, creation of a draft V2, resubmission with three fresh pending reviews, and independent V2 approvals before application. The artifact proves that V1 outcomes do not transfer to V2.
 
-The final HTTP result was **27/27 PASS**, with the Meeting ending in `POSTPONED` after reopening. The transcript is sanitized and contains no access tokens or passwords.
+FLOW-05 covers all three formal-unit acknowledgements, rejection of Authority Office substitution for the High Authority review, exact High Authority approval, and Executive Secretary application. FLOW-06 covers the High Authority-initiated shape with no requester review, three formal-unit acknowledgements, exact High Authority approval, and Executive Secretary application.
+
+The same strict gate records a pre-cancellation attendance row, applies cancellation, proves that the terminal session is denied after revocation, proves the invalidated attendance row is excluded from the official count, rejects new manual attendance with `MEETING_NOT_EXECUTABLE`, and rejects exception creation for a `COMPLETED` Meeting. The transcript contains no passwords or session tokens.
+
+## Canonical lifecycle and cancellation fixtures
+
+The stable lifecycle artifact `flow13_lifecycle_fixture.json` uses one Meeting ID and records the labeled sequence `initial`, `postponement applied`, `first resumption applied`, `cancellation applied`, `reopening applied`, and `second resumption applied`. The resulting status path is `SCHEDULED → POSTPONED → SCHEDULED → CANCELLED → POSTPONED → SCHEDULED`, with each resumption producing a distinct replacement schedule.
+
+The cancellation artifact `flow13_cancellation_fixture.json` ends with a single Meeting in `CANCELLED`, retains the raw attendance record, reports `official_count = 0`, and records the cancellation invalidation lifecycle. The independent strict HTTP gate additionally proves terminal-session revocation on the same class of transition.
 
 ## MariaDB concurrency gate
 
-The isolated `amms_concurrency_test` MariaDB schema was rebuilt from all additive migrations and seeded independently. The real Actions were executed with concurrent workers under InnoDB row locking.
+The authoritative artifact `flow13_exception_race_probe_strict.json` records ten MariaDB/InnoDB race groups. The groups cover active-case creation, duplicate application, approval versus correction, cancellation versus attendance, cancellation versus execution, FLOW-07 confirmation versus postponement, concurrent reopening application, concurrent resumption, and both cancellation-first and postponement-first attendance orderings.
 
-| Race group | Required invariant | Result |
+| Race evidence | Required invariant | Result |
 |---|---|---:|
 | Active-case creation | Exactly one active case; loser rejected | **PASS** |
-| Duplicate application | Exactly one terminal application; second rejected; Meeting `CANCELLED` | **PASS** |
-| Review approval versus correction | Version-bound review and case remain coherent | **PASS** |
-| Cancellation versus manual attendance | Cancellation wins or attendance wins serially; final cancelled Meeting has no official attendance | **PASS** |
+| Duplicate application | Exactly one terminal application; second returns `MEETING_EXCEPTION_ALREADY_APPLIED` | **PASS** |
+| Approval versus correction | Version-bound review and case remain coherent | **PASS** |
+| Cancellation/execution ordering | No invalid execution or cancellation transition | **PASS** |
+| FLOW-07/postponement ordering | Baseline and lifecycle state remain coherent | **PASS** |
+| Reopening and resumption races | One serialized winner; loser rejected | **PASS** |
+| Attendance orderings | Raw rows remain immutable and official count excludes invalidated rows | **PASS** |
 
-The race artifact records one serialized winner and one rejected loser for each group. No concurrent path created duplicate active cases or an invalid final Meeting state.
+## Canonical enriched invariants
 
-## Canonical invariants
+The regenerated `flow13_final_invariants.json` includes request provenance, current and historical schedule/participant pointers, applied exception counts, duplicate-case and duplicate-application counters, terminal and attendance safety counters, source-mutation counters, finalized-minutes and finalized-decision counters, FLOW-12 history count, and sensitive-field exposure counters.
 
-The regenerated invariant artifact reports the fresh HTTP Meeting as follows:
-
-| Invariant | Value |
+| Invariant family | Result |
 |---|---:|
-| Initial Meeting status | `SCHEDULED` |
-| Final Meeting status after reopening | `POSTPONED` |
-| Schedule Version count | `2` |
-| Exception case count | `4` |
-| Exception version count | `4` |
-| Pending reviews on terminal cases | `0` |
-| Duplicate active-case count | `0` |
-| Source mutation count | `0` |
-| MariaDB race groups | `4` |
-| MariaDB race result | `PASS` |
+| Request identity and originating flow type | **Present** |
+| Current and historical schedule versions | **Present; source immutable** |
+| Current and historical participant versions | **Present; append-only** |
+| Applied postponement/cancellation/reopening/resumption counts | **Present** |
+| Duplicate active case and duplicate apply counts | **0 / 0** |
+| Active terminal assignment/session counts after cancellation | **0 / 0** |
+| Raw versus official attendance | **Raw retained; official invalidated rows excluded** |
+| Request-to-Meeting duplicate count | **0** |
+| Terminal-secret and biometric-sensitive exposure counters | **0** |
+| MariaDB race result | **10 groups; PASS** |
 
-The source Meeting Request identity, historical Schedule Versions, participant versions, frozen FLOW-12 decision sources, and immutable attendance records remain separate from the additive exception overlay. Audit actions contain metadata only and do not store biometric bytes, attendance payloads, credentials, or secrets.
+## Negative matrix
+
+`flow13_negative_matrix.md` contains the complete 42-boundary matrix. All four previously stale MariaDB rows now cite the strict race artifact directly and are classified **PASS**. The matrix retains explicit repository-audit boundaries confirming that FLOW-10B hardware integration remains deferred and FLOW-14 has not started.
 
 ## UI verification
 
 The React frontend includes a Persian/Dari RTL FLOW-13 workspace at `/meetings/{id}/exceptions` and a direct action link from MeetingDetail. The workspace displays Meeting state, active exception cases, current version and review matrix, immutable history context, correction/withdrawal controls, and guarded apply/resume controls. The browser client never bypasses backend authorization; every button calls the canonical API route and renders the server result.
 
-The production build completed successfully with **1,865 transformed modules**. The existing FLOW-01 through FLOW-12 RTL workspaces remain present and the build contains no FLOW-14 route or component.
+The production build completed successfully with **1,865 transformed modules**. The existing FLOW-01 through FLOW-12 RTL workspaces remain present, and the build contains no FLOW-14 route or component.
 
 ## Evidence references
 
 | Artifact | Purpose |
 |---|---|
-| `flow13_full_regression.log` | Full Laravel Feature regression transcript |
-| `flow13_frontend_build.log` | Frontend production build transcript |
-| `flow13_feature_with_terminal_retry.log` | FLOW-13 Feature evidence, 6 tests / 52 assertions |
-| `flow13_per_flow_governance_final.log` | FLOW-01–FLOW-06 resolver governance evidence |
-| `flow13_manual_gate.json` | Sanitized 27-step real HTTP transcript |
-| `flow13_exception_race_probe.json` | MariaDB/InnoDB four-race transcript |
-| `flow13_final_invariants.json` | Canonical before/after invariant artifact |
-| `flow13_negative_matrix.md` | 42-boundary negative matrix with evidence classifications |
+| `flow13_full_regression_strict.log` | Full Laravel Feature regression transcript, 366 tests / 1,614 assertions |
+| `flow13_frontend_build_strict.log` | Frontend production build transcript |
+| `flow13_per_flow_governance_strict_pass.log` | FLOW-01–FLOW-06 behavioral and resolver governance evidence |
+| `flow13_strict_http_gate.json` | 43-step real HTTP strict closure transcript |
+| `flow13_manual_gate.json` | Earlier 27-step real HTTP lifecycle transcript |
+| `flow13_exception_race_probe_strict.json` | Ten-group MariaDB/InnoDB race transcript |
+| `flow13_lifecycle_fixture.json` | Stable one-Meeting lifecycle sequence |
+| `flow13_cancellation_fixture.json` | Canonical cancelled Meeting and attendance invalidation evidence |
+| `flow13_final_invariants.json` | Enriched canonical invariant artifact |
+| `flow13_negative_matrix.md` | 42-boundary negative matrix with strict evidence classifications |
 
 ## Explicit approval gate
 
-The implementation and verification evidence are complete for this development stage. The release boundary remains intentionally open: **FLOW-13 requires explicit user approval before it may be declared APPROVED/FROZEN**. No FLOW-14 work has been initiated.
+The implementation and verification evidence are complete for this development stage. The release boundary remains intentionally open: **FLOW-13 requires explicit user approval before it may be declared APPROVED/FROZEN**. No FLOW-14 work has been initiated, and FLOW-10B remains deferred.

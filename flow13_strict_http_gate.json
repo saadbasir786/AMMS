@@ -1,0 +1,1914 @@
+{
+  "pass": true,
+  "steps": 43,
+  "fixture": {
+    "multi_meeting_id": 20,
+    "authority_meeting_id": 21,
+    "attendance_meeting_id": 22,
+    "completed_meeting_id": 23,
+    "owner_email": "tech.coordinator@example.test",
+    "director_email": "tech.director@example.test",
+    "terminal_session_uuid": "c99b4bde-6f41-4c56-9a70-89a250dd077a",
+    "terminal_assignment_id": 4,
+    "terminal_session_id": 4,
+    "attendance_employee_id": 1
+  },
+  "transcript": [
+    {
+      "label": "POSTPONEMENT case created",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meetings/20/exceptions",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "DRAFT",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 31,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": null
+          },
+          "reviews": [],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "POSTPONEMENT case submitted",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/29/submit",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 31,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:15.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 51,
+              "uuid": "6cc4489e-203c-42a0-809c-771513747808",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 52,
+              "uuid": "ffcbdd3e-5eb9-47aa-9ec5-a08ba8985e13",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 53,
+              "uuid": "9c0c37de-19f2-4363-8e6c-8820b365c1e7",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "read exception case",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meeting-exceptions/29",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 31,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:15.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 51,
+              "uuid": "6cc4489e-203c-42a0-809c-771513747808",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 52,
+              "uuid": "ffcbdd3e-5eb9-47aa-9ec5-a08ba8985e13",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 53,
+              "uuid": "9c0c37de-19f2-4363-8e6c-8820b365c1e7",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V1 Technology approves",
+      "email": "tech.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/53/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 53,
+          "uuid": "9c0c37de-19f2-4363-8e6c-8820b365c1e7",
+          "exception_case_version_id": 31,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 1,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 3,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:16.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V1 Finance approves",
+      "email": "finance.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/51/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 51,
+          "uuid": "6cc4489e-203c-42a0-809c-771513747808",
+          "exception_case_version_id": 31,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 2,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 5,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:16.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 HR requests correction",
+      "email": "hr.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/52/correction",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "RETURNED_FOR_CORRECTION",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 31,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:15.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 51,
+              "uuid": "6cc4489e-203c-42a0-809c-771513747808",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 5,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:16.000000Z"
+            },
+            {
+              "id": 53,
+              "uuid": "9c0c37de-19f2-4363-8e6c-8820b365c1e7",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 3,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:16.000000Z"
+            },
+            {
+              "id": 52,
+              "uuid": "ffcbdd3e-5eb9-47aa-9ec5-a08ba8985e13",
+              "exception_case_version_id": 31,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "CORRECTION_REQUESTED",
+              "reviewed_by_user_id": 7,
+              "reason": "اصلاح نسخهٔ اول لازم است.",
+              "reviewed_at": "2026-08-20T08:31:16.000000Z"
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 owner creates V2 draft",
+      "email": "tech.coordinator@example.test",
+      "method": "PUT",
+      "path": "/api/meeting-exceptions/29/draft",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "DRAFT",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 32,
+            "version_number": 2,
+            "reason": "نسخهٔ دوم اصلاح‌شده.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": null
+          },
+          "reviews": [],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V2 submitted with fresh reviews",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/29/submit",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 32,
+            "version_number": 2,
+            "reason": "نسخهٔ دوم اصلاح‌شده.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:16.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 54,
+              "uuid": "11f80fbe-a3bc-4227-a028-dded12045b42",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 55,
+              "uuid": "80a9b1de-b9b8-480b-b381-e556ddd4bd04",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 56,
+              "uuid": "d9466cbe-7373-4b3a-a9a4-2c1bf7b926cd",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "read exception case",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meeting-exceptions/29",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 32,
+            "version_number": 2,
+            "reason": "نسخهٔ دوم اصلاح‌شده.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:16.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 54,
+              "uuid": "11f80fbe-a3bc-4227-a028-dded12045b42",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 55,
+              "uuid": "80a9b1de-b9b8-480b-b381-e556ddd4bd04",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 56,
+              "uuid": "d9466cbe-7373-4b3a-a9a4-2c1bf7b926cd",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V2 has three fresh pending reviews",
+      "pass": true,
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "body": {
+        "review_count": 3
+      }
+    },
+    {
+      "label": "FLOW-03 V2 1 approves",
+      "email": "tech.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/56/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 56,
+          "uuid": "d9466cbe-7373-4b3a-a9a4-2c1bf7b926cd",
+          "exception_case_version_id": 32,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 1,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 3,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:17.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V2 2 approves",
+      "email": "finance.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/54/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 54,
+          "uuid": "11f80fbe-a3bc-4227-a028-dded12045b42",
+          "exception_case_version_id": 32,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 2,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 5,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:17.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 V2 3 approves",
+      "email": "hr.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/55/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 55,
+          "uuid": "80a9b1de-b9b8-480b-b381-e556ddd4bd04",
+          "exception_case_version_id": 32,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 3,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 7,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:17.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-03 applies only after V2 approvals",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/29/apply",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 29,
+          "uuid": "e0b9f7a0-5479-4cfe-a922-0697752a6a6d",
+          "meeting_id": 20,
+          "case_type": "POSTPONEMENT",
+          "status": "APPLIED",
+          "governance_mode": "PEER_MULTI_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 25,
+            "participant_version_id": 20
+          },
+          "current_version": {
+            "id": 32,
+            "version_number": 2,
+            "reason": "نسخهٔ دوم اصلاح‌شده.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:16.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 54,
+              "uuid": "11f80fbe-a3bc-4227-a028-dded12045b42",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 5,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:17.000000Z"
+            },
+            {
+              "id": 55,
+              "uuid": "80a9b1de-b9b8-480b-b381-e556ddd4bd04",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 7,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:17.000000Z"
+            },
+            {
+              "id": 56,
+              "uuid": "d9466cbe-7373-4b3a-a9a4-2c1bf7b926cd",
+              "exception_case_version_id": 32,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 3,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:17.000000Z"
+            }
+          ],
+          "applied_at": "2026-08-20T08:31:17.000000Z",
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:15.000000Z"
+        }
+      }
+    },
+    {
+      "label": "POSTPONEMENT case created",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meetings/21/exceptions",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 30,
+          "uuid": "a9b4ebb6-38b1-4def-b9c2-dcb874df8a07",
+          "meeting_id": 21,
+          "case_type": "POSTPONEMENT",
+          "status": "DRAFT",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 33,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": null
+          },
+          "reviews": [],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "POSTPONEMENT case submitted",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/30/submit",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 30,
+          "uuid": "a9b4ebb6-38b1-4def-b9c2-dcb874df8a07",
+          "meeting_id": 21,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 33,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:18.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 57,
+              "uuid": "98fbf0af-218e-4b4d-a5a0-cd2b3e4f1412",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 58,
+              "uuid": "e2a98120-0446-49c2-b07c-edd1ec14b419",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 59,
+              "uuid": "a46c6524-8446-4936-9ff3-02356e161f65",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 60,
+              "uuid": "1cf01157-e038-4390-b429-2177ba7fea7c",
+              "exception_case_version_id": 33,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "read exception case",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meeting-exceptions/30",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 30,
+          "uuid": "a9b4ebb6-38b1-4def-b9c2-dcb874df8a07",
+          "meeting_id": 21,
+          "case_type": "POSTPONEMENT",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 33,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:18.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 57,
+              "uuid": "98fbf0af-218e-4b4d-a5a0-cd2b3e4f1412",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 58,
+              "uuid": "e2a98120-0446-49c2-b07c-edd1ec14b419",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 59,
+              "uuid": "a46c6524-8446-4936-9ff3-02356e161f65",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 60,
+              "uuid": "1cf01157-e038-4390-b429-2177ba7fea7c",
+              "exception_case_version_id": 33,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-05 unit 1 acknowledges",
+      "email": "tech.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/59/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 59,
+          "uuid": "a46c6524-8446-4936-9ff3-02356e161f65",
+          "exception_case_version_id": 33,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 1,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 3,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-05 unit 2 acknowledges",
+      "email": "finance.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/57/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 57,
+          "uuid": "98fbf0af-218e-4b4d-a5a0-cd2b3e4f1412",
+          "exception_case_version_id": 33,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 2,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 5,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-05 unit 3 acknowledges",
+      "email": "hr.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/58/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 58,
+          "uuid": "e2a98120-0446-49c2-b07c-edd1ec14b419",
+          "exception_case_version_id": 33,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 3,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 7,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-05 Authority Office cannot substitute for High Authority",
+      "email": "authority.office@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/60/approve",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "pass": true,
+      "body": {
+        "success": false,
+        "code": "FORBIDDEN",
+        "message": "This action is unauthorized.",
+        "errors": {}
+      }
+    },
+    {
+      "label": "FLOW-05 exact High Authority approves",
+      "email": "high.authority@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/60/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 60,
+          "uuid": "1cf01157-e038-4390-b429-2177ba7fea7c",
+          "exception_case_version_id": 33,
+          "reviewer_type": "HIGH_AUTHORITY",
+          "organizational_unit_id": null,
+          "authority_employee_id": 9,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 12,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-05 Executive Secretary applies",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/30/apply",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 30,
+          "uuid": "a9b4ebb6-38b1-4def-b9c2-dcb874df8a07",
+          "meeting_id": 21,
+          "case_type": "POSTPONEMENT",
+          "status": "APPLIED",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 33,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون POSTPONEMENT.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:18.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 57,
+              "uuid": "98fbf0af-218e-4b4d-a5a0-cd2b3e4f1412",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 5,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:18.000000Z"
+            },
+            {
+              "id": 58,
+              "uuid": "e2a98120-0446-49c2-b07c-edd1ec14b419",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 7,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:19.000000Z"
+            },
+            {
+              "id": 59,
+              "uuid": "a46c6524-8446-4936-9ff3-02356e161f65",
+              "exception_case_version_id": 33,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 3,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:18.000000Z"
+            },
+            {
+              "id": 60,
+              "uuid": "1cf01157-e038-4390-b429-2177ba7fea7c",
+              "exception_case_version_id": 33,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 12,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:19.000000Z"
+            }
+          ],
+          "applied_at": "2026-08-20T08:31:19.000000Z",
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:18.000000Z"
+        }
+      }
+    },
+    {
+      "label": "CANCELLATION case created",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meetings/21/exceptions",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 31,
+          "uuid": "8ac5121e-e259-4fdf-8426-feb233ff9a55",
+          "meeting_id": 21,
+          "case_type": "CANCELLATION",
+          "status": "DRAFT",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "POSTPONED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 34,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": null
+          },
+          "reviews": [],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "CANCELLATION case submitted",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/31/submit",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 31,
+          "uuid": "8ac5121e-e259-4fdf-8426-feb233ff9a55",
+          "meeting_id": 21,
+          "case_type": "CANCELLATION",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "POSTPONED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 34,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:20.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 61,
+              "uuid": "7e8ac062-30e0-498a-a189-92db04a2e921",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 62,
+              "uuid": "52daeaa6-bf54-40c0-9dd1-2ff97ea29a65",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 63,
+              "uuid": "a6f65922-8ffb-4f0c-809d-903f2a01ae17",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 64,
+              "uuid": "0701fc73-c9ed-4ff4-a291-47404947e713",
+              "exception_case_version_id": 34,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "read exception case",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meeting-exceptions/31",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 31,
+          "uuid": "8ac5121e-e259-4fdf-8426-feb233ff9a55",
+          "meeting_id": 21,
+          "case_type": "CANCELLATION",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "POSTPONED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 34,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:20.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 61,
+              "uuid": "7e8ac062-30e0-498a-a189-92db04a2e921",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 62,
+              "uuid": "52daeaa6-bf54-40c0-9dd1-2ff97ea29a65",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 63,
+              "uuid": "a6f65922-8ffb-4f0c-809d-903f2a01ae17",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            },
+            {
+              "id": 64,
+              "uuid": "0701fc73-c9ed-4ff4-a291-47404947e713",
+              "exception_case_version_id": 34,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-06 has no requester review and has three unit plus one HA review",
+      "pass": true,
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "body": {
+        "review_count": 4
+      }
+    },
+    {
+      "label": "FLOW-06 unit 1 acknowledges",
+      "email": "tech.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/63/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 63,
+          "uuid": "a6f65922-8ffb-4f0c-809d-903f2a01ae17",
+          "exception_case_version_id": 34,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 1,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 3,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:20.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-06 unit 2 acknowledges",
+      "email": "finance.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/61/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 61,
+          "uuid": "7e8ac062-30e0-498a-a189-92db04a2e921",
+          "exception_case_version_id": 34,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 2,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 5,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:20.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-06 unit 3 acknowledges",
+      "email": "hr.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/62/acknowledge",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 62,
+          "uuid": "52daeaa6-bf54-40c0-9dd1-2ff97ea29a65",
+          "exception_case_version_id": 34,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 3,
+          "authority_employee_id": null,
+          "review_requirement": "ACKNOWLEDGEMENT",
+          "status": "ACKNOWLEDGED",
+          "reviewed_by_user_id": 7,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:20.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-06 exact High Authority approves",
+      "email": "high.authority@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/64/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 64,
+          "uuid": "0701fc73-c9ed-4ff4-a291-47404947e713",
+          "exception_case_version_id": 34,
+          "reviewer_type": "HIGH_AUTHORITY",
+          "organizational_unit_id": null,
+          "authority_employee_id": 9,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 12,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:21.000000Z"
+        }
+      }
+    },
+    {
+      "label": "FLOW-06 Executive Secretary applies cancellation",
+      "email": "executive.secretary@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/31/apply",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 31,
+          "uuid": "8ac5121e-e259-4fdf-8426-feb233ff9a55",
+          "meeting_id": 21,
+          "case_type": "CANCELLATION",
+          "status": "APPLIED",
+          "governance_mode": "AUTHORITY_CONTROLLED",
+          "baseline": {
+            "meeting_status": "POSTPONED",
+            "schedule_version_id": 26,
+            "participant_version_id": 21
+          },
+          "current_version": {
+            "id": 34,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:20.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 61,
+              "uuid": "7e8ac062-30e0-498a-a189-92db04a2e921",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 2,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 5,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:20.000000Z"
+            },
+            {
+              "id": 62,
+              "uuid": "52daeaa6-bf54-40c0-9dd1-2ff97ea29a65",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 3,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 7,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:20.000000Z"
+            },
+            {
+              "id": 63,
+              "uuid": "a6f65922-8ffb-4f0c-809d-903f2a01ae17",
+              "exception_case_version_id": 34,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "ACKNOWLEDGEMENT",
+              "status": "ACKNOWLEDGED",
+              "reviewed_by_user_id": 3,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:20.000000Z"
+            },
+            {
+              "id": 64,
+              "uuid": "0701fc73-c9ed-4ff4-a291-47404947e713",
+              "exception_case_version_id": 34,
+              "reviewer_type": "HIGH_AUTHORITY",
+              "organizational_unit_id": null,
+              "authority_employee_id": 9,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 12,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:21.000000Z"
+            }
+          ],
+          "applied_at": "2026-08-20T08:31:21.000000Z",
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:19.000000Z"
+        }
+      }
+    },
+    {
+      "label": "attendance exists before cancellation",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meetings/22/attendance/manual",
+      "status": 201,
+      "expected": [
+        200,
+        201
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "uuid": "6d4ecf84-75c3-4b70-8fb2-4ca1af2c5a0b",
+          "meeting_id": 22,
+          "employee_id": 1,
+          "participant_version_id": 22,
+          "terminal_id": null,
+          "terminal_session_id": null,
+          "attendance_method": "MANUAL_OVERRIDE",
+          "finger_position": null,
+          "matcher_vendor": null,
+          "matcher_algorithm_version": null,
+          "match_score": null,
+          "threshold_reference": null,
+          "recorded_at_server": "2026-08-20T08:31:21.000000Z",
+          "device_captured_at": null,
+          "recorded_by_user_id": 8,
+          "manual_reason": "ثبت رسمی پیش از لغو."
+        }
+      }
+    },
+    {
+      "label": "CANCELLATION case created",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meetings/22/exceptions",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 32,
+          "uuid": "09022581-539d-41f2-ade0-a9c005787410",
+          "meeting_id": 22,
+          "case_type": "CANCELLATION",
+          "status": "DRAFT",
+          "governance_mode": "INTERNAL_SINGLE_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 27,
+            "participant_version_id": 22
+          },
+          "current_version": {
+            "id": 35,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": null
+          },
+          "reviews": [],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:21.000000Z"
+        }
+      }
+    },
+    {
+      "label": "CANCELLATION case submitted",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/32/submit",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 32,
+          "uuid": "09022581-539d-41f2-ade0-a9c005787410",
+          "meeting_id": 22,
+          "case_type": "CANCELLATION",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "INTERNAL_SINGLE_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 27,
+            "participant_version_id": 22
+          },
+          "current_version": {
+            "id": 35,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:21.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 65,
+              "uuid": "03225ff8-bd76-428b-8f57-4062767133b2",
+              "exception_case_version_id": 35,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:21.000000Z"
+        }
+      }
+    },
+    {
+      "label": "read exception case",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meeting-exceptions/32",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 32,
+          "uuid": "09022581-539d-41f2-ade0-a9c005787410",
+          "meeting_id": 22,
+          "case_type": "CANCELLATION",
+          "status": "UNDER_REVIEW",
+          "governance_mode": "INTERNAL_SINGLE_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 27,
+            "participant_version_id": 22
+          },
+          "current_version": {
+            "id": 35,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:21.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 65,
+              "uuid": "03225ff8-bd76-428b-8f57-4062767133b2",
+              "exception_case_version_id": 35,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "PENDING",
+              "reviewed_by_user_id": null,
+              "reason": null,
+              "reviewed_at": null
+            }
+          ],
+          "applied_at": null,
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:21.000000Z"
+        }
+      }
+    },
+    {
+      "label": "attendance cancellation review approves",
+      "email": "tech.director@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exception-reviews/65/approve",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 65,
+          "uuid": "03225ff8-bd76-428b-8f57-4062767133b2",
+          "exception_case_version_id": 35,
+          "reviewer_type": "UNIT",
+          "organizational_unit_id": 1,
+          "authority_employee_id": null,
+          "review_requirement": "APPROVAL",
+          "status": "APPROVED",
+          "reviewed_by_user_id": 3,
+          "reason": null,
+          "reviewed_at": "2026-08-20T08:31:22.000000Z"
+        }
+      }
+    },
+    {
+      "label": "cancellation revokes terminal and invalidates attendance",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meeting-exceptions/32/apply",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "data": {
+          "id": 32,
+          "uuid": "09022581-539d-41f2-ade0-a9c005787410",
+          "meeting_id": 22,
+          "case_type": "CANCELLATION",
+          "status": "APPLIED",
+          "governance_mode": "INTERNAL_SINGLE_UNIT",
+          "baseline": {
+            "meeting_status": "SCHEDULED",
+            "schedule_version_id": 27,
+            "participant_version_id": 22
+          },
+          "current_version": {
+            "id": 35,
+            "version_number": 1,
+            "reason": "دلیل رسمی آزمون CANCELLATION.",
+            "administrative_note": null,
+            "replacement_expected": false,
+            "proposed_resume_date": null,
+            "submitted_at": "2026-08-20T08:31:21.000000Z"
+          },
+          "reviews": [
+            {
+              "id": 65,
+              "uuid": "03225ff8-bd76-428b-8f57-4062767133b2",
+              "exception_case_version_id": 35,
+              "reviewer_type": "UNIT",
+              "organizational_unit_id": 1,
+              "authority_employee_id": null,
+              "review_requirement": "APPROVAL",
+              "status": "APPROVED",
+              "reviewed_by_user_id": 3,
+              "reason": null,
+              "reviewed_at": "2026-08-20T08:31:22.000000Z"
+            }
+          ],
+          "applied_at": "2026-08-20T08:31:22.000000Z",
+          "withdrawn_at": null,
+          "created_at": "2026-08-20T08:31:21.000000Z"
+        }
+      }
+    },
+    {
+      "label": "revoked terminal session is denied after cancellation",
+      "email": "terminal-session",
+      "method": "GET",
+      "path": "/api/terminal/v1/sessions/c99b4bde-6f41-4c56-9a70-89a250dd077a/manifest",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "pass": true,
+      "body": {
+        "success": false,
+        "code": "TERMINAL_SESSION_INACTIVE",
+        "message": "نشست ترمینال فعال نیست.",
+        "errors": {}
+      }
+    },
+    {
+      "label": "official attendance excludes invalidated row",
+      "email": "tech.coordinator@example.test",
+      "method": "GET",
+      "path": "/api/meetings/22/attendance",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "pass": true,
+      "body": {
+        "success": true,
+        "data": {
+          "meeting_id": 22,
+          "official_count": 0,
+          "records": []
+        }
+      }
+    },
+    {
+      "label": "official attendance count is zero after cancellation invalidation",
+      "pass": true,
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "body": {
+        "official_count": 0
+      }
+    },
+    {
+      "label": "attendance after cancellation is rejected",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meetings/22/attendance/manual",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "pass": true,
+      "body": {
+        "success": false,
+        "code": "MEETING_NOT_EXECUTABLE",
+        "message": "حضور برای جلسهٔ متوقف یا لغوشده مجاز نیست.",
+        "errors": []
+      }
+    },
+    {
+      "label": "COMPLETED meeting cannot create exception",
+      "email": "tech.coordinator@example.test",
+      "method": "POST",
+      "path": "/api/meetings/23/exceptions",
+      "status": 409,
+      "expected": [
+        409
+      ],
+      "pass": true,
+      "body": {
+        "success": false,
+        "code": "MEETING_POSTPONEMENT_NOT_ALLOWED",
+        "message": "این عملیات برای شما مجاز نیست.",
+        "errors": {}
+      }
+    }
+  ]
+}

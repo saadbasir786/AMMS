@@ -55,7 +55,12 @@ class MeetingExceptionGovernanceResolver
 
     public function mayView(Meeting $meeting, User $user): bool
     {
-        return $user->isActive() && $user->can('meeting.exception.view') && app(\App\Policies\MeetingPolicy::class)->view($user, $meeting);
+        if (!$user->isActive() || !$user->can('meeting.exception.view')) return false;
+        if (app(\App\Policies\MeetingPolicy::class)->view($user, $meeting)) return true;
+        $governance = $this->resolve($meeting);
+        $unitId = (int) ($user->employee?->organizational_unit_id ?? 0);
+        if ($user->hasScopedRole('DIRECTOR', $unitId) && in_array($unitId, $governance['required_unit_ids'], true)) return true;
+        return $governance['authority_controlled'] && (int) ($user->employee_id ?? 0) === (int) $governance['authority_employee_id'];
     }
 
     public function mayHistoryView(Meeting $meeting, User $user): bool

@@ -38,8 +38,8 @@ class ConfirmMeetingReschedule
             abort_if($case->alternativeRequests()->where('status', 'OPEN')->exists(), 422, 'UNRESOLVED_ALTERNATIVE_SCHEDULE_REQUEST');
             $schedule = app(ScheduleVersionService::class)->normalize([
                 'meeting_date' => $proposal->meeting_date->toDateString(),
-                'start_time' => $proposal->start_time,
-                'end_time' => $proposal->end_time,
+                'start_time' => substr((string) $proposal->start_time, 0, 5),
+                'end_time' => substr((string) $proposal->end_time, 0, 5),
                 'location' => $proposal->location,
             ]);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');

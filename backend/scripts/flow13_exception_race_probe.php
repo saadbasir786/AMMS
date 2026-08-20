@@ -8,6 +8,12 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Actions\Attendance\RecordManualAttendance;
 use App\Actions\Flow13\ApplyMeetingCancellation;
+use App\Actions\Flow13\ApplyMeetingPostponement;
+use App\Actions\Flow13\ApplyMeetingReopening;
+use App\Actions\Flow13\ResumePostponedMeeting;
+use App\Actions\Meetings\ConfirmMeetingParticipantChange;
+use App\Actions\Meetings\ConfirmMeetingReschedule;
+use App\Actions\Meetings\StartMeetingExecution;
 use App\Actions\Flow13\ApproveMeetingExceptionReview;
 use App\Actions\Flow13\CreateMeetingExceptionCase;
 use App\Actions\Flow13\RequestMeetingExceptionCorrection;
@@ -18,6 +24,10 @@ use App\Models\MeetingExceptionCase;
 use App\Models\MeetingExceptionReview;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
+use App\Models\MeetingRescheduleAcknowledgement;
+use App\Models\MeetingRescheduleCase;
+use App\Models\MeetingRescheduleProposal;
+use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingUnit;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
@@ -48,12 +58,28 @@ function fixture(User $owner, OrganizationalUnit $unit, Employee $employee): Mee
     return $meeting->fresh();
 }
 
-function prepareCase(Meeting $meeting, User $owner, string $type, string $reason, bool $submit = false): MeetingExceptionCase {
-    $case = app(CreateMeetingExceptionCase::class)->execute($meeting, $owner, $type, $reason, false, null, null);
+function prepareCase(Meeting $meeting, User $owner, string $type, string $reason, bool $submit = false, bool $replacementExpected = false): MeetingExceptionCase {
+    $case = app(CreateMeetingExceptionCase::class)->execute($meeting, $owner, $type, $reason, $replacementExpected, null, null);
     if ($submit) {
         $case = app(SubmitMeetingExceptionCase::class)->execute($case, $owner);
     }
     return $case->fresh(['currentVersion.reviews']);
+}
+
+function rescheduleFixture(Meeting $meeting, User $owner, OrganizationalUnit $unit): MeetingRescheduleCase
+{
+    $current = $meeting->fresh();
+    $case = MeetingRescheduleCase::create(['meeting_id' => $meeting->id, 'baseline_schedule_version_id' => $current->current_schedule_version_id, 'initiated_by_user_id' => $owner->id, 'initiated_by_unit_id' => $unit->id, 'reason' => 'FLOW-13 stale schedule race.', 'governance_mode' => 'LOCAL', 'status' => 'READY_TO_CONFIRM']);
+    $meeting->forceFill(['active_reschedule_case_id' => $case->id])->save();
+    $proposal = MeetingRescheduleProposal::create(['reschedule_case_id' => $case->id, 'meeting_id' => $meeting->id, 'proposed_by_user_id' => $owner->id, 'proposed_by_unit_id' => $unit->id, 'proposal_type' => 'PROPOSED', 'meeting_date' => now()->addDays(30)->format('Y-m-d'), 'start_time' => '11:00', 'end_time' => '12:00', 'location' => 'FLOW13 RESCHEDULE', 'comment' => 'race proposal', 'status' => 'ACTIVE']);
+    MeetingRescheduleAcknowledgement::create(['proposal_id' => $proposal->id, 'organizational_unit_id' => $unit->id, 'acknowledged_by_user_id' => $owner->id, 'acknowledged_at' => now()]);
+    return $case->fresh(['proposals.acknowledgements']);
+}
+
+function attempt(Closure $operation): array
+{
+    try { return ['ok' => true, 'outcome' => $operation()]; }
+    catch (Throwable $e) { return ['ok' => false, 'error' => ['class' => get_class($e), 'message' => $e->getMessage(), 'code' => $e->getCode()]]; }
 }
 
 function worker(string $name, Closure $operation): array {
@@ -97,8 +123,100 @@ app(ApproveMeetingExceptionReview::class)->execute($review, $director);
 $results = [worker('apply-cancellation', fn () => app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner)->status), worker('manual-attendance', fn () => app(RecordManualAttendance::class)->execute($owner, $meeting->fresh(), $employee->id, 'حضور رقابتی.')->id)];
 $race['cancellation_vs_attendance'] = ['workers' => $results, 'meeting_status' => $meeting->fresh()->status, 'official_attendance_rows' => $meeting->fresh()->attendanceRecords()->count()];
 
-$allWorkers = collect($race)->flatMap(fn (array $group): array => $group['workers'])->values();
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'CANCELLATION', 'لغو در برابر شروع جلسه.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$cancelFirst = attempt(fn () => app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner)->status);
+$startAfterCancel = attempt(fn () => app(StartMeetingExecution::class)->execute($owner, $meeting->fresh())->status);
+$race['cancellation_vs_execution']['cancellation_first'] = ['cancellation' => $cancelFirst, 'execution' => $startAfterCancel, 'meeting_status' => $meeting->fresh()->status, 'active_execution_sessions' => \App\Models\MeetingExecutionSession::where('meeting_id', $meeting->id)->where('status', 'IN_PROGRESS')->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'CANCELLATION', 'لغو در برابر شروع جلسه.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$startFirst = attempt(fn () => app(StartMeetingExecution::class)->execute($owner, $meeting->fresh())->status);
+$cancelAfterStart = attempt(fn () => app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner)->status);
+$race['cancellation_vs_execution']['execution_first'] = ['execution' => $startFirst, 'cancellation' => $cancelAfterStart, 'meeting_status' => $meeting->fresh()->status, 'active_execution_sessions' => \App\Models\MeetingExecutionSession::where('meeting_id', $meeting->id)->where('status', 'IN_PROGRESS')->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'POSTPONEMENT', 'تعویق در برابر تأیید تغییر زمان.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$reschedule = rescheduleFixture($meeting, $owner, $unit);
+$scheduleFirst = attempt(fn () => app(ConfirmMeetingReschedule::class)($owner, $meeting->fresh(), $reschedule->fresh())->status);
+$postponementAfterSchedule = attempt(fn () => app(ApplyMeetingPostponement::class)->execute($case->fresh(), $owner)->status);
+$race['postponement_vs_flow07_confirmation']['flow07_first'] = ['flow07' => $scheduleFirst, 'postponement' => $postponementAfterSchedule, 'meeting_status' => $meeting->fresh()->status, 'schedule_version_count' => $meeting->fresh()->scheduleVersions()->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'POSTPONEMENT', 'تعویق در برابر تأیید تغییر زمان.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$reschedule = rescheduleFixture($meeting, $owner, $unit);
+$postponementFirst = attempt(fn () => app(ApplyMeetingPostponement::class)->execute($case->fresh(), $owner)->status);
+$flow07AfterPostponement = attempt(fn () => app(ConfirmMeetingReschedule::class)($owner, $meeting->fresh(), $reschedule->fresh())->status);
+$race['postponement_vs_flow07_confirmation']['postponement_first'] = ['postponement' => $postponementFirst, 'flow07' => $flow07AfterPostponement, 'meeting_status' => $meeting->fresh()->status, 'schedule_version_count' => $meeting->fresh()->scheduleVersions()->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$cancelCase = prepareCase($meeting, $owner, 'CANCELLATION', 'لغو پیش از بازگشایی رقابتی.', true);
+$review = $cancelCase->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+app(ApplyMeetingCancellation::class)->execute($cancelCase, $owner);
+$reopen = prepareCase($meeting->fresh(), $owner, 'REOPENING', 'بازگشایی رقابتی.', true);
+$review = $reopen->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$race['concurrent_reopening_apply'] = ['workers' => [worker('reopen-a', fn () => app(ApplyMeetingReopening::class)->execute($reopen->fresh(), $owner)->status), worker('reopen-b', fn () => app(ApplyMeetingReopening::class)->execute($reopen->fresh(), $owner)->status)], 'meeting_status' => $meeting->fresh()->status];
+
+$meeting = fixture($owner, $unit, $employee);
+$postpone = prepareCase($meeting, $owner, 'POSTPONEMENT', 'تعویق پیش از resumption رقابتی.', true);
+$review = $postpone->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+app(ApplyMeetingPostponement::class)->execute($postpone, $owner);
+$resume = prepareCase($meeting->fresh(), $owner, 'RESUMPTION', 'بازگشت رقابتی به تقویم.', true, true);
+$review = $resume->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$oldScheduleCount = $meeting->fresh()->scheduleVersions()->count();
+$race['concurrent_resumption'] = ['workers' => [worker('resume-a', fn () => app(ResumePostponedMeeting::class)->execute($resume->fresh(), $owner, ['meeting_date' => now()->addDays(25)->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'FLOW13 RESUME A'])->status), worker('resume-b', fn () => app(ResumePostponedMeeting::class)->execute($resume->fresh(), $owner, ['meeting_date' => now()->addDays(26)->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'FLOW13 RESUME B'])->status)], 'meeting_status' => $meeting->fresh()->status, 'schedule_version_count_before' => $oldScheduleCount, 'schedule_version_count_after' => $meeting->fresh()->scheduleVersions()->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'CANCELLATION', 'لغو پس از حضور ثبت‌شده.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$attendanceFirst = attempt(fn () => app(RecordManualAttendance::class)->execute($owner, $meeting->fresh(), $employee->id, 'حضور پیش از لغو.')->id);
+$cancellationAfterAttendance = attempt(fn () => app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner)->status);
+$after = $meeting->fresh(['attendanceRecords.invalidation']);
+$race['cancellation_vs_attendance_orderings']['attendance_first'] = ['attendance' => $attendanceFirst, 'cancellation' => $cancellationAfterAttendance, 'raw_count' => $after->attendanceRecords->count(), 'invalidation_count' => $after->attendanceRecords->filter(fn ($row) => $row->invalidation !== null)->count(), 'official_count' => $after->attendanceRecords()->whereDoesntHave('invalidation')->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'CANCELLATION', 'لغو پیش از حضور.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$cancellationFirst = attempt(fn () => app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner)->status);
+$attendanceAfterCancellation = attempt(fn () => app(RecordManualAttendance::class)->execute($owner, $meeting->fresh(), $employee->id, 'حضور پس از لغو.')->id);
+$after = $meeting->fresh(['attendanceRecords.invalidation']);
+$race['cancellation_vs_attendance_orderings']['cancellation_first'] = ['cancellation' => $cancellationFirst, 'attendance' => $attendanceAfterCancellation, 'raw_count' => $after->attendanceRecords->count(), 'invalidation_count' => $after->attendanceRecords->filter(fn ($row) => $row->invalidation !== null)->count(), 'official_count' => $after->attendanceRecords()->whereDoesntHave('invalidation')->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'POSTPONEMENT', 'تعویق پس از حضور ثبت‌شده.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$attendanceFirst = attempt(fn () => app(RecordManualAttendance::class)->execute($owner, $meeting->fresh(), $employee->id, 'حضور پیش از تعویق.')->id);
+$postponementAfterAttendance = attempt(fn () => app(ApplyMeetingPostponement::class)->execute($case->fresh(), $owner)->status);
+$after = $meeting->fresh(['attendanceRecords.invalidation']);
+$race['postponement_vs_attendance_orderings']['attendance_first'] = ['attendance' => $attendanceFirst, 'postponement' => $postponementAfterAttendance, 'raw_count' => $after->attendanceRecords->count(), 'invalidation_count' => $after->attendanceRecords->filter(fn ($row) => $row->invalidation !== null)->count(), 'official_count' => $after->attendanceRecords()->whereDoesntHave('invalidation')->count()];
+
+$meeting = fixture($owner, $unit, $employee);
+$case = prepareCase($meeting, $owner, 'POSTPONEMENT', 'تعویق پیش از حضور.', true);
+$review = $case->currentVersion->reviews->first();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+$postponementFirst = attempt(fn () => app(ApplyMeetingPostponement::class)->execute($case->fresh(), $owner)->status);
+$attendanceAfterPostponement = attempt(fn () => app(RecordManualAttendance::class)->execute($owner, $meeting->fresh(), $employee->id, 'حضور پس از تعویق.')->id);
+$after = $meeting->fresh(['attendanceRecords.invalidation']);
+$race['postponement_vs_attendance_orderings']['postponement_first'] = ['postponement' => $postponementFirst, 'attendance' => $attendanceAfterPostponement, 'raw_count' => $after->attendanceRecords->count(), 'invalidation_count' => $after->attendanceRecords->filter(fn ($row) => $row->invalidation !== null)->count(), 'official_count' => $after->attendanceRecords()->whereDoesntHave('invalidation')->count()];
+
+$allWorkers = collect($race)->flatMap(fn (array $group): array => $group['workers'] ?? [])->values();
 $oneWinnerOneLoser = fn (array $workers): bool => count(array_filter($workers, fn (array $worker): bool => $worker['ok'])) === 1 && count(array_filter($workers, fn (array $worker): bool => ! $worker['ok'])) === 1;
+$errorContains = fn (array $result, string $text): bool => ! $result['ok'] && str_contains((string) ($result['error']['message'] ?? ''), $text);
 $race['pass'] = $race['active_case_creation']['active_case_count'] === 1
     && $oneWinnerOneLoser($race['active_case_creation']['workers'])
     && $oneWinnerOneLoser($race['duplicate_application']['workers'])
@@ -108,6 +226,34 @@ $race['pass'] = $race['active_case_creation']['active_case_count'] === 1
     && in_array($race['approval_vs_correction']['case_status'], ['READY_TO_APPLY', 'RETURNED_FOR_CORRECTION'], true)
     && $oneWinnerOneLoser($race['cancellation_vs_attendance']['workers'])
     && $race['cancellation_vs_attendance']['meeting_status'] === 'CANCELLED'
-    && $race['cancellation_vs_attendance']['official_attendance_rows'] === 0;
-$race['race_group_count'] = 4;
+    && $race['cancellation_vs_attendance']['official_attendance_rows'] === 0
+    && $race['cancellation_vs_execution']['cancellation_first']['meeting_status'] === 'CANCELLED'
+    && $race['cancellation_vs_execution']['cancellation_first']['active_execution_sessions'] === 0
+    && $errorContains($race['cancellation_vs_execution']['cancellation_first']['execution'], 'MEETING_NOT_EXECUTABLE')
+    && $race['cancellation_vs_execution']['execution_first']['meeting_status'] === 'IN_PROGRESS'
+    && $race['cancellation_vs_execution']['execution_first']['active_execution_sessions'] === 1
+    && $errorContains($race['cancellation_vs_execution']['execution_first']['cancellation'], 'MEETING_EXECUTION_ALREADY_STARTED')
+    && $race['postponement_vs_flow07_confirmation']['flow07_first']['meeting_status'] === 'SCHEDULED'
+    && $race['postponement_vs_flow07_confirmation']['flow07_first']['schedule_version_count'] === 2
+    && $errorContains($race['postponement_vs_flow07_confirmation']['flow07_first']['postponement'], 'MEETING_EXCEPTION_BASELINE_CHANGED')
+    && $race['postponement_vs_flow07_confirmation']['postponement_first']['meeting_status'] === 'POSTPONED'
+    && $errorContains($race['postponement_vs_flow07_confirmation']['postponement_first']['flow07'], 'MEETING_NOT_RESCHEDULABLE')
+    && $oneWinnerOneLoser($race['concurrent_reopening_apply']['workers'])
+    && $race['concurrent_reopening_apply']['meeting_status'] === 'POSTPONED'
+    && $oneWinnerOneLoser($race['concurrent_resumption']['workers'])
+    && $race['concurrent_resumption']['meeting_status'] === 'SCHEDULED'
+    && $race['concurrent_resumption']['schedule_version_count_after'] === $race['concurrent_resumption']['schedule_version_count_before'] + 1
+    && $race['cancellation_vs_attendance_orderings']['attendance_first']['raw_count'] === 1
+    && $race['cancellation_vs_attendance_orderings']['attendance_first']['invalidation_count'] === 1
+    && $race['cancellation_vs_attendance_orderings']['attendance_first']['official_count'] === 0
+    && $race['cancellation_vs_attendance_orderings']['cancellation_first']['raw_count'] === 0
+    && $race['cancellation_vs_attendance_orderings']['cancellation_first']['invalidation_count'] === 0
+    && $race['cancellation_vs_attendance_orderings']['cancellation_first']['official_count'] === 0
+    && $race['postponement_vs_attendance_orderings']['attendance_first']['raw_count'] === 1
+    && $race['postponement_vs_attendance_orderings']['attendance_first']['invalidation_count'] === 1
+    && $race['postponement_vs_attendance_orderings']['attendance_first']['official_count'] === 0
+    && $race['postponement_vs_attendance_orderings']['postponement_first']['raw_count'] === 0
+    && $race['postponement_vs_attendance_orderings']['postponement_first']['invalidation_count'] === 0
+    && $race['postponement_vs_attendance_orderings']['postponement_first']['official_count'] === 0;
+$race['race_group_count'] = 10;
 echo json_encode($race, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;
