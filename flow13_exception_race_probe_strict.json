@@ -3,7 +3,7 @@
         "workers": [
             {
                 "worker": "create-a",
-                "outcome": 1,
+                "outcome": 109,
                 "ok": true
             },
             {
@@ -177,7 +177,7 @@
                 "ok": false,
                 "error": {
                     "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
-                    "message": "MEETING_EXCEPTION_REVIEW_INCOMPLETE",
+                    "message": "MEETING_EXCEPTION_ALREADY_APPLIED",
                     "code": 0
                 }
             }
@@ -186,11 +186,90 @@
         "schedule_version_count_before": 1,
         "schedule_version_count_after": 2
     },
+    "cancellation_vs_participant_confirmation": {
+        "flow08_first": {
+            "before_participant_version_id": 108,
+            "after_participant_version_id": 109,
+            "meeting_status": "SCHEDULED",
+            "exception_case_status": "READY_TO_APPLY",
+            "participant_confirmation": {
+                "ok": true,
+                "outcome": "CONFIRMED"
+            },
+            "cancellation": {
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_EXCEPTION_BASELINE_CHANGED",
+                    "code": 0
+                }
+            },
+            "loser_error_code": "MEETING_EXCEPTION_BASELINE_CHANGED"
+        },
+        "cancellation_first": {
+            "before_participant_version_id": 110,
+            "after_participant_version_id": 110,
+            "meeting_status": "CANCELLED",
+            "exception_case_status": "APPLIED",
+            "cancellation": {
+                "ok": true,
+                "outcome": "APPLIED"
+            },
+            "participant_confirmation": {
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_NOT_PARTICIPANT_EDITABLE",
+                    "code": 0
+                }
+            },
+            "loser_error_code": "MEETING_NOT_PARTICIPANT_EDITABLE",
+            "participant_version_created_after_cancellation": false
+        }
+    },
+    "cancellation_vs_terminal_activation": {
+        "activation_first": {
+            "assignment_initial_status": "ASSIGNED",
+            "activation": {
+                "ok": true,
+                "outcome": 4
+            },
+            "cancellation": {
+                "ok": true,
+                "outcome": "APPLIED"
+            },
+            "assignment_status": "REVOKED",
+            "session_id": 4,
+            "session_status": "REVOKED",
+            "active_terminal_assignment_count": 0,
+            "active_terminal_session_count": 0
+        },
+        "cancellation_first": {
+            "assignment_initial_status": "ASSIGNED",
+            "cancellation": {
+                "ok": true,
+                "outcome": "APPLIED"
+            },
+            "activation": {
+                "ok": false,
+                "error": {
+                    "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+                    "message": "MEETING_NOT_SCHEDULED",
+                    "code": 0
+                }
+            },
+            "assignment_status": "REVOKED",
+            "session_status": null,
+            "active_terminal_assignment_count": 0,
+            "active_terminal_session_count": 0,
+            "loser_error_code": "MEETING_NOT_SCHEDULED"
+        }
+    },
     "cancellation_vs_attendance_orderings": {
         "attendance_first": {
             "attendance": {
                 "ok": true,
-                "outcome": 1
+                "outcome": 13
             },
             "cancellation": {
                 "ok": true,
@@ -222,7 +301,7 @@
         "attendance_first": {
             "attendance": {
                 "ok": true,
-                "outcome": 2
+                "outcome": 14
             },
             "postponement": {
                 "ok": true,
@@ -251,5 +330,5 @@
         }
     },
     "pass": true,
-    "race_group_count": 10
+    "race_group_count": 12
 }

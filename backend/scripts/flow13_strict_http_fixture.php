@@ -9,6 +9,12 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingAuthorityContext;
+use App\Models\MeetingDecisionFollowUp;
+use App\Models\MeetingExceptionCase;
+use App\Models\MeetingExecutionSession;
+use App\Models\MeetingMinuteVersion;
+use App\Models\MeetingMinuteVersionDecision;
+use App\Models\MeetingMinutes;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingTerminalAssignment;
@@ -71,6 +77,13 @@ $multi = $make('MULTI_DIRECTORATE', [[$tech->id, 'REQUESTING'], [$fin->id, 'PART
 $authority = $make('MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', [[$tech->id, 'REQUESTING'], [$fin->id, 'PARTICIPATING'], [$hr->id, 'PARTICIPATING']], 0, true);
 $attendance = $make('INTERNAL_DIRECTORATE', [[$tech->id, 'PARTICIPATING']]);
 $completed = $make('INTERNAL_DIRECTORATE', [[$tech->id, 'PARTICIPATING']], 2);
+$completed = $completed->fresh(['currentScheduleVersion', 'currentParticipantVersion']);
+$execution = MeetingExecutionSession::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $completed->id, 'schedule_version_id' => $completed->current_schedule_version_id, 'participant_version_id' => $completed->current_participant_version_id, 'status' => 'ENDED', 'started_at' => now()->subHour(), 'started_by_user_id' => $owner->id, 'ended_at' => now()->subMinutes(30), 'ended_by_user_id' => $owner->id]);
+$minutes = MeetingMinutes::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $completed->id, 'status' => MeetingMinutes::FINALIZED, 'created_by_user_id' => $owner->id, 'finalized_at' => now()->subMinutes(10), 'finalized_by_user_id' => $owner->id]);
+$minuteVersion = MeetingMinuteVersion::create(['uuid' => (string) Str::uuid(), 'meeting_minutes_id' => $minutes->id, 'version_number' => 1, 'execution_session_id' => $execution->id, 'schedule_version_id' => $completed->current_schedule_version_id, 'participant_version_id' => $completed->current_participant_version_id, 'summary' => 'خلاصهٔ نهایی برای مرز جلسهٔ تکمیل‌شده.', 'prepared_by_user_id' => $owner->id, 'submitted_at' => now()->subMinutes(20)]);
+$decision = MeetingMinuteVersionDecision::create(['uuid' => (string) Str::uuid(), 'meeting_minute_version_id' => $minuteVersion->id, 'sequence_number' => 1, 'decision_number' => 'FLOW13-COMPLETED-DEC-001', 'decision_text' => 'تصمیم منبع FLOW-12 باید بدون تغییر باقی بماند.', 'responsible_unit_id' => $tech->id, 'responsible_employee_id' => $director->employee_id, 'target_date' => now()->addDays(7)->format('Y-m-d')]);
+$minutes->forceFill(['current_version_id' => $minuteVersion->id])->save();
+$followup = MeetingDecisionFollowUp::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $completed->id, 'meeting_minutes_id' => $minutes->id, 'meeting_minute_version_id' => $minuteVersion->id, 'meeting_decision_id' => $decision->id, 'decision_number' => $decision->decision_number, 'classification' => MeetingDecisionFollowUp::UNCLASSIFIED, 'status' => MeetingDecisionFollowUp::OPEN]);
 
 $terminal = Terminal::create(['uuid' => (string) Str::uuid(), 'organization_id' => Organization::firstOrFail()->id, 'code' => 'FLOW13-HTTP-TERM-'.strtoupper(Str::random(8)), 'name' => 'FLOW-13 HTTP terminal', 'serial_number' => 'FLOW13-HTTP-SERIAL-'.strtoupper(Str::random(8)), 'manufacturer' => 'TEST', 'model' => 'FLOW13', 'platform' => 'TEST', 'os_version' => '1', 'app_version' => '1', 'status' => 'ACTIVE', 'registered_by_user_id' => $owner->id, 'registered_at' => now()]);
 $assignment = MeetingTerminalAssignment::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $attendance->id, 'terminal_id' => $terminal->id, 'baseline_schedule_version_id' => $attendance->current_schedule_version_id, 'baseline_participant_version_id' => $attendance->current_participant_version_id, 'valid_from' => now()->subMinute(), 'valid_until' => now()->addHour(), 'status' => 'ASSIGNED', 'assigned_by_user_id' => $owner->id, 'assigned_at' => now()]);
@@ -79,4 +92,4 @@ $session = TerminalMeetingSession::create(['uuid' => (string) Str::uuid(), 'assi
 $terminal->forceFill(['current_session_id' => $session->id])->save();
 $attendance->forceFill(['current_terminal_session_id' => $session->id])->save();
 
-echo json_encode(['multi_meeting_id'=>$multi->id,'authority_meeting_id'=>$authority->id,'attendance_meeting_id'=>$attendance->id,'completed_meeting_id'=>$completed->id,'owner_email'=>$owner->email,'director_email'=>$director->email,'terminal_session_uuid'=>$session->uuid,'terminal_session_token'=>$rawToken,'terminal_assignment_id'=>$assignment->id,'terminal_session_id'=>$session->id,'attendance_employee_id'=>$director->employee_id], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;
+echo json_encode(['multi_meeting_id'=>$multi->id,'authority_meeting_id'=>$authority->id,'attendance_meeting_id'=>$attendance->id,'completed_meeting_id'=>$completed->id,'owner_email'=>$owner->email,'director_email'=>$director->email,'terminal_session_uuid'=>$session->uuid,'terminal_session_token'=>$rawToken,'terminal_assignment_id'=>$assignment->id,'terminal_session_id'=>$session->id,'attendance_employee_id'=>$director->employee_id,'completed_minutes_id'=>$minutes->id,'completed_final_minutes_version_id'=>$minuteVersion->id,'completed_decision_id'=>$decision->id,'completed_followup_id'=>$followup->id], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;

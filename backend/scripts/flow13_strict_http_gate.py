@@ -87,24 +87,52 @@ call('FLOW-06 Executive Secretary applies cancellation', secretary, 'POST', f"/a
 # Attendance invalidation and terminal session revocation are proven on a dedicated meeting.
 attendance_id = fixture['attendance_meeting_id']
 call('attendance exists before cancellation', owner, 'POST', f'/api/meetings/{attendance_id}/attendance/manual', [200,201], {'employee_id':fixture['attendance_employee_id'],'reason':'ثبت رسمی پیش از لغو.'})
-term_path = f"/api/meetings/{attendance_id}/exceptions"
+assignments_before = data(call('terminal assignment is ASSIGNED before cancellation', owner, 'GET', f'/api/meetings/{attendance_id}/terminal-assignments', 200))
+assignment_rows = assignments_before if isinstance(assignments_before, list) else assignments_before.get('assignments', assignments_before.get('data', []))
+if not any(int(row.get('id', row.get('assignment_id', 0))) == int(fixture['terminal_assignment_id']) and row.get('status') in ('ASSIGNED', 'ACTIVE') for row in assignment_rows):
+    raise AssertionError(f'Expected ASSIGNED terminal assignment before cancellation: {assignments_before}')
+transcript.append({'label':'terminal session is ACTIVE before cancellation','pass':True,'status':200,'expected':[200],'body':{'assignment_id':fixture['terminal_assignment_id'],'session_id':fixture['terminal_session_id'],'assignment_status':'ASSIGNED','session_status':'ACTIVE'}})
+terminal_headers = {'Authorization': 'Bearer ' + fixture['terminal_session_token'], 'Accept':'application/json'}
+pre_manifest = requests.get(BASE + f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/manifest", headers=terminal_headers, timeout=30)
+pre_manifest_payload = pre_manifest.json()
+if pre_manifest.status_code != 200: raise AssertionError({'label':'active terminal manifest before cancellation','status':pre_manifest.status_code,'body':pre_manifest_payload})
 c = exception(attendance_id, owner, 'CANCELLATION')
 _, rows = reviews(c)
 call('attendance cancellation review approves', director, 'POST', f"/api/meeting-exception-reviews/{by_type(rows,'UNIT')['id']}/approve", 200)
 call('cancellation revokes terminal and invalidates attendance', owner, 'POST', f"/api/meeting-exceptions/{c['id']}/apply", 200)
-terminal_headers = {'Authorization': 'Bearer ' + fixture['terminal_session_token'], 'Accept':'application/json'}
 r = requests.get(BASE + f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/manifest", headers=terminal_headers, timeout=30)
 try: p = r.json()
 except Exception: p={'raw':r.text[:500]}
-row={'label':'revoked terminal session is denied after cancellation','email':'terminal-session','method':'GET','path':f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/manifest",'status':r.status_code,'expected':[401],'pass':r.status_code==401,'body':p}; transcript.append(row)
+row={'label':'revoked terminal manifest is denied after cancellation','email':'terminal-session','method':'GET','path':f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/manifest",'status':r.status_code,'expected':[401],'pass':r.status_code==401,'body':p}; transcript.append(row)
 if not row['pass']: raise AssertionError(row)
+for method, suffix, label, body in [
+    ('GET', 'biometric-candidates', 'revoked terminal biometric candidates are denied', None),
+    ('POST', 'attendance/fingerprint', 'revoked terminal fingerprint attendance is denied', {'client_event_uuid':'00000000-0000-4000-8000-000000000013','employee_id':fixture['attendance_employee_id'],'matched_template_uuid':'00000000-0000-4000-8000-000000000014','candidate_set_checksum':'0'*64}),
+]:
+    r = requests.request(method, BASE + f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/{suffix}", headers=terminal_headers, json=body, timeout=30)
+    try: p = r.json()
+    except Exception: p={'raw':r.text[:500]}
+    row={'label':label,'email':'terminal-session','method':method,'path':f"/api/terminal/v1/sessions/{fixture['terminal_session_uuid']}/{suffix}",'status':r.status_code,'expected':[401],'pass':r.status_code==401,'body':p}; transcript.append(row)
+    if not row['pass']: raise AssertionError(row)
 att = data(call('official attendance excludes invalidated row', owner, 'GET', f'/api/meetings/{attendance_id}/attendance', 200))
 if int(att.get('official_count', -1)) != 0: raise AssertionError(f'official attendance was not invalidated: {att}')
 transcript.append({'label':'official attendance count is zero after cancellation invalidation','pass':True,'status':200,'expected':[200],'body':{'official_count':att.get('official_count')}})
 call('attendance after cancellation is rejected', owner, 'POST', f'/api/meetings/{attendance_id}/attendance/manual', 422, {'employee_id':fixture['attendance_employee_id'],'reason':'نباید ثبت شود.'})
 
-# Completed meeting boundary.
-call('COMPLETED meeting cannot create exception', owner, 'POST', f"/api/meetings/{fixture['completed_meeting_id']}/exceptions", 409, {'case_type':'POSTPONEMENT','reason':'نباید ایجاد شود.'})
+# Completed meeting boundary: all four exception operations are denied and immutable FLOW-12 responses remain unchanged.
+completed_id = fixture['completed_meeting_id']
+completed_before = data(call('read COMPLETED meeting before exception attempts', owner, 'GET', f'/api/meetings/{completed_id}', 200))
+minutes_before = data(call('read FINALIZED minutes before exception attempts', owner, 'GET', f'/api/meetings/{completed_id}/minutes', 200))
+followup_before = data(call('read FLOW-12 history before exception attempts', owner, 'GET', f'/api/meetings/{completed_id}/follow-up', 200))
+for case_type, body in [('POSTPONEMENT', {'case_type':'POSTPONEMENT','reason':'نباید ایجاد شود.'}), ('CANCELLATION', {'case_type':'CANCELLATION','reason':'نباید ایجاد شود.'}), ('REOPENING', {'case_type':'REOPENING','reason':'نباید ایجاد شود.'}), ('RESUMPTION', {'case_type':'RESUMPTION','reason':'نباید ایجاد شود.','replacement_expected':True})]:
+    call(f'COMPLETED meeting rejects {case_type}', owner, 'POST', f'/api/meetings/{completed_id}/exceptions', 409, body)
+completed_after = data(call('read COMPLETED meeting after exception attempts', owner, 'GET', f'/api/meetings/{completed_id}', 200))
+minutes_after = data(call('read FINALIZED minutes after exception attempts', owner, 'GET', f'/api/meetings/{completed_id}/minutes', 200))
+followup_after = data(call('read FLOW-12 history after exception attempts', owner, 'GET', f'/api/meetings/{completed_id}/follow-up', 200))
+if completed_before.get('status') != 'COMPLETED' or completed_after.get('status') != 'COMPLETED': raise AssertionError('COMPLETED status changed')
+if minutes_before.get('status') != 'FINALIZED' or minutes_after.get('status') != 'FINALIZED': raise AssertionError('FINALIZED minutes status changed')
+if minutes_before != minutes_after or followup_before != followup_after: raise AssertionError('Completed minutes or FLOW-12 history changed')
+transcript.append({'label':'COMPLETED/FINALIZED/FLOW-12 source remains unchanged after all four denied operations','pass':True,'status':200,'expected':[200],'body':{'meeting_status':'COMPLETED','minutes_status':'FINALIZED','final_minutes_version_id':fixture['completed_final_minutes_version_id'],'decision_id':fixture['completed_decision_id'],'followup_id':fixture['completed_followup_id']}})
 
 safe_fixture={key:value for key,value in fixture.items() if key not in {'terminal_session_token'}}
 summary={'pass':all(row.get('pass') for row in transcript),'steps':len(transcript),'fixture':safe_fixture,'transcript':transcript}

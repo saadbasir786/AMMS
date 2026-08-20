@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+use App\Actions\Flow13\ApproveMeetingExceptionReview;
+use App\Actions\Flow13\ApplyMeetingCancellation;
+use App\Actions\Flow13\CreateMeetingExceptionCase;
+use App\Actions\Flow13\SubmitMeetingExceptionCase;
+use App\Models\Employee;
+use App\Models\Meeting;
+use App\Models\MeetingAttendanceInvalidation;
+use App\Models\MeetingAttendanceRecord;
+use App\Models\MeetingExceptionCase;
+use App\Models\MeetingParticipant;
+use App\Models\MeetingRequest;
+use App\Models\MeetingTerminalAssignment;
+use App\Models\MeetingUnit;
+use App\Models\Organization;
+use App\Models\OrganizationalUnit;
+use App\Models\Terminal;
+use App\Models\TerminalMeetingSession;
+use App\Models\User;
+use App\Support\OfficialAttendanceResolver;
+use App\Support\ParticipantVersionService;
+use App\Support\ScheduleVersionService;
+use Illuminate\Support\Str;
+
+$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$director = User::where('email', 'tech.director@example.test')->firstOrFail();
+$unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+$employee = Employee::findOrFail($director->employee_id);
+$request = MeetingRequest::create(['request_number' => 'FLOW13-CANCEL-EVIDENCE-'.strtoupper(Str::random(8)), 'flow_type' => 'INTERNAL_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $owner->id, 'subject' => 'شاهد کاننیکال لغو FLOW-13', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $owner->id]);
+$meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW13-CANCEL-M-'.strtoupper(Str::random(8)), 'title' => $request->subject, 'organizing_unit_id' => $unit->id, 'coordinator_id' => $owner->id, 'chairperson_employee_id' => $employee->id, 'meeting_date' => now()->addDays(45)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'تالار شاهد FLOW-13', 'status' => 'SCHEDULED']);
+MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $unit->id, 'role' => 'REQUESTING']);
+MeetingParticipant::create(['meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'organizational_unit_id' => $unit->id, 'role' => 'PARTICIPATING']);
+$schedule = app(ScheduleVersionService::class);
+$version = $schedule->createNext($meeting, ['meeting_date' => $meeting->meeting_date->format('Y-m-d'), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time, 'location' => $meeting->location], $owner->id);
+$schedule->applyToMeeting($meeting, $version);
+$participantVersion = app(ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $owner->id);
+$attendance = MeetingAttendanceRecord::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'participant_version_id' => $participantVersion->id, 'attendance_method' => 'MANUAL_OVERRIDE', 'client_event_uuid' => (string) Str::uuid(), 'recorded_at_server' => now(), 'recorded_by_user_id' => $owner->id, 'manual_reason' => 'ثبت پیش از لغو برای شاهد کاننیکال.']);
+$attendanceBefore = $attendance->fresh()->toArray();
+$terminal = Terminal::create(['uuid' => (string) Str::uuid(), 'organization_id' => Organization::firstOrFail()->id, 'code' => 'FLOW13-CANCEL-TERM-'.strtoupper(Str::random(8)), 'name' => 'FLOW-13 cancellation evidence terminal', 'serial_number' => 'FLOW13-CANCEL-SERIAL-'.strtoupper(Str::random(8)), 'manufacturer' => 'TEST', 'model' => 'FLOW13', 'platform' => 'TEST', 'os_version' => '1', 'app_version' => '1', 'status' => 'ACTIVE', 'registered_by_user_id' => $owner->id, 'registered_at' => now()]);
+$assignment = MeetingTerminalAssignment::create(['uuid' => (string) Str::uuid(), 'meeting_id' => $meeting->id, 'terminal_id' => $terminal->id, 'baseline_schedule_version_id' => $meeting->current_schedule_version_id, 'baseline_participant_version_id' => $participantVersion->id, 'valid_from' => now()->subMinute(), 'valid_until' => now()->addHour(), 'status' => 'ASSIGNED', 'assigned_by_user_id' => $owner->id, 'assigned_at' => now()]);
+$session = TerminalMeetingSession::create(['uuid' => (string) Str::uuid(), 'assignment_id' => $assignment->id, 'terminal_id' => $terminal->id, 'meeting_id' => $meeting->id, 'schedule_version_id' => $meeting->current_schedule_version_id, 'participant_version_id' => $participantVersion->id, 'status' => 'ACTIVE', 'session_token_hash' => hash('sha256', 'flow13-canonical-evidence-token'), 'activated_at' => now(), 'expires_at' => now()->addHour()]);
+$terminal->forceFill(['current_session_id' => $session->id])->save();
+$meeting->forceFill(['current_terminal_session_id' => $session->id])->save();
+$case = app(CreateMeetingExceptionCase::class)->execute($meeting->fresh(), $owner, MeetingExceptionCase::CANCELLATION, 'لغو نهایی برای شاهد کاننیکال.', false, null, null);
+$case = app(SubmitMeetingExceptionCase::class)->execute($case, $owner);
+$review = $case->fresh(['currentVersion.reviews'])->currentVersion->reviews->firstOrFail();
+app(ApproveMeetingExceptionReview::class)->execute($review, $director);
+app(ApplyMeetingCancellation::class)->execute($case->fresh(), $owner);
+$meetingAfter = $meeting->fresh(['request']);
+$attendanceAfter = $attendance->fresh();
+$invalidation = MeetingAttendanceInvalidation::where('meeting_attendance_record_id', $attendance->id)->firstOrFail();
+$assignmentAfter = $assignment->fresh();
+$sessionAfter = $session->fresh();
+$rawUnchanged = $attendanceBefore == $attendanceAfter->toArray();
+$officialCount = app(OfficialAttendanceResolver::class)->count($meetingAfter);
+$result = ['pass' => $meetingAfter->status === 'CANCELLED' && $rawUnchanged && $invalidation->reason === MeetingAttendanceInvalidation::CANCELLED && $officialCount === 0 && $assignmentAfter->status === 'REVOKED' && $sessionAfter->status === 'REVOKED', 'meeting_id' => $meetingAfter->id, 'meeting_request_id' => $meetingAfter->meeting_request_id, 'request_status' => $meetingAfter->request?->status, 'cancellation_case_id' => $case->id, 'attendance_record_id' => $attendance->id, 'attendance_employee_id' => $attendance->employee_id, 'attendance_method' => $attendance->attendance_method, 'attendance_created_at' => optional($attendance->created_at)->toIso8601String(), 'attendance_row_after_id' => $attendanceAfter->id, 'attendance_payload_unchanged' => $rawUnchanged, 'attendance_invalidation_id' => $invalidation->id, 'attendance_invalidation_reason' => $invalidation->reason, 'raw_attendance_count' => MeetingAttendanceRecord::where('meeting_id', $meetingAfter->id)->count(), 'official_attendance_count' => $officialCount, 'deleted_attendance_count' => 0, 'terminal_assignment_id' => $assignmentAfter->id, 'terminal_assignment_status' => $assignmentAfter->status, 'terminal_session_id' => $sessionAfter->id, 'terminal_session_status' => $sessionAfter->status, 'active_terminal_assignment_count' => MeetingTerminalAssignment::where('meeting_id', $meetingAfter->id)->whereIn('status', ['ASSIGNED', 'ACTIVE'])->count(), 'active_terminal_session_count' => TerminalMeetingSession::where('meeting_id', $meetingAfter->id)->where('status', 'ACTIVE')->count()];
+echo json_encode($result, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;

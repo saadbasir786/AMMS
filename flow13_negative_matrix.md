@@ -38,7 +38,7 @@ This matrix is additive to the frozen FLOW-01 through FLOW-12 evidence. Runtime 
 | N32 | FLOW-12 decision source mutated by exception case | Source snapshot unchanged | Feature / invariant | PASS |
 | N33 | Concurrent active-case creation | One winner; loser rejected; one active marker | MariaDB strict race artifact | PASS |
 | N34 | Concurrent apply of same exception case | One terminal application; second is rejected | MariaDB strict race artifact | PASS |
-| N35 | Concurrent cancellation versus resumption creation | Serialized Meeting lock prevents invalid transition | MariaDB strict race artifact | PASS |
+| N35 | Cancellation versus FLOW-08 participant confirmation | FLOW-08 first creates a new Participant Version and makes cancellation baseline-stale; cancellation first blocks confirmation with `MEETING_NOT_PARTICIPANT_EDITABLE` | MariaDB strict race artifact | PASS |
 | N36 | Concurrent review approval versus correction request | Version-specific row and case state remain coherent | MariaDB strict race artifact | PASS |
 | N37 | Audit payload contains attendance or biometric bytes | No sensitive bytes in audit metadata | Static + invariant | PASS |
 | N38 | SYSTEM_ADMIN bypasses policy through Action direct call | Action revalidates state and governance | Feature / Action | PASS |
@@ -46,5 +46,7 @@ This matrix is additive to the frozen FLOW-01 through FLOW-12 evidence. Runtime 
 | N40 | FLOW-10B hardware integration introduced | Must remain deferred; no hardware claim | Repository audit | PASS |
 | N41 | FLOW-14 implementation begins | Must not start in this release | Repository audit | PASS |
 | N42 | Exception case or review history deleted | Normal APIs cannot delete immutable history | Static + model guard | PASS |
+| N43 | Cancellation versus FLOW-09 terminal activation | Activation first is revoked by cancellation; cancellation first blocks activation; no active assignment/session remains | MariaDB strict race + real HTTP | PASS |
+| N44 | COMPLETED + FINALIZED minutes exceptional operations | Postponement, cancellation, reopening, and resumption are all denied; Meeting, minutes, decision, and FLOW-12 history remain unchanged | Real HTTP strict gate | PASS |
 
-> The MariaDB strict race artifact contains ten race groups and is the authoritative runtime evidence for N33–N36 and the related execution, schedule, attendance, reopening, and resumption orderings.
+> The MariaDB strict race artifact contains twelve race groups and is the authoritative runtime evidence for N33–N36, N43, and the related execution, schedule, attendance, reopening, resumption, participant-confirmation, and terminal-activation orderings.

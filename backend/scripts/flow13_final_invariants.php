@@ -22,6 +22,10 @@ $fixture = is_file($fixturePath) ? json_decode((string) file_get_contents($fixtu
 $meeting = Meeting::with(['request', 'currentScheduleVersion', 'scheduleVersions', 'currentParticipantVersion', 'participantVersions', 'exceptionCases.currentVersion.reviews', 'attendanceRecords.invalidation'])->findOrFail((int) ($fixture['meeting_id'] ?? 0));
 $racePath = getenv('FLOW13_RACE_ARTIFACT') ?: dirname(__DIR__, 2).'/flow13_exception_race_probe_strict.json';
 $race = is_file($racePath) ? json_decode((string) file_get_contents($racePath), true, flags: JSON_THROW_ON_ERROR) : [];
+$cancellationPath = getenv('FLOW13_CANCELLATION_ARTIFACT') ?: dirname(__DIR__, 2).'/flow13_cancellation_fixture.json';
+$cancellationEvidence = is_file($cancellationPath) ? json_decode((string) file_get_contents($cancellationPath), true, flags: JSON_THROW_ON_ERROR) : [];
+$lifecyclePath = getenv('FLOW13_LIFECYCLE_ARTIFACT') ?: dirname(__DIR__, 2).'/flow13_lifecycle_fixture.json';
+$lifecycleEvidence = is_file($lifecyclePath) ? json_decode((string) file_get_contents($lifecyclePath), true, flags: JSON_THROW_ON_ERROR) : [];
 $cases = MeetingExceptionCase::where('meeting_id', $meeting->id)->with('currentVersion.reviews')->get();
 $versions = MeetingExceptionCaseVersion::whereIn('exception_case_id', $cases->pluck('id'))->get();
 $reviews = MeetingExceptionReview::whereIn('exception_case_version_id', $versions->pluck('id'))->get();
@@ -46,6 +50,8 @@ $reviewStatuses = array_merge($reviewStatuses, $reviews->groupBy('status')->map-
 $minutes = Schema::hasTable('meeting_minutes') ? DB::table('meeting_minutes')->where('meeting_id', $meeting->id)->first() : null;
 $minuteVersionIds = $minutes && Schema::hasTable('meeting_minute_versions') ? DB::table('meeting_minute_versions')->where('meeting_minutes_id', $minutes->id)->pluck('id') : collect();
 $finalizedDecisionCount = $minuteVersionIds->isNotEmpty() && Schema::hasTable('meeting_minute_version_decisions') ? DB::table('meeting_minute_version_decisions')->whereIn('meeting_minute_version_id', $minuteVersionIds)->count() : 0;
+$duplicateScheduleVersionNumberCount = $meeting->scheduleVersions->groupBy('version_number')->sum(fn ($rows) => max(0, $rows->count() - 1));
+$raceGroupNames = array_values(array_filter(array_keys($race), fn (string $key): bool => !in_array($key, ['pass', 'race_group_count'], true)));
 $invariants = [
     'pass' => true,
     'meeting_id' => $meeting->id,
@@ -81,7 +87,24 @@ $invariants = [
     'terminal_secret_exposure_count' => preg_match('/session_token|raw_token|secret/i', $metadataText) ? 1 : 0,
     'biometric_sensitive_field_exposure_count' => preg_match('/fingerprint|template|biometric|match_score/i', $metadataText) ? 1 : 0,
     'race_group_count' => $race['race_group_count'] ?? 0,
+    'race_group_names' => $raceGroupNames,
     'race_pass' => $race['pass'] ?? false,
+    'cancellation_evidence_pass' => $cancellationEvidence['pass'] ?? false,
+    'cancellation_evidence_meeting_id' => $cancellationEvidence['meeting_id'] ?? null,
+    'cancellation_evidence_attendance_record_id' => $cancellationEvidence['attendance_record_id'] ?? null,
+    'cancellation_evidence_attendance_row_after_id' => $cancellationEvidence['attendance_row_after_id'] ?? null,
+    'cancellation_evidence_attendance_payload_unchanged' => $cancellationEvidence['attendance_payload_unchanged'] ?? false,
+    'cancellation_evidence_invalidation_id' => $cancellationEvidence['attendance_invalidation_id'] ?? null,
+    'lifecycle_evidence_pass' => $lifecycleEvidence['pass'] ?? false,
+    'lifecycle_same_meeting_id_all_steps' => $lifecycleEvidence['same_meeting_id_all_steps'] ?? false,
+    'lifecycle_same_meeting_request_id_all_steps' => $lifecycleEvidence['same_meeting_request_id_all_steps'] ?? false,
+    'lifecycle_schedule_version_ids' => $lifecycleEvidence['schedule_version_ids'] ?? [],
+    'lifecycle_schedule_version_numbers' => $lifecycleEvidence['schedule_version_numbers'] ?? [],
+    'lifecycle_old_schedule_v1_unchanged' => $lifecycleEvidence['old_schedule_v1_unchanged'] ?? false,
+    'lifecycle_old_schedule_v2_unchanged' => $lifecycleEvidence['old_schedule_v2_unchanged'] ?? false,
+    'lifecycle_old_terminal_session_restored' => $lifecycleEvidence['old_terminal_session_restored'] ?? false,
+    'lifecycle_old_attendance_invalidation_removed' => $lifecycleEvidence['old_attendance_invalidation_removed'] ?? false,
+    'duplicate_schedule_version_number_count' => $duplicateScheduleVersionNumberCount,
     'source_mutation_count' => 0,
     'historical_schedule_mutation_count' => max(0, $meeting->scheduleVersions->count() - 1),
     'historical_participant_mutation_count' => max(0, $meeting->participantVersions->count() - 1),
@@ -89,7 +112,8 @@ $invariants = [
     'finalized_decision_count' => $finalizedDecisionCount,
     'flow12_history_count' => $countTable('meeting_decision_followups', 'meeting_id'),
     'request_meeting_duplicate_count' => max(0, Meeting::where('meeting_request_id', $meeting->meeting_request_id)->count() - 1),
+    'meeting_request_count_for_identity' => Meeting::where('meeting_request_id', $meeting->meeting_request_id)->count(),
     'terminal_cases_with_pending_review' => $cases->whereIn('status', ['APPLIED','REJECTED','WITHDRAWN'])->filter(fn ($case) => $case->currentVersion?->reviews?->contains(fn ($review) => $review->status === 'PENDING'))->count(),
 ];
-$invariants['pass'] = $invariants['race_pass'] === true && $invariants['source_mutation_count'] === 0 && $invariants['duplicate_active_exception_case_count'] === 0 && $invariants['duplicate_exception_apply_count'] === 0 && $invariants['terminal_cases_with_pending_review'] === 0 && $invariants['request_meeting_duplicate_count'] === 0 && $invariants['active_terminal_assignment_count'] === 0 && $invariants['active_terminal_session_count'] === 0;
+$invariants['pass'] = $invariants['race_pass'] === true && $invariants['cancellation_evidence_pass'] === true && $invariants['lifecycle_evidence_pass'] === true && $invariants['duplicate_schedule_version_number_count'] === 0 && $invariants['source_mutation_count'] === 0 && $invariants['duplicate_active_exception_case_count'] === 0 && $invariants['duplicate_exception_apply_count'] === 0 && $invariants['terminal_cases_with_pending_review'] === 0 && $invariants['request_meeting_duplicate_count'] === 0 && $invariants['active_terminal_assignment_count'] === 0 && $invariants['active_terminal_session_count'] === 0;
 echo json_encode($invariants, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;

@@ -28,7 +28,7 @@ class ResumePostponedMeeting
         return DB::transaction(function () use ($case, $actor, $schedule): MeetingExceptionCase {
             $lockedCase = MeetingExceptionCase::query()->with(['meeting.request', 'currentVersion'])->lockForUpdate()->findOrFail($case->id);
             $meeting = Meeting::query()->with(['request', 'currentScheduleVersion', 'scheduleVersions', 'currentParticipantVersion', 'participants'])->lockForUpdate()->findOrFail($lockedCase->meeting_id);
-            abort_unless($lockedCase->status === MeetingExceptionCase::READY_TO_APPLY, 409, 'MEETING_EXCEPTION_REVIEW_INCOMPLETE');
+            $this->assertCaseReadyForApplication($lockedCase);
             abort_unless($meeting->status === 'POSTPONED', 409, 'MEETING_RESUMPTION_NOT_ALLOWED');
             $this->assertBaseline($lockedCase, $meeting);
             $normalized = $this->scheduleVersions->normalize($schedule);
