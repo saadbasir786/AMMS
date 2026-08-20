@@ -26,7 +26,7 @@ class ReturnActionItemCompletion
             $this->updateItem($locked, $actor, MeetingActionItemUpdate::COMPLETION_RETURNED, (int) $locked->progress_percent, $reason);
             $this->auditItem($locked, $actor, 'ACTION_ITEM_COMPLETION_RETURNED', $reason);
             $this->notifyUser($locked->submitted_by_user_id, 'ACTION_ITEM_COMPLETION_RETURNED', 'تکمیل اقدام برای اصلاح برگشت داده شد', 'تکمیل اقدام عملیاتی برای اصلاحات بیشتر برگشت داده شد.', ['action_item_id' => $locked->id]);
-            return $locked->fresh(['followup.decision', 'updates', 'evidence', 'responsibleUnit', 'assignedEmployee']);
+            return $locked->fresh(['followup.decision', 'responsibleUnit', 'assignedEmployee']);
         });
     }
 }

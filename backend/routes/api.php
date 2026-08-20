@@ -69,9 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/meetings/{meeting}/minutes/final.pdf', [MeetingMinutesController::class, 'finalPdf']);
     Route::get('/meetings/{meeting}/follow-up', [DecisionFollowUpController::class, 'meeting']);
     Route::post('/meetings/{meeting}/follow-up/initialize', [DecisionFollowUpController::class, 'initialize']);
-    Route::post('/decisions/{followup}/follow-up/classify', [DecisionFollowUpController::class, 'classify']);
-    Route::post('/decisions/{followup}/action-items', [DecisionFollowUpController::class, 'storeActionItem']);
-    Route::post('/decisions/{followup}/follow-up/close', [DecisionFollowUpController::class, 'close']);
+    Route::post('/decisions/{decision}/follow-up/classify', [DecisionFollowUpController::class, 'classify']);
+    Route::post('/decisions/{decision}/action-items', [DecisionFollowUpController::class, 'storeActionItem']);
+    Route::post('/decisions/{decision}/follow-up/close', [DecisionFollowUpController::class, 'close']);
     Route::get('/action-items', [DecisionFollowUpController::class, 'index']);
     Route::get('/action-items/{actionItem}', [DecisionFollowUpController::class, 'show']);
     Route::post('/action-items/{actionItem}/start', [DecisionFollowUpController::class, 'start']);

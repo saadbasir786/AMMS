@@ -1,0 +1,11 @@
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Flow12PerFlowGovernanceTest[39m
+  [32;1m✓[39;22m[90m [39m[90mflow01 local coordinator owns followup and authority actors are den[39m[90m…[39m [90m0.62s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow02 requester lead coordinator owns followup and system admin is[39m[90m…[39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow03 requester lead coordinator owns followup and high authority[39m[90m… [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow04 executive secretary owns followup and authority office is de[39m[90m…[39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow05 executive secretary owns followup and high authority is not[39m[90m… [39m [90m0.06s[39m
+  [32;1m✓[39;22m[90m [39m[90mflow06 executive secretary owns high authority initiated followup a[39m[90m…[39m [90m0.06s[39m
+
+  [90mTests:[39m    [32;1m6 passed[39;22m[90m (31 assertions)[39m
+  [90mDuration:[39m [39m0.98s[39m

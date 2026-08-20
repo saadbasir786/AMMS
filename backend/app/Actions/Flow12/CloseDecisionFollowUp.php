@@ -20,7 +20,7 @@ class CloseDecisionFollowUp
         abort_unless($this->governance()->mayClassify($followup, $actor), 403, 'UNAUTHORIZED_DECISION_FOLLOWUP');
         return DB::transaction(function () use ($followup, $actor): MeetingDecisionFollowUp {
             $locked = MeetingDecisionFollowUp::query()->with(['meeting', 'actionItems'])->lockForUpdate()->findOrFail($followup->id);
-            $eligible = $locked->status === MeetingDecisionFollowUp::NO_ACTION_REQUIRED
+            $eligible = $locked->classification === MeetingDecisionFollowUp::NO_ACTION_REQUIRED
                 || ($locked->actionItems->isNotEmpty() && $locked->actionItems->every(fn (MeetingActionItem $item): bool => in_array($item->status, [MeetingActionItem::COMPLETED, MeetingActionItem::CANCELLED], true)));
             abort_unless($eligible, 422, 'DECISION_FOLLOWUP_NOT_READY_TO_CLOSE');
             $locked->update(['status' => MeetingDecisionFollowUp::CLOSED]);

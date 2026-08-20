@@ -1,49 +1,62 @@
 {
     "fixture": {
-        "tag": "F12-HTTP-NI6ICB60",
-        "meeting_id": 25,
-        "decision_id": 5
+        "tag": "F12-HTTP-J0FYYTCF",
+        "meeting_id": 32,
+        "meeting_request_id": 35,
+        "decision_id": 16
     },
-    "meeting": {
-        "status": "COMPLETED",
-        "meeting_number": "F12-HTTP-NI6ICB60-MEETING"
-    },
-    "minutes": {
-        "status": "FINALIZED",
-        "current_version_id": 5,
-        "version_number": 1
-    },
-    "immutable_source": {
-        "decision_number": "HTTP-DEC-001",
+    "before_source_snapshot": {
+        "request_status": "CONVERTED_TO_MEETING",
+        "meeting_status": "COMPLETED",
+        "minutes_status": "FINALIZED",
+        "meeting_minute_version_id": 12,
         "decision_text": "اقدام آزمایشی اجرا گردد.",
-        "responsible_unit_id": 1,
-        "responsible_employee_id": 1,
-        "target_date": "2026-08-27"
+        "decision_target_date": "2026-08-19",
+        "decision_responsible_unit_id": 1,
+        "decision_responsible_employee_id": 1
     },
-    "followup": {
-        "root_count": 1,
-        "statuses": [
-            "CLOSED"
-        ],
-        "action_item_count": 1
+    "after_source_snapshot": {
+        "request_status": "CONVERTED_TO_MEETING",
+        "meeting_status": "COMPLETED",
+        "minutes_status": "FINALIZED",
+        "meeting_minute_version_id": 12,
+        "decision_text": "اقدام آزمایشی اجرا گردد.",
+        "decision_target_date": "2026-08-19",
+        "decision_responsible_unit_id": 1,
+        "decision_responsible_employee_id": 1
     },
-    "action_items": {
-        "status_counts": {
-            "COMPLETED": 1
-        },
-        "progress_100_count": 1,
-        "overdue_count": 0,
-        "update_count": 5
+    "meeting_request_id": 35,
+    "request_status": "CONVERTED_TO_MEETING",
+    "final_minutes_version_id": 12,
+    "meeting_status": "COMPLETED",
+    "minutes_status": "FINALIZED",
+    "decision_count": 2,
+    "decision_followup_count": 2,
+    "unclassified_decision_count": 0,
+    "no_action_required_count": 1,
+    "action_required_count": 1,
+    "active_followup_count": 0,
+    "open_followup_count": 0,
+    "closed_followup_count": 2,
+    "all_action_item_status_counts": {
+        "COMPLETED": 1
     },
-    "extensions": {
-        "total_count": 1,
-        "approved_count": 1,
-        "pending_count": 0
-    },
-    "audit": {
-        "followup_and_item_events": 11,
-        "completed_event_count": 1
-    },
+    "duplicate_followup_root_count": 0,
+    "duplicate_action_item_sequence_count": 0,
+    "duplicate_completion_count": 0,
+    "pending_extension_duplicate_count": 0,
+    "request_meeting_duplicate_count": 0,
+    "assignment_history_count": 2,
+    "progress_update_count": 5,
+    "completion_submission_count": 2,
+    "completion_verification_count": 1,
+    "extension_count": 1,
+    "approved_extension_count": 1,
+    "source_decision_mutation_count": 0,
+    "meeting_status_mutation_count": 0,
+    "minutes_status_mutation_count": 0,
+    "documentary_responsibility_mutation_count": 0,
+    "documentary_target_date_mutation_count": 0,
     "privacy": {
         "biometric_sensitive_fields_in_flow12": 0,
         "public_evidence_urls": 0,

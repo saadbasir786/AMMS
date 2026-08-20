@@ -5,6 +5,10 @@ declare(strict_types=1);
 use App\Actions\Flow12\CreateMeetingActionItem;
 use App\Actions\Flow12\InitializeMeetingDecisionFollowUp;
 use App\Actions\Flow12\RequestActionItemDueDateExtension;
+use App\Actions\Flow12\ReviewActionItemDueDateExtension;
+use App\Actions\Flow12\ChangeActionItemAssignment;
+use App\Actions\Flow12\RecordActionItemProgress;
+use App\Actions\Flow12\CancelMeetingActionItem;
 use App\Actions\Flow12\VerifyActionItemCompletion;
 use App\Models\Employee;
 use App\Models\Meeting;
@@ -77,10 +81,39 @@ $initResults = $runTwo(static function () use ($meeting, $owner): string {
 $followup = MeetingDecisionFollowUp::where('meeting_id', $meeting->id)->firstOrFail();
 app(\App\Actions\Flow12\ClassifyMeetingDecision::class)->execute($followup->fresh(['meeting']), $owner, 'ACTION_REQUIRED');
 $item = app(CreateMeetingActionItem::class)->execute($followup->fresh(['meeting', 'decision']), $owner, ['title' => 'اقدام آزمون همزمانی', 'responsible_unit_id' => $unit->id, 'assigned_employee_id' => $employee->id, 'due_date' => now()->addDays(3)->format('Y-m-d')]);
+$sequenceResults = $runTwo(static function (int $worker) use ($followup, $owner, $unit): string {
+    app(CreateMeetingActionItem::class)->execute($followup->fresh(['meeting', 'decision']), User::findOrFail($owner->id), ['title' => 'اقدام شماره‌گذاری '.$worker, 'responsible_unit_id' => $unit->id, 'assigned_employee_id' => null, 'due_date' => now()->addDays(4)->format('Y-m-d')]);
+    return 'ACTION_ITEM_CREATED';
+});
 $item->update(['status' => MeetingActionItem::IN_PROGRESS]);
 $extensionResults = $runTwo(static function () use ($item, $employeeUser): string {
     app(RequestActionItemDueDateExtension::class)->execute(MeetingActionItem::with('followup.meeting')->findOrFail($item->id), User::findOrFail($employeeUser->id), now()->addDays(12)->format('Y-m-d'), 'درخواست رقابتی آزمون');
     return 'EXTENSION_REQUESTED';
+});
+$extension = DB::table('meeting_action_item_extension_requests')->where('action_item_id', $item->id)->first();
+$extensionReviewResults = $runTwo(static function (int $worker) use ($extension, $owner): string {
+    app(ReviewActionItemDueDateExtension::class)->execute(\App\Models\MeetingActionItemExtensionRequest::findOrFail($extension->id), User::findOrFail($owner->id), $worker === 0, $worker === 0 ? null : 'رقابت بررسی');
+    return $worker === 0 ? 'EXTENSION_APPROVED' : 'EXTENSION_REJECTED';
+});
+$progressCancelItem = app(CreateMeetingActionItem::class)->execute($followup->fresh(['meeting', 'decision']), $owner, ['title' => 'اقدام رقابت پیشرفت و لغو', 'responsible_unit_id' => $unit->id, 'assigned_employee_id' => null, 'due_date' => now()->addDays(4)->format('Y-m-d')]);
+$progressCancelItem->update(['status' => MeetingActionItem::IN_PROGRESS]);
+$progressCancelResults = $runTwo(static function (int $worker) use ($progressCancelItem, $employeeUser, $owner): string {
+    if ($worker === 0) {
+        app(RecordActionItemProgress::class)->execute(MeetingActionItem::findOrFail($progressCancelItem->id), User::findOrFail($employeeUser->id), 70, 'پیشرفت رقابتی');
+        return 'PROGRESS_RECORDED';
+    }
+    app(CancelMeetingActionItem::class)->execute(MeetingActionItem::with('followup.meeting')->findOrFail($progressCancelItem->id), User::findOrFail($owner->id), 'لغو رقابتی');
+    return 'ACTION_ITEM_CANCELLED';
+});
+$terminalRaceItem = app(CreateMeetingActionItem::class)->execute($followup->fresh(['meeting', 'decision']), $owner, ['title' => 'اقدام رقابت تأیید و تخصیص', 'responsible_unit_id' => $unit->id, 'assigned_employee_id' => $employee->id, 'due_date' => now()->addDays(4)->format('Y-m-d')]);
+$terminalRaceItem->update(['status' => MeetingActionItem::PENDING_VERIFICATION, 'progress_percent' => 100, 'submitted_by_user_id' => $employeeUser->id, 'submitted_for_verification_at' => now()]);
+$completionReassignmentResults = $runTwo(static function (int $worker) use ($terminalRaceItem, $owner, $unit, $employee): string {
+    if ($worker === 0) {
+        app(VerifyActionItemCompletion::class)->execute(MeetingActionItem::with('followup.meeting')->findOrFail($terminalRaceItem->id), User::findOrFail($owner->id));
+        return 'ACTION_ITEM_COMPLETED';
+    }
+    app(ChangeActionItemAssignment::class)->execute(MeetingActionItem::with('followup.meeting')->findOrFail($terminalRaceItem->id), User::findOrFail($owner->id), $unit->id, $employee->id, 'تخصیص رقابتی');
+    return 'ACTION_ITEM_REASSIGNED';
 });
 $item->update(['status' => MeetingActionItem::PENDING_VERIFICATION, 'progress_percent' => 100, 'submitted_by_user_id' => $employeeUser->id, 'submitted_for_verification_at' => now()]);
 $verifyResults = $runTwo(static function () use ($item, $owner): string {
@@ -93,11 +126,26 @@ $out = [
     'fixture_tag' => $tag,
     'concurrent_followup_initialization' => $initResults,
     'followup_root_rows' => MeetingDecisionFollowUp::where('meeting_id', $meeting->id)->count(),
+    'concurrent_action_item_sequence_creation' => $sequenceResults,
+    'action_item_rows_after_sequence_race' => MeetingActionItem::where('decision_followup_id', $followup->id)->count(),
     'concurrent_extension_requests' => $extensionResults,
-    'pending_extension_rows' => DB::table('meeting_action_item_extension_requests')->where('action_item_id', $item->id)->where('status', 'PENDING')->count(),
+    'concurrent_extension_review' => $extensionReviewResults,
+    'pending_extension_rows_after_review' => DB::table('meeting_action_item_extension_requests')->where('action_item_id', $item->id)->where('status', 'PENDING')->count(),
+    'extension_terminal_rows' => DB::table('meeting_action_item_extension_requests')->where('action_item_id', $item->id)->whereIn('status', ['APPROVED', 'REJECTED'])->count(),
+    'concurrent_progress_cancel' => $progressCancelResults,
+    'progress_cancel_terminal_rows' => MeetingActionItem::whereKey($progressCancelItem->id)->whereIn('status', [MeetingActionItem::CANCELLED, MeetingActionItem::IN_PROGRESS])->count(),
+    'concurrent_completion_reassignment' => $completionReassignmentResults,
+    'completion_reassignment_completed_rows' => MeetingActionItem::whereKey($terminalRaceItem->id)->where('status', MeetingActionItem::COMPLETED)->count(),
     'concurrent_completion_verification' => $verifyResults,
     'completed_action_item_rows' => MeetingActionItem::whereKey($item->id)->where('status', MeetingActionItem::COMPLETED)->count(),
     'completed_audit_rows' => DB::table('meeting_actions')->where('meeting_id', $meeting->id)->where('action', 'ACTION_ITEM_COMPLETED')->count(),
 ];
-$out['pass'] = $out['followup_root_rows'] === 1 && $out['pending_extension_rows'] === 1 && $out['completed_action_item_rows'] === 1 && $out['completed_audit_rows'] === 1;
+$out['pass'] = $out['followup_root_rows'] === 1
+    && $out['action_item_rows_after_sequence_race'] === 5
+    && $out['pending_extension_rows_after_review'] === 0
+    && $out['extension_terminal_rows'] === 1
+    && $out['progress_cancel_terminal_rows'] === 1
+    && $out['completion_reassignment_completed_rows'] === 1
+    && $out['completed_action_item_rows'] === 1
+    && $out['completed_audit_rows'] === 2;
 echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;

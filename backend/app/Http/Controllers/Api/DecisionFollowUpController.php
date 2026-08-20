@@ -39,6 +39,7 @@ use App\Models\MeetingActionItem;
 use App\Models\MeetingActionItemEvidence;
 use App\Models\MeetingActionItemExtensionRequest;
 use App\Models\MeetingDecisionFollowUp;
+use App\Models\MeetingMinuteVersionDecision;
 use App\Models\User;
 use App\Policies\MeetingPolicy;
 use App\Support\DecisionFollowUpGovernanceResolver;
@@ -56,6 +57,13 @@ class DecisionFollowUpController extends Controller
         abort_unless($actor->isActive() && $actor->can('decision.followup.view') && app(MeetingPolicy::class)->view($actor, $meeting), 403, 'UNAUTHORIZED_DECISION_FOLLOWUP');
     }
 
+    private function followupForDecision(MeetingMinuteVersionDecision $decision): MeetingDecisionFollowUp
+    {
+        $followup = MeetingDecisionFollowUp::query()->with('meeting')->where('meeting_decision_id', $decision->id)->firstOrFail();
+        abort_unless((int) $followup->meeting_minute_version_id === (int) $decision->meeting_minute_version_id, 409, 'FOLLOWUP_SOURCE_DECISION_MISMATCH');
+        return $followup;
+    }
+
     public function meeting(Meeting $meeting): JsonResponse
     {
         $actor = request()->user();
@@ -68,7 +76,7 @@ class DecisionFollowUpController extends Controller
             'minutes' => ['id' => $minutes->id, 'status' => $minutes->status, 'final_version_id' => $version->id, 'version_number' => $version->version_number, 'finalized_at' => $minutes->finalized_at],
             'decision_count' => $version->decisions()->count(),
             'followup_initialized' => $followups->count() > 0,
-            'summary' => ['total_decisions' => $version->decisions()->count(), 'action_required' => $followups->where('status', '!=', MeetingDecisionFollowUp::NO_ACTION_REQUIRED)->count(), 'no_action_required' => $followups->where('status', MeetingDecisionFollowUp::NO_ACTION_REQUIRED)->count(), 'open' => $items->where('status', MeetingActionItem::OPEN)->count(), 'in_progress' => $items->where('status', MeetingActionItem::IN_PROGRESS)->count(), 'blocked' => $items->where('status', MeetingActionItem::BLOCKED)->count(), 'pending_verification' => $items->where('status', MeetingActionItem::PENDING_VERIFICATION)->count(), 'completed' => $items->where('status', MeetingActionItem::COMPLETED)->count(), 'overdue' => $items->where('is_overdue', true)->count()],
+            'summary' => ['total_decisions' => $version->decisions()->count(), 'action_required' => $followups->where('classification', MeetingDecisionFollowUp::ACTION_REQUIRED)->count(), 'no_action_required' => $followups->where('classification', MeetingDecisionFollowUp::NO_ACTION_REQUIRED)->count(), 'open' => $items->where('status', MeetingActionItem::OPEN)->count(), 'in_progress' => $items->where('status', MeetingActionItem::IN_PROGRESS)->count(), 'blocked' => $items->where('status', MeetingActionItem::BLOCKED)->count(), 'pending_verification' => $items->where('status', MeetingActionItem::PENDING_VERIFICATION)->count(), 'completed' => $items->where('status', MeetingActionItem::COMPLETED)->count(), 'overdue' => $items->where('is_overdue', true)->count()],
             'followups' => MeetingDecisionFollowUpResource::collection($followups),
         ]]);
     }
@@ -80,14 +88,16 @@ class DecisionFollowUpController extends Controller
         return response()->json(['data' => MeetingDecisionFollowUpResource::collection($result)], 201);
     }
 
-    public function classify(ClassifyMeetingDecisionRequest $request, MeetingDecisionFollowUp $followup, ClassifyMeetingDecision $action): MeetingDecisionFollowUpResource
+    public function classify(ClassifyMeetingDecisionRequest $request, MeetingMinuteVersionDecision $decision, ClassifyMeetingDecision $action): MeetingDecisionFollowUpResource
     {
+        $followup = $this->followupForDecision($decision);
         $this->authorize('classify', $followup);
         return new MeetingDecisionFollowUpResource($action->execute($followup, $request->user(), $request->string('classification')->toString(), $request->input('reason')));
     }
 
-    public function storeActionItem(CreateMeetingActionItemRequest $request, MeetingDecisionFollowUp $followup, CreateMeetingActionItem $action): JsonResponse
+    public function storeActionItem(CreateMeetingActionItemRequest $request, MeetingMinuteVersionDecision $decision, CreateMeetingActionItem $action): JsonResponse
     {
+        $followup = $this->followupForDecision($decision);
         $this->authorize('createActionItem', $followup);
         return (new MeetingActionItemResource($action->execute($followup, $request->user(), $request->validated())))->response()->setStatusCode(201);
     }
@@ -108,7 +118,7 @@ class DecisionFollowUpController extends Controller
 
     public function show(MeetingActionItem $actionItem): MeetingActionItemResource
     {
-        $actionItem->load(['followup.meeting', 'followup.version', 'followup.decision', 'responsibleUnit', 'assignedEmployee', 'updates.evidence', 'extensionRequests', 'assignmentHistory', 'evidence']);
+        $actionItem->load(['followup.meeting', 'followup.version', 'followup.decision', 'responsibleUnit', 'assignedEmployee']);
         $this->authorize('view', $actionItem);
         return new MeetingActionItemResource($actionItem);
     }
@@ -195,8 +205,9 @@ class DecisionFollowUpController extends Controller
         return new MeetingActionItemResource($action->execute($actionItem, $request->user(), (string) $request->input('reason')));
     }
 
-    public function close(MeetingDecisionFollowUp $followup, CloseDecisionFollowUp $action): MeetingDecisionFollowUpResource
+    public function close(MeetingMinuteVersionDecision $decision, CloseDecisionFollowUp $action): MeetingDecisionFollowUpResource
     {
+        $followup = $this->followupForDecision($decision);
         $this->authorize('close', $followup);
         return new MeetingDecisionFollowUpResource($action->execute($followup, request()->user()));
     }

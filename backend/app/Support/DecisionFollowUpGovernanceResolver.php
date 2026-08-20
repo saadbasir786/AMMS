@@ -67,7 +67,7 @@ class DecisionFollowUpGovernanceResolver
 
     public function mayCreateActionItem(MeetingDecisionFollowUp $followup, User $actor): bool
     {
-        return $this->mayClassify($followup, $actor) && $actor->can('action-item.create') && $followup->status !== MeetingDecisionFollowUp::NO_ACTION_REQUIRED;
+        return $this->mayClassify($followup, $actor) && $actor->can('action-item.create') && $followup->classification === MeetingDecisionFollowUp::ACTION_REQUIRED && $followup->status !== MeetingDecisionFollowUp::CLOSED;
     }
 
     public function mayViewActionItem(MeetingActionItem $item, User $actor): bool
@@ -153,10 +153,13 @@ class DecisionFollowUpGovernanceResolver
 
     public function refreshFollowupStatus(MeetingDecisionFollowUp $followup): void
     {
-        if ($followup->status === MeetingDecisionFollowUp::NO_ACTION_REQUIRED) return;
+        if ($followup->classification === MeetingDecisionFollowUp::NO_ACTION_REQUIRED) {
+            if ($followup->status !== MeetingDecisionFollowUp::CLOSED) $followup->update(['status' => MeetingDecisionFollowUp::CLOSED]);
+            return;
+        }
         $items = $followup->actionItems()->get();
         if ($items->isEmpty()) {
-            if ($followup->status === MeetingDecisionFollowUp::CLOSED) $followup->update(['status' => MeetingDecisionFollowUp::ACTIVE]);
+            if ($followup->status !== MeetingDecisionFollowUp::CLOSED) $followup->update(['status' => MeetingDecisionFollowUp::OPEN]);
             return;
         }
         $closed = $items->every(fn (MeetingActionItem $item): bool => in_array($item->status, [MeetingActionItem::COMPLETED, MeetingActionItem::CANCELLED], true));

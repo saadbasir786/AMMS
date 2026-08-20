@@ -10,14 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MeetingDecisionFollowUp extends \Illuminate\Database\Eloquent\Model
 {
     public const UNCLASSIFIED = 'UNCLASSIFIED';
+    public const ACTION_REQUIRED = 'ACTION_REQUIRED';
     public const NO_ACTION_REQUIRED = 'NO_ACTION_REQUIRED';
+    public const OPEN = 'OPEN';
     public const ACTIVE = 'ACTIVE';
     public const CLOSED = 'CLOSED';
 
     protected $table = 'meeting_decision_followups';
     protected $fillable = [
         'uuid', 'meeting_id', 'meeting_minutes_id', 'meeting_minute_version_id',
-        'meeting_decision_id', 'decision_number', 'status', 'classified_by_user_id',
+        'meeting_decision_id', 'decision_number', 'classification', 'status', 'classified_by_user_id',
         'classified_at', 'no_action_reason',
     ];
     protected $casts = ['classified_at' => 'datetime'];
@@ -29,5 +31,7 @@ class MeetingDecisionFollowUp extends \Illuminate\Database\Eloquent\Model
     public function classifiedBy(): BelongsTo { return $this->belongsTo(User::class, 'classified_by_user_id'); }
     public function actionItems(): HasMany { return $this->hasMany(MeetingActionItem::class, 'decision_followup_id'); }
 
-    public function isActionRequired(): bool { return $this->status !== self::NO_ACTION_REQUIRED; }
+    public function isActionRequired(): bool { return $this->classification === self::ACTION_REQUIRED; }
+
+    public function hasOperationalItems(): bool { return $this->actionItems()->exists(); }
 }

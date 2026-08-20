@@ -34,7 +34,8 @@ class InitializeMeetingDecisionFollowUp
                         'meeting_minute_version_id' => $version->id,
                         'meeting_decision_id' => $decision->id,
                         'decision_number' => $decision->decision_number,
-                        'status' => MeetingDecisionFollowUp::UNCLASSIFIED,
+                        'classification' => MeetingDecisionFollowUp::UNCLASSIFIED,
+                        'status' => MeetingDecisionFollowUp::OPEN,
                     ]);
                     $this->auditFollowup($followup, $actor, 'DECISION_FOLLOWUP_INITIALIZED', null, ['decision_id' => $decision->id]);
                 }

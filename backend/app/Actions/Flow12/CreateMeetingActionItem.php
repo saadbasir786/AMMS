@@ -22,11 +22,11 @@ class CreateMeetingActionItem
         $meeting = $followup->meeting;
         [$minutes, $version] = $this->governance()->source($meeting);
         abort_unless((int) $followup->meeting_minute_version_id === (int) $version->id, 422, 'FOLLOWUP_SOURCE_VERSION_MISMATCH');
-        abort_unless($followup->status !== MeetingDecisionFollowUp::NO_ACTION_REQUIRED, 422, 'DECISION_NO_ACTION_REQUIRED');
+        abort_unless($followup->classification === MeetingDecisionFollowUp::ACTION_REQUIRED, 422, 'DECISION_NO_ACTION_REQUIRED');
 
         return DB::transaction(function () use ($followup, $actor, $attributes, $meeting): MeetingActionItem {
             $lockedFollowup = MeetingDecisionFollowUp::query()->with(['meeting', 'decision'])->lockForUpdate()->findOrFail($followup->id);
-            abort_unless($lockedFollowup->status !== MeetingDecisionFollowUp::NO_ACTION_REQUIRED, 422, 'DECISION_NO_ACTION_REQUIRED');
+            abort_unless($lockedFollowup->classification === MeetingDecisionFollowUp::ACTION_REQUIRED && $lockedFollowup->status !== MeetingDecisionFollowUp::CLOSED, 422, 'DECISION_NO_ACTION_REQUIRED');
             $unitId = (int) ($attributes['responsible_unit_id'] ?? 0);
             abort_unless($unitId > 0, 422, 'ACTION_ITEM_RESPONSIBLE_UNIT_REQUIRED');
             $this->governance()->validateUnit($unitId, $lockedFollowup->meeting);

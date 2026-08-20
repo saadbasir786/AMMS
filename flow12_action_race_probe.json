@@ -1,6 +1,6 @@
 {
     "probe": "FLOW-12 MariaDB action-level race probe",
-    "fixture_tag": "F12-RACE-YYGLNM8",
+    "fixture_tag": "F12-RACE-SKGFVII",
     "concurrent_followup_initialization": [
         {
             "ok": true,
@@ -12,19 +12,53 @@
         }
     ],
     "followup_root_rows": 1,
+    "concurrent_action_item_sequence_creation": [
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_CREATED"
+        },
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_CREATED"
+        }
+    ],
+    "action_item_rows_after_sequence_race": 5,
     "concurrent_extension_requests": [
+        {
+            "ok": true,
+            "result": "EXTENSION_REQUESTED"
+        },
         {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_EXTENSION_ALREADY_PENDING"
+        }
+    ],
+    "concurrent_extension_review": [
+        {
+            "ok": true,
+            "result": "EXTENSION_APPROVED"
+        },
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_EXTENSION_NOT_PENDING"
+        }
+    ],
+    "pending_extension_rows_after_review": 0,
+    "extension_terminal_rows": 1,
+    "concurrent_progress_cancel": [
+        {
+            "ok": true,
+            "result": "PROGRESS_RECORDED"
         },
         {
             "ok": true,
-            "result": "EXTENSION_REQUESTED"
+            "result": "ACTION_ITEM_CANCELLED"
         }
     ],
-    "pending_extension_rows": 1,
-    "concurrent_completion_verification": [
+    "progress_cancel_terminal_rows": 1,
+    "concurrent_completion_reassignment": [
         {
             "ok": true,
             "result": "ACTION_ITEM_COMPLETED"
@@ -32,10 +66,22 @@
         {
             "ok": false,
             "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
+            "message": "ACTION_ITEM_INVALID_STATE"
+        }
+    ],
+    "completion_reassignment_completed_rows": 1,
+    "concurrent_completion_verification": [
+        {
+            "ok": false,
+            "class": "Symfony\\Component\\HttpKernel\\Exception\\HttpException",
             "message": "ACTION_ITEM_NOT_PENDING_VERIFICATION"
+        },
+        {
+            "ok": true,
+            "result": "ACTION_ITEM_COMPLETED"
         }
     ],
     "completed_action_item_rows": 1,
-    "completed_audit_rows": 1,
+    "completed_audit_rows": 2,
     "pass": true
 }

@@ -29,6 +29,7 @@ class MeetingDecisionFollowUpResource extends JsonResource
                 'target_date' => $this->decision->target_date?->toDateString(),
                 'notes' => $this->decision->notes,
             ]),
+            'classification' => $this->classification,
             'status' => $this->status,
             'classified_by_user_id' => $this->classified_by_user_id,
             'classified_at' => $this->classified_at,

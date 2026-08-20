@@ -16,6 +16,6 @@ class MeetingActionItemEvidence extends \Illuminate\Database\Eloquent\Model
     protected $casts = ['file_size' => 'integer'];
 
     public function actionItem(): BelongsTo { return $this->belongsTo(MeetingActionItem::class, 'action_item_id'); }
-    public function update(): BelongsTo { return $this->belongsTo(MeetingActionItemUpdate::class, 'action_item_update_id'); }
+    public function actionItemUpdate(): BelongsTo { return $this->belongsTo(MeetingActionItemUpdate::class, 'action_item_update_id'); }
     public function uploadedBy(): BelongsTo { return $this->belongsTo(User::class, 'uploaded_by_user_id'); }
 }
