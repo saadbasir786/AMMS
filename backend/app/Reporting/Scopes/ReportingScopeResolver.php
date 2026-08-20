@@ -26,7 +26,7 @@ final class ReportingScopeResolver
     {
         return array_values(array_unique(array_merge(
             $this->user->scopedRoleUnitIds('DIRECTOR'),
-            $this->user->scopedRoleUnitIds('MEETING_COORDINATOR'),
+            $this->user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
             $this->user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
             $this->user->scopedRoleUnitIds('AUTHORITY_OFFICE'),
             $this->user->scopedRoleUnitIds('EXECUTIVE_SECRETARY'),

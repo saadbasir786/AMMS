@@ -29,7 +29,7 @@ class MinutesGovernanceResolver
             return $officeId > 0 && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId);
         }
         return (int) $meeting->coordinator_id === (int) $actor->id
-            || $actor->hasScopedRole('MEETING_COORDINATOR', (int) $meeting->organizing_unit_id);
+            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $meeting->organizing_unit_id);
     }
 
     public function maySubmit(Meeting $meeting, User $actor): bool
@@ -44,7 +44,7 @@ class MinutesGovernanceResolver
             $officeId = $this->authorityOfficeUnitId($meeting);
             return $officeId > 0 && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId);
         }
-        return (int) $meeting->coordinator_id === (int) $actor->id || $actor->hasScopedRole('MEETING_COORDINATOR', (int) $meeting->organizing_unit_id);
+        return (int) $meeting->coordinator_id === (int) $actor->id || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $meeting->organizing_unit_id);
     }
 
     public function mayReviewUnit(Meeting $meeting, User $actor, int $unitId): bool

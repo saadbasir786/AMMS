@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$coordinator = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+$coordinator = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::query()->where('email', 'tech.director@example.test')->firstOrFail();
 $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
 $employee = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();

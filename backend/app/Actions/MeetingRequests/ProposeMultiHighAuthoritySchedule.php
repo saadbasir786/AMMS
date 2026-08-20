@@ -23,7 +23,7 @@ class ProposeMultiHighAuthoritySchedule
             $locked->scheduleProposals()->whereIn('status', ['PROPOSED', 'COUNTER_PROPOSED', 'ACCEPTED', 'ALTERNATIVE_REQUESTED'])->update(['status' => 'SUPERSEDED']);
             $proposal = $locked->scheduleProposals()->create(['proposed_by_unit_id' => $context->authority_office_unit_id, 'proposed_by_user_id' => $actor->id, 'meeting_date' => $data['meeting_date'], 'start_time' => $data['start_time'], 'end_time' => $data['end_time'], 'location' => $data['location'], 'comment' => $data['comment'] ?? null, 'status' => 'PROPOSED', 'proposal_type' => 'AUTHORITY_OFFICIAL']);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULE_PROPOSED', $locked->status, $locked->status, $data['comment'] ?? null, ['proposal_id' => $proposal->id, 'proposal_type' => 'AUTHORITY_OFFICIAL']);
-            foreach ($this->formalUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'پیشنهاد رسمی زمان‌بندی', 'دفتر مقام پیشنهاد رسمی جدید صادر کرد؛ پاسخ ریاست خود را ثبت کنید.', $locked);
+            foreach ($this->formalUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'پیشنهاد رسمی زمان‌بندی', 'دفتر مقام پیشنهاد رسمی جدید صادر کرد؛ پاسخ ریاست خود را ثبت کنید.', $locked);
             return $this->responseRequest($locked);
         });
     }

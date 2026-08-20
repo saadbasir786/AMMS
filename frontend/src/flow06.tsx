@@ -5,7 +5,7 @@ import { ArrowRight, Building2, CalendarDays, CheckCircle2, Clock3, ShieldCheck,
 
 type Any = any
 const api = axios.create({ baseURL: '/api' })
-api.interceptors.request.use(config => { const token=localStorage.getItem('amms_token'); if(token) config.headers.Authorization=`Bearer ${token}`; return config })
+api.interceptors.request.use(config => { const token=sessionStorage.getItem('amms_token'); if(token) config.headers.Authorization=`Bearer ${token}`; return config })
 const unwrap=(r:Any)=>r.data?.data??r.data
 const errorText=(e:Any)=>e.response?.data?.message||e.response?.data?.error?.message||'عملیات انجام نشد.'
 const statusLabels:Record<string,string>={DRAFT:'پیش‌نویس دستور مقام',PENDING_HIGH_AUTHORITY_ISSUANCE:'منتظر صدور مقام عالی',RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION:'برگشت برای اصلاح مسوده',ISSUED_BY_HIGH_AUTHORITY:'صادرشده توسط مقام عالی',DISTRIBUTED_TO_DIRECTORATES:'توزیع‌شده به ریاست‌ها',UNDER_DIRECTORATE_COORDINATION:'در حال هماهنگی ریاست‌ها',DIRECTORATE_CLARIFICATION_REQUIRED:'نیازمند وضاحت ریاست',PENDING_HIGH_AUTHORITY_REISSUANCE:'منتظر صدور مجدد مقام عالی',DIRECTORATES_ACKNOWLEDGED:'تأیید دریافت همهٔ ریاست‌ها',AUTHORITY_SCHEDULING:'در حال زمان‌بندی رسمی',SCHEDULE_CONFIRMED:'زمان‌بندی تأییدشده',CONVERTED_TO_MEETING:'تبدیل به جلسه'}

@@ -74,7 +74,6 @@ class DatabaseSeeder extends Seeder
         $makeUser('رئیس ریاست مالی','finance.director@example.test',$financeDirectorEmployee,'DIRECTOR',$finance->id);
         $makeUser('مدیریت اجرائیه منابع بشری','hr.exec@example.test',$hrExecEmployee,'EXECUTIVE_MANAGEMENT',$hr->id);
         $makeUser('رئیس ریاست منابع بشری','hr.director@example.test',$hrDirectorEmployee,'DIRECTOR',$hr->id);
-        $makeUser('هماهنگ‌کننده جلسات تکنالوژی','tech.coordinator@example.test',$techExecEmployee,'MEETING_COORDINATOR',$tech->id);
         $makeUser('کارمند تکنالوژی','employee.a@example.test',$employeeA,'EMPLOYEE',$software->id);
         $makeUser('بررسی‌کننده دفتر مقام','authority.office@example.test',$officeReviewerEmployee,'AUTHORITY_OFFICE',$authorityOffice->id);
         $makeUser('سکرتر اجرائیوی مقام','executive.secretary@example.test',$secretaryEmployee,'EXECUTIVE_SECRETARY',$authorityOffice->id);

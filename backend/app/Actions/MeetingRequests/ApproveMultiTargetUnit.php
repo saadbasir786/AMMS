@@ -37,7 +37,7 @@ class ApproveMultiTargetUnit
                     'approved_unit_ids' => $locked->units->where('role', 'TARGET')->pluck('organizational_unit_id')->values()->all(),
                 ]);
                 foreach ($this->participatingUnits($locked) as $participatingUnit) {
-                    $this->notifyUnit($participatingUnit->id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR', 'DIRECTOR'], 'تأیید چندجانبه تکمیل شد', 'همهٔ ریاست‌های مقصد درخواست را تأیید کردند و زمان‌بندی می‌تواند آغاز شود.', $locked);
+                    $this->notifyUnit($participatingUnit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'تأیید چندجانبه تکمیل شد', 'همهٔ ریاست‌های مقصد درخواست را تأیید کردند و زمان‌بندی می‌تواند آغاز شود.', $locked);
                 }
             }
 

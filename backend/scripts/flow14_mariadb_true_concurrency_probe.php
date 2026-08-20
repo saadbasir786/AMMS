@@ -45,13 +45,13 @@ $root = dirname(__DIR__, 2);
 $tag = 'FLOW14-TRUE-RACE-'.Str::upper(Str::random(8));
 $raceRoot = storage_path('app/'.$tag);
 mkdir($raceRoot, 0775, true);
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::where('email', 'tech.director@example.test')->firstOrFail();
 $executive = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $employee = Employee::where('email', 'tech.director@example.test')->firstOrFail();
 $fixtureUnit = OrganizationalUnit::where('code', 'FLOW14-REPORTING')->firstOrFail();
-$coordinatorRole = Role::where('name', 'MEETING_COORDINATOR')->where('guard_name', 'sanctum')->firstOrFail();
+$coordinatorRole = Role::where('name', 'EXECUTIVE_MANAGEMENT')->where('guard_name', 'sanctum')->firstOrFail();
 AmmsRoleScope::firstOrCreate(['user_id' => $owner->id, 'role_id' => $coordinatorRole->id, 'organizational_unit_id' => $fixtureUnit->id]);
 
 $reconnect = static function (): void { DB::purge('mysql'); DB::reconnect('mysql'); };

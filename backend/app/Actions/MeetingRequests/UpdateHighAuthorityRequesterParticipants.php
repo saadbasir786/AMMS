@@ -18,7 +18,7 @@ class UpdateHighAuthorityRequesterParticipants
             $locked = $this->lockFlow04Request($request);
             $this->assertActiveActor($actor);
             abort_unless(in_array($locked->status, ['AUTHORITY_SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'AUTHORITY_SCHEDULING_REQUIRED');
-            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id), 403, 'FORBIDDEN');
+            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
             $ids = array_values(array_unique(array_map('intval', $employeeIds)));
             $this->assertRequesterParticipants($locked, $ids);
 

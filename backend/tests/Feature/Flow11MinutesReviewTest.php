@@ -60,12 +60,12 @@ class Flow11MinutesReviewTest extends TestCase
         $this->assertCount(1, $versions[0]->reviews);
         $this->assertCount(0, $versions[1]->reviews);
         $this->actingAs($coordinator, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/submit')->assertOk();
-        $this->assertSame(2, $meeting->fresh()->minutes->current_version_id);
+        $this->assertSame(2, $meeting->fresh()->minutes()->firstOrFail()->currentVersion()->value('version_number'));
     }
 
     private function submittedMinutesFixture(): array
     {
-        $coordinator = \App\Models\User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $coordinator = \App\Models\User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
         $director = \App\Models\User::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $participant = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();

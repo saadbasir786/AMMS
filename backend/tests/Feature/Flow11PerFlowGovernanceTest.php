@@ -121,7 +121,7 @@ class Flow11PerFlowGovernanceTest extends TestCase
 
     private function prepare(string $flowType, array $unitRoles, bool $authorityControlled = false, bool $noRequester = false): array
     {
-        $coordinator = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $coordinator = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
         $authority = User::where('email', 'high.authority@example.test')->firstOrFail();
         $office = User::where('email', 'authority.office@example.test')->firstOrFail();

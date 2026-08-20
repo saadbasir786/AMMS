@@ -29,7 +29,7 @@ class AcceptMeetingScheduleProposal
             MeetingScheduleProposal::query()->where('meeting_request_id', $locked->id)->whereIn('status', ['PROPOSED', 'COUNTER_PROPOSED'])->whereKeyNot($proposal->id)->update(['status' => 'SUPERSEDED']);
             $proposal->update(['status' => 'ACCEPTED']);
             $this->record($locked, $actor, 'SCHEDULE_ACCEPTED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULING->value, $proposal->comment, ['proposal_id' => $proposal->id]);
-            $this->notifyUnit($proposal->proposed_by_unit_id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'پیشنهاد زمان‌بندی پذیرفته شد', 'پیشنهاد زمان‌بندی شما توسط ریاست مقابل پذیرفته شد.', $locked);
+            $this->notifyUnit($proposal->proposed_by_unit_id, ['EXECUTIVE_MANAGEMENT'], 'پیشنهاد زمان‌بندی پذیرفته شد', 'پیشنهاد زمان‌بندی شما توسط ریاست مقابل پذیرفته شد.', $locked);
             return $this->responseRequest($locked);
         });
     }

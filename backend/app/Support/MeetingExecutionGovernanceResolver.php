@@ -48,6 +48,6 @@ class MeetingExecutionGovernanceResolver
         }
 
         return (int) $meeting->coordinator_id === (int) $actor->id
-            || $actor->hasScopedRole('MEETING_COORDINATOR', $governance['organizing_unit_id']);
+            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $governance['organizing_unit_id']);
     }
 }

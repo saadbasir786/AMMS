@@ -78,7 +78,7 @@ class Flow10ATerminalBoundaryTest extends TestCase
 
     private function meetingFixture(): array
     {
-        $coordinator = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $coordinator = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
         $unit = \App\Models\OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $employee = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW10A-B-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $coordinator->id, 'subject' => 'FLOW-10A terminal boundary', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $coordinator->id]);

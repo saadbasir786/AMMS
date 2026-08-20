@@ -46,7 +46,7 @@ if (DB::connection()->getDriverName() !== 'mysql') {
     exit(2);
 }
 
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::where('email', 'tech.director@example.test')->firstOrFail();
 $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $employee = Employee::findOrFail($director->employee_id);

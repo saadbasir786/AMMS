@@ -17,7 +17,7 @@ steps = []
 session_context = {}
 
 ROLE_BY_EMAIL = {
-    'tech.coordinator@example.test': ('MEETING_COORDINATOR', 'TECH'),
+    'tech.exec@example.test': ('EXECUTIVE_MANAGEMENT', 'TECH'),
     'executive.secretary@example.test': ('EXECUTIVE_SECRETARY', 'AUTH-OFFICE'),
     'high.authority@example.test': ('HIGH_AUTHORITY', 'AUTHORITY'),
     'authority.office@example.test': ('AUTHORITY_OFFICE', 'AUTH-OFFICE'),

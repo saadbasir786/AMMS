@@ -21,7 +21,7 @@ class MeetingExceptionGovernanceResolver
         $flowType = (string) ($meeting->request?->flow_type ?? 'INTERNAL_DIRECTORATE');
         $owner = $schedule['authority_controlled']
             ? ['role' => 'EXECUTIVE_SECRETARY', 'unit_id' => (int) $schedule['authority_office_unit_id']]
-            : ['role' => 'MEETING_COORDINATOR', 'unit_id' => (int) $meeting->organizing_unit_id];
+            : ['role' => 'EXECUTIVE_MANAGEMENT', 'unit_id' => (int) $meeting->organizing_unit_id];
 
         return [
             'flow_type' => $flowType,

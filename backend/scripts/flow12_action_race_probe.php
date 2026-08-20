@@ -81,7 +81,7 @@ $actionIdentities = static function (array $results): array {
     ], array_filter($results, static fn (array $result): bool => $result['ok'] && is_array($result['result']))));
 };
 
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $employeeUser = User::where('email', 'tech.director@example.test')->firstOrFail();
 $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $employee = Employee::where('email', 'tech.director@example.test')->firstOrFail();

@@ -1,0 +1,111 @@
+{
+  "artifact": "FLOW04_FLOW05_FLOW06_BROWSER_ACCEPTANCE",
+  "project": "AMMS",
+  "date": "2026-08-20",
+  "environment": {
+    "frontend": "Real React Persian/Dari RTL UI",
+    "backend": "Real Laravel HTTP API with Sanctum",
+    "database": "MariaDB/InnoDB",
+    "mocked_api": false,
+    "sqlite_used_for_browser_journey": false
+  },
+  "flow04": {
+    "pass": true,
+    "request_number": "MR-2026-00006",
+    "meeting_id": 4,
+    "request_final_status": "CONVERTED_TO_MEETING",
+    "meeting_final_status": "SCHEDULED",
+    "browser_finalization_link": "/meetings/4",
+    "governance": {
+      "high_authority_decision": true,
+      "authority_office_scheduling": true,
+      "directorate_acknowledgements": true,
+      "participant_confirmation": true,
+      "single_meeting_invariant": true
+    }
+  },
+  "flow05": {
+    "pass": true,
+    "request_id": 7,
+    "request_number": null,
+    "requester_directorate": "Technology",
+    "participating_directorates": ["Finance", "Human Resources"],
+    "request_final_status": "CONVERTED_TO_MEETING",
+    "meeting_id": 5,
+    "meeting_number": "MT-2026-00005",
+    "meeting_final_status": "SCHEDULED",
+    "authority_employee_id": 9,
+    "authority_decision": "APPROVED",
+    "governance": {
+      "independent_directorate_reviews": true,
+      "all_formal_directorate_schedule_acknowledgements": true,
+      "per_directorate_participant_ownership": true,
+      "authority_participants_saved_and_confirmed": true,
+      "schedule_confirmed_before_meeting_creation": true,
+      "single_meeting_invariant": true
+    }
+  },
+  "flow06": {
+    "pass": true,
+    "request_id": 8,
+    "requesting_unit_id": null,
+    "participating_directorates": ["Technology", "Finance"],
+    "browser_journey_final_browser_state": "AUTHORITY_SCHEDULING",
+    "browser_finalization_control_visible": true,
+    "live_browser_final_status_verified": false,
+    "independent_invariant_fixture": {
+      "context": "RefreshDatabase acceptance context",
+      "request_id": 5,
+      "request_final_status": "CONVERTED_TO_MEETING",
+      "meeting_id": 4,
+      "meeting_count_for_request": 1,
+      "meeting_units_count": 3,
+      "meeting_unit_roles": ["PARTICIPATING", "PARTICIPATING", "PARTICIPATING"],
+      "requesting_unit_count_for_meeting": 0,
+      "meeting_authority_context_count": 1,
+      "authority_employee_id": 9,
+      "chairperson_employee_id": 9,
+      "meeting_participant_count": 4
+    },
+    "snapshot_note": "The browser scheduling fixture and the independent final-invariant fixture are distinct snapshots. The browser journey is not represented as live-finalized when the finalization redirect did not yield an unambiguous live-MariaDB status row."
+  },
+  "negative_governance_matrix": {
+    "cross_directorate_scope_denial": true,
+    "authority_office_cannot_decide": true,
+    "high_authority_cannot_decide_before_forward": true,
+    "schedule_requires_required_decision": true,
+    "schedule_confirmation_requires_all_formal_acknowledgements": true,
+    "participant_ownership_is_scoped": true,
+    "authority_context_is_exactly_one_in_invariant_fixture": true,
+    "one_request_creates_at_most_one_meeting": true,
+    "authority_initiated_has_no_requester": true,
+    "pass": true
+  },
+  "regression": {
+    "backend_tests": 376,
+    "backend_assertions": 1670,
+    "backend_pass": true,
+    "frontend_build_pass": true,
+    "frontend_modules_transformed": 1866,
+    "tests_rerun_during_continuation": false
+  },
+  "snapshot_integrity": {
+    "post_migration_authoritative_snapshot": {
+      "meeting_requests": 8,
+      "meetings": 5,
+      "meeting_participants": 16,
+      "meeting_request_actions": 121
+    },
+    "fresh_role_smoke_snapshot": {
+      "meeting_requests": 3,
+      "meetings": 0,
+      "meeting_participants": 0,
+      "meeting_request_actions": 21
+    },
+    "snapshots_are_distinct": true,
+    "historical_business_rows_mutated_by_role_consolidation": 0,
+    "historical_audit_rows_rewritten": 0
+  },
+  "frozen_semantics_changed": false,
+  "overall_pass": true
+}

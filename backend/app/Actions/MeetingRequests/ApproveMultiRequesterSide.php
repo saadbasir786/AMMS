@@ -30,7 +30,7 @@ class ApproveMultiRequesterSide
                 'target_unit_ids' => $locked->units->where('role', 'TARGET')->pluck('organizational_unit_id')->values()->all(),
             ]);
             foreach ($this->targetUnits($locked) as $target) {
-                $this->notifyUnit($target->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'درخواست چندریاستی وارده', 'یک درخواست جلسهٔ چندریاستی برای ریاست شما ارسال شده است.', $locked);
+                $this->notifyUnit($target->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'درخواست چندریاستی وارده', 'یک درخواست جلسهٔ چندریاستی برای ریاست شما ارسال شده است.', $locked);
             }
 
             return $this->responseRequest($locked);

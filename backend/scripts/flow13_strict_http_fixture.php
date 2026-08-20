@@ -30,7 +30,7 @@ use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Support\Str;
 
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::where('email', 'tech.director@example.test')->firstOrFail();
 $high = User::where('email', 'high.authority@example.test')->firstOrFail();
 $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();

@@ -51,7 +51,7 @@ class MultiDirectorateMeetingRequestController extends Controller
         $unitIds = array_unique(array_merge(
             $request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
             $request->user()->scopedRoleUnitIds('DIRECTOR'),
-            $request->user()->scopedRoleUnitIds('MEETING_COORDINATOR'),
+            $request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
         ));
         $query = MeetingRequest::with(['units.unit', 'unitReviews.unit', 'requestingUnit', 'creator.employee', 'actions.actor'])
             ->where('flow_type', 'MULTI_DIRECTORATE')

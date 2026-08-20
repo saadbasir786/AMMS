@@ -18,7 +18,7 @@ class ConfirmHighAuthorityRequesterParticipants
             $locked = $this->lockFlow04Request($request);
             $this->assertActiveActor($actor);
             abort_unless(in_array($locked->status, ['AUTHORITY_SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'AUTHORITY_SCHEDULING_REQUIRED');
-            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id), 403, 'FORBIDDEN');
+            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_unless($locked->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $locked->requesting_unit_id)->exists(), 422, 'REQUESTER_PARTICIPANTS_NOT_CONFIRMED');
             abort_if(MeetingAuthorityParticipantConfirmation::where('meeting_request_id', $locked->id)->where('side', 'REQUESTER')->exists(), 422, 'REQUESTER_PARTICIPANTS_ALREADY_CONFIRMED');
 

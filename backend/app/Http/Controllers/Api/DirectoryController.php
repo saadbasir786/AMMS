@@ -23,7 +23,7 @@ class DirectoryController extends Controller
         abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
         $user = $request->user();
         $base = MeetingRequest::query();
-        if (!$user->hasScopedRole('SYSTEM_ADMIN')) $base->where(fn($q) => $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('MEETING_COORDINATOR'))) ?: [-1]));
+        if (!$user->hasScopedRole('SYSTEM_ADMIN')) $base->where(fn($q) => $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'))) ?: [-1]));
         $data = [
             'my_requests' => (clone $base)->where('created_by', $user->id)->count(),
             'returned' => (clone $base)->where('status', 'RETURNED_FOR_REVISION')->count(),
@@ -68,7 +68,7 @@ class DirectoryController extends Controller
         $this->authorize('viewAny', Meeting::class);
         $user = $request->user();
         $query = Meeting::with(['request.requestingUnit','request.authorityContext.authorityEmployee','authorityContext.authorityEmployee','authorityContext.authorityPosition','authorityContext.authorityOfficeUnit','chairperson','participants.employee.unit','currentScheduleVersion','activeRescheduleCase','currentParticipantVersion.members.employee.unit','activeParticipantChangeCase.items.oldEmployee','activeParticipantChangeCase.items.newEmployee','terminalAssignments.terminal','terminalAssignments.sessions','currentTerminalSession'])->where('meeting_date','>=',today())->orderBy('meeting_date');
-        if (!$user->hasScopedRole('SYSTEM_ADMIN')) $query->where(fn($q) => $q->where('coordinator_id',$user->id)->orWhereIn('organizing_unit_id', array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('MEETING_COORDINATOR'))) ?: [-1]));
+        if (!$user->hasScopedRole('SYSTEM_ADMIN')) $query->where(fn($q) => $q->where('coordinator_id',$user->id)->orWhereIn('organizing_unit_id', array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'))) ?: [-1]));
         return MeetingResource::collection($query->paginate(15))->additional(['success'=>true,'message'=>'جلسات رسمی.']);
     }
 

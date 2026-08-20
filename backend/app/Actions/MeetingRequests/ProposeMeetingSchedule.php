@@ -43,7 +43,7 @@ class ProposeMeetingSchedule
             ]);
             $this->record($locked, $actor, $hasPrevious ? 'SCHEDULE_COUNTER_PROPOSED' : 'SCHEDULE_PROPOSED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULING->value, $data['comment'] ?? null, ['proposal_id' => $proposal->id, 'unit_id' => $unit->id]);
             $opposite = $unit->id === $requester->id ? $target : $requester;
-            $this->notifyUnit($opposite->id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'پیشنهاد جدید زمان‌بندی', 'برای درخواست بین‌ریاستی یک پیشنهاد یا پیشنهاد متقابل زمان‌بندی ثبت شده است.', $locked);
+            $this->notifyUnit($opposite->id, ['EXECUTIVE_MANAGEMENT'], 'پیشنهاد جدید زمان‌بندی', 'برای درخواست بین‌ریاستی یک پیشنهاد یا پیشنهاد متقابل زمان‌بندی ثبت شده است.', $locked);
             return $this->responseRequest($locked);
         });
     }

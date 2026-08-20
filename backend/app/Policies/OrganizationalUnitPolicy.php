@@ -20,7 +20,7 @@ class OrganizationalUnitPolicy
 
     public function view(User $user, OrganizationalUnit $unit): bool
     {
-        return $user->isActive() && ($user->can('organization.manage') || $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unit->id) || $user->hasScopedRole('DIRECTOR', $unit->id) || $user->hasScopedRole('MEETING_COORDINATOR', $unit->id));
+        return $user->isActive() && ($user->can('organization.manage') || $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unit->id) || $user->hasScopedRole('DIRECTOR', $unit->id));
     }
 
     public function create(User $user): bool { return $user->isActive() && $user->can('organization.manage'); }

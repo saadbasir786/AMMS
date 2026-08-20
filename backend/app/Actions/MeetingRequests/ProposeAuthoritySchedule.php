@@ -37,7 +37,7 @@ class ProposeAuthoritySchedule
                 'proposal_type' => $type,
             ]);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULE_PROPOSED', $locked->status, $locked->status, $data['comment'] ?? null, ['proposal_id' => $proposal->id, 'proposal_type' => $type]);
-            $this->notifyUsersForUnit($locked->requesting_unit_id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'پیشنهاد رسمی زمان‌بندی مقام', 'دفتر مقام یک زمان رسمی برای جلسه پیشنهاد کرده است.', $locked);
+            $this->notifyUsersForUnit($locked->requesting_unit_id, ['EXECUTIVE_MANAGEMENT'], 'پیشنهاد رسمی زمان‌بندی مقام', 'دفتر مقام یک زمان رسمی برای جلسه پیشنهاد کرده است.', $locked);
             return $this->responseRequest($locked);
         });
     }

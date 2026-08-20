@@ -24,7 +24,7 @@ class MeetingPolicy
         if (!$user->isActive()) return false;
         $isHighAuthorityFlow = $meeting->request?->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' || $meeting->authorityContext()->exists();
         if (!$user->can('meeting.view') && !($isHighAuthorityFlow && $user->can('authority-request.view'))) return false;
-        if ($meeting->coordinator_id === $user->id || $user->hasScopedRole('DIRECTOR', $meeting->organizing_unit_id) || $user->hasScopedRole('MEETING_COORDINATOR', $meeting->organizing_unit_id)) return true;
+        if ($meeting->coordinator_id === $user->id || $user->hasScopedRole('DIRECTOR', $meeting->organizing_unit_id) || $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id)) return true;
         if ($user->employee && $meeting->participants()->where('employee_id', $user->employee_id)->exists()) return true;
         if ($isHighAuthorityFlow) {
             $context = $meeting->authorityContext()->first();

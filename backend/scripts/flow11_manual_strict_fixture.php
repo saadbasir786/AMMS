@@ -24,7 +24,7 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$coordinator = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$coordinator = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
 $authority = User::where('email', 'high.authority@example.test')->firstOrFail();
 $office = User::where('email', 'authority.office@example.test')->firstOrFail();

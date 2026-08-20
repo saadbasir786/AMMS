@@ -30,7 +30,7 @@ def call(label, email, method, path, expected, body=None, headers=None):
 
 def data(p): return p.get('data', p)
 def reviews(case):
-    x = data(call('read exception case', 'tech.coordinator@example.test', 'GET', f"/api/meeting-exceptions/{case['id']}", 200))
+    x = data(call('read exception case', 'tech.exec@example.test', 'GET', f"/api/meeting-exceptions/{case['id']}", 200))
     return x, x.get('reviews') or x.get('current_version', {}).get('reviews') or []
 def by_type(rows, typ, unit=None):
     for row in rows:

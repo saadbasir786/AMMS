@@ -43,7 +43,7 @@ class InterDirectorateMeetingRequestController extends Controller
     public function incoming(Request $request)
     {
         abort_unless($request->user()?->isActive() && $request->user()->can('meeting-request.view-incoming'), 403, 'FORBIDDEN');
-        $unitIds = array_unique(array_merge($request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $request->user()->scopedRoleUnitIds('DIRECTOR'), $request->user()->scopedRoleUnitIds('MEETING_COORDINATOR')));
+        $unitIds = array_unique(array_merge($request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $request->user()->scopedRoleUnitIds('DIRECTOR')));
         $query = MeetingRequest::with(['units.unit', 'requestingUnit', 'creator.employee', 'actions.actor'])->where('flow_type', 'INTER_DIRECTORATE')->whereHas('units', fn ($q) => $q->where('role', 'TARGET')->whereIn('organizational_unit_id', $unitIds ?: [-1]));
         if ($request->filled('status')) $query->where('status', $request->string('status'));
         if ($request->filled('requesting_unit_id')) $query->whereHas('units', fn ($q) => $q->where('role', 'REQUESTER')->where('organizational_unit_id', $request->integer('requesting_unit_id')));

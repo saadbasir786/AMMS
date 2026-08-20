@@ -33,9 +33,9 @@ class Flow12PerFlowGovernanceTest extends TestCase
         $this->seed();
     }
 
-    public function test_flow01_local_coordinator_owns_followup_and_authority_actors_are_denied(): void { $this->assertGovernance('MULTI_DIRECTORATE', false, 'tech.coordinator@example.test'); }
-    public function test_flow02_requester_lead_coordinator_owns_followup_and_system_admin_is_denied(): void { $this->assertGovernance('INTER_DIRECTORATE', false, 'tech.coordinator@example.test'); }
-    public function test_flow03_requester_lead_coordinator_owns_followup_and_high_authority_is_denied(): void { $this->assertGovernance('MULTI_DIRECTORATE', false, 'tech.coordinator@example.test'); }
+    public function test_flow01_local_coordinator_owns_followup_and_authority_actors_are_denied(): void { $this->assertGovernance('MULTI_DIRECTORATE', false, 'tech.exec@example.test'); }
+    public function test_flow02_requester_lead_coordinator_owns_followup_and_system_admin_is_denied(): void { $this->assertGovernance('INTER_DIRECTORATE', false, 'tech.exec@example.test'); }
+    public function test_flow03_requester_lead_coordinator_owns_followup_and_high_authority_is_denied(): void { $this->assertGovernance('MULTI_DIRECTORATE', false, 'tech.exec@example.test'); }
     public function test_flow04_executive_secretary_owns_followup_and_authority_office_is_denied(): void { $this->assertGovernance('DIRECTORATE_WITH_HIGH_AUTHORITY', true, 'executive.secretary@example.test'); }
     public function test_flow05_executive_secretary_owns_followup_and_high_authority_is_not_owner(): void { $this->assertGovernance('DIRECTORATE_WITH_HIGH_AUTHORITY', true, 'executive.secretary@example.test'); }
     public function test_flow06_executive_secretary_owns_high_authority_initiated_followup_and_requester_is_absent(): void { $this->assertGovernance('HIGH_AUTHORITY_INITIATED', true, 'executive.secretary@example.test', true); }
@@ -55,7 +55,7 @@ class Flow12PerFlowGovernanceTest extends TestCase
 
     private function finalizedFixture(string $flowType, bool $authorityFlow, bool $noRequester): array
     {
-        $coordinator = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $coordinator = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
         $owner = $authorityFlow ? $secretary : $coordinator;
         $unit = OrganizationalUnit::where('code', $authorityFlow ? 'AUTH-OFFICE' : 'TECH')->firstOrFail();

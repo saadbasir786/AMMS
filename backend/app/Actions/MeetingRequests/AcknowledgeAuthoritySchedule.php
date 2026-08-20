@@ -21,7 +21,7 @@ class AcknowledgeAuthoritySchedule
             abort_unless($locked->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless($proposal->meeting_request_id === $locked->id, 404, 'PROPOSAL_NOT_FOUND');
             abort_unless(in_array($proposal->proposal_type, ['AUTHORITY_OFFICIAL_PROPOSAL', 'AUTHORITY_REVISED_PROPOSAL'], true) && $proposal->status === 'PROPOSED', 422, 'AUTHORITY_SCHEDULE_REQUIRED');
-            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id), 403, 'FORBIDDEN');
+            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_if(MeetingAuthorityScheduleAcknowledgement::where('meeting_schedule_proposal_id', $proposal->id)->where('requesting_unit_id', $locked->requesting_unit_id)->exists(), 422, 'AUTHORITY_SCHEDULE_ALREADY_ACKNOWLEDGED');
 
             MeetingAuthorityScheduleAcknowledgement::create([

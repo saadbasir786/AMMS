@@ -41,7 +41,7 @@ class Flow10AAttendanceTest extends TestCase
     {
         [$meeting, $participant] = $this->meetingFixture();
         $nonparticipant = User::query()->where('email', 'finance.director@example.test')->firstOrFail()->employee;
-        $this->actingAs(User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail(), 'sanctum')
+        $this->actingAs(User::query()->where('email', 'tech.exec@example.test')->firstOrFail(), 'sanctum')
             ->postJson('/api/meetings/'.$meeting->id.'/attendance/manual', ['employee_id' => $nonparticipant->id, 'reason' => 'اثر انگشت خوانده نشد'])
             ->assertStatus(422)->assertJsonPath('code', 'ATTENDANCE_EMPLOYEE_NOT_PARTICIPANT');
 
@@ -52,7 +52,7 @@ class Flow10AAttendanceTest extends TestCase
 
     private function meetingFixture(): array
     {
-        $actor = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $actor = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
         $unit = \App\Models\OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $participant = \App\Models\Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW10A-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $actor->id, 'subject' => 'جلسهٔ حضور FLOW-10A', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $actor->id]);

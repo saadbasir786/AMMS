@@ -51,7 +51,7 @@ class AcceptMultiScheduleProposal
                     'unit_ids' => $participatingIds->all(),
                 ]);
                 foreach ($this->participatingUnits($locked) as $unit) {
-                    $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'زمان‌بندی توسط همهٔ ریاست‌ها پذیرفته شد', 'پیشنهاد فعال توسط همهٔ ریاست‌های مشارکت‌کننده پذیرفته شد.', $locked);
+                    $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT'], 'زمان‌بندی توسط همهٔ ریاست‌ها پذیرفته شد', 'پیشنهاد فعال توسط همهٔ ریاست‌های مشارکت‌کننده پذیرفته شد.', $locked);
                 }
             }
 

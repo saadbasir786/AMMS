@@ -215,7 +215,7 @@ class Flow12DecisionFollowUpTest extends TestCase
 
     private function finalizedFixture(): array
     {
-        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
         $employee = Employee::where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW12-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $owner->id, 'subject' => 'جلسهٔ پیگیری تصمیم FLOW-12', 'purpose' => 'MINUTES', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $owner->id]);

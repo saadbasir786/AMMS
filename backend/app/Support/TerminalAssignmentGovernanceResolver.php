@@ -43,7 +43,7 @@ class TerminalAssignmentGovernanceResolver
                 && ($actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id'])
                     || $actor->hasScopedRole('AUTHORITY_OFFICE', $governance['authority_office_unit_id']));
         }
-        return $actor->hasScopedRole('MEETING_COORDINATOR', $meeting->organizing_unit_id)
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id)
             || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id)
             || $actor->hasScopedRole('DIRECTOR', $meeting->organizing_unit_id);
     }
@@ -57,6 +57,6 @@ class TerminalAssignmentGovernanceResolver
             return $governance['authority_office_unit_id'] > 0
                 && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
         }
-        return $actor->hasScopedRole('MEETING_COORDINATOR', $meeting->organizing_unit_id);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id);
     }
 }

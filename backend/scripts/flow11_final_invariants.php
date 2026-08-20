@@ -36,7 +36,7 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$coordinator = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+$coordinator = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
 foreach (MeetingExecutionSession::query()->where('status', 'IN_PROGRESS')->get() as $session) {
     app(EndMeetingExecution::class)->execute($coordinator, Meeting::findOrFail($session->meeting_id));
 }

@@ -18,7 +18,7 @@ class RequestAuthorityScheduleAlternative
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context && $locked->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
-            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id), 403, 'FORBIDDEN');
+            abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_unless(filled(trim($data['reason'] ?? '')), 422, 'REASON_REQUIRED');
             abort_unless((string) $data['end_time'] > (string) $data['start_time'], 422, 'INVALID_SCHEDULE_TIME');
 

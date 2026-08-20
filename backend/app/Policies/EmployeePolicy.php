@@ -20,7 +20,7 @@ class EmployeePolicy
 
     public function view(User $user, Employee $employee): bool
     {
-        return $user->isActive() && ($user->can('employee.manage') || $user->employee_id === $employee->id || collect(['DIRECTOR', 'EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'])->contains(fn (string $role) => $user->hasScopedRole($role, $employee->organizational_unit_id)));
+        return $user->isActive() && ($user->can('employee.manage') || $user->employee_id === $employee->id || collect(['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])->contains(fn (string $role) => $user->hasScopedRole($role, $employee->organizational_unit_id)));
     }
 
     public function create(User $user): bool

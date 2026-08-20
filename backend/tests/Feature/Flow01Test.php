@@ -35,7 +35,7 @@ class Flow01Test extends TestCase
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk()->assertJsonPath('data.status','PENDING_INTERNAL_APPROVAL');
         $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk()->assertJsonPath('data.status','APPROVED');
 
-        $coordinator = User::where('email','tech.coordinator@example.test')->firstOrFail();
+        $coordinator = User::where('email','tech.exec@example.test')->firstOrFail();
         $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk();
         $schedule = ['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'09:00','duration_minutes'=>60,'location'=>'اتاق جلسات تکنالوژی','chairperson_employee_id'=>$employees[0],'participant_ids'=>$employees];
         $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule",$schedule)->assertOk()->assertJsonPath('data.status','SCHEDULE_CONFIRMED');

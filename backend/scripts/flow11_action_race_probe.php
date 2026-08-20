@@ -60,7 +60,7 @@ $runTwo = static function (callable $worker) use ($reconnect): array {
     return $results;
 };
 
-$actor = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+$actor = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::query()->where('email', 'tech.director@example.test')->firstOrFail();
 $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
 $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();

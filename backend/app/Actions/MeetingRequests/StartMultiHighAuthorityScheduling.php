@@ -22,7 +22,7 @@ class StartMultiHighAuthorityScheduling
             abort_unless($locked->status === MeetingRequestStatus::HIGH_AUTHORITY_APPROVED->value, 422, 'HIGH_AUTHORITY_APPROVAL_REQUIRED');
             $from = $this->transition($locked, MeetingRequestStatus::AUTHORITY_SCHEDULING);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULING_STARTED', $from, $locked->status, null, ['authority_office_unit_id' => $context->authority_office_unit_id]);
-            foreach ($this->formalUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'زمان‌بندی رسمی جلسه با مقام', 'پیشنهاد زمان رسمی دفتر مقام پس از تأیید مقام عالی صادر خواهد شد.', $locked);
+            foreach ($this->formalUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'زمان‌بندی رسمی جلسه با مقام', 'پیشنهاد زمان رسمی دفتر مقام پس از تأیید مقام عالی صادر خواهد شد.', $locked);
             return $this->responseRequest($locked);
         });
     }

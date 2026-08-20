@@ -39,7 +39,7 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $director = User::where('email', 'tech.director@example.test')->firstOrFail();
 $highUser = User::where('email', 'high.authority@example.test')->firstOrFail();
 $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();

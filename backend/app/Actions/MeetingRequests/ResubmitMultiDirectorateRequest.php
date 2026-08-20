@@ -35,7 +35,7 @@ class ResubmitMultiDirectorateRequest
             foreach ($returned as $review) {
                 $review->update(['review_status' => 'PENDING_REVIEW', 'reviewed_by' => null, 'reviewed_at' => null, 'comment' => null]);
                 $this->record($locked, $actor, 'TARGET_UNIT_RESUBMITTED', $from, $locked->status, null, ['unit_id' => $review->organizational_unit_id]);
-                $this->notifyUnit($review->organizational_unit_id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'درخواست اصلاح‌شدهٔ چندریاستی', 'درخواست اصلاح‌شده برای بررسی مجدد ریاست شما آماده است.', $locked);
+                $this->notifyUnit($review->organizational_unit_id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'درخواست اصلاح‌شدهٔ چندریاستی', 'درخواست اصلاح‌شده برای بررسی مجدد ریاست شما آماده است.', $locked);
             }
 
             return $this->responseRequest($locked);

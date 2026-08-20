@@ -18,7 +18,7 @@ use App\Support\ScheduleVersionService;
 $number = 'FLOW09-STRICT-PEER-20';
 if ($existing = Meeting::where('meeting_number', $number)->first()) { echo json_encode(['status'=>'EXISTS','meeting_id'=>$existing->id], JSON_UNESCAPED_UNICODE).PHP_EOL; exit; }
 $unit = fn (string $code) => OrganizationalUnit::where('code', $code)->firstOrFail();
-$coordinator = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$coordinator = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $tech = Employee::where('email', 'tech.exec@example.test')->firstOrFail();
 $finance = Employee::where('email', 'finance.director@example.test')->firstOrFail();
 $hr = Employee::where('email', 'hr.director@example.test')->firstOrFail();

@@ -21,7 +21,7 @@ class SendMultiHighAuthorityToParticipatingDirectorates
             abort_unless($locked->status === MeetingRequestStatus::REQUESTER_APPROVED->value, 422, 'REQUESTER_APPROVAL_REQUIRED');
             $from = $this->transition($locked, MeetingRequestStatus::SUBMITTED_TO_PARTICIPATING_DIRECTORATES);
             $this->record($locked, $actor, 'REQUEST_SENT_TO_PARTICIPATING_DIRECTORATES', $from, $locked->status, null, ['unit_ids' => $this->participatingUnits($locked)->pluck('id')->all()]);
-            foreach ($this->participatingUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'درخواست چندریاستی جدید', 'درخواست برای بررسی ریاست اشتراک‌کننده ارسال شد.', $locked);
+            foreach ($this->participatingUnits($locked) as $unit) $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'درخواست چندریاستی جدید', 'درخواست برای بررسی ریاست اشتراک‌کننده ارسال شد.', $locked);
             return $this->responseRequest($locked);
         });
     }

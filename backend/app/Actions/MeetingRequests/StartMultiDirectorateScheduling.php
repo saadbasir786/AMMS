@@ -25,7 +25,7 @@ class StartMultiDirectorateScheduling
             $from = $this->updateStatus($locked, MeetingRequestStatus::SCHEDULING);
             $this->record($locked, $actor, 'SCHEDULING_STARTED', $from, $locked->status, null, ['unit_id' => $lead]);
             foreach ($this->participatingUnits($locked) as $unit) {
-                $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'زمان‌بندی جلسهٔ چندریاستی آغاز شد', 'ریاست‌ها می‌توانند پیشنهاد زمان‌بندی ثبت کنند.', $locked);
+                $this->notifyUnit($unit->id, ['EXECUTIVE_MANAGEMENT'], 'زمان‌بندی جلسهٔ چندریاستی آغاز شد', 'ریاست‌ها می‌توانند پیشنهاد زمان‌بندی ثبت کنند.', $locked);
             }
 
             return $this->responseRequest($locked);

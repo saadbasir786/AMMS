@@ -66,7 +66,7 @@ class Flow11MinutesTest extends TestCase
 
     private function meetingFixture(): array
     {
-        $actor = \App\Models\User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $actor = \App\Models\User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
         $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $participant = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW11-MIN-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $actor->id, 'subject' => 'جلسهٔ صورت‌جلسه FLOW-11', 'purpose' => 'MINUTES', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $actor->id]);

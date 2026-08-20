@@ -36,7 +36,7 @@ $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $actor = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
-$coordinator = User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+$coordinator = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
 $unit = App\Models\OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
 $employee = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
 $secondEmployee = Employee::query()->where('email', 'employee.a@example.test')->firstOrFail();

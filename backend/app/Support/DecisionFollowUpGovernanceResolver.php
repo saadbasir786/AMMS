@@ -29,7 +29,7 @@ class DecisionFollowUpGovernanceResolver
 
     public function ownerRole(Meeting $meeting): string
     {
-        return $this->isAuthorityFlow($meeting) ? 'EXECUTIVE_SECRETARY' : 'MEETING_COORDINATOR';
+        return $this->isAuthorityFlow($meeting) ? 'EXECUTIVE_SECRETARY' : 'EXECUTIVE_MANAGEMENT';
     }
 
     public function ownerUnitId(Meeting $meeting): ?int
@@ -92,8 +92,7 @@ class DecisionFollowUpGovernanceResolver
     {
         $unitId = (int) $item->responsible_unit_id;
         return $actor->hasScopedRole('DIRECTOR', $unitId)
-            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
-            || $actor->hasScopedRole('MEETING_COORDINATOR', $unitId);
+            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     public function mayChangeEmployee(MeetingActionItem $item, User $actor): bool

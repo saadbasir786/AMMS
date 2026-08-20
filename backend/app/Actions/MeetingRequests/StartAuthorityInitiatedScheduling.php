@@ -23,7 +23,7 @@ class StartAuthorityInitiatedScheduling
             abort_unless($this->allCurrentAcknowledged($request), 422, 'ALL_DIRECTORATE_ACKNOWLEDGEMENTS_REQUIRED');
             $from = $this->transition06($request, MeetingRequestStatus::AUTHORITY_SCHEDULING);
             $this->record06($request, $actor, 'AUTHORITY_SCHEDULING_STARTED', $from, MeetingRequestStatus::AUTHORITY_SCHEDULING->value, null, ['directive_version' => $this->currentVersion($request)->version]);
-            foreach ($this->flow06Units($request) as $unit) $this->notifyUnit((int) $unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR', 'MEETING_COORDINATOR'], 'زمان‌بندی رسمی جلسه به ابتکار مقام', 'جلسه برای زمان‌بندی رسمی آماده شده است.', $request);
+            foreach ($this->flow06Units($request) as $unit) $this->notifyUnit((int) $unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'زمان‌بندی رسمی جلسه به ابتکار مقام', 'جلسه برای زمان‌بندی رسمی آماده شده است.', $request);
             return $this->response06($request);
         });
     }

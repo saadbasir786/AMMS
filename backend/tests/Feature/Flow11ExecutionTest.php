@@ -71,7 +71,7 @@ class Flow11ExecutionTest extends TestCase
 
     private function meetingFixture(): array
     {
-        $actor = \App\Models\User::query()->where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $actor = \App\Models\User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
         $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $participant = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create([

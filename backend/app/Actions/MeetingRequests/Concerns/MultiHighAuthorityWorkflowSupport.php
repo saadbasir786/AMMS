@@ -113,7 +113,7 @@ trait MultiHighAuthorityWorkflowSupport
 
     private function canParticipatingUnit(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId) || $actor->hasScopedRole('MEETING_COORDINATOR', $unitId));
+        return $actor->isActive() && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId));
     }
 
     private function canAuthorityOffice(User $actor, int $officeUnitId): bool

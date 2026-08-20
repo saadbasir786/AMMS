@@ -46,9 +46,9 @@ class Flow13PerFlowGovernanceTest extends TestCase
     public static function flowGovernanceCases(): array
     {
         return [
-            'FLOW-01' => ['INTERNAL_DIRECTORATE', 'MEETING_COORDINATOR', 1, false, true],
-            'FLOW-02' => ['INTER_DIRECTORATE', 'MEETING_COORDINATOR', 2, false, true],
-            'FLOW-03' => ['MULTI_DIRECTORATE', 'MEETING_COORDINATOR', 3, false, true],
+            'FLOW-01' => ['INTERNAL_DIRECTORATE', 'EXECUTIVE_MANAGEMENT', 1, false, true],
+            'FLOW-02' => ['INTER_DIRECTORATE', 'EXECUTIVE_MANAGEMENT', 2, false, true],
+            'FLOW-03' => ['MULTI_DIRECTORATE', 'EXECUTIVE_MANAGEMENT', 3, false, true],
             'FLOW-04' => ['DIRECTORATE_WITH_HIGH_AUTHORITY', 'EXECUTIVE_SECRETARY', 1, true, true],
             'FLOW-05' => ['MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 'EXECUTIVE_SECRETARY', 3, true, true],
             'FLOW-06' => ['HIGH_AUTHORITY_INITIATED', 'EXECUTIVE_SECRETARY', 3, true, false],
@@ -58,7 +58,7 @@ class Flow13PerFlowGovernanceTest extends TestCase
     public function test_flow01_owner_and_director_complete_postponement(): void
     {
         $meeting = $this->meetingForFlow('INTERNAL_DIRECTORATE');
-        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $director = User::where('email', 'tech.director@example.test')->firstOrFail();
         $case = $this->createAndSubmit($meeting, $owner);
         $review = $this->unitReview($case, OrganizationalUnit::where('code', 'TECH')->value('id'));
@@ -70,7 +70,7 @@ class Flow13PerFlowGovernanceTest extends TestCase
     public function test_flow02_requires_both_directorate_approvals_and_denies_cross_unit_substitution(): void
     {
         $meeting = $this->meetingForFlow('INTER_DIRECTORATE');
-        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $tech = User::where('email', 'tech.director@example.test')->firstOrFail();
         $finance = User::where('email', 'finance.director@example.test')->firstOrFail();
         $case = $this->createAndSubmit($meeting, $owner);
@@ -87,7 +87,7 @@ class Flow13PerFlowGovernanceTest extends TestCase
     public function test_flow03_correction_creates_v2_and_v1_approvals_do_not_transfer(): void
     {
         $meeting = $this->meetingForFlow('MULTI_DIRECTORATE');
-        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $tech = User::where('email', 'tech.director@example.test')->firstOrFail();
         $finance = User::where('email', 'finance.director@example.test')->firstOrFail();
         $hr = User::where('email', 'hr.director@example.test')->firstOrFail();
@@ -195,7 +195,7 @@ class Flow13PerFlowGovernanceTest extends TestCase
         $fin = OrganizationalUnit::where('code', 'FIN')->firstOrFail();
         $hr = OrganizationalUnit::where('code', 'HR')->firstOrFail();
         $authorityOffice = OrganizationalUnit::where('code', 'AUTH-OFFICE')->firstOrFail();
-        $owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+        $owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $chairperson = User::where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW13-GOV-'.uniqid(), 'flow_type' => $flowType, 'requesting_unit_id' => $flowType === 'HIGH_AUTHORITY_INITIATED' ? null : $tech->id, 'created_by' => $owner->id, 'subject' => 'FLOW-13 governance fixture', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $owner->id]);
         $meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW13-GOV-'.uniqid(), 'title' => 'FLOW-13 governance fixture', 'organizing_unit_id' => $flowType === 'HIGH_AUTHORITY_INITIATED' ? $authorityOffice->id : $tech->id, 'coordinator_id' => $owner->id, 'chairperson_employee_id' => $chairperson->employee_id, 'meeting_date' => now()->addDays(10)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'FLOW-13 GOV', 'status' => 'SCHEDULED']);

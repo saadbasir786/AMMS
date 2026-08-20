@@ -18,7 +18,7 @@ use Spatie\Permission\Models\Role;
 
 $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $role = Role::where(['name' => 'EXECUTIVE_MANAGEMENT', 'guard_name' => 'sanctum'])->firstOrFail();
-$coordinatorRole = Role::where(['name' => 'MEETING_COORDINATOR', 'guard_name' => 'sanctum'])->firstOrFail();
+$coordinatorRole = Role::where(['name' => 'EXECUTIVE_MANAGEMENT', 'guard_name' => 'sanctum'])->firstOrFail();
 $employee = Employee::firstOrCreate(
     ['employee_number' => 'FLOW07-PEER-COORDINATOR'],
     ['first_name' => 'هماهنگ‌کننده', 'last_name' => 'peer', 'father_name' => '', 'organizational_unit_id' => $unit->id, 'position_id' => Position::query()->value('id'), 'email' => 'peer.coordinator@example.test', 'phone' => '', 'status' => 'ACTIVE']

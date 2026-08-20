@@ -86,7 +86,7 @@ trait InterDirectorateWorkflowSupport
 
     private function canCoordinateUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('MEETING_COORDINATOR', $unitId);
+        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function assertParticipantEmployees(array $employeeIds, OrganizationalUnit $requester, OrganizationalUnit $target): void

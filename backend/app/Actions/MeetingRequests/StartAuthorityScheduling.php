@@ -23,7 +23,7 @@ class StartAuthorityScheduling
 
             $from = $this->updateStatus($locked, MeetingRequestStatus::AUTHORITY_SCHEDULING);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULING_STARTED', $from, $locked->status, null, ['authority_office_unit_id' => $context->authority_office_unit_id]);
-            $this->notifyUsersForUnit($locked->requesting_unit_id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'زمان‌بندی مقام عالی آغاز شد', 'دفتر مقام زمان‌بندی رسمی جلسه را آغاز کرد.', $locked);
+            $this->notifyUsersForUnit($locked->requesting_unit_id, ['EXECUTIVE_MANAGEMENT'], 'زمان‌بندی مقام عالی آغاز شد', 'دفتر مقام زمان‌بندی رسمی جلسه را آغاز کرد.', $locked);
             return $this->responseRequest($locked);
         });
     }

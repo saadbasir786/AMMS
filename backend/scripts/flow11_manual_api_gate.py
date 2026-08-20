@@ -48,7 +48,7 @@ def login(email):
     s.headers.update({'Authorization': 'Bearer ' + token})
     return s
 
-coordinator = login('tech.coordinator@example.test')
+coordinator = login('tech.exec@example.test')
 director = login('tech.director@example.test')
 call('execution_state_before_start', 'GET', f'/meetings/{meeting_id}/execution', coordinator, expected=200)
 call('start_meeting_execution', 'POST', f'/meetings/{meeting_id}/execution/start', coordinator, expected=200, json={'start_notes': 'شروع واقعی برای manual FLOW-11'})

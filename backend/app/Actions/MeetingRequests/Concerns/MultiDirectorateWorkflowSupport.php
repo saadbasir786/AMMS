@@ -124,8 +124,7 @@ trait MultiDirectorateWorkflowSupport
     private function canCoordinateUnit(User $actor, int $unitId): bool
     {
         return $actor->hasScopedRole('SYSTEM_ADMIN')
-            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
-            || $actor->hasScopedRole('MEETING_COORDINATOR', $unitId);
+            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function assertMultiUnitSet(Collection $units): void

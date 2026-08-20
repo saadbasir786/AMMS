@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$owner = User::where('email', 'tech.coordinator@example.test')->firstOrFail();
+$owner = User::where('email', 'tech.exec@example.test')->firstOrFail();
 $employee = Employee::where('email', 'tech.director@example.test')->firstOrFail();
 $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $tag = 'F12-HTTP-'.Str::upper(Str::random(8));

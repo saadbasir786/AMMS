@@ -102,7 +102,7 @@ class MeetingRequestService
             $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($request->id);
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current === MeetingRequestStatus::APPROVED && $current->canTransitionTo(MeetingRequestStatus::SCHEDULING), 422, 'REQUEST_NOT_APPROVED');
-            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
+            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
             $locked->update(['status' => MeetingRequestStatus::SCHEDULING->value, 'coordinator_id' => $locked->coordinator_id ?: $actor->id]);
             $this->action($locked, $actor, 'SCHEDULING_STARTED', $current->value, MeetingRequestStatus::SCHEDULING->value);
             return $locked->fresh($this->withRelations());
@@ -115,7 +115,7 @@ class MeetingRequestService
             $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($request->id);
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current && in_array($current, [MeetingRequestStatus::SCHEDULING, MeetingRequestStatus::APPROVED], true) && $current->canTransitionTo(MeetingRequestStatus::SCHEDULE_CONFIRMED), 422, 'REQUEST_NOT_APPROVED');
-            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
+            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
             $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...($data['participant_ids'] ?? [])]);
             $locked->update(['preferred_date' => $data['meeting_date'], 'preferred_start_time' => $data['start_time'], 'estimated_duration_minutes' => $data['duration_minutes'], 'proposed_location' => $data['location'], 'coordinator_id' => $locked->coordinator_id ?: $actor->id]);
             $this->syncParticipants($locked, $actor, $data['participant_ids'] ?? [], 'FINAL');
@@ -133,7 +133,7 @@ class MeetingRequestService
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current === MeetingRequestStatus::SCHEDULE_CONFIRMED && $current->canTransitionTo(MeetingRequestStatus::CONVERTED_TO_MEETING), 422, 'SCHEDULE_INCOMPLETE');
             abort_unless(!$locked->meeting()->exists(), 422, 'MEETING_ALREADY_CREATED');
-            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('MEETING_COORDINATOR', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
+            abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id) || $locked->created_by === $actor->id, 403, 'FORBIDDEN');
             $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...$locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all()]);
             $meeting = Meeting::create(['meeting_request_id' => $locked->id, 'meeting_number' => $this->nextNumber('meetings', 'MT'), 'title' => $locked->subject, 'description' => $locked->description, 'organizing_unit_id' => $locked->requesting_unit_id, 'coordinator_id' => $locked->coordinator_id ?: $actor->id, 'chairperson_employee_id' => $data['chairperson_employee_id'], 'meeting_date' => $data['meeting_date'], 'start_time' => $data['start_time'], 'end_time' => $data['end_time'], 'location' => $data['location'], 'agenda' => $data['agenda'] ?? null, 'status' => 'SCHEDULED']);
             foreach ($locked->participants->where('participant_type', 'FINAL') as $participant) $meeting->participants()->create(['employee_id' => $participant->employee_id, 'organizational_unit_id' => $participant->employee->organizational_unit_id]);
@@ -150,7 +150,7 @@ class MeetingRequestService
 
     private function canManageUnit(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('MEETING_COORDINATOR', $unitId));
+        return $actor->isActive() && ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
     }
 
     private function editableBy(User $actor, MeetingRequest $request): bool

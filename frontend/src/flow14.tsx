@@ -6,7 +6,7 @@ const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use(config => { const token = localStorage.getItem('amms_token'); if (token) config.headers.Authorization = `Bearer ${token}`; return config })
 const payload = (response:any) => response.data?.data ?? response.data
 const page = (response:any) => { const body=response.data; return { data:Array.isArray(body?.data)?body.data:[], meta:body?.meta||{}, links:body?.links||{} } }
-const roleDashboard:Record<string,string> = { EXECUTIVE_MANAGEMENT:'/reporting/dashboard/executive', HIGH_AUTHORITY:'/reporting/dashboard/executive', AUTHORITY_OFFICE:'/reporting/dashboard/authority', EXECUTIVE_SECRETARY:'/reporting/dashboard/authority', DIRECTOR:'/reporting/dashboard/directorate', MEETING_COORDINATOR:'/reporting/dashboard/directorate', EMPLOYEE:'/reporting/dashboard/personal' }
+const roleDashboard:Record<string,string> = { EXECUTIVE_MANAGEMENT:'/reporting/dashboard/executive', HIGH_AUTHORITY:'/reporting/dashboard/executive', AUTHORITY_OFFICE:'/reporting/dashboard/authority', EXECUTIVE_SECRETARY:'/reporting/dashboard/authority', DIRECTOR:'/reporting/dashboard/directorate', EMPLOYEE:'/reporting/dashboard/personal' }
 const reportTypes:any[] = [
   ['MEETING_REGISTER','ثبت جلسات','/reporting/meetings'], ['MEETING_REQUEST_REGISTER','ثبت درخواست‌ها','/reporting/meeting-requests'], ['ATTENDANCE_REGISTER','ثبت حضور رسمی','/reporting/attendance'], ['DECISION_REGISTER','ثبت تصمیم‌ها','/reporting/decisions'], ['ACTION_ITEM_REGISTER','ثبت اقدامات','/reporting/action-items'], ['EXCEPTION_LIFECYCLE_REGISTER','ثبت رویدادهای استثنایی','/reporting/exceptions'], ['HIGH_AUTHORITY_MEETING_REGISTER','ثبت جلسات مقام عالی','/reporting/high-authority-meetings'],
 ]

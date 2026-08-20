@@ -87,7 +87,7 @@ class ParticipantGovernanceResolver
             return $actor->can('meeting-participant-change.manage') && $this->isAuthorityOwner($meeting, $actor);
         }
         return $actor->can('meeting-participant-change.manage') && $this->ownsDomain($meeting, $actor, $ownerType, $ownerUnitId)
-            && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $ownerUnitId) || $actor->hasScopedRole('MEETING_COORDINATOR', $ownerUnitId));
+            && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $ownerUnitId));
     }
 
     public function mayConfirm(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId): bool

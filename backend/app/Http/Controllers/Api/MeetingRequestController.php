@@ -31,7 +31,7 @@ class MeetingRequestController extends Controller
         $user = $request->user();
         $query = MeetingRequest::with(['requestingUnit','units.unit','creator.employee','participants.employee','nominations.employee.unit','scheduleProposals.proposedByUnit','meeting'])->latest();
         if (!$user->hasScopedRole('SYSTEM_ADMIN')) {
-            $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('MEETING_COORDINATOR')));
+            $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('DIRECTOR')));
             $officeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
             $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
                 $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', $unitIds ?: [-1]);

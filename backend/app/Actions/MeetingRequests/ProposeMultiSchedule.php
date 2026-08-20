@@ -49,7 +49,7 @@ class ProposeMultiSchedule
                 'proposal_id' => $proposal->id,
             ]);
             foreach ($this->participatingUnits($locked)->where('id', '!=', $unit->id) as $other) {
-                $this->notifyUnit($other->id, ['EXECUTIVE_MANAGEMENT', 'MEETING_COORDINATOR'], 'پیشنهاد زمان‌بندی جدید', $unit->name.' پیشنهاد جدیدی برای جلسه ثبت کرد.', $locked);
+                $this->notifyUnit($other->id, ['EXECUTIVE_MANAGEMENT'], 'پیشنهاد زمان‌بندی جدید', $unit->name.' پیشنهاد جدیدی برای جلسه ثبت کرد.', $locked);
             }
 
             return $this->responseRequest($locked);
