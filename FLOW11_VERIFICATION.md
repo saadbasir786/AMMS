@@ -116,7 +116,7 @@ The finalized FLOW-05 PDF was captured through the real HTTP endpoint and render
 | Mixed Persian + Latin values and ISO timestamps | **PASS** |
 | Biometric or terminal implementation fields | **ABSENT / PASS** |
 
-The captured PDF is `flow11_manual_final_minutes.pdf`, its rendered image is `flow11_manual_final_minutes.png`, its extracted text is `flow11_manual_final_minutes.txt`, and the visual inspection record is `flow11_pdf_visual_inspection.md`. The response was HTTP 200, `application/pdf`, 48,709 bytes, and `%PDF` prefixed. The final artifact SHA-256 is `4c2b67a7085713e7f9548a69607972b6c46e4d41e822945903f2c3172579891a`.
+The captured PDF is `flow11_manual_final_minutes.pdf`, its rendered image is `flow11_manual_final_minutes.png`, its extracted text is `flow11_manual_final_minutes.txt`, and the visual inspection record is `flow11_pdf_visual_inspection.md`. The response was HTTP 200, `application/pdf`, 48,709 bytes, and `%PDF` prefixed. The final artifact SHA-256 is `e585365bf83a78c5fc29d42547d0921f60726838996b071f87c9d29543b4d544`.
 
 ## 8. Rich canonical MariaDB invariants
 
