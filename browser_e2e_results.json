@@ -1,0 +1,136 @@
+{
+  "environment": {
+    "frontend_url": "http://localhost:5173",
+    "backend_url": "http://127.0.0.1:8000",
+    "database_engine": "MariaDB / InnoDB",
+    "database_name": "amms_browser_e2e",
+    "browser": "Chromium sandbox browser",
+    "real_stack": true,
+    "sqlite_substitution": false
+  },
+  "roles": {
+    "tested": [
+      "EXECUTIVE_MANAGEMENT requester",
+      "DIRECTOR Technology",
+      "MEETING_COORDINATOR Technology"
+    ],
+    "not_yet_tested": [
+      "SYSTEM_ADMIN",
+      "EMPLOYEE",
+      "AUTHORITY_OFFICE",
+      "EXECUTIVE_SECRETARY",
+      "HIGH_AUTHORITY"
+    ]
+  },
+  "journeys": [
+    {
+      "flow": "FLOW-01",
+      "scenario": "INTERNAL_DIRECTORATE browser journey",
+      "actors": [
+        "tech.exec@example.test",
+        "tech.director@example.test",
+        "tech.coordinator@example.test"
+      ],
+      "completed_steps": [
+        "request creation through real React form",
+        "Persian/Dari request content and proposed schedule entry",
+        "Technology-scoped participant selection",
+        "save/submit",
+        "Director approval",
+        "immutable request timeline visibility"
+      ],
+      "result": "INCOMPLETE_BLOCKED",
+      "reason": "The approved request is not discoverable in the coordinator's normal request/incoming navigation, and the browser session harness resets on external hard navigation. The coordinator-owned start-scheduling and subsequent Meeting creation could not be completed through normal visible UI navigation.",
+      "server_state_after_attempts": {
+        "request_status": "APPROVED",
+        "meeting_created": false,
+        "duplicate_meeting_created": false
+      }
+    }
+  ],
+  "role_ux": {
+    "hidden_forbidden_action_count": 4,
+    "disabled_with_reason_count": 0,
+    "incorrect_visibility_found": 3,
+    "incorrect_visibility_fixed": 3,
+    "unresolved_visibility_issues": 1,
+    "fixed_items": [
+      "Director-visible coordinator-only start-scheduling control",
+      "outside-Directorate participant and chairperson choices in FLOW-01 scheduling",
+      "seeded development credentials displayed in the login form"
+    ],
+    "unresolved_items": [
+      "Coordinator has no normal visible work-queue/navigation path to the approved request requiring scheduling"
+    ]
+  },
+  "navigation": {
+    "unauthorized_menu_items_remaining": 0,
+    "direct_url_denials_verified": false,
+    "coordinator_navigation_verified": true,
+    "director_navigation_verified": true,
+    "system_admin_navigation_verified": false,
+    "employee_navigation_verified": false
+  },
+  "ui_quality": {
+    "rtl": "PASS on exercised login, dashboard, request, approval, scheduling, empty, and detail surfaces",
+    "validation": "NOT_COMPLETE",
+    "loading": "PARTIAL_PASS; loading spinner observed, final mutation feedback not completed",
+    "stale_state": "FAILURE_REMAINING; hard navigation/session reset and coordinator detail discoverability prevented full refresh consistency pass",
+    "responsive": "PARTIAL_PASS; desktop and narrow rendered screenshots inspected, full role/module responsive pass incomplete",
+    "participant_scope_filter": "PASS after permitted frontend fix",
+    "frontend_build": "PASS; 1866 modules transformed"
+  },
+  "security_boundary": {
+    "backend_authorization_preserved": true,
+    "director_start_scheduling_http_status": 403,
+    "terminal_secret_exposure_count": 0,
+    "biometric_sensitive_exposure_count": 0,
+    "note": "The 403 was a supplementary authorization-boundary check; business acceptance was not replaced by API-only testing."
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "area": "FLOW-01 role/action visibility",
+      "description": "Director initially saw an enabled coordinator-only start-scheduling action; the backend correctly returned 403.",
+      "fixed": true,
+      "blocker": false
+    },
+    {
+      "severity": "UX",
+      "area": "FLOW-01 participant scope",
+      "description": "Scheduling chairperson and final-participant choices initially included employees outside the requesting Directorate hierarchy.",
+      "fixed": true,
+      "blocker": false
+    },
+    {
+      "severity": "UX",
+      "area": "Authentication presentation",
+      "description": "The login form initially displayed seeded development credentials by default.",
+      "fixed": true,
+      "blocker": false
+    },
+    {
+      "severity": "HIGH",
+      "area": "Coordinator discoverability / FLOW-01 completion",
+      "description": "The coordinator's normal visible request and incoming-request lists contain no link to the approved request that requires scheduling, although the coordinator's backend read access is HTTP 200. The required scheduling-to-Meeting journey therefore remains inaccessible through normal UI navigation.",
+      "fixed": false,
+      "blocker": true
+    },
+    {
+      "severity": "UX",
+      "area": "Browser acceptance harness",
+      "description": "External browser navigation repeatedly reset session state or failed screenshot capture; this limited re-login and deep-link verification but did not change server data.",
+      "fixed": false,
+      "blocker": false
+    }
+  ],
+  "production_code_changed": false,
+  "frontend_code_changed": true,
+  "backend_code_changed": false,
+  "authorization_semantics_changed": false,
+  "business_semantics_changed": false,
+  "flow10b_touched": false,
+  "flow15_started": false,
+  "overall_pass": false,
+  "final_status": "MASTER BROWSER E2E & ROLE-BASED UX ACCEPTANCE — VERIFICATION INCOMPLETE — REMEDIATION REQUIRED"
+}
