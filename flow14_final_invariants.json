@@ -22,7 +22,7 @@
                 "HELD": 1,
                 "COMPLETED": 2
             },
-            "rationale": "The canonical fixture retains nine distinct Meeting identities so FLOW-07 schedule-version history can be tested on a real Meeting without duplicating that Meeting. The original six-status distribution sums to eight; the additional distinct identity is m-scheduled-3, an independent INTER_DIRECTORATE SCHEDULED Meeting with its own request, schedule version, participant version, and database primary key. The FLOW-07 reschedule is applied to m-scheduled-2 and creates a new schedule version on that same Meeting; it does not create a second Meeting and does not account for m-scheduled-3. Therefore the versioned V2 contract is SCHEDULED=3 and total Meetings=9.",
+            "rationale": "The canonical fixture intentionally retains nine distinct Meeting identities. Nine is not required to test FLOW-07: m-scheduled-2 is the Meeting used for FLOW-07 reschedule and schedule-version history coverage, and FLOW-07 remains append-only on that same Meeting. The additional identity m-scheduled-3 is an independent INTER_DIRECTORATE SCHEDULED Meeting for reporting, attribution, and cross-flow fixture coverage. It is intentional, independent, not a duplicate, and not created by FLOW-07. Therefore the versioned V2 contract is SCHEDULED=3 and total Meetings=9.",
             "additional_scheduled_meeting_key": "m-scheduled-3",
             "distinct_identity_proof": "meeting_id and meeting_number are unique across all nine canonical Meeting rows"
         },
