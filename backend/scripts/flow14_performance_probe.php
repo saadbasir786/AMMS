@@ -63,13 +63,13 @@ $artifact = [
     ],
     'endpoints' => [
         'executive_dashboard' => ['query_count' => $beforeRegister, 'execution_time_ms' => round($dashboardTime, 3)],
-        'meeting_register_50_rows' => ['query_count' => $registerQueries, 'execution_time_ms' => round($registerTime, 3), 'rows_returned' => $register->count()],
+        'meeting_register_page_per_page_50' => ['query_count' => $registerQueries, 'execution_time_ms' => round($registerTime, 3), 'requested_per_page' => 50, 'rows_returned' => $register->count(), 'measurement_note' => 'This endpoint measurement returned the rows visible to high.authority@example.test; it is not the authoritative 50-row N+1 measurement. See flow14_mariadb_nplus1_explain_gate.json for the true 50-row gate.'],
     ],
     'query_count' => count($captured),
     'largest_query_time_ms' => $slowest ? $slowest['time_ms'] : 0,
     'slowest_query' => $slowest ? ['sql' => $slowest['sql'], 'time_ms' => $slowest['time_ms']] : null,
     'explain_summary' => $explain,
-    'n_plus_one_gate' => $registerQueries <= 12,
+    'bounded_query_gate' => $registerQueries <= 12,
 ];
-$artifact['pass'] = $artifact['n_plus_one_gate'];
+$artifact['pass'] = $artifact['bounded_query_gate'];
 echo json_encode($artifact, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;

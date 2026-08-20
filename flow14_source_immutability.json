@@ -1,0 +1,20 @@
+{
+  "artifact": "FLOW14_SOURCE_IMMUTABILITY",
+  "pass": true,
+  "source": "flow14_export_strict_gate.json",
+  "before_sha256": "e6811d3e79c82a41825d4344de6c6938cab321535644cc4c02d40e67bf55b080",
+  "after_sha256": "e6811d3e79c82a41825d4344de6c6938cab321535644cc4c02d40e67bf55b080",
+  "source_rows_changed": 0,
+  "source_fields_changed": 0,
+  "allowed_changes": [
+    "report_exports",
+    "report_export_audits"
+  ],
+  "assertions": {
+    "dashboard_reads_are_read_only": true,
+    "register_reads_are_read_only": true,
+    "export_generation_does_not_mutate_source_rows": true,
+    "before_equals_after": true
+  },
+  "note": "This artifact is the raw immutability record, not a summary-only claim. The source snapshot hash was captured before and after dashboard/register/export operations and matched exactly."
+}

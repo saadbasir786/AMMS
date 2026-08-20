@@ -84,12 +84,18 @@
     {
       "name": "exact HTTP attendance rate",
       "pass": true,
-      "detail": null
+      "detail": {
+        "actual": 50,
+        "expected": 50
+      }
     },
     {
       "name": "exact HTTP action completion rate",
       "pass": true,
-      "detail": null
+      "detail": {
+        "actual": 37.5,
+        "expected": 37.5
+      }
     },
     {
       "name": "exact HTTP status distribution",

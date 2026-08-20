@@ -42,6 +42,10 @@ for ($worker = 1; $worker <= 2; $worker++) {
         try {
             DB::purge('mysql');
             $generated = app(ReportExportManager::class)->generate($race->id);
+            if ($generated->status === ReportExport::RUNNING) {
+                $deadline = microtime(true) + 30;
+                do { usleep(20000); $generated = ReportExport::findOrFail($race->id); } while ($generated->status === ReportExport::RUNNING && microtime(true) < $deadline);
+            }
             file_put_contents($workerDir.'/'.$worker.'.json', json_encode(['status' => $generated->status, 'checksum' => $generated->checksum, 'path' => $generated->storage_path]));
             exit(0);
         } catch (Throwable $e) {

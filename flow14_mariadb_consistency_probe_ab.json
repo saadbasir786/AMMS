@@ -9,8 +9,8 @@
         {
             "name": "A: applied cancellation and executive dashboard share snapshot",
             "pass": true,
-            "actual": 2,
-            "expected": 2
+            "actual": 6,
+            "expected": 6
         },
         {
             "name": "B: Action Item source summary and dashboard share snapshot",
@@ -18,18 +18,18 @@
             "actual": {
                 "BLOCKED": 1,
                 "CANCELLED": 2,
-                "COMPLETED": 63,
+                "COMPLETED": 65,
                 "IN_PROGRESS": 1,
                 "OPEN": 62,
-                "PENDING_VERIFICATION": 1
+                "PENDING_VERIFICATION": 3
             },
             "expected": {
                 "BLOCKED": 1,
                 "CANCELLED": 2,
-                "COMPLETED": 63,
+                "COMPLETED": 65,
                 "IN_PROGRESS": 1,
                 "OPEN": 62,
-                "PENDING_VERIFICATION": 1
+                "PENDING_VERIFICATION": 3
             }
         }
     ]

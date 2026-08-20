@@ -30,13 +30,30 @@ final class ReportExportManager
 
     public function generate(int $exportId): ReportExport
     {
-        return DB::transaction(function () use ($exportId): ReportExport {
+        if (DB::connection()->getDriverName() !== 'mysql') return $this->generateLocked($exportId);
+        $claimed = DB::table('report_exports')->where('id', $exportId)->where('status', ReportExport::PENDING)->update(['status' => ReportExport::RUNNING, 'started_at' => now(), 'error_code' => null]);
+        if (!$claimed) {
+            $current = ReportExport::findOrFail($exportId);
+            if ($current->status === ReportExport::RUNNING) return $current;
+            return $this->generateLocked($exportId);
+        }
+        $claimedExport = ReportExport::findOrFail($exportId);
+        ReportExportAudit::create(['report_export_id' => $claimedExport->id, 'actor_user_id' => $claimedExport->requested_by_user_id, 'action' => 'REPORT_EXPORT_STARTED', 'metadata' => ['format' => $claimedExport->format, 'report_type' => $claimedExport->report_type]]);
+        return $this->generateLocked($exportId, true);
+    }
+
+    private function generateLocked(int $exportId, bool $claimed = false): ReportExport
+    {
+        return DB::transaction(function () use ($exportId, $claimed): ReportExport {
             $export = ReportExport::query()->lockForUpdate()->findOrFail($exportId);
             if ($export->status === ReportExport::COMPLETED && $export->storage_path) return $export;
+            if ($export->status === ReportExport::RUNNING && !$claimed) return $export;
             if ($export->status === ReportExport::EXPIRED) return $export;
 
-            $export->update(['status' => ReportExport::RUNNING, 'started_at' => now(), 'error_code' => null]);
-            $this->audit($export, 'REPORT_EXPORT_STARTED', ['format' => $export->format, 'report_type' => $export->report_type]);
+            if (!$claimed) {
+                $export->update(['status' => ReportExport::RUNNING, 'started_at' => now(), 'error_code' => null]);
+                $this->audit($export, 'REPORT_EXPORT_STARTED', ['format' => $export->format, 'report_type' => $export->report_type]);
+            }
 
             try {
                 $owner = $export->requestedBy()->firstOrFail();

@@ -6,31 +6,33 @@
         "timezone": "UTC"
     },
     "fixture_size": {
-        "meeting_count": 129,
-        "request_count": 134,
-        "participant_count": 254,
-        "attendance_count": 122,
+        "meeting_count": 137,
+        "request_count": 142,
+        "participant_count": 260,
+        "attendance_count": 128,
         "decision_count": 63,
         "followup_count": 62,
-        "action_item_count": 130,
-        "exception_count": 5
+        "action_item_count": 134,
+        "exception_count": 11
     },
     "endpoints": {
         "executive_dashboard": {
             "query_count": 28,
-            "execution_time_ms": 19.668
+            "execution_time_ms": 18.027
         },
-        "meeting_register_50_rows": {
+        "meeting_register_page_per_page_50": {
             "query_count": 11,
-            "execution_time_ms": 4.77,
-            "rows_returned": 1
+            "execution_time_ms": 4.328,
+            "requested_per_page": 50,
+            "rows_returned": 1,
+            "measurement_note": "This endpoint measurement returned the rows visible to high.authority@example.test; it is not the authoritative 50-row N+1 measurement. See flow14_mariadb_nplus1_explain_gate.json for the true 50-row gate."
         }
     },
     "query_count": 48,
-    "largest_query_time_ms": 0.79,
+    "largest_query_time_ms": 0.77,
     "slowest_query": {
         "sql": "select count(distinct `members`.`employee_id`) as `aggregate` from `meeting_participant_version_members` as `members` inner join `meetings` on `meetings`.`current_participant_version_id` = `members`.`participant_version_id` where `meetings`.`id` in (select `meetings`.`id` from `meetings` where `meetings`.`created_at` between ? and ? and (`meetings`.`coordinator_id` = ? or exists (select * from `meeting_participants` where `meetings`.`id` = `meeting_participants`.`meeting_id` and `employee_id` = ?) or exists (select * from `meeting_authority_contexts` where `meetings`.`id` = `meeting_authority_contexts`.`meeting_id` and `authority_employee_id` = ?))) and exists (select 1 from `meeting_attendance_records` as `attendance` where `attendance`.`meeting_id` = `meetings`.`id`)",
-        "time_ms": 0.79
+        "time_ms": 0.77
     },
     "explain_summary": [
         {
@@ -42,7 +44,7 @@
             "key": "meetings_current_participant_version_id_index",
             "key_len": "9",
             "ref": null,
-            "rows": "129",
+            "rows": "137",
             "Extra": "Using where; Using index"
         },
         {
@@ -90,7 +92,7 @@
             "key": "meeting_attendance_meeting_employee_unique",
             "key_len": "16",
             "ref": null,
-            "rows": "122",
+            "rows": "128",
             "Extra": "Using index"
         },
         {
@@ -118,5 +120,5 @@
             "Extra": "Using index"
         }
     ],
-    "n_plus_one_gate": true
+    "bounded_query_gate": true
 }

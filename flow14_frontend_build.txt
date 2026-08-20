@@ -6,4 +6,4 @@ computing gzip size...
 [2mdist/[0m[2massets/[0m[35mindex-qfR9Av4l.css  [0m[1;2m 26.34 kB[0m[2m │ gzip:   6.02 kB[0m
 [2mdist/[0m[2massets/[0m[36mindex-lp5erXzv.js   [0m[33;1m595.07 kB[0m[2m │ gzip: 141.89 kB[0m
 
-✓ built in 162ms
+✓ built in 180ms

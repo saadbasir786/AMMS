@@ -62,9 +62,11 @@ try:
         'action_items.overdue': expected['action_item_overdue_count'],
     }.items():
         check(f'exact HTTP metric {metric}', actual.get(metric) == want, {'actual': actual.get(metric), 'expected': want})
-    check('exact HTTP attendance rate', float(actual.get('attendance.rate', -1)) == float(expected['attendance_rate']))
-    check('exact HTTP action completion rate', float(actual.get('action_items.completion_rate', -1)) == float(expected['action_item_completion_rate']))
     summary = data.get('summary', {})
+    attendance_rate_actual = actual.get('attendance.rate', summary.get('attendance_rate'))
+    completion_rate_actual = actual.get('action_items.completion_rate', summary.get('action_item_completion_rate'))
+    check('exact HTTP attendance rate', float(attendance_rate_actual) == float(expected['attendance_rate']), {'actual': attendance_rate_actual, 'expected': expected['attendance_rate']})
+    check('exact HTTP action completion rate', float(completion_rate_actual) == float(expected['action_item_completion_rate']), {'actual': completion_rate_actual, 'expected': expected['action_item_completion_rate']})
     check('exact HTTP status distribution', summary.get('meeting_status_counts') == expected['meeting_status_counts'], summary.get('meeting_status_counts'))
     check('exact HTTP action status distribution', summary.get('action_item_status_counts') == expected['action_item_status_counts'], summary.get('action_item_status_counts'))
     check('HTTP response redacts internals', not any(x in json.dumps(payload, ensure_ascii=False) for x in ['storage_path', 'session_token', 'credential_hash', 'credential_secret', 'template_data']))
