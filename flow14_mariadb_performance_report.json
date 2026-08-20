@@ -1,0 +1,122 @@
+{
+    "pass": true,
+    "environment": {
+        "connection": "mysql",
+        "driver": "mysql",
+        "timezone": "UTC"
+    },
+    "fixture_size": {
+        "meeting_count": 129,
+        "request_count": 134,
+        "participant_count": 254,
+        "attendance_count": 122,
+        "decision_count": 63,
+        "followup_count": 62,
+        "action_item_count": 130,
+        "exception_count": 5
+    },
+    "endpoints": {
+        "executive_dashboard": {
+            "query_count": 28,
+            "execution_time_ms": 19.668
+        },
+        "meeting_register_50_rows": {
+            "query_count": 11,
+            "execution_time_ms": 4.77,
+            "rows_returned": 1
+        }
+    },
+    "query_count": 48,
+    "largest_query_time_ms": 0.79,
+    "slowest_query": {
+        "sql": "select count(distinct `members`.`employee_id`) as `aggregate` from `meeting_participant_version_members` as `members` inner join `meetings` on `meetings`.`current_participant_version_id` = `members`.`participant_version_id` where `meetings`.`id` in (select `meetings`.`id` from `meetings` where `meetings`.`created_at` between ? and ? and (`meetings`.`coordinator_id` = ? or exists (select * from `meeting_participants` where `meetings`.`id` = `meeting_participants`.`meeting_id` and `employee_id` = ?) or exists (select * from `meeting_authority_contexts` where `meetings`.`id` = `meeting_authority_contexts`.`meeting_id` and `authority_employee_id` = ?))) and exists (select 1 from `meeting_attendance_records` as `attendance` where `attendance`.`meeting_id` = `meetings`.`id`)",
+        "time_ms": 0.79
+    },
+    "explain_summary": [
+        {
+            "id": 1,
+            "select_type": "PRIMARY",
+            "table": "meetings",
+            "type": "index",
+            "possible_keys": "PRIMARY,meetings_current_participant_version_id_index",
+            "key": "meetings_current_participant_version_id_index",
+            "key_len": "9",
+            "ref": null,
+            "rows": "129",
+            "Extra": "Using where; Using index"
+        },
+        {
+            "id": 1,
+            "select_type": "PRIMARY",
+            "table": "members",
+            "type": "ref",
+            "possible_keys": "participant_version_members_employee_unique,mpvm_version_owner_idx",
+            "key": "participant_version_members_employee_unique",
+            "key_len": "8",
+            "ref": "amms_concurrency_test.meetings.current_participant_version_id",
+            "rows": "1",
+            "Extra": "Using index"
+        },
+        {
+            "id": 1,
+            "select_type": "PRIMARY",
+            "table": "meetings",
+            "type": "eq_ref",
+            "possible_keys": "PRIMARY,meetings_coordinator_id_foreign",
+            "key": "PRIMARY",
+            "key_len": "8",
+            "ref": "amms_concurrency_test.meetings.id",
+            "rows": "1",
+            "Extra": "Using where"
+        },
+        {
+            "id": 1,
+            "select_type": "PRIMARY",
+            "table": "<subquery5>",
+            "type": "eq_ref",
+            "possible_keys": "distinct_key",
+            "key": "distinct_key",
+            "key_len": "8",
+            "ref": "func",
+            "rows": "1",
+            "Extra": ""
+        },
+        {
+            "id": 5,
+            "select_type": "MATERIALIZED",
+            "table": "attendance",
+            "type": "index",
+            "possible_keys": "meeting_attendance_meeting_employee_unique,meeting_attendance_version_idx",
+            "key": "meeting_attendance_meeting_employee_unique",
+            "key_len": "16",
+            "ref": null,
+            "rows": "122",
+            "Extra": "Using index"
+        },
+        {
+            "id": 4,
+            "select_type": "DEPENDENT SUBQUERY",
+            "table": "meeting_authority_contexts",
+            "type": "range",
+            "possible_keys": "meeting_authority_contexts_meeting_id_unique,mac_employee_meeting_idx",
+            "key": "mac_employee_meeting_idx",
+            "key_len": "8",
+            "ref": null,
+            "rows": "1",
+            "Extra": "Using where; Using index"
+        },
+        {
+            "id": 3,
+            "select_type": "DEPENDENT SUBQUERY",
+            "table": "meeting_participants",
+            "type": "eq_ref",
+            "possible_keys": "meeting_participants_meeting_id_employee_id_unique,meeting_participants_employee_id_foreign",
+            "key": "meeting_participants_meeting_id_employee_id_unique",
+            "key_len": "16",
+            "ref": "amms_concurrency_test.meetings.id,const",
+            "rows": "1",
+            "Extra": "Using index"
+        }
+    ],
+    "n_plus_one_gate": true
+}

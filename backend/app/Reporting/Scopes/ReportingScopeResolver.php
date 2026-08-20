@@ -36,7 +36,7 @@ final class ReportingScopeResolver
     public function allowsOrganizationBusiness(): bool
     {
         return $this->user->can('reporting.dashboard.executive')
-            && ($this->user->hasScopedRole('EXECUTIVE_MANAGEMENT') || $this->user->hasScopedRole('HIGH_AUTHORITY'));
+            && ($this->user->hasRole('EXECUTIVE_MANAGEMENT', 'sanctum') || $this->user->hasScopedRole('HIGH_AUTHORITY'));
     }
 
     public function allowsTechnical(): bool

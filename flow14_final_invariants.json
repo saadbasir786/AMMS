@@ -1,862 +1,166 @@
 {
+    "artifact": "flow14_final_metric_invariants.json",
     "pass": true,
+    "release_status": "VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL",
     "definition_version": "AMMS_REPORTING_V1",
-    "catalog": {
-        "metric_count": 30,
-        "all_expected_metric_ids_present": true
+    "frozen_boundaries": {
+        "flow01_through_flow13": "APPROVED/FROZEN",
+        "flow10b_dermalog_svt3000_se": "DEFERRED",
+        "flow15": "NOT_STARTED"
     },
-    "temporal_semantics": {
-        "half_open_date_range": true,
-        "timezone_is_server_declared": true,
-        "invalid_range_returns_422": true
-    },
-    "scope_semantics": {
-        "system_admin_business_denied": true,
-        "directorate_scoped_allowed": true,
-        "personal_employee_allowed": true
-    },
-    "read_only_boundary": {
-        "reporting_routes_are_get_or_post_export_only": true,
-        "source_mutation_count": 0,
-        "sensitive_payload_fields_exposed": 0
-    },
-    "export_semantics": {
-        "report_export_table_exists": true,
-        "report_export_audit_table_exists": true,
-        "completed_export_count": 9,
-        "audit_event_count": 35,
-        "private_storage_path_exposed": false,
-        "formula_tag_count": 0
-    },
-    "performance": {
-        "pass": true,
-        "environment": {
-            "connection": "sqlite",
-            "driver": "sqlite",
-            "timezone": "UTC"
-        },
-        "fixture_size": {
-            "meeting_count": 36,
-            "request_count": 36,
-            "participant_count": 35,
-            "attendance_count": 10,
-            "decision_count": 2,
+    "canonical_fixture": {
+        "driver": "sqlite",
+        "scope_unit_id": 11,
+        "expected": {
+            "request_total": 14,
+            "meeting_distinct_total": 9,
+            "meeting_status_counts": {
+                "SCHEDULED": 3,
+                "POSTPONED": 1,
+                "CANCELLED": 1,
+                "IN_PROGRESS": 1,
+                "HELD": 1,
+                "COMPLETED": 2
+            },
+            "conducted_meeting_count": 3,
+            "upcoming_meeting_count": 3,
+            "high_authority_meeting_count": 1,
+            "finalized_decision_count": 2,
             "followup_count": 2,
-            "action_item_count": 0,
-            "exception_count": 51
+            "followup_classification_counts": {
+                "NO_ACTION_REQUIRED": 1,
+                "ACTION_REQUIRED": 1
+            },
+            "action_item_status_counts": {
+                "OPEN": 2,
+                "IN_PROGRESS": 1,
+                "BLOCKED": 1,
+                "PENDING_VERIFICATION": 1,
+                "COMPLETED": 3,
+                "CANCELLED": 2
+            },
+            "action_item_overdue_count": 4,
+            "action_item_completion_rate": 37.5,
+            "official_attendance_count": 1,
+            "invalidated_attendance_count": 1,
+            "attendance_rate": 50,
+            "postponement_event_count": 1,
+            "cancellation_event_count": 2,
+            "reopening_event_count": 1,
+            "resumption_event_count": 1,
+            "reschedule_confirmed_count": 1,
+            "participant_change_confirmed_count": 1
         },
-        "endpoints": {
-            "executive_dashboard": {
-                "query_count": 28,
-                "execution_time_ms": 10.428
-            },
-            "meeting_register_50_rows": {
-                "query_count": 11,
-                "execution_time_ms": 3.021,
-                "rows_returned": 6
-            }
-        },
-        "query_count": 48,
-        "largest_query_time_ms": 0.09,
-        "slowest_query": {
-            "sql": "select \"meetings\".\"status\", COUNT(DISTINCT meetings.id) AS total from \"meetings\" where \"meetings\".\"created_at\" between ? and ? and (\"meetings\".\"coordinator_id\" = ? or exists (select 1 from \"meeting_participants\" where \"meeting_participants\".\"meeting_id\" = \"meetings\".\"id\" and \"meeting_participants\".\"employee_id\" = ?) or exists (select 1 from \"meeting_authority_contexts\" where \"meeting_authority_contexts\".\"meeting_id\" = \"meetings\".\"id\" and \"meeting_authority_contexts\".\"authority_employee_id\" = ?)) group by \"meetings\".\"status\"",
-            "time_ms": 0.09
-        },
-        "explain_summary": [
-            {
-                "addr": 0,
-                "opcode": "Init",
-                "p1": 0,
-                "p2": 72,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 1,
-                "opcode": "Noop",
-                "p1": 4,
-                "p2": 2,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 2,
-                "opcode": "Integer",
-                "p1": 0,
-                "p2": 2,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 3,
-                "opcode": "Null",
-                "p1": 0,
-                "p2": 5,
-                "p3": 5,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 4,
-                "opcode": "Gosub",
-                "p1": 4,
-                "p2": 67,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 5,
-                "opcode": "OpenRead",
-                "p1": 0,
-                "p2": 215,
-                "p3": 0,
-                "p4": "15",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 6,
-                "opcode": "OpenRead",
-                "p1": 5,
-                "p2": 189,
-                "p3": 0,
-                "p4": "k(2,,)",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 7,
-                "opcode": "Rewind",
-                "p1": 5,
-                "p2": 56,
-                "p3": 7,
-                "p4": "0",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 8,
-                "opcode": "DeferredSeek",
-                "p1": 5,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 9,
-                "opcode": "Column",
-                "p1": 0,
-                "p2": 14,
-                "p3": 7,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 10,
-                "opcode": "Lt",
-                "p1": 9,
-                "p2": 55,
-                "p3": 7,
-                "p4": "BINARY-8",
-                "p5": 83,
-                "comment": null
-            },
-            {
-                "addr": 11,
-                "opcode": "Gt",
-                "p1": 10,
-                "p2": 55,
-                "p3": 7,
-                "p4": "BINARY-8",
-                "p5": 83,
-                "comment": null
-            },
-            {
-                "addr": 12,
-                "opcode": "Column",
-                "p1": 0,
-                "p2": 6,
-                "p3": 7,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 13,
-                "opcode": "Eq",
-                "p1": 11,
-                "p2": 43,
-                "p3": 7,
-                "p4": "BINARY-8",
-                "p5": 68,
-                "comment": null
-            },
-            {
-                "addr": 14,
-                "opcode": "BeginSubrtn",
-                "p1": 0,
-                "p2": 12,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 15,
-                "opcode": "Integer",
-                "p1": 0,
-                "p2": 13,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 16,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 14,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 17,
-                "opcode": "OpenRead",
-                "p1": 6,
-                "p2": 64,
-                "p3": 0,
-                "p4": "k(2,,)",
-                "p5": 2,
-                "comment": null
-            },
-            {
-                "addr": 18,
-                "opcode": "IdxRowid",
-                "p1": 5,
-                "p2": 15,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 19,
-                "opcode": "Variable",
-                "p1": 4,
-                "p2": 16,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 20,
-                "opcode": "IsNull",
-                "p1": 16,
-                "p2": 26,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 21,
-                "opcode": "Affinity",
-                "p1": 16,
-                "p2": 1,
-                "p3": 0,
-                "p4": "C",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 22,
-                "opcode": "SeekGE",
-                "p1": 6,
-                "p2": 26,
-                "p3": 15,
-                "p4": "2",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 23,
-                "opcode": "IdxGT",
-                "p1": 6,
-                "p2": 26,
-                "p3": 15,
-                "p4": "2",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 24,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 13,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 25,
-                "opcode": "DecrJumpZero",
-                "p1": 14,
-                "p2": 26,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 26,
-                "opcode": "Return",
-                "p1": 12,
-                "p2": 15,
-                "p3": 1,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 27,
-                "opcode": "If",
-                "p1": 13,
-                "p2": 43,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 28,
-                "opcode": "BeginSubrtn",
-                "p1": 0,
-                "p2": 18,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 29,
-                "opcode": "Integer",
-                "p1": 0,
-                "p2": 19,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 30,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 20,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 31,
-                "opcode": "OpenRead",
-                "p1": 2,
-                "p2": 130,
-                "p3": 0,
-                "p4": "6",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 32,
-                "opcode": "OpenRead",
-                "p1": 7,
-                "p2": 132,
-                "p3": 0,
-                "p4": "k(1,)",
-                "p5": 2,
-                "comment": null
-            },
-            {
-                "addr": 33,
-                "opcode": "IdxRowid",
-                "p1": 5,
-                "p2": 21,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 34,
-                "opcode": "SeekGE",
-                "p1": 7,
-                "p2": 41,
-                "p3": 21,
-                "p4": "1",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 35,
-                "opcode": "IdxGT",
-                "p1": 7,
-                "p2": 41,
-                "p3": 21,
-                "p4": "1",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 36,
-                "opcode": "DeferredSeek",
-                "p1": 7,
-                "p2": 0,
-                "p3": 2,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 37,
-                "opcode": "Column",
-                "p1": 2,
-                "p2": 5,
-                "p3": 22,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 38,
-                "opcode": "Ne",
-                "p1": 23,
-                "p2": 41,
-                "p3": 22,
-                "p4": "BINARY-8",
-                "p5": 84,
-                "comment": null
-            },
-            {
-                "addr": 39,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 19,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 40,
-                "opcode": "DecrJumpZero",
-                "p1": 20,
-                "p2": 41,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 41,
-                "opcode": "Return",
-                "p1": 18,
-                "p2": 29,
-                "p3": 1,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 42,
-                "opcode": "IfNot",
-                "p1": 19,
-                "p2": 55,
-                "p3": 1,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 43,
-                "opcode": "Column",
-                "p1": 5,
-                "p2": 0,
-                "p3": 6,
-                "p4": "SCHEDULED",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 44,
-                "opcode": "Compare",
-                "p1": 5,
-                "p2": 6,
-                "p3": 1,
-                "p4": "k(1,B)",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 45,
-                "opcode": "Jump",
-                "p1": 46,
-                "p2": 50,
-                "p3": 46,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 46,
-                "opcode": "Move",
-                "p1": 6,
-                "p2": 5,
-                "p3": 1,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 47,
-                "opcode": "Gosub",
-                "p1": 3,
-                "p2": 60,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 48,
-                "opcode": "IfPos",
-                "p1": 2,
-                "p2": 71,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 49,
-                "opcode": "Gosub",
-                "p1": 4,
-                "p2": 67,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 50,
-                "opcode": "IdxRowid",
-                "p1": 5,
-                "p2": 7,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 51,
-                "opcode": "AggStep",
-                "p1": 0,
-                "p2": 7,
-                "p3": 27,
-                "p4": "count(1)",
-                "p5": 1,
-                "comment": null
-            },
-            {
-                "addr": 52,
-                "opcode": "If",
-                "p1": 1,
-                "p2": 54,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 53,
-                "opcode": "Column",
-                "p1": 5,
-                "p2": 0,
-                "p3": 25,
-                "p4": "SCHEDULED",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 54,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 1,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 55,
-                "opcode": "Next",
-                "p1": 5,
-                "p2": 8,
-                "p3": 0,
-                "p4": null,
-                "p5": 1,
-                "comment": null
-            },
-            {
-                "addr": 56,
-                "opcode": "Gosub",
-                "p1": 3,
-                "p2": 60,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 57,
-                "opcode": "Goto",
-                "p1": 0,
-                "p2": 71,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 58,
-                "opcode": "Integer",
-                "p1": 1,
-                "p2": 2,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 59,
-                "opcode": "Return",
-                "p1": 3,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 60,
-                "opcode": "IfPos",
-                "p1": 1,
-                "p2": 62,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 61,
-                "opcode": "Return",
-                "p1": 3,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 62,
-                "opcode": "AggFinal",
-                "p1": 27,
-                "p2": 1,
-                "p3": 0,
-                "p4": "count(1)",
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 63,
-                "opcode": "Copy",
-                "p1": 25,
-                "p2": 28,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 64,
-                "opcode": "Copy",
-                "p1": 27,
-                "p2": 29,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 65,
-                "opcode": "ResultRow",
-                "p1": 28,
-                "p2": 2,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 66,
-                "opcode": "Return",
-                "p1": 3,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 67,
-                "opcode": "Null",
-                "p1": 0,
-                "p2": 25,
-                "p3": 27,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 68,
-                "opcode": "Noop",
-                "p1": 0,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 69,
-                "opcode": "Integer",
-                "p1": 0,
-                "p2": 1,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 70,
-                "opcode": "Return",
-                "p1": 4,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 71,
-                "opcode": "Halt",
-                "p1": 0,
-                "p2": 0,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 72,
-                "opcode": "Transaction",
-                "p1": 0,
-                "p2": 0,
-                "p3": 482,
-                "p4": "0",
-                "p5": 1,
-                "comment": null
-            },
-            {
-                "addr": 73,
-                "opcode": "Variable",
-                "p1": 1,
-                "p2": 9,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 74,
-                "opcode": "Variable",
-                "p1": 2,
-                "p2": 10,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 75,
-                "opcode": "Variable",
-                "p1": 3,
-                "p2": 11,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 76,
-                "opcode": "Variable",
-                "p1": 5,
-                "p2": 23,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            },
-            {
-                "addr": 77,
-                "opcode": "Goto",
-                "p1": 0,
-                "p2": 1,
-                "p3": 0,
-                "p4": null,
-                "p5": 0,
-                "comment": null
-            }
-        ],
-        "n_plus_one_gate": true
+        "exact_gate_pass": true,
+        "exact_gate_result_count": 19
     },
-    "http_gate": {
-        "pass": true,
-        "step_count": 30
+    "metric_actuals": {
+        "requests.total": 14,
+        "meetings.distinct_total": 9,
+        "meetings.conducted": 3,
+        "meetings.upcoming": 3,
+        "meetings.high_authority": 1,
+        "attendance.official_present": 1,
+        "attendance.rate": 50,
+        "decisions.finalized": 2,
+        "followups.total": 2,
+        "action_items.overdue": 4,
+        "action_items.completion_rate": 37.5,
+        "summary.meeting_status_counts": {
+            "CANCELLED": 1,
+            "COMPLETED": 2,
+            "HELD": 1,
+            "IN_PROGRESS": 1,
+            "POSTPONED": 1,
+            "SCHEDULED": 3
+        },
+        "summary.action_item_status_counts": {
+            "BLOCKED": 1,
+            "CANCELLED": 2,
+            "COMPLETED": 3,
+            "IN_PROGRESS": 1,
+            "OPEN": 2,
+            "PENDING_VERIFICATION": 1
+        },
+        "summary.invalidated_attendance_count": 1,
+        "summary.exception_event_counts": {
+            "CANCELLATION": 2,
+            "POSTPONEMENT": 1,
+            "REOPENING": 1,
+            "RESUMPTION": 1
+        },
+        "drilldown.cancelled_matches_dashboard": 1,
+        "drilldown.overdue_matches_dashboard": 4,
+        "drilldown.decisions_matches_dashboard": 2,
+        "drilldown.official_attendance_matches_dashboard": 1
     },
+    "metric_invariants": {
+        "catalog_count": 30,
+        "catalog_versioned": true,
+        "dashboard_drilldown_consistency": true,
+        "authoritative_current_minute_version_only": true,
+        "invalidated_attendance_excluded": true,
+        "event_time_not_current_status": true
+    },
+    "authorization_invariants": {
+        "executive_exact_http_metrics": true,
+        "director_own_scope_allowed": true,
+        "director_unrelated_scope_denied": true,
+        "employee_personal_scope": true,
+        "system_admin_business_denied": true,
+        "sensitive_fields_redacted": true
+    },
+    "mariadb_invariants": {
+        "large_fixture": {
+            "meeting_count": 129,
+            "request_count": 134,
+            "participant_count": 254,
+            "attendance_count": 122,
+            "decision_count": 63,
+            "followup_count": 62,
+            "action_item_count": 130,
+            "exception_count": 5
+        },
+        "performance_pass": true,
+        "true_50_row_nplus1_pass": true,
+        "query_plan_review_pass": true,
+        "consistency_ab_pass": true,
+        "consistency_cd_pass": true
+    },
+    "export_invariants": {
+        "strict_gate_pass": true,
+        "private_storage": true,
+        "ownership_enforced": true,
+        "expiry_enforced": true,
+        "formula_tags_zero": true,
+        "sha256_verified": true,
+        "pdf_visual_rendered": true,
+        "source_immutability_pass": true,
+        "completed_export_count_current_clone": 11,
+        "audit_event_count_current_clone": 43
+    },
+    "read_only_invariants": {
+        "source_mutation_count": 0,
+        "storage_paths_in_api_resources": 0,
+        "terminal_credentials_in_business_analytics": 0,
+        "biometric_material_in_business_analytics": 0
+    },
+    "evidence_files": [
+        "flow14_canonical_fixture.json",
+        "flow14_exact_metric_gate.json",
+        "flow14_exact_http_metric_gate.json",
+        "flow14_mariadb_performance_report.json",
+        "flow14_mariadb_nplus1_explain_gate.json",
+        "flow14_mariadb_consistency_probe_ab.json",
+        "flow14_mariadb_export_consistency_probe_cd.json",
+        "flow14_export_strict_gate.json",
+        "flow14_pdf_visual_gate_page1.png"
+    ],
     "regression": {
-        "backend_tests": 370,
-        "backend_assertions": 1626,
-        "pass": true
-    },
-    "frontend_build": {
-        "modules_transformed": 1866,
-        "pass": true
+        "backend_tests": 373,
+        "backend_assertions": 1654,
+        "backend_pass": true,
+        "frontend_modules_transformed": 1866,
+        "frontend_pass": true
     }
 }

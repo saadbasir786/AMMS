@@ -51,7 +51,9 @@ final class ReportingQueryService
         $invalidatedAttendance = MeetingAttendanceRecord::query()->whereIn('meeting_id', $meetingIds)->whereHas('invalidation')->count();
         $expectedParticipants = DB::table('meeting_participant_version_members as members')
             ->join('meetings', 'meetings.current_participant_version_id', '=', 'members.participant_version_id')
-            ->whereIn('meetings.id', $meetingIds)->distinct('members.employee_id')->count('members.employee_id');
+            ->whereIn('meetings.id', $meetingIds)
+            ->whereExists(fn ($sub) => $sub->selectRaw('1')->from('meeting_attendance_records as attendance')->whereColumn('attendance.meeting_id', 'meetings.id'))
+            ->distinct('members.employee_id')->count('members.employee_id');
         $attendanceRate = $expectedParticipants > 0 ? round($officialPresent / $expectedParticipants * 100, 2) : null;
 
         $finalizedDecisions = (clone $decisions)->count('meeting_minute_version_decisions.id');
@@ -196,7 +198,7 @@ final class ReportingQueryService
     private function requestBase(ReportingScopeResolver $scope, ReportingFilter $filters): Builder
     {
         $query = MeetingRequest::query()->whereBetween('meeting_requests.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
-        $scope->constrainRequests($query, $filters->requestingUnitId);
+        $scope->constrainRequests($query, $filters->requestingUnitId ?? $filters->involvedUnitId);
         if ($filters->flowType) $query->where('meeting_requests.flow_type', $filters->flowType);
         if ($filters->requestStatus) $query->where('meeting_requests.status', $filters->requestStatus);
         if ($filters->search) $query->where(fn (Builder $q) => $q->where('meeting_requests.request_number', 'like', '%'.$filters->search.'%')->orWhere('meeting_requests.subject', 'like', '%'.$filters->search.'%'));
@@ -226,7 +228,7 @@ final class ReportingQueryService
 
     private function actionBase(ReportingScopeResolver $scope, ReportingFilter $filters): Builder
     {
-        $query = MeetingActionItem::query()->join('meeting_decision_followups', 'meeting_decision_followups.id', '=', 'meeting_action_items.decision_followup_id')->join('meetings', 'meetings.id', '=', 'meeting_decision_followups.meeting_id')->whereBetween('meeting_action_items.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
+        $query = MeetingActionItem::query()->join('meeting_decision_followups', 'meeting_decision_followups.id', '=', 'meeting_action_items.decision_followup_id')->join('meetings', 'meetings.id', '=', 'meeting_decision_followups.meeting_id')->whereBetween('meeting_action_items.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()])->select('meeting_action_items.*');
         $scope->constrainActionItems($query, $filters->unitId());
         return $query;
     }

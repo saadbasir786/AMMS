@@ -1,0 +1,166 @@
+{
+    "artifact": "flow14_final_metric_invariants.json",
+    "pass": true,
+    "release_status": "VERIFICATION COMPLETE — PENDING EXPLICIT USER APPROVAL",
+    "definition_version": "AMMS_REPORTING_V1",
+    "frozen_boundaries": {
+        "flow01_through_flow13": "APPROVED/FROZEN",
+        "flow10b_dermalog_svt3000_se": "DEFERRED",
+        "flow15": "NOT_STARTED"
+    },
+    "canonical_fixture": {
+        "driver": "sqlite",
+        "scope_unit_id": 11,
+        "expected": {
+            "request_total": 14,
+            "meeting_distinct_total": 9,
+            "meeting_status_counts": {
+                "SCHEDULED": 3,
+                "POSTPONED": 1,
+                "CANCELLED": 1,
+                "IN_PROGRESS": 1,
+                "HELD": 1,
+                "COMPLETED": 2
+            },
+            "conducted_meeting_count": 3,
+            "upcoming_meeting_count": 3,
+            "high_authority_meeting_count": 1,
+            "finalized_decision_count": 2,
+            "followup_count": 2,
+            "followup_classification_counts": {
+                "NO_ACTION_REQUIRED": 1,
+                "ACTION_REQUIRED": 1
+            },
+            "action_item_status_counts": {
+                "OPEN": 2,
+                "IN_PROGRESS": 1,
+                "BLOCKED": 1,
+                "PENDING_VERIFICATION": 1,
+                "COMPLETED": 3,
+                "CANCELLED": 2
+            },
+            "action_item_overdue_count": 4,
+            "action_item_completion_rate": 37.5,
+            "official_attendance_count": 1,
+            "invalidated_attendance_count": 1,
+            "attendance_rate": 50,
+            "postponement_event_count": 1,
+            "cancellation_event_count": 2,
+            "reopening_event_count": 1,
+            "resumption_event_count": 1,
+            "reschedule_confirmed_count": 1,
+            "participant_change_confirmed_count": 1
+        },
+        "exact_gate_pass": true,
+        "exact_gate_result_count": 19
+    },
+    "metric_actuals": {
+        "requests.total": 14,
+        "meetings.distinct_total": 9,
+        "meetings.conducted": 3,
+        "meetings.upcoming": 3,
+        "meetings.high_authority": 1,
+        "attendance.official_present": 1,
+        "attendance.rate": 50,
+        "decisions.finalized": 2,
+        "followups.total": 2,
+        "action_items.overdue": 4,
+        "action_items.completion_rate": 37.5,
+        "summary.meeting_status_counts": {
+            "CANCELLED": 1,
+            "COMPLETED": 2,
+            "HELD": 1,
+            "IN_PROGRESS": 1,
+            "POSTPONED": 1,
+            "SCHEDULED": 3
+        },
+        "summary.action_item_status_counts": {
+            "BLOCKED": 1,
+            "CANCELLED": 2,
+            "COMPLETED": 3,
+            "IN_PROGRESS": 1,
+            "OPEN": 2,
+            "PENDING_VERIFICATION": 1
+        },
+        "summary.invalidated_attendance_count": 1,
+        "summary.exception_event_counts": {
+            "CANCELLATION": 2,
+            "POSTPONEMENT": 1,
+            "REOPENING": 1,
+            "RESUMPTION": 1
+        },
+        "drilldown.cancelled_matches_dashboard": 1,
+        "drilldown.overdue_matches_dashboard": 4,
+        "drilldown.decisions_matches_dashboard": 2,
+        "drilldown.official_attendance_matches_dashboard": 1
+    },
+    "metric_invariants": {
+        "catalog_count": 30,
+        "catalog_versioned": true,
+        "dashboard_drilldown_consistency": true,
+        "authoritative_current_minute_version_only": true,
+        "invalidated_attendance_excluded": true,
+        "event_time_not_current_status": true
+    },
+    "authorization_invariants": {
+        "executive_exact_http_metrics": true,
+        "director_own_scope_allowed": true,
+        "director_unrelated_scope_denied": true,
+        "employee_personal_scope": true,
+        "system_admin_business_denied": true,
+        "sensitive_fields_redacted": true
+    },
+    "mariadb_invariants": {
+        "large_fixture": {
+            "meeting_count": 129,
+            "request_count": 134,
+            "participant_count": 254,
+            "attendance_count": 122,
+            "decision_count": 63,
+            "followup_count": 62,
+            "action_item_count": 130,
+            "exception_count": 5
+        },
+        "performance_pass": true,
+        "true_50_row_nplus1_pass": true,
+        "query_plan_review_pass": true,
+        "consistency_ab_pass": true,
+        "consistency_cd_pass": true
+    },
+    "export_invariants": {
+        "strict_gate_pass": true,
+        "private_storage": true,
+        "ownership_enforced": true,
+        "expiry_enforced": true,
+        "formula_tags_zero": true,
+        "sha256_verified": true,
+        "pdf_visual_rendered": true,
+        "source_immutability_pass": true,
+        "completed_export_count_current_clone": 11,
+        "audit_event_count_current_clone": 43
+    },
+    "read_only_invariants": {
+        "source_mutation_count": 0,
+        "storage_paths_in_api_resources": 0,
+        "terminal_credentials_in_business_analytics": 0,
+        "biometric_material_in_business_analytics": 0
+    },
+    "evidence_files": [
+        "flow14_canonical_fixture.json",
+        "flow14_exact_metric_gate.json",
+        "flow14_exact_http_metric_gate.json",
+        "flow14_mariadb_performance_report.json",
+        "flow14_mariadb_nplus1_explain_gate.json",
+        "flow14_mariadb_consistency_probe_ab.json",
+        "flow14_mariadb_export_consistency_probe_cd.json",
+        "flow14_export_strict_gate.json",
+        "flow14_pdf_visual_gate_page1.png"
+    ],
+    "regression": {
+        "backend_tests": 373,
+        "backend_assertions": 1654,
+        "backend_pass": true,
+        "frontend_modules_transformed": 1866,
+        "frontend_pass": true
+    }
+}

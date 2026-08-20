@@ -1,0 +1,157 @@
+{
+  "gate": "FLOW14_EXACT_HTTP_METRIC_GATE",
+  "pass": true,
+  "fixture": "FLOW14-CANONICAL-",
+  "scope_unit_id": 11,
+  "results": [
+    {
+      "name": "executive HTTP status",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "name": "exact HTTP metric requests.total",
+      "pass": true,
+      "detail": {
+        "actual": 14,
+        "expected": 14
+      }
+    },
+    {
+      "name": "exact HTTP metric meetings.distinct_total",
+      "pass": true,
+      "detail": {
+        "actual": 9,
+        "expected": 9
+      }
+    },
+    {
+      "name": "exact HTTP metric meetings.conducted",
+      "pass": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "exact HTTP metric meetings.upcoming",
+      "pass": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "name": "exact HTTP metric meetings.high_authority",
+      "pass": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "name": "exact HTTP metric attendance.official_present",
+      "pass": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "name": "exact HTTP metric decisions.finalized",
+      "pass": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "exact HTTP metric followups.total",
+      "pass": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "name": "exact HTTP metric action_items.overdue",
+      "pass": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "exact HTTP attendance rate",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "exact HTTP action completion rate",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "exact HTTP status distribution",
+      "pass": true,
+      "detail": {
+        "CANCELLED": 1,
+        "COMPLETED": 2,
+        "HELD": 1,
+        "IN_PROGRESS": 1,
+        "POSTPONED": 1,
+        "SCHEDULED": 3
+      }
+    },
+    {
+      "name": "exact HTTP action status distribution",
+      "pass": true,
+      "detail": {
+        "BLOCKED": 1,
+        "CANCELLED": 2,
+        "COMPLETED": 3,
+        "IN_PROGRESS": 1,
+        "OPEN": 2,
+        "PENDING_VERIFICATION": 1
+      }
+    },
+    {
+      "name": "HTTP response redacts internals",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Director own canonical unit allowed",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "name": "Director unrelated unit denied",
+      "pass": true,
+      "detail": 403
+    },
+    {
+      "name": "Employee personal dashboard allowed",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "name": "Employee personal dashboard contains no internal fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Employee meeting register remains resource-scoped",
+      "pass": true,
+      "detail": {
+        "status": 403,
+        "rows": 0
+      }
+    },
+    {
+      "name": "SYSTEM_ADMIN business executive dashboard denied",
+      "pass": true,
+      "detail": 403
+    }
+  ]
+}

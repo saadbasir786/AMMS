@@ -1,0 +1,39 @@
+{
+  "artifact": "flow14_export_invariants.json",
+  "pass": true,
+  "definition_version": "AMMS_REPORTING_V1",
+  "security": {
+    "formula_tags": 0,
+    "formula_like_values_neutralized": true,
+    "sensitive_metadata_fields_exposed": 0,
+    "private_storage_only": true
+  },
+  "authorization": {
+    "owner_view_allowed": true,
+    "owner_unexpired_download_allowed": true,
+    "other_user_view_denied": true,
+    "other_user_download_denied": true,
+    "expired_download_denied": true
+  },
+  "artifact_integrity": {
+    "xlsx_sha256": "5b479f0cedd612de73bbce898267abb3b015b20287dacad29404f422f36eff2c",
+    "pdf_sha256": "39c0c23e1a9819ae65e1d54a4a196acbd304f9c7c6ade55b521b6564694069e7",
+    "xlsx_package_valid": true,
+    "pdf_parse_valid": true,
+    "pdf_rendered_page": "/home/ubuntu/amms-github/flow14_pdf_visual_gate_page1.png",
+    "pdf_visual_gate_pass": true
+  },
+  "lifecycle": {
+    "concurrent_jobs": 2,
+    "authoritative_artifact_count": 1,
+    "idempotent_start_completion_audits": 2,
+    "expiry_transition": "COMPLETED -> EXPIRED",
+    "expired_storage_deleted": true
+  },
+  "source_immutability": {
+    "before_sha256": "6a8377e7adf7ca246a1e06ff81ffde4496f2f1165779e04d3fb934457d58c117",
+    "after_sha256": "6a8377e7adf7ca246a1e06ff81ffde4496f2f1165779e04d3fb934457d58c117",
+    "pass": true
+  },
+  "evidence": "flow14_export_strict_gate.json"
+}

@@ -1,0 +1,86 @@
+{
+    "gate": "FLOW14_MARIADB_EXPORT_CONSISTENCY_PROBE_CD",
+    "pass": true,
+    "environment": {
+        "driver": "mysql",
+        "database": "amms_concurrency_test"
+    },
+    "results": [
+        {
+            "name": "C: both concurrent export jobs completed",
+            "pass": true,
+            "actual": [
+                {
+                    "status": "COMPLETED",
+                    "checksum": "25d70f864a6ad97902b834877ceba9d408c417df50a9d126b4878c56f1a1098e",
+                    "path": "report-exports/5f14e77c-e8b6-4dd9-899f-32bdfd225533.xlsx"
+                },
+                {
+                    "status": "COMPLETED",
+                    "checksum": "25d70f864a6ad97902b834877ceba9d408c417df50a9d126b4878c56f1a1098e",
+                    "path": "report-exports/5f14e77c-e8b6-4dd9-899f-32bdfd225533.xlsx"
+                }
+            ],
+            "expected": "two COMPLETED workers"
+        },
+        {
+            "name": "C: one authoritative completed artifact exists",
+            "pass": true,
+            "actual": {
+                "id": 1,
+                "uuid": "5f14e77c-e8b6-4dd9-899f-32bdfd225533",
+                "organization_id": 1,
+                "requested_by_user_id": 2,
+                "report_type": "MEETING_REGISTER",
+                "format": "XLSX",
+                "filter_payload": {
+                    "from": "2026-01-01",
+                    "to": "2026-12-31",
+                    "timezone": "Asia/Kabul",
+                    "per_page": 50
+                },
+                "scope_descriptor": {
+                    "mode": "ORGANIZATION",
+                    "organization_id": 1
+                },
+                "status": "COMPLETED",
+                "definition_version": "AMMS_REPORTING_V1",
+                "requested_at": "2026-08-20T10:55:17.000000Z",
+                "started_at": null,
+                "completed_at": "2026-08-20T10:55:17.000000Z",
+                "expires_at": "2026-08-21T10:55:17.000000Z",
+                "file_name": "AMMS-MEETING_REGISTER-20260820-105517.xlsx",
+                "file_size": 4589,
+                "error_code": null,
+                "created_at": "2026-08-20T10:55:17.000000Z",
+                "updated_at": "2026-08-20T10:55:17.000000Z"
+            },
+            "expected": "COMPLETED with storage_path/checksum"
+        },
+        {
+            "name": "C: idempotent job emitted one start and one completion audit",
+            "pass": true,
+            "actual": 2,
+            "expected": 2
+        },
+        {
+            "name": "D: completed export is downloadable before expiry",
+            "pass": true,
+            "actual": {
+                "policy": true,
+                "storage": true
+            },
+            "expected": true
+        },
+        {
+            "name": "D: expiry-first path denies download and removes artifact",
+            "pass": true,
+            "actual": {
+                "policy": false,
+                "status": "EXPIRED",
+                "storage": false
+            },
+            "expected": "EXPIRED/denied/deleted"
+        }
+    ]
+}

@@ -1,0 +1,419 @@
+{
+    "fixture_key": "FLOW14-CANONICAL-",
+    "scope_unit_id": 11,
+    "database_driver": "sqlite",
+    "expected": {
+        "request_total": 14,
+        "meeting_distinct_total": 9,
+        "meeting_status_counts": {
+            "SCHEDULED": 3,
+            "POSTPONED": 1,
+            "CANCELLED": 1,
+            "IN_PROGRESS": 1,
+            "HELD": 1,
+            "COMPLETED": 2
+        },
+        "conducted_meeting_count": 3,
+        "upcoming_meeting_count": 3,
+        "high_authority_meeting_count": 1,
+        "finalized_decision_count": 2,
+        "followup_count": 2,
+        "followup_classification_counts": {
+            "NO_ACTION_REQUIRED": 1,
+            "ACTION_REQUIRED": 1
+        },
+        "action_item_status_counts": {
+            "OPEN": 2,
+            "IN_PROGRESS": 1,
+            "BLOCKED": 1,
+            "PENDING_VERIFICATION": 1,
+            "COMPLETED": 3,
+            "CANCELLED": 2
+        },
+        "action_item_overdue_count": 4,
+        "action_item_completion_rate": 37.5,
+        "official_attendance_count": 1,
+        "invalidated_attendance_count": 1,
+        "attendance_rate": 50,
+        "postponement_event_count": 1,
+        "cancellation_event_count": 2,
+        "reopening_event_count": 1,
+        "resumption_event_count": 1,
+        "reschedule_confirmed_count": 1,
+        "participant_change_confirmed_count": 1
+    },
+    "keys": {
+        "m-scheduled-1": {
+            "id": 73,
+            "request_id": 93,
+            "schedule_id": 88,
+            "participant_version_id": 76,
+            "unit_id": 1
+        },
+        "m-scheduled-2": {
+            "id": 74,
+            "request_id": 94,
+            "schedule_id": 89,
+            "participant_version_id": 77,
+            "unit_id": 2
+        },
+        "m-postponed": {
+            "id": 75,
+            "request_id": 95,
+            "schedule_id": 90,
+            "participant_version_id": 78,
+            "unit_id": 1
+        },
+        "m-cancelled": {
+            "id": 76,
+            "request_id": 96,
+            "schedule_id": 91,
+            "participant_version_id": 79,
+            "unit_id": 9
+        },
+        "m-in-progress": {
+            "id": 77,
+            "request_id": 97,
+            "schedule_id": 92,
+            "participant_version_id": 80,
+            "unit_id": 3
+        },
+        "m-held": {
+            "id": 78,
+            "request_id": 98,
+            "schedule_id": 93,
+            "participant_version_id": 81,
+            "unit_id": 1
+        },
+        "m-completed-1": {
+            "id": 79,
+            "request_id": 99,
+            "schedule_id": 94,
+            "participant_version_id": 82,
+            "unit_id": 1
+        },
+        "m-completed-2": {
+            "id": 80,
+            "request_id": 100,
+            "schedule_id": 95,
+            "participant_version_id": 83,
+            "unit_id": 9
+        },
+        "m-scheduled-3": {
+            "id": 81,
+            "request_id": 101,
+            "schedule_id": 96,
+            "participant_version_id": 84,
+            "unit_id": 3
+        }
+    },
+    "source_snapshot": {
+        "m-scheduled-1": {
+            "meeting": {
+                "id": 73,
+                "meeting_number": "FLOW14-CANONICAL-M-M-SCHEDULED-1",
+                "status": "SCHEDULED",
+                "meeting_request_id": 93,
+                "current_schedule_version_id": 98,
+                "current_participant_version_id": 85
+            },
+            "request": {
+                "id": 93,
+                "request_number": "FLOW14-CANONICAL-R-m-scheduled-1",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "INTERNAL_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 88,
+                    "version_number": 1,
+                    "meeting_date": "2026-09-01T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                },
+                {
+                    "id": 98,
+                    "version_number": 2,
+                    "meeting_date": "2026-09-05T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                76,
+                85
+            ],
+            "attendance_ids": [],
+            "exception_types": [
+                "CANCELLATION",
+                "REOPENING",
+                "RESUMPTION"
+            ]
+        },
+        "m-scheduled-2": {
+            "meeting": {
+                "id": 74,
+                "meeting_number": "FLOW14-CANONICAL-M-M-SCHEDULED-2",
+                "status": "SCHEDULED",
+                "meeting_request_id": 94,
+                "current_schedule_version_id": 97,
+                "current_participant_version_id": 77
+            },
+            "request": {
+                "id": 94,
+                "request_number": "FLOW14-CANONICAL-R-m-scheduled-2",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "INTER_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 89,
+                    "version_number": 1,
+                    "meeting_date": "2026-09-02T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                },
+                {
+                    "id": 97,
+                    "version_number": 2,
+                    "meeting_date": "2026-09-04T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                77
+            ],
+            "attendance_ids": [],
+            "exception_types": []
+        },
+        "m-postponed": {
+            "meeting": {
+                "id": 75,
+                "meeting_number": "FLOW14-CANONICAL-M-M-POSTPONED",
+                "status": "POSTPONED",
+                "meeting_request_id": 95,
+                "current_schedule_version_id": 90,
+                "current_participant_version_id": 78
+            },
+            "request": {
+                "id": 95,
+                "request_number": "FLOW14-CANONICAL-R-m-postponed",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "MULTI_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 90,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-28T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                78
+            ],
+            "attendance_ids": [],
+            "exception_types": [
+                "POSTPONEMENT"
+            ]
+        },
+        "m-cancelled": {
+            "meeting": {
+                "id": 76,
+                "meeting_number": "FLOW14-CANONICAL-M-M-CANCELLED",
+                "status": "CANCELLED",
+                "meeting_request_id": 96,
+                "current_schedule_version_id": 91,
+                "current_participant_version_id": 79
+            },
+            "request": {
+                "id": 96,
+                "request_number": "FLOW14-CANONICAL-R-m-cancelled",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "HIGH_AUTHORITY"
+            },
+            "schedule_versions": [
+                {
+                    "id": 91,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-27T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                79
+            ],
+            "attendance_ids": [],
+            "exception_types": [
+                "CANCELLATION"
+            ]
+        },
+        "m-in-progress": {
+            "meeting": {
+                "id": 77,
+                "meeting_number": "FLOW14-CANONICAL-M-M-IN-PROGRESS",
+                "status": "IN_PROGRESS",
+                "meeting_request_id": 97,
+                "current_schedule_version_id": 92,
+                "current_participant_version_id": 80
+            },
+            "request": {
+                "id": 97,
+                "request_number": "FLOW14-CANONICAL-R-m-in-progress",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "AUTHORITY_INITIATED"
+            },
+            "schedule_versions": [
+                {
+                    "id": 92,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-26T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                80
+            ],
+            "attendance_ids": [],
+            "exception_types": []
+        },
+        "m-held": {
+            "meeting": {
+                "id": 78,
+                "meeting_number": "FLOW14-CANONICAL-M-M-HELD",
+                "status": "HELD",
+                "meeting_request_id": 98,
+                "current_schedule_version_id": 93,
+                "current_participant_version_id": 81
+            },
+            "request": {
+                "id": 98,
+                "request_number": "FLOW14-CANONICAL-R-m-held",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "INTERNAL_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 93,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-24T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                81
+            ],
+            "attendance_ids": [
+                19,
+                20
+            ],
+            "exception_types": []
+        },
+        "m-completed-1": {
+            "meeting": {
+                "id": 79,
+                "meeting_number": "FLOW14-CANONICAL-M-M-COMPLETED-1",
+                "status": "COMPLETED",
+                "meeting_request_id": 99,
+                "current_schedule_version_id": 94,
+                "current_participant_version_id": 82
+            },
+            "request": {
+                "id": 99,
+                "request_number": "FLOW14-CANONICAL-R-m-completed-1",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "MULTI_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 94,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-23T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                82
+            ],
+            "attendance_ids": [],
+            "exception_types": []
+        },
+        "m-completed-2": {
+            "meeting": {
+                "id": 80,
+                "meeting_number": "FLOW14-CANONICAL-M-M-COMPLETED-2",
+                "status": "COMPLETED",
+                "meeting_request_id": 100,
+                "current_schedule_version_id": 95,
+                "current_participant_version_id": 83
+            },
+            "request": {
+                "id": 100,
+                "request_number": "FLOW14-CANONICAL-R-m-completed-2",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "HIGH_AUTHORITY"
+            },
+            "schedule_versions": [
+                {
+                    "id": 95,
+                    "version_number": 1,
+                    "meeting_date": "2026-08-22T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                83
+            ],
+            "attendance_ids": [],
+            "exception_types": []
+        },
+        "m-scheduled-3": {
+            "meeting": {
+                "id": 81,
+                "meeting_number": "FLOW14-CANONICAL-M-M-SCHEDULED-3",
+                "status": "SCHEDULED",
+                "meeting_request_id": 101,
+                "current_schedule_version_id": 96,
+                "current_participant_version_id": 84
+            },
+            "request": {
+                "id": 101,
+                "request_number": "FLOW14-CANONICAL-R-m-scheduled-3",
+                "status": "CONVERTED_TO_MEETING",
+                "flow_type": "INTER_DIRECTORATE"
+            },
+            "schedule_versions": [
+                {
+                    "id": 96,
+                    "version_number": 1,
+                    "meeting_date": "2026-09-03T00:00:00.000000Z",
+                    "start_time": "10:00",
+                    "end_time": "11:00",
+                    "location": "تالار مرکزی"
+                }
+            ],
+            "participant_version_ids": [
+                84
+            ],
+            "attendance_ids": [],
+            "exception_types": []
+        }
+    }
+}
