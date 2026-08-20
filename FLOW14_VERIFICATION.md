@@ -62,7 +62,7 @@ The performance artifact records actual clone-database fixture size, query count
 
 ## Regression and Frontend Build
 
-The existing Feature suite remains green after the additive implementation:
+The full Laravel test suite remains green after the additive implementation. The frozen Feature coverage remains green, and FLOW-14 adds three focused Unit tests:
 
 > **370 tests / 1,626 assertions — PASS**
 
