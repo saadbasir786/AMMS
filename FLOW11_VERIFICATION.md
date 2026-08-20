@@ -15,7 +15,7 @@ The Minutes subsystem adds one root per Meeting and immutable version-bound Minu
 
 The review workflow supports exact unit-scoped acknowledgement, mandatory correction reasons, exact High Authority approval by the employee in `MeetingAuthorityContext`, and finalization only after every required review gate is complete. Finalization atomically completes the Meeting and creates one official checksum-bound PDF identity.
 
-The final PDF is generated with Dompdf as a Persian/Dari RTL document containing only official meeting content, attendance status, discussion, decisions, version, and checksum. It does not contain biometric templates, raw sensor frames, candidate sets, matcher fields, or terminal secrets.
+The final PDF is generated with mPDF 8.3.1 using UTF-8, native bidirectional processing, and built-in DejaVu Sans OpenType shaping. It is a Persian/Dari RTL document containing only official meeting content, attendance status, discussion, decisions, version, and checksum. It does not contain biometric templates, raw sensor frames, candidate sets, matcher fields, or terminal secrets. No Persian string is manually character-reversed.
 
 ## 2. Independent per-flow governance evidence
 
@@ -78,7 +78,7 @@ The same real HTTP transcript performed two-finger enrollment, terminal activati
 | Fingerprint attendance before end | **PASS** |
 | Fingerprint attendance after `HELD` | **PASS — `MEETING_ATTENDANCE_CLOSED`** |
 
-Evidence is stored in `flow11_manual_strict_gate.json` and `flow11_manual_strict_gate.log`.
+Evidence is stored in `flow11_manual_strict_gate.json`, `flow11_manual_strict_gate.log`, and the complete sanitized step-level transcript `flow11_manual_strict_transcript.json`. Every transcript step records actor, role, method, route, HTTP status, canonical code where applicable, sanitized response fields, and pass status; credentials, tokens, authorization values, and biometric template data are redacted.
 
 ## 6. MariaDB Action-level concurrency
 
@@ -100,11 +100,11 @@ The probe output is `flow11_action_race_probe.json`.
 
 ## 7. Visual PDF gate
 
-The finalized FLOW-05 PDF was captured through the real HTTP endpoint and rendered as an image for visual inspection. It is a one-page A4 PDF produced by Dompdf 3.1.6 + CPDF.
+The finalized FLOW-05 PDF was captured through the real HTTP endpoint and rendered as an image for visual inspection. It is a one-page A4 PDF produced by mPDF 8.3.1 with native Persian/Arabic shaping and bidirectional layout.
 
 | Visual/content requirement | Result |
 |---|---|
-| Persian/Dari title, labels, and RTL layout | **PASS** |
+| Persian/Dari title, labels, OpenType shaping, and RTL layout | **PASS** |
 | Meeting number, subject, schedule, location | **PASS** |
 | Actual server start/end timestamps | **PASS** |
 | Chairperson and formal participant units | **PASS** |
@@ -113,9 +113,10 @@ The finalized FLOW-05 PDF was captured through the real HTTP endpoint and render
 | Decisions and `DEC-001` | **PASS** |
 | Version number | **PASS** |
 | SHA-256 checksum reference | **PASS** |
+| Mixed Persian + Latin values and ISO timestamps | **PASS** |
 | Biometric or terminal implementation fields | **ABSENT / PASS** |
 
-The captured PDF is `flow11_manual_final_minutes.pdf`, its extracted text is `flow11_manual_final_minutes.txt`, and the visual inspection record is `flow11_pdf_visual_inspection.md`. The response was HTTP 200, `application/pdf`, 24,038 bytes, and `%PDF` prefixed.
+The captured PDF is `flow11_manual_final_minutes.pdf`, its rendered image is `flow11_manual_final_minutes.png`, its extracted text is `flow11_manual_final_minutes.txt`, and the visual inspection record is `flow11_pdf_visual_inspection.md`. The response was HTTP 200, `application/pdf`, 48,709 bytes, and `%PDF` prefixed. The final artifact SHA-256 is `4c2b67a7085713e7f9548a69607972b6c46e4d41e822945903f2c3172579891a`.
 
 ## 8. Rich canonical MariaDB invariants
 

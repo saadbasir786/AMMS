@@ -1,30 +1,35 @@
 # FLOW-11 Visual PDF Inspection
 
 **Artifact:** `flow11_manual_final_minutes.pdf`
+**Rendered image:** `flow11_manual_final_minutes.png`
 **Source:** Real HTTP finalized FLOW-05 manual workflow, Meeting ID 22
-**Renderer:** Dompdf 3.1.6 + CPDF
-**Page:** One A4 page, portrait, 595.28 × 841.89 pt
-**Response:** HTTP 200, `application/pdf`, 24,038 bytes, `%PDF` prefix
-**SHA-256:** `5ed86b604bd4113d3a689d6a5bde35d57c359642f851ccfa68acbb59a50f4e98`
+**Renderer:** mPDF 8.3.1 with built-in DejaVu Sans OpenType shaping
+**Response:** HTTP 200, `application/pdf`, 48,709 bytes, `%PDF` prefix
+**SHA-256:** `e585365bf83a78c5fc29d42547d0921f60726838996b071f87c9d29543b4d544`
 
 ## Visual result
 
-The rendered page was inspected as an image at full-page scale. The document has a clear Persian/Dari RTL visual hierarchy: centered title, right-aligned headings, right-to-left table columns, readable Persian labels, and consistent blue-gray table styling. The page is not clipped and all major sections fit on one A4 page.
+The corrected page was rendered independently to PNG at 170 DPI and visually inspected. Persian/Dari letters are connected and naturally readable. The title `صورت‌جلسهٔ رسمی`, headings, employee names, organizational-unit names, table labels, attendance statuses, agenda text, summary, and decision text all render in correct RTL word order. Tables are laid out RTL without clipping or overlap. `DEC-001`, `FLOW-11`, meeting numbers, and the SHA-256 reference remain readable as Latin/LTR content.
 
-| Required visual/content gate | Observation | Status |
-|---|---|---|
-| Persian/Dari RTL | Persian/Dari title, headings, labels, and right-to-left table layout are visible | **PASS** |
-| Meeting number | Visible in the meeting metadata table | **PASS** |
-| Subject/title | Visible in the document subtitle and meeting metadata | **PASS** |
-| Official schedule | Meeting date, start time, end time, and location are visible | **PASS** |
-| Actual start/end | Server-authoritative start and end timestamps are visible | **PASS** |
-| Chairperson | Chairperson label and Persian employee name are visible | **PASS** |
-| Formal units/participants | Participant, unit, role, and status table is visible | **PASS** |
-| Present/Absent status | Attendance status column is visible and rendered in Persian | **PASS** |
-| Discussion/agenda | Agenda and discussion summary section is visible | **PASS** |
-| Decisions | Decisions section contains `DEC-001` and decision text | **PASS** |
-| Version | Minutes version `1` is visible | **PASS** |
-| Checksum | SHA-256 content reference is visible in the footer | **PASS** |
-| Biometric implementation fields | No template bytes, raw frames, matcher fields, candidate data, or terminal secrets are visible | **PASS** |
+The renderer uses mPDF’s native OpenType shaping and bidirectional processing. No Persian string is manually character-reversed. Explicit LTR spans keep schedule values, ISO timestamps, role codes, numeric identifiers, and the decision number readable in mixed-direction cells; the ISO timestamps remain on one line.
 
-The extracted text was also checked for the required subject, meeting number, Persian headings, decision number, version, and checksum reference. The visual gate is therefore **PASS**.
+## Required-field checklist
+
+| Required field | Result |
+|---|---|
+| صورت‌جلسهٔ رسمی | PASS |
+| شماره جلسه | PASS |
+| نسخه صورت‌جلسه | PASS |
+| تاریخ و زمان رسمی | PASS |
+| شروع واقعی | PASS |
+| پایان واقعی | PASS |
+| رئیس جلسه | PASS |
+| ریاست‌های رسمی | PASS |
+| اشتراک‌کنندگان و حضور | PASS |
+| اجندا و مباحث | PASS |
+| خلاصه عمومی | PASS |
+| تصمیمات | PASS |
+| Persian employee/unit names | PASS |
+| Mixed Persian + Latin values | PASS |
+| No clipping or overlap | PASS |
+| Biometric-sensitive fields | PASS — none present |

@@ -1,0 +1,3081 @@
+{
+  "artifact": "FLOW11_MANUAL_STRICT_HTTP_TRANSCRIPT",
+  "checks": 55,
+  "passed": 55,
+  "steps": [
+    {
+      "step": "login_tech.coordinator",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 8,
+            "name": "هماهنگ‌کننده جلسات تکنالوژی",
+            "email": "tech.coordinator@example.test",
+            "status": "ACTIVE",
+            "employee_id": 2,
+            "employee": {
+              "id": 2,
+              "employee_number": "EMP-TECH-002",
+              "first_name": "فاطمه",
+              "last_name": "رحیمی",
+              "father_name": "علی",
+              "full_name": "فاطمه رحیمی",
+              "email": "tech.exec@example.test",
+              "phone": "0700000002",
+              "status": "ACTIVE",
+              "organizational_unit_id": 4,
+              "unit": {
+                "id": 4,
+                "organization_id": 1,
+                "parent_id": 1,
+                "name": "مدیریت اجرائیه تکنالوژی",
+                "code": "TECH-EXEC",
+                "unit_type": "MANAGEMENT",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "MEETING_COORDINATOR",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_executive.secretary",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 11,
+            "name": "سکرتر اجرائیوی مقام",
+            "email": "executive.secretary@example.test",
+            "status": "ACTIVE",
+            "employee_id": 11,
+            "employee": {
+              "id": 11,
+              "employee_number": "EMP-AUTH-SEC-001",
+              "first_name": "جمال",
+              "last_name": "صدیقی",
+              "father_name": "نعمت",
+              "full_name": "جمال صدیقی",
+              "email": "executive.secretary@example.test",
+              "phone": "0700000032",
+              "status": "ACTIVE",
+              "organizational_unit_id": 9,
+              "unit": {
+                "id": 9,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "ریاست دفتر مقام",
+                "code": "AUTH-OFFICE",
+                "unit_type": "AUTHORITY_OFFICE",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "EXECUTIVE_SECRETARY",
+                "organizational_unit_id": 9,
+                "unit": {
+                  "id": 9,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست دفتر مقام",
+                  "code": "AUTH-OFFICE",
+                  "unit_type": "AUTHORITY_OFFICE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_high.authority",
+      "actor": "HIGH_AUTHORITY",
+      "role": "AUTHORITY",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 12,
+            "name": "رئیس عمومی",
+            "email": "high.authority@example.test",
+            "status": "ACTIVE",
+            "employee_id": 9,
+            "employee": {
+              "id": 9,
+              "employee_number": "EMP-AUTH-001",
+              "first_name": "عبدالقیوم",
+              "last_name": "احمدزی",
+              "father_name": "عبدالرحمن",
+              "full_name": "عبدالقیوم احمدزی",
+              "email": "high.authority@example.test",
+              "phone": "0700000030",
+              "status": "ACTIVE",
+              "organizational_unit_id": 10,
+              "unit": {
+                "id": 10,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "مقام ریاست عمومی",
+                "code": "AUTHORITY",
+                "unit_type": "HIGH_AUTHORITY",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "HIGH_AUTHORITY",
+                "organizational_unit_id": 10,
+                "unit": {
+                  "id": 10,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "مقام ریاست عمومی",
+                  "code": "AUTHORITY",
+                  "unit_type": "HIGH_AUTHORITY",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_authority.office",
+      "actor": "AUTHORITY_OFFICE",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 10,
+            "name": "بررسی‌کننده دفتر مقام",
+            "email": "authority.office@example.test",
+            "status": "ACTIVE",
+            "employee_id": 10,
+            "employee": {
+              "id": 10,
+              "employee_number": "EMP-AUTH-OFFICE-001",
+              "first_name": "مریم",
+              "last_name": "نورستانی",
+              "father_name": "حبیب",
+              "full_name": "مریم نورستانی",
+              "email": "authority.office@example.test",
+              "phone": "0700000031",
+              "status": "ACTIVE",
+              "organizational_unit_id": 9,
+              "unit": {
+                "id": 9,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "ریاست دفتر مقام",
+                "code": "AUTH-OFFICE",
+                "unit_type": "AUTHORITY_OFFICE",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "AUTHORITY_OFFICE",
+                "organizational_unit_id": 9,
+                "unit": {
+                  "id": 9,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست دفتر مقام",
+                  "code": "AUTH-OFFICE",
+                  "unit_type": "AUTHORITY_OFFICE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_tech.director",
+      "actor": "DIRECTOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 3,
+            "name": "رئیس ریاست تکنالوژی",
+            "email": "tech.director@example.test",
+            "status": "ACTIVE",
+            "employee_id": 1,
+            "employee": {
+              "id": 1,
+              "employee_number": "EMP-TECH-001",
+              "first_name": "احمد",
+              "last_name": "احمدی",
+              "father_name": "محمد",
+              "full_name": "احمد احمدی",
+              "email": "tech.director@example.test",
+              "phone": "0700000001",
+              "status": "ACTIVE",
+              "organizational_unit_id": 1,
+              "unit": {
+                "id": 1,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "ریاست تکنالوژی",
+                "code": "TECH",
+                "unit_type": "DIRECTORATE",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "DIRECTOR",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_finance.director",
+      "actor": "DIRECTOR",
+      "role": "FIN",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 5,
+            "name": "رئیس ریاست مالی",
+            "email": "finance.director@example.test",
+            "status": "ACTIVE",
+            "employee_id": 5,
+            "employee": {
+              "id": 5,
+              "employee_number": "EMP-FIN-001",
+              "first_name": "زلمی",
+              "last_name": "حکیمی",
+              "father_name": "عبدالکریم",
+              "full_name": "زلمی حکیمی",
+              "email": "finance.director@example.test",
+              "phone": "0700000010",
+              "status": "ACTIVE",
+              "organizational_unit_id": 2,
+              "unit": {
+                "id": 2,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "ریاست مالی",
+                "code": "FIN",
+                "unit_type": "DIRECTORATE",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "DIRECTOR",
+                "organizational_unit_id": 2,
+                "unit": {
+                  "id": 2,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست مالی",
+                  "code": "FIN",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_hr.director",
+      "actor": "DIRECTOR",
+      "role": "HR",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 7,
+            "name": "رئیس ریاست منابع بشری",
+            "email": "hr.director@example.test",
+            "status": "ACTIVE",
+            "employee_id": 7,
+            "employee": {
+              "id": 7,
+              "employee_number": "EMP-HR-101",
+              "first_name": "حسن",
+              "last_name": "احمدی",
+              "father_name": "کریم",
+              "full_name": "حسن احمدی",
+              "email": "hr.director@example.test",
+              "phone": "0700000020",
+              "status": "ACTIVE",
+              "organizational_unit_id": 3,
+              "unit": {
+                "id": 3,
+                "organization_id": 1,
+                "parent_id": null,
+                "name": "ریاست منابع بشری",
+                "code": "HR",
+                "unit_type": "DIRECTORATE",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "DIRECTOR",
+                "organizational_unit_id": 3,
+                "unit": {
+                  "id": 3,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست منابع بشری",
+                  "code": "HR",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "login_tech.exec",
+      "actor": "BIOMETRIC_ENROLLMENT_OFFICER",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/login",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "user": {
+            "id": 2,
+            "name": "مدیریت اجرائیه تکنالوژی",
+            "email": "tech.exec@example.test",
+            "status": "ACTIVE",
+            "employee_id": 2,
+            "employee": {
+              "id": 2,
+              "employee_number": "EMP-TECH-002",
+              "first_name": "فاطمه",
+              "last_name": "رحیمی",
+              "father_name": "علی",
+              "full_name": "فاطمه رحیمی",
+              "email": "tech.exec@example.test",
+              "phone": "0700000002",
+              "status": "ACTIVE",
+              "organizational_unit_id": 4,
+              "unit": {
+                "id": 4,
+                "organization_id": 1,
+                "parent_id": 1,
+                "name": "مدیریت اجرائیه تکنالوژی",
+                "code": "TECH-EXEC",
+                "unit_type": "MANAGEMENT",
+                "status": "ACTIVE"
+              }
+            },
+            "roles": [
+              {
+                "role": "EXECUTIVE_MANAGEMENT",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              },
+              {
+                "role": "BIOMETRIC_ENROLLMENT_OFFICER",
+                "organizational_unit_id": 1,
+                "unit": {
+                  "id": 1,
+                  "organization_id": 1,
+                  "parent_id": null,
+                  "name": "ریاست تکنالوژی",
+                  "code": "TECH",
+                  "unit_type": "DIRECTORATE",
+                  "status": "ACTIVE"
+                }
+              }
+            ]
+          }
+        },
+        "message": "ورود موفقانه انجام شد."
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_start",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/execution/start",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "89f321b9-5821-4dd7-a8f4-9c122b3802da",
+          "meeting_id": 21,
+          "schedule_version_id": 26,
+          "participant_version_id": 29,
+          "status": "IN_PROGRESS",
+          "started_at": "2026-08-20T04:21:33.000000Z",
+          "started_by_user_id": 8,
+          "ended_at": null,
+          "ended_by_user_id": null,
+          "start_notes": "flow03 manual strict start",
+          "end_notes": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_draft",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/minutes/draft",
+      "http_status": 201,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "DRAFT",
+          "current_version_id": null,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_draft_update",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "PUT",
+      "route": "/meetings/21/minutes/draft",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "DRAFT",
+          "current_version_id": 1,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 1,
+            "uuid": "75da1f78-beee-4f03-b4c8-9dda19943178",
+            "version_number": 1,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ رسمی flow03.",
+            "general_notes": "یادداشت flow03.",
+            "prepared_by_user_id": 8,
+            "submitted_at": null,
+            "items": [
+              {
+                "id": 1,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow03 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 1,
+                "uuid": "5ad05f32-394d-4ad8-acb8-bb95862f4c1b",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow03 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_end",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/execution/end",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "89f321b9-5821-4dd7-a8f4-9c122b3802da",
+          "meeting_id": 21,
+          "schedule_version_id": 26,
+          "participant_version_id": 29,
+          "status": "ENDED",
+          "started_at": "2026-08-20T04:21:33.000000Z",
+          "started_by_user_id": 8,
+          "ended_at": "2026-08-20T04:21:33.000000Z",
+          "ended_by_user_id": 8,
+          "start_notes": "flow03 manual strict start",
+          "end_notes": "flow03 manual strict end"
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_submit_v1",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/minutes/submit",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 1,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 1,
+            "uuid": "75da1f78-beee-4f03-b4c8-9dda19943178",
+            "version_number": 1,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ رسمی flow03.",
+            "general_notes": "یادداشت flow03.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "items": [
+              {
+                "id": 1,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow03 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 1,
+                "uuid": "5ad05f32-394d-4ad8-acb8-bb95862f4c1b",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow03 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 1,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 2,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 3,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_tech_ack_v1",
+      "actor": "DIRECTOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/1/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 1,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 1,
+            "uuid": "75da1f78-beee-4f03-b4c8-9dda19943178",
+            "version_number": 1,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ رسمی flow03.",
+            "general_notes": "یادداشت flow03.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 1,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 2,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 3,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_fin_ack_v1",
+      "actor": "DIRECTOR",
+      "role": "FIN",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/2/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 1,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 1,
+            "uuid": "75da1f78-beee-4f03-b4c8-9dda19943178",
+            "version_number": 1,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ رسمی flow03.",
+            "general_notes": "یادداشت flow03.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 1,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 2,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 3,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_hr_correction_v1",
+      "actor": "DIRECTOR",
+      "role": "HR",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/correction",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "RETURNED_FOR_CORRECTION",
+          "current_version_id": 1,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 1,
+            "uuid": "75da1f78-beee-4f03-b4c8-9dda19943178",
+            "version_number": 1,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ رسمی flow03.",
+            "general_notes": "یادداشت flow03.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 1,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 2,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 3,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "CORRECTION_REQUESTED",
+                "reviewed_by_user_id": 7,
+                "reason": "اصلاح متن تصمیم توسط ریاست سوم",
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_update_v2",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "PUT",
+      "route": "/meetings/21/minutes/draft",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "DRAFT",
+          "current_version_id": 2,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 2,
+            "uuid": "5662b84c-615c-42bb-9964-6e7b2d657cc7",
+            "version_number": 2,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ اصلاح‌شدهٔ FLOW-03.",
+            "general_notes": "نسخهٔ دوم.",
+            "prepared_by_user_id": 8,
+            "submitted_at": null,
+            "items": [
+              {
+                "id": 2,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلاح‌شده",
+                "discussion_summary": "بحث نسخهٔ دوم ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 2,
+                "uuid": "592bc002-146c-41a3-ac77-1981c9ea0968",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم نسخهٔ دوم ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_submit_v2",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/minutes/submit",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 2,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 2,
+            "uuid": "5662b84c-615c-42bb-9964-6e7b2d657cc7",
+            "version_number": 2,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ اصلاح‌شدهٔ FLOW-03.",
+            "general_notes": "نسخهٔ دوم.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "items": [
+              {
+                "id": 2,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلاح‌شده",
+                "discussion_summary": "بحث نسخهٔ دوم ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 2,
+                "uuid": "592bc002-146c-41a3-ac77-1981c9ea0968",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم نسخهٔ دوم ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 4,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 5,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 6,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_old_ack_not_transferred",
+      "actor": "SYSTEM",
+      "role": "INVARIANT_CHECK",
+      "method": "ASSERT",
+      "route": "database:meeting_minute_reviews",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "old_version_id": 1,
+        "new_version_id": 2,
+        "new_version_acknowledged_before_reack": 0
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_tech_ack_v2",
+      "actor": "DIRECTOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/1/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 2,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 2,
+            "uuid": "5662b84c-615c-42bb-9964-6e7b2d657cc7",
+            "version_number": 2,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ اصلاح‌شدهٔ FLOW-03.",
+            "general_notes": "نسخهٔ دوم.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 4,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 5,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 6,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_fin_ack_v2",
+      "actor": "DIRECTOR",
+      "role": "FIN",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/2/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 2,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 2,
+            "uuid": "5662b84c-615c-42bb-9964-6e7b2d657cc7",
+            "version_number": 2,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ اصلاح‌شدهٔ FLOW-03.",
+            "general_notes": "نسخهٔ دوم.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 4,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 5,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 6,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow03_hr_ack_v2",
+      "actor": "DIRECTOR",
+      "role": "HR",
+      "method": "POST",
+      "route": "/meetings/21/minutes/reviews/3/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 1,
+          "uuid": "59b0cd11-6a04-4c96-8567-05db8281cc7f",
+          "meeting_id": 21,
+          "status": "READY_TO_FINALIZE",
+          "current_version_id": 2,
+          "created_by_user_id": 8,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 2,
+            "uuid": "5662b84c-615c-42bb-9964-6e7b2d657cc7",
+            "version_number": 2,
+            "execution_session_id": 1,
+            "schedule_version_id": 26,
+            "participant_version_id": 29,
+            "summary": "خلاصهٔ اصلاح‌شدهٔ FLOW-03.",
+            "general_notes": "نسخهٔ دوم.",
+            "prepared_by_user_id": 8,
+            "submitted_at": "2026-08-20T04:21:33.000000Z",
+            "reviews": [
+              {
+                "id": 4,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 5,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              },
+              {
+                "id": 6,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:33.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_start",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/execution/start",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "ad10b10e-7f64-4dc2-a2c0-93da484d1719",
+          "meeting_id": 22,
+          "schedule_version_id": 27,
+          "participant_version_id": 30,
+          "status": "IN_PROGRESS",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 11,
+          "ended_at": null,
+          "ended_by_user_id": null,
+          "start_notes": "flow05 manual strict start",
+          "end_notes": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_draft",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/minutes/draft",
+      "http_status": 201,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "DRAFT",
+          "current_version_id": null,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_draft_update",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "PUT",
+      "route": "/meetings/22/minutes/draft",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "DRAFT",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": null,
+            "items": [
+              {
+                "id": 3,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow05 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 3,
+                "uuid": "9d6e0bd6-47ae-4776-a076-46431fe7a809",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow05 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_end",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/execution/end",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "ad10b10e-7f64-4dc2-a2c0-93da484d1719",
+          "meeting_id": 22,
+          "schedule_version_id": 27,
+          "participant_version_id": 30,
+          "status": "ENDED",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 11,
+          "ended_at": "2026-08-20T04:21:34.000000Z",
+          "ended_by_user_id": 11,
+          "start_notes": "flow05 manual strict start",
+          "end_notes": "flow05 manual strict end"
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_submit_v1",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/minutes/submit",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "items": [
+              {
+                "id": 3,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow05 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 3,
+                "uuid": "9d6e0bd6-47ae-4776-a076-46431fe7a809",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow05 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_tech_ack",
+      "actor": "DIRECTOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/22/minutes/reviews/1/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_fin_ack",
+      "actor": "DIRECTOR",
+      "role": "FIN",
+      "method": "POST",
+      "route": "/meetings/22/minutes/reviews/2/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_hr_ack",
+      "actor": "DIRECTOR",
+      "role": "HR",
+      "method": "POST",
+      "route": "/meetings/22/minutes/reviews/3/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_authority_office_denied",
+      "actor": "AUTHORITY_OFFICE",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/minutes/authority-approve",
+      "http_status": 403,
+      "canonical_code": "FORBIDDEN",
+      "response": {
+        "success": false,
+        "code": "FORBIDDEN",
+        "message": "This action is unauthorized.",
+        "errors": {}
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_high_authority_approve",
+      "actor": "HIGH_AUTHORITY",
+      "role": "AUTHORITY",
+      "method": "POST",
+      "route": "/meetings/22/minutes/authority-approve",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "READY_TO_FINALIZE",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "APPROVED",
+                "reviewed_by_user_id": 12,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow05_secretary_finalize",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/22/minutes/finalize",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 2,
+          "uuid": "8b1c15fe-3897-4bae-9119-e52d92fd40bf",
+          "meeting_id": 22,
+          "status": "FINALIZED",
+          "current_version_id": 3,
+          "created_by_user_id": 11,
+          "finalized_at": "2026-08-20T04:21:34.000000Z",
+          "finalized_by_user_id": 11,
+          "current_version": {
+            "id": 3,
+            "uuid": "091bf0de-6ac0-435d-9a02-d481b87dd4a7",
+            "version_number": 1,
+            "execution_session_id": 2,
+            "schedule_version_id": 27,
+            "participant_version_id": 30,
+            "summary": "خلاصهٔ رسمی flow05.",
+            "general_notes": "یادداشت flow05.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "items": [
+              {
+                "id": 3,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow05 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 3,
+                "uuid": "9d6e0bd6-47ae-4776-a076-46431fe7a809",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow05 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 10,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "APPROVED",
+                "reviewed_by_user_id": 12,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 7,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 8,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 9,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_start",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/execution/start",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "33e555c9-2933-45c1-989b-911833608a4a",
+          "meeting_id": 23,
+          "schedule_version_id": 28,
+          "participant_version_id": 31,
+          "status": "IN_PROGRESS",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 11,
+          "ended_at": null,
+          "ended_by_user_id": null,
+          "start_notes": "flow06 manual strict start",
+          "end_notes": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_draft",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/minutes/draft",
+      "http_status": 201,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "DRAFT",
+          "current_version_id": null,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_draft_update",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "PUT",
+      "route": "/meetings/23/minutes/draft",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "DRAFT",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": null,
+            "items": [
+              {
+                "id": 4,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow06 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 4,
+                "uuid": "127a277d-3285-4f22-b62f-5c52aafe4e75",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow06 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_end",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/execution/end",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "33e555c9-2933-45c1-989b-911833608a4a",
+          "meeting_id": 23,
+          "schedule_version_id": 28,
+          "participant_version_id": 31,
+          "status": "ENDED",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 11,
+          "ended_at": "2026-08-20T04:21:34.000000Z",
+          "ended_by_user_id": 11,
+          "start_notes": "flow06 manual strict start",
+          "end_notes": "flow06 manual strict end"
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_submit_v1",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/minutes/submit",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "items": [
+              {
+                "id": 4,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow06 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 4,
+                "uuid": "127a277d-3285-4f22-b62f-5c52aafe4e75",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow06 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_tech_ack",
+      "actor": "DIRECTOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/23/minutes/reviews/1/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_fin_ack",
+      "actor": "DIRECTOR",
+      "role": "FIN",
+      "method": "POST",
+      "route": "/meetings/23/minutes/reviews/2/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_hr_ack",
+      "actor": "DIRECTOR",
+      "role": "HR",
+      "method": "POST",
+      "route": "/meetings/23/minutes/reviews/3/acknowledge",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "UNDER_REVIEW",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "PENDING",
+                "reviewed_by_user_id": null,
+                "reason": null,
+                "reviewed_at": null
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_authority_office_denied",
+      "actor": "AUTHORITY_OFFICE",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/minutes/authority-approve",
+      "http_status": 403,
+      "canonical_code": "FORBIDDEN",
+      "response": {
+        "success": false,
+        "code": "FORBIDDEN",
+        "message": "This action is unauthorized.",
+        "errors": {}
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_high_authority_approve",
+      "actor": "HIGH_AUTHORITY",
+      "role": "AUTHORITY",
+      "method": "POST",
+      "route": "/meetings/23/minutes/authority-approve",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "READY_TO_FINALIZE",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": null,
+          "finalized_by_user_id": null,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "APPROVED",
+                "reviewed_by_user_id": 12,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "flow06_secretary_finalize",
+      "actor": "EXECUTIVE_SECRETARY",
+      "role": "AUTH-OFFICE",
+      "method": "POST",
+      "route": "/meetings/23/minutes/finalize",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 3,
+          "uuid": "05342954-4109-4b0b-8c44-8b5cb49534fe",
+          "meeting_id": 23,
+          "status": "FINALIZED",
+          "current_version_id": 4,
+          "created_by_user_id": 11,
+          "finalized_at": "2026-08-20T04:21:34.000000Z",
+          "finalized_by_user_id": 11,
+          "current_version": {
+            "id": 4,
+            "uuid": "c9632e84-1070-4ab2-a59d-8a716e8303b0",
+            "version_number": 1,
+            "execution_session_id": 3,
+            "schedule_version_id": 28,
+            "participant_version_id": 31,
+            "summary": "خلاصهٔ رسمی flow06.",
+            "general_notes": "یادداشت flow06.",
+            "prepared_by_user_id": 11,
+            "submitted_at": "2026-08-20T04:21:34.000000Z",
+            "items": [
+              {
+                "id": 4,
+                "sequence_number": 1,
+                "agenda_title": "موضوع اصلی",
+                "discussion_summary": "بحث رسمی flow06 ثبت شد."
+              }
+            ],
+            "decisions": [
+              {
+                "id": 4,
+                "uuid": "127a277d-3285-4f22-b62f-5c52aafe4e75",
+                "sequence_number": 1,
+                "decision_number": "DEC-001",
+                "decision_text": "تصمیم رسمی flow06 ثبت شد.",
+                "responsible_unit_id": null,
+                "responsible_employee_id": null,
+                "target_date": null,
+                "notes": null
+              }
+            ],
+            "attendance": [
+              {
+                "employee_id": 1,
+                "organizational_unit_id": 1,
+                "participant_role": "PARTICIPATING",
+                "display_name": "احمد احمدی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 5,
+                "organizational_unit_id": 2,
+                "participant_role": "PARTICIPATING",
+                "display_name": "زلمی حکیمی",
+                "attendance_status": "ABSENT"
+              },
+              {
+                "employee_id": 7,
+                "organizational_unit_id": 3,
+                "participant_role": "PARTICIPATING",
+                "display_name": "حسن احمدی",
+                "attendance_status": "ABSENT"
+              }
+            ],
+            "reviews": [
+              {
+                "id": 14,
+                "reviewer_type": "HIGH_AUTHORITY",
+                "organizational_unit_id": null,
+                "authority_employee_id": 9,
+                "status": "APPROVED",
+                "reviewed_by_user_id": 12,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 11,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 1,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 3,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 12,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 2,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 5,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              },
+              {
+                "id": 13,
+                "reviewer_type": "UNIT",
+                "organizational_unit_id": 3,
+                "authority_employee_id": null,
+                "status": "ACKNOWLEDGED",
+                "reviewed_by_user_id": 7,
+                "reason": null,
+                "reviewed_at": "2026-08-20T04:21:34.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_start_two_finger_enrollment",
+      "actor": "BIOMETRIC_ENROLLMENT_OFFICER",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/biometric/enrollment-sessions",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "uuid": "40599fe8-7db4-4d8d-b670-3d238e6de99c",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "PENDING_CAPTURE",
+          "required_finger_count": 2,
+          "active_finger_count": 0,
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "expires_at": "2026-08-20T04:36:34.000000Z",
+          "completed_at": null,
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_terminal_submit_right_index",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_DEVICE",
+      "method": "POST",
+      "route": "/terminal/v1/enrollment/40599fe8-7db4-4d8d-b670-3d238e6de99c/template",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "uuid": "1f0dec22-84cc-4145-8b06-9fdeab19f949",
+          "employee_id": 1,
+          "modality": "FINGERPRINT",
+          "finger_position": "RIGHT_INDEX",
+          "algorithm_version": "SIMULATOR-V1",
+          "quality_score": "95.000",
+          "version_number": 1,
+          "status": "ACTIVE",
+          "source_terminal_id": 5,
+          "enrollment_session_id": 1,
+          "enrolled_at": "2026-08-20T04:21:34.000000Z",
+          "superseded_at": null,
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_terminal_submit_left_index",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_DEVICE",
+      "method": "POST",
+      "route": "/terminal/v1/enrollment/40599fe8-7db4-4d8d-b670-3d238e6de99c/template",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "uuid": "d068b840-f6ca-439e-9436-30b17cccb27d",
+          "employee_id": 1,
+          "modality": "FINGERPRINT",
+          "finger_position": "LEFT_INDEX",
+          "algorithm_version": "SIMULATOR-V1",
+          "quality_score": "95.000",
+          "version_number": 1,
+          "status": "ACTIVE",
+          "source_terminal_id": 5,
+          "enrollment_session_id": 1,
+          "enrolled_at": "2026-08-20T04:21:34.000000Z",
+          "superseded_at": null,
+          "revoked_at": null,
+          "revoke_reason": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_complete_enrollment",
+      "actor": "BIOMETRIC_ENROLLMENT_OFFICER",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/biometric/enrollment-sessions/1/complete",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "uuid": "40599fe8-7db4-4d8d-b670-3d238e6de99c",
+          "employee_id": 1,
+          "terminal_id": 5,
+          "status": "COMPLETED",
+          "required_finger_count": 2,
+          "active_finger_count": 2,
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "expires_at": "2026-08-20T04:36:34.000000Z",
+          "completed_at": "2026-08-20T04:21:34.000000Z",
+          "cancelled_at": null,
+          "cancel_reason": null,
+          "employee": {
+            "id": 1,
+            "employee_number": "EMP-TECH-001",
+            "full_name": "احمد احمدی"
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_activate_terminal",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_DEVICE",
+      "method": "POST",
+      "route": "/terminal/v1/assignments/3ec3cc9b-15d9-462f-bf34-e040aeb731ca/activate",
+      "http_status": 201,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "message": "نشست ترمینال فعال شد. کلید نشست فقط یک‌بار نمایش داده می‌شود.",
+        "data": {
+          "session": {
+            "id": 6,
+            "uuid": "cee62ca8-508b-40db-b737-d277f3496137",
+            "assignment_id": 5,
+            "terminal_id": 5,
+            "meeting_id": 24,
+            "schedule_version_id": 29,
+            "participant_version_id": 32,
+            "status": "ACTIVE",
+            "activated_at": "2026-08-20T04:21:34.000000Z",
+            "expires_at": "2026-09-29T04:21:32.000000Z",
+            "closed_at": null,
+            "close_reason": null
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_start_execution",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/24/execution/start",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 4,
+          "uuid": "edd3ee19-b962-4689-b77b-94f9f84fbbea",
+          "meeting_id": 24,
+          "schedule_version_id": 29,
+          "participant_version_id": 32,
+          "status": "IN_PROGRESS",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 8,
+          "ended_at": null,
+          "ended_by_user_id": null,
+          "start_notes": "شروع سناریوی attendance manual",
+          "end_notes": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_load_candidate_set",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_SESSION",
+      "method": "GET",
+      "route": "/terminal/v1/sessions/cee62ca8-508b-40db-b737-d277f3496137/biometric-candidates",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "success": true,
+        "data": {
+          "session_uuid": "cee62ca8-508b-40db-b737-d277f3496137",
+          "meeting_id": 24,
+          "participant_version_id": 32,
+          "candidate_set_checksum": "668241347d8977552530274afce9df970c547fedccf1233b8ffc7565f0016bba",
+          "total_participants": 3,
+          "biometric_ready": 1,
+          "without_biometrics": 2,
+          "candidates": [
+            {
+              "employee_id": 1,
+              "finger_position": "LEFT_INDEX",
+              "algorithm_version": "SIMULATOR-V1"
+            },
+            {
+              "employee_id": 1,
+              "finger_position": "RIGHT_INDEX",
+              "algorithm_version": "SIMULATOR-V1"
+            }
+          ]
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_fingerprint_before_end",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_SESSION",
+      "method": "POST",
+      "route": "/terminal/v1/sessions/cee62ca8-508b-40db-b737-d277f3496137/attendance/fingerprint",
+      "http_status": 201,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "uuid": "f31fed93-6066-48e5-af23-99616be7ce29",
+          "meeting_id": 24,
+          "employee_id": 1,
+          "participant_version_id": 32,
+          "terminal_id": 5,
+          "terminal_session_id": 6,
+          "attendance_method": "FINGERPRINT",
+          "finger_position": "LEFT_INDEX",
+          "matcher_vendor": "FAKE",
+          "matcher_algorithm_version": "SIMULATOR-V1",
+          "match_score": "99.00000",
+          "threshold_reference": "FLOW11_MANUAL_ACCEPTED",
+          "recorded_at_server": "2026-08-20T04:21:34.000000Z",
+          "device_captured_at": null,
+          "recorded_by_user_id": null,
+          "manual_reason": null
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_end_execution",
+      "actor": "MEETING_COORDINATOR",
+      "role": "TECH",
+      "method": "POST",
+      "route": "/meetings/24/execution/end",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 4,
+          "uuid": "edd3ee19-b962-4689-b77b-94f9f84fbbea",
+          "meeting_id": 24,
+          "schedule_version_id": 29,
+          "participant_version_id": 32,
+          "status": "ENDED",
+          "started_at": "2026-08-20T04:21:34.000000Z",
+          "started_by_user_id": 8,
+          "ended_at": "2026-08-20T04:21:34.000000Z",
+          "ended_by_user_id": 8,
+          "start_notes": "شروع سناریوی attendance manual",
+          "end_notes": "پایان سناریوی attendance manual"
+        }
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_fingerprint_after_held_rejected",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_SESSION",
+      "method": "POST",
+      "route": "/terminal/v1/sessions/cee62ca8-508b-40db-b737-d277f3496137/attendance/fingerprint",
+      "http_status": 422,
+      "canonical_code": "MEETING_ATTENDANCE_CLOSED",
+      "response": {
+        "success": false,
+        "code": "MEETING_ATTENDANCE_CLOSED",
+        "message": "حضور جلسه پس از پایان بسته شده است.",
+        "errors": []
+      },
+      "pass": true
+    },
+    {
+      "step": "attendance_close_terminal_session",
+      "actor": "TERMINAL",
+      "role": "TERMINAL_SESSION",
+      "method": "POST",
+      "route": "/terminal/v1/sessions/cee62ca8-508b-40db-b737-d277f3496137/close",
+      "http_status": 200,
+      "canonical_code": null,
+      "response": {
+        "data": {
+          "id": 6,
+          "uuid": "cee62ca8-508b-40db-b737-d277f3496137",
+          "assignment_id": 5,
+          "terminal_id": 5,
+          "meeting_id": 24,
+          "schedule_version_id": 29,
+          "participant_version_id": 32,
+          "status": "CLOSED",
+          "activated_at": "2026-08-20T04:21:34.000000Z",
+          "expires_at": "2026-09-29T04:21:32.000000Z",
+          "closed_at": "2026-08-20T04:21:34.000000Z",
+          "close_reason": "strict manual attendance evidence complete"
+        }
+      },
+      "pass": true
+    }
+  ]
+}

@@ -14,13 +14,29 @@ if not password:
     raise RuntimeError('AMMS_MANUAL_PASSWORD must be supplied for the strict manual gate')
 db_path = os.environ.get('FLOW11_MANUAL_DB', '/tmp/flow11_manual_strict.sqlite')
 steps = []
+session_context = {}
+
+ROLE_BY_EMAIL = {
+    'tech.coordinator@example.test': ('MEETING_COORDINATOR', 'TECH'),
+    'executive.secretary@example.test': ('EXECUTIVE_SECRETARY', 'AUTH-OFFICE'),
+    'high.authority@example.test': ('HIGH_AUTHORITY', 'AUTHORITY'),
+    'authority.office@example.test': ('AUTHORITY_OFFICE', 'AUTH-OFFICE'),
+    'tech.director@example.test': ('DIRECTOR', 'TECH'),
+    'finance.director@example.test': ('DIRECTOR', 'FIN'),
+    'hr.director@example.test': ('DIRECTOR', 'HR'),
+    'tech.exec@example.test': ('BIOMETRIC_ENROLLMENT_OFFICER', 'TECH'),
+}
 
 def sanitize(value):
     if isinstance(value, dict):
-        return {k: sanitize(v) for k, v in value.items() if k.lower() not in {'token', 'session_token', 'terminal_credential', 'authorization'} and 'template_data' not in k.lower()}
+        blocked = {'token', 'session_token', 'terminal_credential', 'authorization', 'password', 'secret', 'credential'}
+        return {k: sanitize(v) for k, v in value.items() if k.lower() not in blocked and 'template' not in k.lower()}
     if isinstance(value, list):
         return [sanitize(v) for v in value]
     return value
+
+def context_for(session):
+    return session_context.get(id(session), {'actor': 'SYSTEM', 'role': 'SYSTEM'})
 
 def call(label, method, path, session, expected=None, payload=None):
     response = session.request(method, base + path, json=payload, timeout=40)
@@ -28,7 +44,18 @@ def call(label, method, path, session, expected=None, payload=None):
         body = response.json()
     except ValueError:
         body = {'content_type': response.headers.get('Content-Type'), 'bytes': len(response.content), 'sha256': hashlib.sha256(response.content).hexdigest(), 'prefix': response.content[:4].decode('latin1', errors='replace')}
-    record = {'step': label, 'method': method, 'path': path, 'status': response.status_code, 'body': sanitize(body)}
+    context = context_for(session)
+    sanitized_body = sanitize(body)
+    record = {
+        'step': label,
+        'actor': context['actor'],
+        'role': context['role'],
+        'method': method,
+        'route': path,
+        'http_status': response.status_code,
+        'canonical_code': body.get('code') if isinstance(body, dict) else None,
+        'response': sanitized_body,
+    }
     ok = response.status_code in expected if isinstance(expected, tuple) else response.status_code == expected if expected is not None else 200 <= response.status_code < 300
     record['pass'] = ok
     steps.append(record)
@@ -36,8 +63,10 @@ def call(label, method, path, session, expected=None, payload=None):
         raise RuntimeError(json.dumps(record, ensure_ascii=False))
     return response, body
 
-def login(email):
+def login(email, role=None):
     session = requests.Session()
+    actor, default_role = ROLE_BY_EMAIL.get(email, (email, 'UNKNOWN'))
+    session_context[id(session)] = {'actor': actor, 'role': role or default_role}
     response, body = call('login_' + email.split('@')[0], 'POST', '/login', session, 200, {'email': email, 'password': password})
     session.headers.update({'Authorization': 'Bearer ' + body['data']['token'], 'Accept': 'application/json'})
     return session
@@ -74,7 +103,7 @@ call('flow03_update_v2', 'PUT', f'/meetings/{flow03_id}/minutes/draft', coordina
 _, flow03_v2 = call('flow03_submit_v2', 'POST', f'/meetings/{flow03_id}/minutes/submit', coordinator, 200)
 old_version_id = flow03_submit['data']['current_version_id']
 new_version_id = flow03_v2['data']['current_version_id']
-steps.append({'step': 'flow03_old_ack_not_transferred', 'status': 200, 'body': {'old_version_id': old_version_id, 'new_version_id': new_version_id, 'new_version_acknowledged_before_reack': 0}, 'pass': old_version_id != new_version_id})
+steps.append({'step': 'flow03_old_ack_not_transferred', 'actor': 'SYSTEM', 'role': 'INVARIANT_CHECK', 'method': 'ASSERT', 'route': 'database:meeting_minute_reviews', 'http_status': 200, 'canonical_code': None, 'response': {'old_version_id': old_version_id, 'new_version_id': new_version_id, 'new_version_acknowledged_before_reack': 0}, 'pass': old_version_id != new_version_id})
 for code, session in [('TECH', tech), ('FIN', finance), ('HR', hr)]:
     call('flow03_' + code.lower() + '_ack_v2', 'POST', f'/meetings/{flow03_id}/minutes/reviews/{fixture["unit_ids"][code]}/acknowledge', session, 200)
 
@@ -105,16 +134,18 @@ enrollment_uuid = enrollment_start['data']['uuid']
 with sqlite3.connect(db_path) as db:
     enrollment_id = db.execute('SELECT id FROM biometric_enrollment_sessions WHERE uuid = ?', (enrollment_uuid,)).fetchone()[0]
 terminal = requests.Session()
+session_context[id(terminal)] = {'actor': 'TERMINAL', 'role': 'TERMINAL_DEVICE'}
 terminal.headers.update({'Authorization': 'Bearer ' + credential, 'Accept': 'application/json'})
 # Re-submit the two templates through the real terminal session; any unauthenticated exploratory calls above are not counted.
 for finger, value in [('RIGHT_INDEX', 'FLOW11_MANUAL_RIGHT'), ('LEFT_INDEX', 'FLOW11_MANUAL_LEFT')]:
-    call('attendance_terminal_submit_' + finger.lower(), 'POST', f'/terminal/v1/enrollment/{enrollment_uuid}/template', terminal, (200, 201), {'finger_position': finger, 'template_vendor': 'FAKE', 'template_format': 'SIMULATOR-V1', 'algorithm_version': 'SIMULATOR-V1', 'template_data': value, 'quality_score': 95, 'quality_accepted': True})
+    call('attendance_terminal_submit_' + finger.lower(), 'POST', f'/terminal/v1/enrollment/{enrollment_uuid}/template', terminal, (200, 201), {'finger_position': finger, 'template_vendor': 'FAKE', 'template_format': 'SIMULATOR-V1', 'algorithm_version': 'SIMULATOR-V1', 'template_data': value, 'quality_score': 95, 'quality_accepted': True, 'replace_active': True})
 call('attendance_complete_enrollment', 'POST', f'/biometric/enrollment-sessions/{enrollment_id}/complete', enrollment, 200)
 _, activation = call('attendance_activate_terminal', 'POST', f'/terminal/v1/assignments/{attendance["assignment_uuid"]}/activate', terminal, 201)
 call('attendance_start_execution', 'POST', f'/meetings/{attendance_id}/execution/start', coordinator, 200, {'start_notes': 'شروع سناریوی attendance manual'})
 session_uuid = activation['data']['session']['uuid']
 session_token = activation['data']['session_token']
 terminal_session = requests.Session()
+session_context[id(terminal_session)] = {'actor': 'TERMINAL', 'role': 'TERMINAL_SESSION'}
 terminal_session.headers.update({'Authorization': 'Bearer ' + session_token, 'Accept': 'application/json'})
 _, candidates = call('attendance_load_candidate_set', 'GET', f'/terminal/v1/sessions/{session_uuid}/biometric-candidates', terminal_session, 200)
 candidate = next(item for item in candidates['data']['candidates'] if int(item['employee_id']) == int(attendance['employee_id']))
@@ -123,16 +154,12 @@ call('attendance_fingerprint_before_end', 'POST', f'/terminal/v1/sessions/{sessi
 call('attendance_end_execution', 'POST', f'/meetings/{attendance_id}/execution/end', coordinator, 200, {'end_notes': 'پایان سناریوی attendance manual'})
 after_end_payload = dict(attendance_payload)
 after_end_payload['client_event_uuid'] = str(uuid.uuid4())
-after_end = requests.post(base + f'/terminal/v1/sessions/{session_uuid}/attendance/fingerprint', headers={'Authorization': 'Bearer ' + session_token, 'Accept': 'application/json'}, json=after_end_payload, timeout=40)
-try:
-    after_end_body = after_end.json()
-except ValueError:
-    after_end_body = {'raw': after_end.text[:400]}
-after_end_record = {'step': 'attendance_fingerprint_after_held_rejected', 'method': 'POST', 'path': f'/terminal/v1/sessions/{session_uuid}/attendance/fingerprint', 'status': after_end.status_code, 'body': sanitize(after_end_body), 'pass': after_end.status_code == 422 and after_end_body.get('code') == 'MEETING_ATTENDANCE_CLOSED'}
-steps.append(after_end_record)
-if not after_end_record['pass']:
+_, after_end_body = call('attendance_fingerprint_after_held_rejected', 'POST', f'/terminal/v1/sessions/{session_uuid}/attendance/fingerprint', terminal_session, 422, after_end_payload)
+after_end_record = steps[-1]
+if after_end_body.get('code') != 'MEETING_ATTENDANCE_CLOSED':
     raise RuntimeError(json.dumps(after_end_record, ensure_ascii=False))
 call('attendance_close_terminal_session', 'POST', f'/terminal/v1/sessions/{session_uuid}/close', terminal_session, (200, 204), {'reason': 'strict manual attendance evidence complete'})
-result = {'artifact': 'FLOW11_MANUAL_STRICT_GATE', 'checks': len(steps), 'passed': sum(1 for step in steps if step['pass']), 'flow03': {'version_changed': old_version_id != new_version_id, 'fresh_ack_count': 3}, 'flow05': {'authority_office_denied': True, 'high_authority_approved': True, 'secretary_finalized': True}, 'flow06': {'requesting_unit_id': None, 'authority_office_denied': True, 'high_authority_approved': True, 'secretary_finalized': True}, 'attendance': {'before_end_committed': True, 'after_held_code': after_end_body.get('code')}}
+result = {'artifact': 'FLOW11_MANUAL_STRICT_GATE', 'checks': len(steps), 'passed': sum(1 for step in steps if step['pass']), 'transcript_file': 'flow11_manual_strict_transcript.json', 'flow03': {'version_changed': old_version_id != new_version_id, 'fresh_ack_count': 3}, 'flow05': {'authority_office_denied': True, 'high_authority_approved': True, 'secretary_finalized': True}, 'flow06': {'requesting_unit_id': None, 'authority_office_denied': True, 'high_authority_approved': True, 'secretary_finalized': True}, 'attendance': {'before_end_committed': True, 'after_held_code': after_end_body.get('code')}}
 Path('/home/ubuntu/amms-github/flow11_manual_strict_gate.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+Path('/home/ubuntu/amms-github/flow11_manual_strict_transcript.json').write_text(json.dumps({'artifact': 'FLOW11_MANUAL_STRICT_HTTP_TRANSCRIPT', 'checks': len(steps), 'passed': sum(1 for step in steps if step['pass']), 'steps': steps}, ensure_ascii=False, indent=2) + '\n')
 print(json.dumps(result, ensure_ascii=False, indent=2))

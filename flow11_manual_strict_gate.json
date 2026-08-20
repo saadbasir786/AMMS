@@ -2,6 +2,7 @@
   "artifact": "FLOW11_MANUAL_STRICT_GATE",
   "checks": 55,
   "passed": 55,
+  "transcript_file": "flow11_manual_strict_transcript.json",
   "flow03": {
     "version_changed": true,
     "fresh_ack_count": 3

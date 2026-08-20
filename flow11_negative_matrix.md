@@ -33,7 +33,7 @@
 | Z | Concurrent finalization | One finalization; loser `MINUTES_ALREADY_FINALIZED` | MariaDB Action race | **PASS** |
 | AA | Repeated PDF generation | One official document identity; checksum unchanged | MariaDB Action race and PDF Feature | **PASS** |
 | AB | PDF before finalization | Official document unavailable before `FINALIZED` | Document Action guard | **PASS** |
-| AC | Visual RTL PDF rendering | Persian/Dari text, RTL tables, required content readable and unclipped | `flow11_pdf_visual_inspection.md` plus rendered PDF image | **PASS** |
+| AC | Visual RTL PDF rendering | Persian/Dari text, shaped RTL tables, required content readable and unclipped | `flow11_pdf_visual_inspection.md` plus `flow11_manual_final_minutes.png` | **PASS** |
 | AD | Biometric fields in Minutes/PDF | No template bytes, raw frames, candidate fields, matcher fields, or terminal secrets | Privacy Feature and visual/text inspection | **PASS** |
 | AE | Post-finalization mutation | Minutes and Meeting lifecycle remain immutable | Finalization guards and regression | **PASS** |
 | AF | Server-authoritative timestamps | Client cannot control start/end/review time | Action implementations and tests | **PASS** |
@@ -45,12 +45,12 @@
 | AL | Request-to-Meeting duplicates | `request_meeting_duplicate_count = 0` | Rich canonical invariant artifact | **PASS** |
 | AM | Sensitive fields in Minutes | `biometric_sensitive_fields_in_minutes = 0` and plaintext column list empty | Rich canonical invariant artifact | **PASS** |
 | AN | Active session leakage | Active execution, terminal, and enrollment session counts are zero after official cleanup | Rich canonical invariant artifact | **PASS** |
-| AO | Full frozen-flow regression | FLOW-01 through FLOW-10A remain green | Final regression: 325 tests, 1,255 assertions | **PASS** |
+| AO | Full frozen-flow regression | FLOW-01 through FLOW-10A remain green | Final regression: 331 tests, 1,319 assertions | **PASS** |
 | AP | RTL production build | FLOW-11 frontend compiles in existing shell | Final build: 1,863 modules | **PASS** |
-| AQ | Manual FLOW-03/FLOW-05/FLOW-06/attendance gate | All real HTTP checks pass outside Feature Tests | Strict transcript: 55/55 | **PASS** |
+| AQ | Manual FLOW-03/FLOW-05/FLOW-06/attendance gate | All real HTTP checks pass outside Feature Tests | Summary `55/55` plus full sanitized `flow11_manual_strict_transcript.json` | **PASS** |
 
 ## Summary
 
-All newly requested strict-review gates are **PASS**. The independent per-flow suite passes **6 tests and 64 assertions**. The final full regression passes **331 tests and 1,319 assertions**. The strict manual transcript passes **55 of 55** checks. The visual PDF gate passes for Persian/Dari RTL, required content, and biometric-field absence. The rich canonical artifact contains the completed-fixture request, flow, decision, review, acknowledgement, High Authority, attendance-after-end, duplicate, and privacy invariants.
+All newly requested strict-review gates are **PASS**. The independent per-flow suite passes **6 tests and 64 assertions**. The final full regression passes **331 tests and 1,319 assertions**. The strict manual transcript passes **55 of 55** checks and includes a full sanitized step-level record. The visual PDF gate passes for mPDF Persian/Dari shaping, RTL tables, required content, mixed-direction values, and biometric-field absence. The rich canonical artifact contains the completed-fixture request, flow, decision, review, acknowledgement, High Authority, attendance-after-end, duplicate, and privacy invariants.
 
 This matrix records technical verification only. FLOW-11 remains **NOT APPROVED / NOT FROZEN** pending explicit user approval. FLOW-10B physical DERMALOG integration remains deferred, and FLOW-12 has not started.
