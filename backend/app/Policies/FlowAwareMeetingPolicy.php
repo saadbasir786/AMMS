@@ -8,6 +8,35 @@ use App\Support\ScheduleGovernanceResolver;
 
 class FlowAwareMeetingPolicy extends MeetingPolicy
 {
+    public function view(User $user, Meeting $meeting): bool
+    {
+        if (!$user->isActive()) return false;
+
+        $meeting->loadMissing(['request', 'units', 'participants', 'authorityContext']);
+        $isAuthorityFlow = in_array((string) $meeting->request?->flow_type, [
+            'DIRECTORATE_WITH_HIGH_AUTHORITY',
+            'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY',
+            'HIGH_AUTHORITY_INITIATED',
+        ], true) || $meeting->authorityContext !== null;
+
+        if ($user->can('meeting.view')) {
+            $formalUnitIds = $meeting->units->whereIn('role', ['REQUESTING', 'PARTICIPATING'])
+                ->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->all();
+            if ($this->hasFormalRole($user, $formalUnitIds, ['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])) return true;
+            if ($user->employee_id && $meeting->participants->contains(fn ($participant): bool => (int) $participant->employee_id === (int) $user->employee_id)) return true;
+        }
+
+        if ($isAuthorityFlow && $user->can('authority-request.view')) {
+            $context = $meeting->authorityContext;
+            if (!$context) return false;
+            if ($user->employee_id && (int) $context->authority_employee_id === (int) $user->employee_id) return true;
+            if ($context->authority_office_unit_id && ($user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id)
+                || $user->hasScopedRole('EXECUTIVE_SECRETARY', (int) $context->authority_office_unit_id))) return true;
+        }
+
+        return false;
+    }
+
     public function flow07CreateCase(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.create')) return false;
