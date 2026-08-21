@@ -10,6 +10,7 @@ use App\Models\OrganizationAuthority;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
 use App\Support\ParticipantGovernanceResolver;
+use App\Support\ParticipantVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
@@ -71,6 +72,35 @@ class Flow0708IndependentAuditTest extends TestCase
         $this->assertTrue($resolver->mayConfirm($meeting, $office, 'AUTHORITY', null));
         $this->assertFalse($resolver->mayPrepare($meeting, $secretary, 'AUTHORITY', null));
         $this->assertFalse($resolver->mayConfirm($meeting, $secretary, 'AUTHORITY', null));
+    }
+
+    public function test_initial_participant_version_maps_subunit_member_to_formal_unit_even_in_authority_flow(): void
+    {
+        [$meeting, $tech] = $this->authorityMeeting();
+        $techExec = $this->user('tech.exec@example.test');
+        $authority = $this->user('high.authority@example.test');
+        $this->assertNotSame($tech->id, (int) $techExec->employee->organizational_unit_id);
+
+        $meeting->participants()->create([
+            'employee_id' => $techExec->employee_id,
+            'organizational_unit_id' => $techExec->employee->organizational_unit_id,
+            'role' => 'REQUESTING',
+        ]);
+        $meeting->participants()->create([
+            'employee_id' => $authority->employee_id,
+            'organizational_unit_id' => $authority->employee->organizational_unit_id,
+            'role' => 'HIGH_AUTHORITY',
+        ]);
+
+        $version = app(ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['units.unit', 'authorityContext', 'participants.employee.unit']), $techExec->id);
+        $unitMember = $version->members->firstWhere('employee_id', $techExec->employee_id);
+        $authorityMember = $version->members->firstWhere('employee_id', $authority->employee_id);
+
+        $this->assertSame('UNIT', $unitMember->owner_type);
+        $this->assertSame($tech->id, (int) $unitMember->owner_unit_id);
+        $this->assertSame('AUTHORITY', $authorityMember->owner_type);
+        $this->assertNull($authorityMember->owner_unit_id);
+        $this->assertTrue((bool) $authorityMember->is_mandatory);
     }
 
     private function peerMeeting(): array
