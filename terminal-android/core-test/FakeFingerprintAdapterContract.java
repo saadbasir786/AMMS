@@ -6,9 +6,11 @@ import java.util.List;
 public final class FakeFingerprintAdapterContract {
     public static void main(String[] args) {
         FakeFingerprintAdapter adapter = new FakeFingerprintAdapter();
-        var candidates = List.of(new FakeFingerprintAdapter.Candidate("EMP-12", "TPL-12-RI", "SYNTHETIC_TEMPLATE_EMP_12", "CHECKSUM-12"));
-        require(adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.MATCH_FIRST, candidates).status() == FingerprintOutcome.Status.MATCH, "match");
-        require("TPL-12-RI".equals(adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.MATCH_FIRST, candidates).templateUuid()), "matched candidate");
+        var candidates = List.of(new FakeFingerprintAdapter.Candidate(12L, "TPL-12-RI", "SYNTHETIC_TEMPLATE_EMP_12", "CHECKSUM-12"));
+        var match = adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.MATCH_FIRST, candidates);
+        require(match.status() == FingerprintOutcome.Status.MATCH, "match");
+        require(Long.valueOf(12L).equals(match.employeeId()), "matched employee");
+        require("TPL-12-RI".equals(match.templateUuid()), "matched candidate");
         require(adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.NO_MATCH, candidates).status() == FingerprintOutcome.Status.NO_MATCH, "no-match");
         require(adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.LOW_SCORE, candidates).status() == FingerprintOutcome.Status.LOW_SCORE, "low-score");
         require(adapter.captureAndIdentify(FakeFingerprintAdapter.CaptureVector.UNAVAILABLE, candidates).status() == FingerprintOutcome.Status.UNAVAILABLE, "unavailable");
@@ -24,7 +26,7 @@ public final class FakeFingerprintAdapterContract {
         state.startEnrollment("ENROLL-1");
         require(state.mode() == TerminalSessionState.Mode.ENROLLMENT, "enrollment mode");
         state.closeAndClear();
-        System.out.println("FLOW10A_ANDROID_CORE_PASS vectors=8");
+        System.out.println("FLOW10A_ANDROID_CORE_PASS vectors=9");
     }
 
     private static void require(boolean condition, String name) {
