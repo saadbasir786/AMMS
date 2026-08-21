@@ -156,11 +156,8 @@ trait HighAuthorityWorkflowSupport
 
     private function nextNumber(string $name, string $prefix): string
     {
-        $sequence = \App\Models\AmmsSequence::query()->lockForUpdate()->find($name);
-        if (!$sequence) {
-            \App\Models\AmmsSequence::create(['name' => $name, 'value' => 0]);
-            $sequence = \App\Models\AmmsSequence::query()->lockForUpdate()->findOrFail($name);
-        }
+        \App\Models\AmmsSequence::query()->insertOrIgnore(['name' => $name, 'value' => 0]);
+        $sequence = \App\Models\AmmsSequence::query()->lockForUpdate()->findOrFail($name);
         $sequence->increment('value');
         return $prefix.'-'.now()->format('Y').'-'.str_pad((string) $sequence->fresh()->value, 5, '0', STR_PAD_LEFT);
     }
