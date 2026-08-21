@@ -51,7 +51,6 @@ class MultiDirectorateMeetingRequestController extends Controller
         $unitIds = array_unique(array_merge(
             $request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
             $request->user()->scopedRoleUnitIds('DIRECTOR'),
-            $request->user()->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
         ));
         $query = MeetingRequest::with(['units.unit', 'unitReviews.unit', 'requestingUnit', 'creator.employee', 'actions.actor'])
             ->where('flow_type', 'MULTI_DIRECTORATE')
@@ -131,7 +130,7 @@ class MultiDirectorateMeetingRequestController extends Controller
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartMultiDirectorateScheduling $action)
     {
-        $this->authorize('flow03Coordinate', $meetingRequest);
+        $this->authorize('flow03LeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'مذاکرهٔ زمان‌بندی چندریاستی آغاز شد.');
     }
 
@@ -163,13 +162,13 @@ class MultiDirectorateMeetingRequestController extends Controller
 
     public function confirmSchedule(Request $request, MeetingRequest $meetingRequest, ConfirmMultiDirectorateSchedule $action)
     {
-        $this->authorize('flow03Coordinate', $meetingRequest);
+        $this->authorize('flow03LeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'زمان‌بندی چندریاستی نهایی تأیید شد.');
     }
 
     public function finalize(FinalizeMultiDirectorateMeetingRequest $request, MeetingRequest $meetingRequest, ConvertMultiDirectorateRequestToMeeting $action)
     {
-        $this->authorize('flow03Coordinate', $meetingRequest);
+        $this->authorize('flow03LeadCoordinate', $meetingRequest);
         return (new MeetingResource($action($request->user(), $meetingRequest, $request->validated())))
             ->additional(['success' => true, 'message' => 'جلسهٔ چندریاستی ایجاد شد.']);
     }
