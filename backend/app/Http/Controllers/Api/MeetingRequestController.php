@@ -23,6 +23,8 @@ use Illuminate\Http\Request;
 
 class MeetingRequestController extends Controller
 {
+    private const FLOW_01 = 'INTERNAL_DIRECTORATE';
+
     public function __construct(private MeetingRequestService $service) {}
 
     public function index(Request $request)
@@ -60,49 +62,71 @@ class MeetingRequestController extends Controller
     public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest)
     {
         $this->authorize('update', $meetingRequest);
+        if ($meetingRequest->flow_type === self::FLOW_01) $this->assertCurrentFlow01Executive($request, $meetingRequest);
         return (new MeetingRequestResource($this->service->update($request->user(), $meetingRequest, $request->validated())))->additional(['success'=>true,'message'=>'درخواست اصلاح شد.']);
     }
 
     public function submit(Request $request, MeetingRequest $meetingRequest, SubmitMeetingRequest $action, ResubmitMeetingRequest $resubmitAction)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('submit', $meetingRequest);
+        $this->assertCurrentFlow01Executive($request, $meetingRequest);
         $operation = $meetingRequest->status === 'RETURNED_FOR_REVISION' ? $resubmitAction : $action;
         return (new MeetingRequestResource($operation($request->user(), $meetingRequest)))->additional(['success'=>true,'message'=>'درخواست برای تأیید ارسال شد.']);
     }
 
     public function approve(Request $request, MeetingRequest $meetingRequest, ApproveMeetingRequest $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('review', $meetingRequest);
         return (new MeetingRequestResource($action($request->user(), $meetingRequest)))->additional(['success'=>true,'message'=>'درخواست تأیید شد.']);
     }
 
     public function returnForRevision(ReviewMeetingRequestRequest $request, MeetingRequest $meetingRequest, ReturnMeetingRequest $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('review', $meetingRequest);
         return (new MeetingRequestResource($action($request->user(), $meetingRequest, $request->validated()['reason'])))->additional(['success'=>true,'message'=>'درخواست جهت اصلاح برگشت داده شد.']);
     }
 
     public function reject(ReviewMeetingRequestRequest $request, MeetingRequest $meetingRequest, RejectMeetingRequest $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('review', $meetingRequest);
         return (new MeetingRequestResource($action($request->user(), $meetingRequest, $request->validated()['reason'])))->additional(['success'=>true,'message'=>'درخواست رد شد.']);
     }
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartScheduling $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('schedule', $meetingRequest);
+        $this->assertCurrentFlow01Executive($request, $meetingRequest);
         return (new MeetingRequestResource($action($request->user(), $meetingRequest)))->additional(['success'=>true,'message'=>'زمان‌بندی آغاز شد.']);
     }
 
     public function confirmSchedule(ScheduleMeetingRequest $request, MeetingRequest $meetingRequest, ConfirmMeetingSchedule $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('schedule', $meetingRequest);
+        $this->assertCurrentFlow01Executive($request, $meetingRequest);
         return (new MeetingRequestResource($action($request->user(), $meetingRequest, $request->validated())))->additional(['success'=>true,'message'=>'زمان‌بندی نهایی ثبت شد.']);
     }
 
     public function finalize(FinalizeMeetingRequest $request, MeetingRequest $meetingRequest, ConvertRequestToMeeting $action)
     {
+        $this->assertFlow01($meetingRequest);
         $this->authorize('finalize', $meetingRequest);
+        $this->assertCurrentFlow01Executive($request, $meetingRequest);
         return (new \App\Http\Resources\MeetingResource($action($request->user(), $meetingRequest, $request->validated())))->additional(['success'=>true,'message'=>'جلسه با موفقیت نهایی و ایجاد شد.']);
+    }
+
+    private function assertFlow01(MeetingRequest $meetingRequest): void
+    {
+        abort_unless($meetingRequest->flow_type === self::FLOW_01, 422, 'FLOW_ENDPOINT_MISMATCH');
+    }
+
+    private function assertCurrentFlow01Executive(Request $request, MeetingRequest $meetingRequest): void
+    {
+        abort_unless($request->user()->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $meetingRequest->requesting_unit_id), 403, 'FORBIDDEN');
     }
 }
