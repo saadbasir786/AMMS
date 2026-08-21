@@ -6,7 +6,7 @@ AMMS is a Persian/Dari right-to-left Administrative Meeting Management System fo
 
 The current product scope is frozen at **FLOW-01 through FLOW-14**. The independent audit and consolidation cycle is complete. No new business capability or FLOW-15 development is part of the current release plan.
 
-The authoritative release statement is [`RELEASE_BASELINE.md`](RELEASE_BASELINE.md).
+The authoritative release statement is [`docs/release/RELEASE_BASELINE.md`](docs/release/RELEASE_BASELINE.md). The documentation index is [`docs/README.md`](docs/README.md).
 
 **FLOW-10B** — physical DERMALOG SVT3000 SE integration and lawful vendor-SDK/hardware acceptance — remains explicitly deferred. The vendor-independent terminal and biometric software foundation from FLOW-10A remains part of the current baseline.
 
@@ -54,7 +54,7 @@ The current baseline includes the already implemented and verified capabilities 
 - exceptional meeting lifecycle governance;
 - reporting, dashboards, management analytics, registers, and secure private PDF/XLSX exports.
 
-Detailed workflow contracts and evidence remain in the FLOW verification, browser-acceptance, negative-matrix, canonical-fixture, HTTP, and concurrency artifacts in this repository.
+Historical workflow contracts and audit evidence are preserved under [`docs/history/`](docs/history/).
 
 ## Authorization model
 
@@ -119,13 +119,13 @@ python3 tools/run_core_contract.py
 
 ## CI gate
 
-`.github/workflows/audit-ci.yml` currently defines the authoritative three-part AMMS CI gate:
+`.github/workflows/ci.yml` defines the authoritative three-part AMMS CI gate:
 
 1. Laravel Feature suite on MariaDB;
 2. frontend lint and production build;
 3. terminal Android core contract and `assembleDebug`.
 
-The workflow is intended to protect pull requests and, after the release-hardening change is merged, pushes to `main`, `release/**`, and retained `audit/**` branches.
+The workflow protects pull requests and pushes to `main`, `release/**`, and retained `audit/**` branches.
 
 ## Development/test accounts
 

@@ -12,3 +12,15 @@ frontend/dist/
 # Generated release archives
 *.zip
 *.sha256
+
+# Keep generated verification/debug artifacts out of the repository root.
+# Intentionally retained audit evidence belongs under docs/history/.
+/*.log
+/*.json
+/*.ndjson
+/*.txt
+/*.png
+/*.webp
+/*.pdf
+/browser_failures/
+/evidence/
