@@ -39,7 +39,7 @@ class Flow01Test extends TestCase
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule",$schedule)->assertOk()->assertJsonPath('data.status','SCHEDULE_CONFIRMED');
         $finalize = ['meeting_date'=>$schedule['meeting_date'],'start_time'=>'09:00','end_time'=>'10:00','location'=>$schedule['location'],'chairperson_employee_id'=>$employees[0],'agenda'=>'بررسی پلان توسعه سیستم‌ها'];
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertOk();
-        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertStatus(422)->assertJsonPath('code','SCHEDULE_INCOMPLETE');
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertForbidden();
         $this->assertSame(1, Meeting::where('meeting_request_id',$request->id)->count());
         $this->assertSame('MT-'.now()->format('Y').'-00001', Meeting::where('meeting_request_id',$request->id)->firstOrFail()->meeting_number);
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
