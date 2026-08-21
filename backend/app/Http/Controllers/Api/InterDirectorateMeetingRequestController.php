@@ -114,7 +114,7 @@ class InterDirectorateMeetingRequestController extends Controller
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartInterDirectorateScheduling $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('flow02LeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'مذاکرهٔ زمان‌بندی آغاز شد.');
     }
 
@@ -150,13 +150,13 @@ class InterDirectorateMeetingRequestController extends Controller
 
     public function confirmSchedule(Request $request, MeetingRequest $meetingRequest, ConfirmInterDirectorateSchedule $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('flow02LeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'زمان‌بندی نهایی تأیید شد.');
     }
 
     public function finalize(FinalizeInterDirectorateMeetingRequest $request, MeetingRequest $meetingRequest, ConvertInterDirectorateRequestToMeeting $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('flow02LeadCoordinate', $meetingRequest);
         return (new MeetingResource($action($request->user(), $meetingRequest, $request->validated())))->additional(['success' => true, 'message' => 'جلسهٔ بین‌ریاستی ایجاد شد.']);
     }
 
