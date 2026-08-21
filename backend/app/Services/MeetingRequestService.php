@@ -117,11 +117,11 @@ class MeetingRequestService
             abort_unless($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
             $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...($data['participant_ids'] ?? [])]);
             $locked->update([
-                'preferred_date' => $data['meeting_date'],
-                'preferred_start_time' => $data['start_time'],
-                'estimated_duration_minutes' => $data['duration_minutes'],
-                'proposed_location' => $data['location'],
-                'confirmed_chairperson_employee_id' => $data['chairperson_employee_id'],
+                'scheduled_date' => $data['meeting_date'],
+                'scheduled_start_time' => $data['start_time'],
+                'scheduled_duration_minutes' => $data['duration_minutes'],
+                'scheduled_location' => $data['location'],
+                'scheduled_chairperson_employee_id' => $data['chairperson_employee_id'],
                 'coordinator_id' => $locked->coordinator_id ?: $actor->id,
             ]);
             $this->syncParticipants($locked, $actor, $data['participant_ids'] ?? [], 'FINAL');
@@ -140,22 +140,22 @@ class MeetingRequestService
             abort_unless($current === MeetingRequestStatus::SCHEDULE_CONFIRMED && $current->canTransitionTo(MeetingRequestStatus::CONVERTED_TO_MEETING), 422, 'SCHEDULE_INCOMPLETE');
             abort_unless(!$locked->meeting()->exists(), 422, 'MEETING_ALREADY_CREATED');
             abort_unless($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
-            abort_unless($locked->preferred_date && $locked->preferred_start_time && $locked->estimated_duration_minutes && $locked->proposed_location && $locked->confirmed_chairperson_employee_id, 422, 'SCHEDULE_INCOMPLETE');
+            abort_unless($locked->scheduled_date && $locked->scheduled_start_time && $locked->scheduled_duration_minutes && $locked->scheduled_location && $locked->scheduled_chairperson_employee_id, 422, 'SCHEDULE_INCOMPLETE');
 
-            $confirmedDate = $locked->preferred_date->format('Y-m-d');
-            $confirmedStart = substr((string) $locked->preferred_start_time, 0, 5);
-            $confirmedEnd = Carbon::createFromFormat('H:i', $confirmedStart)->addMinutes((int) $locked->estimated_duration_minutes)->format('H:i');
+            $scheduledDate = $locked->scheduled_date->format('Y-m-d');
+            $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
+            $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)->addMinutes((int) $locked->scheduled_duration_minutes)->format('H:i');
             abort_unless(
-                $data['meeting_date'] === $confirmedDate
-                && $data['start_time'] === $confirmedStart
-                && $data['end_time'] === $confirmedEnd
-                && $data['location'] === $locked->proposed_location
-                && (int) $data['chairperson_employee_id'] === (int) $locked->confirmed_chairperson_employee_id,
+                $data['meeting_date'] === $scheduledDate
+                && $data['start_time'] === $scheduledStart
+                && $data['end_time'] === $scheduledEnd
+                && $data['location'] === $locked->scheduled_location
+                && (int) $data['chairperson_employee_id'] === (int) $locked->scheduled_chairperson_employee_id,
                 422,
                 'CONFIRMED_SCHEDULE_MISMATCH'
             );
 
-            $this->validatePeople($locked->requesting_unit_id, [(int) $locked->confirmed_chairperson_employee_id, ...$locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all()]);
+            $this->validatePeople($locked->requesting_unit_id, [(int) $locked->scheduled_chairperson_employee_id, ...$locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all()]);
             $meeting = Meeting::create([
                 'meeting_request_id' => $locked->id,
                 'meeting_number' => $this->nextNumber('meetings', 'MT'),
@@ -163,11 +163,11 @@ class MeetingRequestService
                 'description' => $locked->description,
                 'organizing_unit_id' => $locked->requesting_unit_id,
                 'coordinator_id' => $locked->coordinator_id ?: $actor->id,
-                'chairperson_employee_id' => $locked->confirmed_chairperson_employee_id,
-                'meeting_date' => $confirmedDate,
-                'start_time' => $confirmedStart,
-                'end_time' => $confirmedEnd,
-                'location' => $locked->proposed_location,
+                'chairperson_employee_id' => $locked->scheduled_chairperson_employee_id,
+                'meeting_date' => $scheduledDate,
+                'start_time' => $scheduledStart,
+                'end_time' => $scheduledEnd,
+                'location' => $locked->scheduled_location,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
