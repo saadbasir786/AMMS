@@ -209,7 +209,31 @@ class AuthorityInitiatedMeetingRequestController
     {
         $user = $request->user();
         abort_unless($user->can('authority-directive.view'), 403, 'FORBIDDEN');
-        $query = MeetingRequest::query()->where('flow_type', 'HIGH_AUTHORITY_INITIATED')->whereHas('authorityContext', fn ($q) => $q->where('authority_office_unit_id', $user->scopedRoleUnitIds('AUTHORITY_OFFICE')))->with(['units.unit', 'authorityContext', 'creator']);
+
+        $officeUnitIds = array_values(array_filter(array_map('intval', array_merge(
+            $user->scopedRoleUnitIds('AUTHORITY_OFFICE'),
+            $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY'),
+        ))));
+        $highAuthorityUnitIds = array_values(array_filter(array_map('intval', $user->scopedRoleUnitIds('HIGH_AUTHORITY'))));
+        $employeeId = (int) $user->employee_id;
+
+        $query = MeetingRequest::query()
+            ->where('flow_type', 'HIGH_AUTHORITY_INITIATED')
+            ->whereHas('authorityContext', function ($q) use ($officeUnitIds, $highAuthorityUnitIds, $employeeId) {
+                $q->where(function ($scope) use ($officeUnitIds, $highAuthorityUnitIds, $employeeId) {
+                    if ($officeUnitIds !== []) {
+                        $scope->whereIn('authority_office_unit_id', $officeUnitIds);
+                    }
+                    if ($highAuthorityUnitIds !== []) {
+                        $scope->orWhereHas('authorityPosition', fn ($position) => $position->whereIn('organizational_unit_id', $highAuthorityUnitIds));
+                    }
+                    if ($employeeId > 0) {
+                        $scope->orWhere('authority_employee_id', $employeeId);
+                    }
+                });
+            })
+            ->with(['units.unit', 'authorityContext', 'creator']);
+
         return response()->json(['data' => MeetingRequestResource::collection($query->latest()->paginate(25))]);
     }
 
