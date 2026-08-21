@@ -1,0 +1,98 @@
+{
+  "artifact": "ROLE_MODEL_CONSOLIDATION_FINAL_CLOSURE",
+  "project": "AMMS",
+  "date": "2026-08-21",
+  "final_status": "FINAL VERIFICATION COMPLETE - PENDING EXPLICIT USER APPROVAL",
+  "active_roles": [
+    "SYSTEM_ADMIN",
+    "EMPLOYEE",
+    "DIRECTOR",
+    "EXECUTIVE_MANAGEMENT",
+    "AUTHORITY_OFFICE",
+    "EXECUTIVE_SECRETARY",
+    "HIGH_AUTHORITY"
+  ],
+  "subsystem_roles": [
+    {
+      "name": "BIOMETRIC_ENROLLMENT_OFFICER",
+      "may_remain": true,
+      "user_assignment_count": 0,
+      "consolidation_scope": "excluded frozen FLOW-10 subsystem role"
+    }
+  ],
+  "meeting_coordinator_role_exists": false,
+  "meeting_coordinator_assignment_count": 0,
+  "meeting_coordinator_scope_count": 0,
+  "meeting_coordinator_legacy_assignment_count": 0,
+  "runtime_meeting_coordinator_reference_count": 0,
+  "old_coordinator_test_account_active_business_authority": false,
+  "old_coordinator_test_account": {
+    "email": "tech.coordinator@example.test",
+    "seeded_as_new_account": false,
+    "active_business_role": false,
+    "active_amms_scope": false,
+    "user_row_deleted": false,
+    "historical_audit_references_deleted": false,
+    "retirement_migration": "backend/database/migrations/2026_08_21_090000_retire_coordinator_test_account_authority.php"
+  },
+  "normal_technology_fixture": {
+    "active_executive_management_actor": "tech.exec@example.test",
+    "technology_executive_management_actor_count": 1,
+    "coordinator_account_used_as_accepted_actor": false
+  },
+  "effective_authorization": {
+    "proof_method": "real Laravel HTTP routes with Sanctum, Policy, organizational scope, and Action/state validation",
+    "exec_management_own_coordination_allowed": true,
+    "director_coordinator_action_denied": true,
+    "exec_management_high_authority_decision_denied": true,
+    "exec_management_exec_secretary_scheduling_denied": true,
+    "exec_management_authority_participant_ownership_denied": true,
+    "exec_management_high_authority_issue_denied": true,
+    "exec_management_flow06_authority_participant_administration_denied": true,
+    "exec_management_flow06_finalization_denied": true,
+    "system_admin_business_authority_denied": true,
+    "system_admin_check_interpretation": "No coordinator-derived business authority or EXECUTIVE_MANAGEMENT scope is granted to SYSTEM_ADMIN; the pre-existing administrative policy bypass was not redesigned.",
+    "executive_secretary_authority_scheduling_allowed": true,
+    "exact_high_authority_decision_allowed": true,
+    "authority_office_boundary_preserved": true,
+    "permission_mapping_rewritten_after_effective_checks": false,
+    "effective_authorization_pass": true
+  },
+  "regression": {
+    "focused_role_consolidation_tests": 5,
+    "focused_role_consolidation_assertions": 37,
+    "backend_tests": 378,
+    "backend_assertions": 1691,
+    "backend_pass": true,
+    "frontend_build_pass": true,
+    "frontend_modules_transformed": 1866,
+    "flow01_browser_smoke_pass": true,
+    "flow02_browser_smoke_pass": true,
+    "flow03_browser_smoke_pass": true,
+    "coordinator_account_used_in_browser_smoke": false
+  },
+  "prior_flow04_flow05_flow06_evidence": {
+    "classification": "PRE-CONSOLIDATION / NON-AUTHORITATIVE FOR FINAL ROLE-MODEL BROWSER ACCEPTANCE",
+    "modified_to_appear_post_consolidation": false,
+    "fresh_acceptance_started_in_this_closure": false,
+    "deferred_until_explicit_user_approval": true
+  },
+  "preservation": {
+    "workflow_semantics_changed": false,
+    "scope_semantics_changed": false,
+    "business_state_machine_changed": false,
+    "high_authority_governance_changed": false,
+    "authority_office_governance_changed": false,
+    "executive_secretary_governance_changed": false,
+    "meeting_identity_rules_changed": false,
+    "participant_ownership_changed": false,
+    "schedule_versioning_changed": false,
+    "historical_audit_references_rewritten": false,
+    "ambiguous_non_test_user_modified": false
+  },
+  "unresolved_blockers": [],
+  "overall_pass": true,
+  "auto_frozen": false,
+  "flow10b_started": false,
+  "flow15_started": false
+}
