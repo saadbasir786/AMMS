@@ -48,9 +48,8 @@ class Flow0708IndependentAuditTest extends TestCase
         $this->assertTrue(Gate::forUser($techExec)->allows('view', $meeting));
 
         $techExec->roleScopes()->where('organizational_unit_id', $tech->id)->delete();
-        $techExec->unsetRelation('roleScopes');
 
-        $this->assertFalse(Gate::forUser($techExec->fresh(), 'sanctum')->allows('view', $meeting->fresh(['request', 'units', 'participants', 'authorityContext'])));
+        $this->assertFalse(Gate::forUser($techExec->fresh())->allows('view', $meeting->fresh(['request', 'units', 'participants', 'authorityContext'])));
     }
 
     public function test_flow08_unit_ownership_survives_authority_controlled_origin_and_authority_side_remains_office_owned(): void
