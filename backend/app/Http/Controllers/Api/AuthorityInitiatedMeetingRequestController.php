@@ -215,16 +215,17 @@ class AuthorityInitiatedMeetingRequestController
             $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY'),
         )))));
         $employeeId = (int) $user->employee_id;
-        abort_unless($officeUnitIds !== [] || $employeeId > 0, 403, 'FORBIDDEN');
+        $isHighAuthority = $employeeId > 0 && $user->hasRole('HIGH_AUTHORITY', 'sanctum');
+        abort_unless($officeUnitIds !== [] || $isHighAuthority, 403, 'FORBIDDEN');
 
         $query = MeetingRequest::query()
             ->where('flow_type', 'HIGH_AUTHORITY_INITIATED')
-            ->whereHas('authorityContext', function ($q) use ($officeUnitIds, $employeeId) {
-                $q->where(function ($scope) use ($officeUnitIds, $employeeId) {
+            ->whereHas('authorityContext', function ($q) use ($officeUnitIds, $employeeId, $isHighAuthority) {
+                $q->where(function ($scope) use ($officeUnitIds, $employeeId, $isHighAuthority) {
                     if ($officeUnitIds !== []) {
                         $scope->whereIn('authority_office_unit_id', $officeUnitIds);
                     }
-                    if ($employeeId > 0) {
+                    if ($isHighAuthority) {
                         if ($officeUnitIds !== []) $scope->orWhere('authority_employee_id', $employeeId);
                         else $scope->where('authority_employee_id', $employeeId);
                     }
