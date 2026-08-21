@@ -35,7 +35,8 @@ class RecordFingerprintAttendance
                 $sameContext = (int) $existingEvent->meeting_id === (int) $lockedSession->meeting_id
                     && (int) $existingEvent->terminal_session_id === (int) $lockedSession->id
                     && (int) $existingEvent->employee_id === $employeeId
-                    && (string) ($existingEvent->matchedTemplate?->uuid ?? '') === (string) $data['matched_template_uuid'];
+                    && (string) ($existingEvent->matchedTemplate?->uuid ?? '') === (string) $data['matched_template_uuid']
+                    && hash_equals((string) $existingEvent->candidate_set_checksum, (string) $data['candidate_set_checksum']);
 
                 if (!$sameContext) {
                     $this->fail('ATTENDANCE_EVENT_UUID_CONFLICT', 409, 'شناسهٔ رویداد حضور قبلاً برای رویداد دیگری استفاده شده است.');
