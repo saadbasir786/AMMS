@@ -18,7 +18,7 @@ class ResubmitMultiDirectorateRequest
             $locked = $this->lockFlow03Request($request);
             $this->assertActiveActor($actor);
             $requester = $this->requesterUnit($locked);
-            abort_unless($locked->created_by === $actor->id && $actor->can('meeting-request.resubmit') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $requester->id), 403, 'FORBIDDEN');
+            abort_unless($actor->can('meeting-request.resubmit') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $requester->id), 403, 'FORBIDDEN');
 
             if ($locked->status === MeetingRequestStatus::RETURNED_TO_REQUESTER->value) {
                 $from = $this->updateStatus($locked, MeetingRequestStatus::PENDING_REQUESTER_APPROVAL);
