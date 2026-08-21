@@ -116,6 +116,11 @@ class DirectoryController extends Controller
 
         return $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
             $q->whereIn('organizing_unit_id', $unitIds ?: [-1]);
+            if ($unitIds) {
+                $q->orWhereHas('units', fn ($units) => $units
+                    ->whereIn('role', ['REQUESTING', 'PARTICIPATING'])
+                    ->whereIn('organizational_unit_id', $unitIds));
+            }
             if ($user->employee_id) {
                 $q->orWhereHas('participants', fn ($participants) => $participants->where('employee_id', $user->employee_id));
                 $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
