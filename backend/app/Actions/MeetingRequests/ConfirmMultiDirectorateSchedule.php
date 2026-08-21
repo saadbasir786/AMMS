@@ -27,11 +27,26 @@ class ConfirmMultiDirectorateSchedule
             $acceptedIds = $proposal->acceptances->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->unique();
             abort_unless($acceptedIds->diff($unitIds)->isEmpty() && $acceptedIds->count() === $unitIds->count(), 422, 'SCHEDULE_NOT_ACCEPTED_BY_ALL_UNITS');
 
-            $from = $this->updateStatus($locked, MeetingRequestStatus::SCHEDULE_CONFIRMED);
-            $locked->update(['schedule_confirmed_by' => $actor->id, 'schedule_confirmed_at' => now(), 'preferred_date' => $proposal->meeting_date, 'preferred_start_time' => $proposal->start_time, 'proposed_location' => $proposal->location]);
-            $this->record($locked, $actor, 'SCHEDULE_CONFIRMED', $from, $locked->status, null, ['proposal_id' => $proposal->id, 'unit_ids' => $unitIds->all()]);
+            $locked->update([
+                'status' => MeetingRequestStatus::SCHEDULE_CONFIRMED->value,
+                'schedule_confirmed_by' => $actor->id,
+                'schedule_confirmed_at' => now(),
+                'scheduled_date' => $proposal->meeting_date,
+                'scheduled_start_time' => $proposal->start_time,
+                'scheduled_duration_minutes' => $this->durationMinutes($proposal->start_time, $proposal->end_time),
+                'scheduled_location' => $proposal->location,
+            ]);
+            $this->record($locked, $actor, 'SCHEDULE_CONFIRMED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id, 'unit_ids' => $unitIds->all()]);
 
             return $this->responseRequest($locked);
         });
+    }
+
+    private function durationMinutes(string $start, string $end): int
+    {
+        $startAt = strtotime($start);
+        $endAt = strtotime($end);
+        abort_unless($startAt !== false && $endAt !== false && $endAt > $startAt, 422, 'INVALID_SCHEDULE_PROPOSAL');
+        return (int) (($endAt - $startAt) / 60);
     }
 }
