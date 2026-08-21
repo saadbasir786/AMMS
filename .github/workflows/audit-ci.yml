@@ -67,3 +67,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run build
+
+  terminal-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terminal-android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            terminal-android/*.gradle.kts
+            terminal-android/gradle/wrapper/gradle-wrapper.properties
+      - run: python3 tools/run_core_contract.py
+      - run: chmod +x gradlew
+      - run: ./gradlew --no-daemon --max-workers=1 assembleDebug
