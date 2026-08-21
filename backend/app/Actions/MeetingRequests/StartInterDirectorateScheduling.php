@@ -19,9 +19,8 @@ class StartInterDirectorateScheduling
             abort_unless($actor->can('meeting-schedule.propose'), 403, 'FORBIDDEN');
             $locked = $this->lockFlow02Request($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
-            $target = $this->unitFor($locked, 'TARGET');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::BILATERAL_APPROVED, 422, 'BILATERAL_APPROVAL_REQUIRED');
-            abort_unless($this->canCoordinateUnit($actor, $requester->id) || $this->canCoordinateUnit($actor, $target->id), 403, 'FORBIDDEN');
+            abort_unless($this->canCoordinateUnit($actor, $requester->id), 403, 'REQUESTER_LEAD_REQUIRED');
             $from = $this->updateStatus($locked, MeetingRequestStatus::SCHEDULING);
             $this->record($locked, $actor, 'SCHEDULING_STARTED', $from, MeetingRequestStatus::SCHEDULING->value);
             return $this->responseRequest($locked);
