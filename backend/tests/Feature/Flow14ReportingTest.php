@@ -21,21 +21,26 @@ final class Flow14ReportingTest extends TestCase
     private ReportingScopeResolver $scope;
     private ReportingFilter $filters;
     private mixed $originalSqliteDatabase;
+    private mixed $originalDefaultConnection;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->originalSqliteDatabase = config('database.connections.sqlite.database');
-        config(['database.connections.sqlite.database' => dirname(__DIR__, 2).'/database/database.sqlite']);
+        $this->originalDefaultConnection = config('database.default');
+        config([
+            'database.default' => 'sqlite',
+            'database.connections.sqlite.database' => dirname(__DIR__, 2).'/database/database.sqlite',
+        ]);
         DB::purge('sqlite');
         DB::reconnect('sqlite');
-        DB::beginTransaction();
+        DB::connection('sqlite')->beginTransaction();
 
         $this->fixture = json_decode((string) file_get_contents(dirname(__DIR__, 3).'/flow14_canonical_fixture.json'), true, 512, JSON_THROW_ON_ERROR);
 
         // The frozen reporting database is a data fixture, not an authentication seeder. Bind a
-        // temporary actor to the fixture's declared scope inside a rolled-back transaction instead
-        // of depending on a historical seeded email that may legitimately disappear.
+        // temporary actor to the fixture's declared scope inside a rolled-back SQLite transaction
+        // instead of depending on a historical seeded email or the CI suite's default database.
         $user = User::query()->firstOrCreate(
             ['email' => 'flow14.fixture.actor@example.test'],
             ['name' => 'FLOW-14 Fixture Actor', 'password' => 'Flow14FixtureOnly!2026', 'status' => 'ACTIVE'],
@@ -61,9 +66,14 @@ final class Flow14ReportingTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (DB::transactionLevel() > 0) DB::rollBack();
+        if (DB::connection('sqlite')->transactionLevel() > 0) {
+            DB::connection('sqlite')->rollBack();
+        }
         DB::disconnect('sqlite');
-        config(['database.connections.sqlite.database' => $this->originalSqliteDatabase]);
+        config([
+            'database.default' => $this->originalDefaultConnection,
+            'database.connections.sqlite.database' => $this->originalSqliteDatabase,
+        ]);
         DB::purge('sqlite');
         parent::tearDown();
     }
