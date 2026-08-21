@@ -8,9 +8,13 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('meeting_requests', function (Blueprint $table): void {
-            $table->foreignId('confirmed_chairperson_employee_id')
+            $table->date('scheduled_date')->nullable()->after('proposed_location');
+            $table->time('scheduled_start_time')->nullable()->after('scheduled_date');
+            $table->unsignedInteger('scheduled_duration_minutes')->nullable()->after('scheduled_start_time');
+            $table->string('scheduled_location')->nullable()->after('scheduled_duration_minutes');
+            $table->foreignId('scheduled_chairperson_employee_id')
                 ->nullable()
-                ->after('proposed_location')
+                ->after('scheduled_location')
                 ->constrained('employees')
                 ->restrictOnDelete();
         });
@@ -19,7 +23,8 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('meeting_requests', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('confirmed_chairperson_employee_id');
+            $table->dropConstrainedForeignId('scheduled_chairperson_employee_id');
+            $table->dropColumn(['scheduled_date','scheduled_start_time','scheduled_duration_minutes','scheduled_location']);
         });
     }
 };
