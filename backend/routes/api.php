@@ -160,6 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meeting-requests/{meetingRequest}/requester-approve', [InterDirectorateMeetingRequestController::class, 'requesterApprove']);
     Route::post('/meeting-requests/{meetingRequest}/requester-return', [InterDirectorateMeetingRequestController::class, 'requesterReturn']);
     Route::post('/meeting-requests/{meetingRequest}/requester-reject', [InterDirectorateMeetingRequestController::class, 'requesterReject']);
+    Route::post('/meeting-requests/{meetingRequest}/resubmit-requester', [InterDirectorateMeetingRequestController::class, 'resubmitRequester']);
     Route::post('/meeting-requests/{meetingRequest}/target-review', [InterDirectorateMeetingRequestController::class, 'targetReview']);
     Route::post('/meeting-requests/{meetingRequest}/target-approve', [InterDirectorateMeetingRequestController::class, 'targetApprove']);
     Route::post('/meeting-requests/{meetingRequest}/target-return', [InterDirectorateMeetingRequestController::class, 'targetReturn']);
