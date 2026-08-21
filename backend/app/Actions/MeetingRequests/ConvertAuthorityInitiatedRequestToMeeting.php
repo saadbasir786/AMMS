@@ -50,6 +50,8 @@ class ConvertAuthorityInitiatedRequestToMeeting
             foreach ($unitIds as $unitId) {
                 abort_unless($unitNominations->where('nominated_by_unit_id', $unitId)->isNotEmpty(), 422, 'ALL_DIRECTORATE_PARTICIPANTS_REQUIRED');
             }
+            $allParticipantIds = $unitNominations->pluck('employee_id')->concat($authorityNominations->pluck('employee_id'));
+            abort_unless($allParticipantIds->unique()->count() === $allParticipantIds->count(), 422, 'DUPLICATE_FINAL_PARTICIPANT');
 
             $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
             $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)->addMinutes((int) $locked->scheduled_duration_minutes)->format('H:i');
