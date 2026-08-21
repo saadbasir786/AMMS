@@ -7,7 +7,6 @@ use App\Models\MeetingAction;
 use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingParticipantVersion;
 use App\Models\MeetingParticipantVersionMember;
-use Illuminate\Support\Facades\DB;
 
 class ParticipantVersionService
 {
@@ -19,10 +18,12 @@ class ParticipantVersionService
             return $existing->load('members.employee.unit');
         }
 
-        $meeting->loadMissing(['request.authorityContext', 'participants.employee.unit']);
-        $formalUnitIds = $meeting->request?->units()->whereIn('role', ['REQUESTER', 'TARGET', 'REQUESTING', 'PARTICIPATING'])->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->all() ?? [];
-        $authorityEmployeeId = (int) ($meeting->request?->authorityContext?->authority_employee_id ?? $meeting->authorityContext?->authority_employee_id ?? 0);
-        $authorityOfficeUnitId = (int) ($meeting->request?->authorityContext?->authority_office_unit_id ?? $meeting->authorityContext?->authority_office_unit_id ?? 0);
+        $meeting->loadMissing(['units.unit', 'authorityContext', 'participants.employee.unit']);
+        $formalUnits = $meeting->units->whereIn('role', ['REQUESTER', 'TARGET', 'REQUESTING', 'PARTICIPATING'])->values();
+        $authorityEmployeeId = (int) ($meeting->authorityContext?->authority_employee_id ?? 0);
+        $authorityOfficeUnitId = (int) ($meeting->authorityContext?->authority_office_unit_id ?? 0);
+        $authorityOffice = $authorityOfficeUnitId > 0 ? \App\Models\OrganizationalUnit::find($authorityOfficeUnitId) : null;
+
         $version = MeetingParticipantVersion::create([
             'meeting_id' => $meeting->id,
             'version_number' => 1,
@@ -34,15 +35,23 @@ class ParticipantVersionService
         foreach ($meeting->participants as $participant) {
             $employeeUnitId = (int) $participant->organizational_unit_id;
             $isAuthority = $authorityEmployeeId > 0 && (int) $participant->employee_id === $authorityEmployeeId;
-            $isAuthoritySide = $isAuthority || ($authorityOfficeUnitId > 0 && $employeeUnitId === $authorityOfficeUnitId);
-            $isFormalUnit = in_array($employeeUnitId, $formalUnitIds, true) || $formalUnitIds === [];
+            $isAuthoritySide = $isAuthority || ($authorityOffice && $authorityOffice->isWithinScope($employeeUnitId));
+            $formalOwner = $formalUnits->first(function ($formalUnit) use ($employeeUnitId): bool {
+                $unit = $formalUnit->unit;
+                return $unit && $unit->isWithinScope($employeeUnitId);
+            });
+
+            if (!$isAuthoritySide && !$formalOwner) {
+                throw new \RuntimeException('PARTICIPANT_OWNER_DOMAIN_NOT_FOUND');
+            }
+
             MeetingParticipantVersionMember::create([
                 'participant_version_id' => $version->id,
                 'employee_id' => $participant->employee_id,
                 'organizational_unit_id' => $employeeUnitId,
                 'participant_role' => $participant->role,
-                'owner_type' => $isAuthoritySide || (!$isFormalUnit && $authorityOfficeUnitId > 0) ? 'AUTHORITY' : 'UNIT',
-                'owner_unit_id' => $isAuthoritySide || (!$isFormalUnit && $authorityOfficeUnitId > 0) ? null : $employeeUnitId,
+                'owner_type' => $isAuthoritySide ? 'AUTHORITY' : 'UNIT',
+                'owner_unit_id' => $isAuthoritySide ? null : (int) $formalOwner->organizational_unit_id,
                 'is_mandatory' => $isAuthority,
                 'created_at' => now(),
             ]);
