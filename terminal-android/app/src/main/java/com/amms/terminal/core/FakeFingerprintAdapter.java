@@ -14,12 +14,12 @@ public final class FakeFingerprintAdapter {
         if (vector == CaptureVector.NO_MATCH || candidates == null || candidates.isEmpty()) return FingerprintOutcome.noMatch();
         if (vector == CaptureVector.LOW_SCORE) return FingerprintOutcome.lowScore(41);
         Candidate first = candidates.get(0);
-        return FingerprintOutcome.match(first.templateUuid(), 97);
+        return FingerprintOutcome.match(first.employeeId(), first.templateUuid(), 97);
     }
 
-    public record Candidate(String employeeId, String templateUuid, String templateData, String checksum) {
+    public record Candidate(long employeeId, String templateUuid, String templateData, String checksum) {
         public Candidate {
-            if (employeeId == null || templateUuid == null || templateData == null || checksum == null) throw new IllegalArgumentException("candidate fields required");
+            if (employeeId <= 0 || templateUuid == null || templateData == null || checksum == null) throw new IllegalArgumentException("candidate fields required");
         }
     }
 }
