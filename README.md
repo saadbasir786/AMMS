@@ -1,60 +1,85 @@
-# AMMS Phase 1 and FLOW-02
+# AMMS — Administrative Meeting Management System
 
-AMMS is a Persian/Dari right-to-left Administrative Meeting Management System for an Afghan government organization. The current implementation contains the standardized Foundation from Prompt 01A Final, FLOW-01 for internal directorate meeting requests, and FLOW-02 for formal meetings between exactly two directorates in the same organization.
+AMMS is a Persian/Dari right-to-left Administrative Meeting Management System for an Afghan government organization.
+
+## Current release position
+
+The current product scope is frozen at **FLOW-01 through FLOW-14**. The independent audit and consolidation cycle is complete. No new business capability or FLOW-15 development is part of the current release plan.
+
+The authoritative release statement is [`RELEASE_BASELINE.md`](RELEASE_BASELINE.md).
+
+**FLOW-10B** — physical DERMALOG SVT3000 SE integration and lawful vendor-SDK/hardware acceptance — remains explicitly deferred. The vendor-independent terminal and biometric software foundation from FLOW-10A remains part of the current baseline.
 
 ## Architecture
 
-The backend is a Laravel 13 REST API using Sanctum, Spatie Permission v8.3, Eloquent models, Form Requests, Policies, explicit Action/Use Case classes, database transactions, row locks, stable JSON error envelopes, immutable request-action history, audit events, and in-app notifications. Spatie is used only for general roles and permissions. AMMS `organizational_units` and `amms_role_scopes` remain the authoritative hierarchy and scope context; Spatie Teams are not used.
+### Backend
 
-The frontend is a React 19, TypeScript, and Vite application. It communicates through `/api` endpoints and presents user-facing content in Persian/Dari RTL. Laravel remains the authoritative business layer; React does not implement workflow decisions or authorization rules.
+- Laravel 13 REST API
+- Sanctum authentication
+- Spatie Permission for general capability assignment
+- AMMS organizational units and role scopes for business scope
+- Form Requests, Policies, explicit Action / Use Case classes
+- database transactions and row locking
+- immutable/versioned workflow records where required
+- audit and notification records
+- MariaDB/MySQL production-oriented persistence
 
-## FLOW-01 lifecycle
+Laravel is the authoritative business and authorization layer. The frontend does not implement workflow decisions or substitute for backend authorization.
 
-The frozen internal-directorate lifecycle is:
+### Frontend
 
-```text
-DRAFT → PENDING_INTERNAL_APPROVAL → APPROVED
-                              ├→ RETURNED_FOR_REVISION → PENDING_INTERNAL_APPROVAL
-                              └→ REJECTED
-APPROVED → SCHEDULING → SCHEDULE_CONFIRMED → CONVERTED_TO_MEETING
-```
+- React 19
+- TypeScript
+- Vite
+- Persian/Dari RTL user interface
 
-A request is separate from an official meeting. No meeting is created before schedule confirmation and finalization, and the database enforces one meeting per request.
+### Terminal Android
 
-## FLOW-02 lifecycle
+- independent Android module under `terminal-android/`
+- vendor-independent enrollment/meeting workflow foundation
+- deterministic core contract tests
+- Gradle `assembleDebug` CI gate
+- no claim of physical DERMALOG SDK behavior until FLOW-10B is executed
 
-FLOW-02 supports exactly two distinct directorates under the same organization. A third directorate is rejected with the multi-directorate boundary error; cross-organization and same-directorate pairs are also rejected.
+## Frozen functional areas
 
-```text
-DRAFT
-  → PENDING_REQUESTER_APPROVAL
-  → REQUESTER_APPROVED → SUBMITTED_TO_TARGET
-  → UNDER_TARGET_REVIEW
-  → TARGET_APPROVED → BILATERAL_APPROVED
-  → SCHEDULING
-  → SCHEDULE_CONFIRMED
-  → CONVERTED_TO_MEETING
-```
+The current baseline includes the already implemented and verified capabilities for:
 
-Target-side return uses a separate resubmission path and target-side rejection is terminal. Schedule proposals are append-only records; accepting a proposal supersedes older active proposals without overwriting their history. Participant nominations are owned by one of the two directorates, and each side confirms its own final list independently. The final meeting contains exactly two official `meeting_units` rows.
+- internal, bilateral, multilateral, high-authority, and authority-initiated meeting governance;
+- scheduling and participant versioning with stale-state protection;
+- terminal registration, assignment, session management, and vendor-independent biometric foundation;
+- meeting execution and attendance;
+- Minutes, decisions, reviews, finalization, and official document generation;
+- Decision follow-up and Action Item governance;
+- exceptional meeting lifecycle governance;
+- reporting, dashboards, management analytics, registers, and secure private PDF/XLSX exports.
 
-## RBAC and scope model
+Detailed workflow contracts and evidence remain in the FLOW verification, browser-acceptance, negative-matrix, canonical-fixture, HTTP, and concurrency artifacts in this repository.
 
-The authoritative distinction is as follows:
+## Authorization model
+
+AMMS separates capability from business authority:
 
 | Layer | Responsibility |
 |---|---|
-| Spatie Permission | General role and permission capability. |
-| AMMS organizational units | Organization hierarchy and directorate boundaries. |
-| `amms_role_scopes` | Links a user, Spatie role, and organizational unit. |
-| Laravel Policy | Permission, scope, resource, ownership, and active-account authorization. |
-| Action / Use Case | State transition, invariant, transaction, row lock, audit, and notification behavior. |
+| Spatie Permission | General named capabilities |
+| AMMS organizational units | Organization hierarchy and business boundaries |
+| AMMS role scopes | User/role/unit scope relationships |
+| Laravel Policy | Permission + scope + resource/ownership + active-account authorization |
+| Action / Use Case | State transition, invariant, transaction, row lock, audit, and notification behavior |
 
-The Foundation migration seeds 20 permissions and five roles: `SYSTEM_ADMIN`, `EXECUTIVE_MANAGEMENT`, `DIRECTOR`, `MEETING_COORDINATOR`, and `EMPLOYEE`. FLOW-02 adds its frozen permission set with `guard_name=sanctum` and attaches permissions only to existing authorized roles. The legacy `user_roles` table is preserved and backfilled rather than dropped. The `meeting-request.cancel` permission and transition are intentionally not present.
+`SYSTEM_ADMIN` is a technical administration role. System-administration status alone must not provide meeting business-governance authority.
 
 ## Prerequisites
 
-Use PHP 8.3+, Composer, Node.js 22+, pnpm, and MySQL 8+ or MariaDB 10.11+. SQLite is supported for isolated automated verification. The application is designed for MySQL-compatible foreign keys, indexes, unique constraints, timestamps, JSON metadata, and InnoDB row locking.
+- PHP 8.3+
+- Composer
+- Node.js 22+
+- pnpm 10+
+- MySQL 8+ or MariaDB 10.11+
+- Java 21 for the Android terminal build
+
+SQLite is used only where explicitly required for isolated automated fixtures/verification. MariaDB remains part of the authoritative backend CI gate.
 
 ## Backend setup
 
@@ -62,88 +87,52 @@ Use PHP 8.3+, Composer, Node.js 22+, pnpm, and MySQL 8+ or MariaDB 10.11+. SQLit
 cd backend
 cp .env.example .env
 php artisan key:generate
-# Configure DB_CONNECTION=mysql and DB_* values in .env.
+# Configure DB_CONNECTION=mysql and DB_* for an isolated database.
 php artisan migrate --seed
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-For local SQLite verification:
-
-```bash
-touch database/database.sqlite
-# Set DB_CONNECTION=sqlite and DB_DATABASE=/absolute/path/to/backend/database/database.sqlite.
-php artisan migrate:fresh --seed
-```
-
-Use `php artisan migrate --force` for incremental deployment migrations. Do not run `migrate:fresh` against production or any environment containing working data.
+For incremental deployments, use migrations. **Do not run `migrate:fresh` against production or any environment containing working data.**
 
 ## Frontend setup
 
 ```bash
 cd frontend
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The Vite development server normally runs on `http://127.0.0.1:5173`; the local smoke environment used `http://127.0.0.1:5174`. Both proxy `/api` to Laravel at port 8000. Build verification is:
+Production verification:
 
 ```bash
-pnpm build
+pnpm run lint
+pnpm run build
 ```
 
-## Development accounts
-
-All seeded development accounts use the non-production password `ChangeMe!2026`. Change or remove these accounts before any production deployment.
-
-| Role | Email | Scope |
-|---|---|---|
-| System Administrator | `system.admin@example.test` | All organization data |
-| Technology Executive Management | `tech.exec@example.test` | Technology Directorate |
-| Technology Director | `tech.director@example.test` | Technology Directorate approval |
-| Technology Coordinator | `tech.coordinator@example.test` | Technology Directorate scheduling |
-| Technology Employee | `employee.a@example.test` | Software Department |
-| Finance Executive Management | `finance.exec@example.test` | Finance Directorate |
-| Finance Director | `finance.director@example.test` | Finance Directorate approval |
-
-## API highlights
-
-Unauthenticated access is limited to `POST /api/login`. Authenticated endpoints include `/api/me`, `/api/dashboard`, `/api/meeting-requests`, `/api/incoming-meeting-requests`, `/api/approvals`, `/api/meetings`, `/api/notifications`, `/api/organizational-units`, `/api/employees`, and `/api/admin/*` administration endpoints.
-
-FLOW-01 operations are exposed as separate endpoints: `/submit`, `/approve`, `/return`, `/reject`, `/start-scheduling`, `/confirm-schedule`, and `/finalize`. The existing `/submit` endpoint selects `SubmitMeetingRequest` for `DRAFT` and `ResubmitMeetingRequest` for `RETURNED_FOR_REVISION`.
-
-FLOW-02 operations are explicit and do not expose a generic status-update endpoint. The main routes are `/inter-directorate`, `/submit-inter-directorate`, `/requester-approve`, `/requester-return`, `/requester-reject`, `/target-review`, `/target-approve`, `/target-return`, `/target-reject`, `/resubmit-to-target`, `/start-inter-directorate-scheduling`, `/schedule-proposals`, `/participant-nominations`, `/requester-participants/confirm`, `/target-participants/confirm`, `/confirm-inter-directorate-schedule`, and `/finalize-inter-directorate`.
-
-Responses follow `{ success, data, message }` on success and `{ success, code, message }` on errors. Important machine-readable error codes include `UNAUTHORIZED_APPROVER`, `REQUEST_NOT_PENDING_APPROVAL`, `RETURN_REASON_REQUIRED`, `REJECTION_REASON_REQUIRED`, `PARTICIPANT_OUTSIDE_DIRECTORATE`, `REQUEST_NOT_APPROVED`, `SCHEDULE_INCOMPLETE`, `MEETING_ALREADY_CREATED`, `THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_FLOW`, and target-side availability errors.
-
-## Tests and verification
-
-Run the local feature suite and frontend build with:
+## Terminal Android verification
 
 ```bash
-cd backend
-php artisan test --testsuite=Feature
-
-cd ../frontend
-pnpm build
+cd terminal-android
+python3 tools/run_core_contract.py
+./gradlew --no-daemon --max-workers=1 assembleDebug
 ```
 
-The current suite passes **18 feature tests with 143 assertions**. It covers FLOW-01 and FLOW-02 creation, bilateral approval, target review, target return/resubmission, rejection, proposal negotiation, participant ownership, two-directorate constraints, single-meeting conversion, duplicate-operation protection, permission denial, directorate scope enforcement, inactive-account enforcement, persisted workflow history, and audit immutability.
+## CI gate
 
-The real database concurrency probe is:
+`.github/workflows/audit-ci.yml` currently defines the authoritative three-part AMMS CI gate:
 
-```bash
-cd backend
-php tests/Concurrency/mysql_row_lock_test.php
-```
+1. Laravel Feature suite on MariaDB;
+2. frontend lint and production build;
+3. terminal Android core contract and `assembleDebug`.
 
-It requires an isolated MySQL/MariaDB database configured through `AMMS_MYSQL_HOST`, `AMMS_MYSQL_PORT`, `AMMS_MYSQL_DATABASE`, `AMMS_MYSQL_USERNAME`, and `AMMS_MYSQL_PASSWORD`. The probe verifies row-lock serialization, one-meeting uniqueness, and FLOW-02 parallel finalization producing one converted meeting.
+The workflow is intended to protect pull requests and, after the release-hardening change is merged, pushes to `main`, `release/**`, and retained `audit/**` branches.
 
-The final verification report is in [`VERIFICATION.md`](VERIFICATION.md). FLOW-02 browser/API smoke evidence is in [`browser_smoke_flow02.md`](browser_smoke_flow02.md).
+## Development/test accounts
 
-## Manual FLOW-02 scenario
+The repository contains seeded development/test identities. They are not production credentials and must be changed, disabled, or removed as part of production deployment hardening. Do not deploy known development passwords into a production environment.
 
-Log in as `tech.exec@example.test` and open `meeting-requests/create-inter-directorate`. Select Technology as the requester directorate and Finance as the target directorate, enter a subject, purpose, schedule proposal, location, and participants from both sides, then submit for requester approval. Approve as `tech.director@example.test`, begin target review as `finance.exec@example.test`, and approve as `finance.director@example.test`. Start scheduling, exchange proposals, accept one active proposal, nominate and confirm participants separately for both directorates, confirm the bilateral schedule, and finalize the meeting. The request becomes `CONVERTED_TO_MEETING`, exactly one meeting is generated, and the meeting contains exactly two official directorate units.
+## Release boundary
 
-## Scope boundary
+The current phase is **release/production readiness**, not feature development. Allowed work is limited to bug fixes, security fixes, regression protection, documentation synchronization, CI/CD hardening, dependency maintenance with regression verification, performance work that preserves semantics, and deployment/operational hardening.
 
-This phase intentionally does not implement three-or-more-directorate workflows, cross-organization workflows, ministerial or Director General workflows, attendance, biometric terminals, minutes, decisions, action items, SMS, email integration, external integrations, or the unimplemented cancel transition. These remain outside the current FLOW-02 boundary and belong to later prompts.
+No new workflow, role, approval path, business lifecycle state, delegation/acting-authority behavior, notification product, or other new business capability should be introduced without a separate explicit product decision.

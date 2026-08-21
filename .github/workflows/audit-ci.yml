@@ -1,8 +1,10 @@
-name: AMMS Audit CI
+name: AMMS CI
 
 on:
   push:
     branches:
+      - main
+      - release/**
       - audit/**
   pull_request:
 
