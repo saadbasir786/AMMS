@@ -51,6 +51,57 @@ class FoundationFlow01AuditTest extends TestCase
             ->assertJsonPath('data.upcoming_meetings', 0);
     }
 
+    public function test_request_preferences_do_not_become_scheduled_values_automatically(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $director = User::where('email','tech.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+        $employees = Employee::whereIn('employee_number',['EMP-TECH-001','EMP-TECH-003'])->pluck('id')->all();
+        $preferredDate = now()->addDays(3)->format('Y-m-d');
+        $scheduledDate = now()->addDays(8)->format('Y-m-d');
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', [
+            'requesting_unit_id'=>$tech->id,
+            'subject'=>'تفکیک پیشنهاد از زمان‌بندی',
+            'purpose'=>'COORDINATION',
+            'priority'=>'NORMAL',
+            'preferred_date'=>$preferredDate,
+            'preferred_start_time'=>'08:30',
+            'estimated_duration_minutes'=>45,
+            'proposed_location'=>'دفتر پیشنهادی',
+            'participant_ids'=>$employees,
+        ])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
+        $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk();
+
+        $request->refresh();
+        $this->assertSame($preferredDate, $request->preferred_date->format('Y-m-d'));
+        $this->assertNull($request->scheduled_date);
+        $this->assertNull($request->scheduled_start_time);
+        $this->assertNull($request->scheduled_location);
+
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule", [
+            'meeting_date'=>$scheduledDate,
+            'start_time'=>'14:00',
+            'duration_minutes'=>90,
+            'location'=>'تالار رسمی جلسه',
+            'chairperson_employee_id'=>$employees[0],
+            'participant_ids'=>$employees,
+        ])->assertOk();
+
+        $request->refresh();
+        $this->assertSame($preferredDate, $request->preferred_date->format('Y-m-d'));
+        $this->assertSame('08:30', substr((string) $request->preferred_start_time, 0, 5));
+        $this->assertSame(45, (int) $request->estimated_duration_minutes);
+        $this->assertSame('دفتر پیشنهادی', $request->proposed_location);
+        $this->assertSame($scheduledDate, $request->scheduled_date->format('Y-m-d'));
+        $this->assertSame('14:00', substr((string) $request->scheduled_start_time, 0, 5));
+        $this->assertSame(90, (int) $request->scheduled_duration_minutes);
+        $this->assertSame('تالار رسمی جلسه', $request->scheduled_location);
+    }
+
     public function test_finalize_rejects_any_change_to_confirmed_schedule_snapshot(): void
     {
         $exec = User::where('email','tech.exec@example.test')->firstOrFail();
@@ -93,14 +144,14 @@ class FoundationFlow01AuditTest extends TestCase
         $this->assertSame(0, Meeting::where('meeting_request_id', $request->id)->count());
     }
 
-    public function test_finalize_uses_confirmed_schedule_exactly(): void
+    public function test_finalize_uses_scheduled_values_exactly(): void
     {
         [$request, $meeting] = $this->createFlow01Meeting();
 
-        $this->assertSame($request->preferred_date->format('Y-m-d'), $meeting->meeting_date->format('Y-m-d'));
-        $this->assertSame(substr((string) $request->preferred_start_time, 0, 5), substr((string) $meeting->start_time, 0, 5));
-        $this->assertSame($request->proposed_location, $meeting->location);
-        $this->assertSame((int) $request->confirmed_chairperson_employee_id, (int) $meeting->chairperson_employee_id);
+        $this->assertSame($request->scheduled_date->format('Y-m-d'), $meeting->meeting_date->format('Y-m-d'));
+        $this->assertSame(substr((string) $request->scheduled_start_time, 0, 5), substr((string) $meeting->start_time, 0, 5));
+        $this->assertSame($request->scheduled_location, $meeting->location);
+        $this->assertSame((int) $request->scheduled_chairperson_employee_id, (int) $meeting->chairperson_employee_id);
     }
 
     private function createFlow01Meeting(): array
