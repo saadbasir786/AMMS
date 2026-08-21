@@ -16,6 +16,8 @@ class FinalizeMultiDirectorateMeetingRequest extends FormRequest
         return [
             'chairperson_employee_id' => ['required', 'integer', 'exists:employees,id'],
             'agenda' => ['nullable', 'string', 'max:5000'],
+            'location' => ['prohibited'],
+            'end_time' => ['prohibited'],
         ];
     }
 }
