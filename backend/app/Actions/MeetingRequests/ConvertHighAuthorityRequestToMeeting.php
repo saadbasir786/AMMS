@@ -9,6 +9,7 @@ use App\Models\MeetingRequest;
 use App\Models\MeetingAuthorityParticipantConfirmation;
 use App\Models\MeetingAuthorityScheduleAcknowledgement;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ConvertHighAuthorityRequestToMeeting
@@ -32,19 +33,19 @@ class ConvertHighAuthorityRequestToMeeting
             $proposal = $locked->scheduleProposals()->whereIn('proposal_type', ['AUTHORITY_OFFICIAL_PROPOSAL', 'AUTHORITY_REVISED_PROPOSAL'])->where('status', 'ACCEPTED')->latest('id')->first();
             abort_unless($proposal, 422, 'AUTHORITY_SCHEDULE_REQUIRED');
             abort_unless(MeetingAuthorityScheduleAcknowledgement::where('meeting_schedule_proposal_id', $proposal->id)->where('requesting_unit_id', $locked->requesting_unit_id)->exists(), 422, 'AUTHORITY_SCHEDULE_NOT_ACKNOWLEDGED');
-            abort_unless($locked->schedule_confirmed_by && $locked->schedule_confirmed_at, 422, 'AUTHORITY_SCHEDULE_NOT_CONFIRMED');
+            abort_unless($locked->schedule_confirmed_by && $locked->schedule_confirmed_at && $locked->scheduled_date && $locked->scheduled_start_time && $locked->scheduled_duration_minutes && $locked->scheduled_location, 422, 'AUTHORITY_SCHEDULE_NOT_CONFIRMED');
             abort_unless(MeetingAuthorityParticipantConfirmation::where('meeting_request_id', $locked->id)->where('side', 'REQUESTER')->exists(), 422, 'REQUESTER_PARTICIPANTS_NOT_CONFIRMED');
             abort_unless(MeetingAuthorityParticipantConfirmation::where('meeting_request_id', $locked->id)->where('side', 'AUTHORITY')->exists(), 422, 'AUTHORITY_PARTICIPANTS_NOT_CONFIRMED');
 
-            $requesterNominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'NOMINATED')->where('nominated_by_unit_id', $locked->requesting_unit_id)->get();
-            $authorityNominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'NOMINATED')->where('nominated_by_unit_id', $context->authority_office_unit_id)->get();
+            $requesterNominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $locked->requesting_unit_id)->get();
+            $authorityNominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $context->authority_office_unit_id)->get();
             abort_unless($requesterNominations->isNotEmpty(), 422, 'REQUESTER_PARTICIPANTS_NOT_CONFIRMED');
             abort_unless($authorityNominations->contains('employee_id', $holder->id), 422, 'HIGH_AUTHORITY_PARTICIPANT_REQUIRED');
             $allNominations = $requesterNominations->concat($authorityNominations);
             abort_unless($allNominations->pluck('employee_id')->unique()->count() === $allNominations->count(), 422, 'DUPLICATE_FINAL_PARTICIPANT');
 
-            $location = $proposal->location;
-            abort_unless(filled($location) && (string) $proposal->end_time > (string) $proposal->start_time, 422, 'AUTHORITY_SCHEDULE_REQUIRED');
+            $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
+            $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)->addMinutes((int) $locked->scheduled_duration_minutes)->format('H:i');
             $meeting = Meeting::create([
                 'meeting_request_id' => $locked->id,
                 'meeting_number' => $this->nextNumber('meetings', 'MT'),
@@ -53,10 +54,10 @@ class ConvertHighAuthorityRequestToMeeting
                 'organizing_unit_id' => $locked->requesting_unit_id,
                 'coordinator_id' => $actor->id,
                 'chairperson_employee_id' => $holder->id,
-                'meeting_date' => $proposal->meeting_date,
-                'start_time' => $proposal->start_time,
-                'end_time' => $proposal->end_time,
-                'location' => $location,
+                'meeting_date' => $locked->scheduled_date->format('Y-m-d'),
+                'start_time' => $scheduledStart,
+                'end_time' => $scheduledEnd,
+                'location' => $locked->scheduled_location,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
@@ -77,7 +78,7 @@ class ConvertHighAuthorityRequestToMeeting
 
             $from = $this->updateStatus($locked, MeetingRequestStatus::CONVERTED_TO_MEETING);
             $this->record($locked, $actor, 'MEETING_CREATED', $from, $locked->status, null, ['meeting_id' => $meeting->id, 'authority_employee_id' => $holder->id, 'requesting_unit_id' => $locked->requesting_unit_id]);
-            $recipientIds = User::whereIn('employee_id', $allNominations->pluck('employee_id')->all())->pluck('id')->push($locked->created_by)->unique();
+            $recipientIds = User::whereIn('employee_id', $allNominations->pluck('employee_id')->all())->pluck('id')->unique();
             foreach ($recipientIds as $recipientId) $this->notifyUser((int) $recipientId, 'جلسه با مقام عالی ایجاد شد', 'جلسهٔ رسمی پس از تأیید مقام عالی و نهایی‌شدن زمان‌بندی ایجاد شد.', $locked);
             $this->notifyUsersForUnit($context->authority_office_unit_id, ['EXECUTIVE_SECRETARY'], 'جلسه با مقام عالی نهایی شد', 'جلسهٔ رسمی در تقویم مقام عالی ثبت شد.', $locked);
 
