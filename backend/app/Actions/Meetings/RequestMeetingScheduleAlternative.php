@@ -25,8 +25,9 @@ class RequestMeetingScheduleAlternative
             $this->ensureCaseActive($case);
             abort_unless((int) $proposal->meeting_id === (int) $locked->id && (int) $proposal->reschedule_case_id === (int) $case->id && $proposal->status === 'ACTIVE', 422, 'RESCHEDULE_PROPOSAL_NOT_ACTIVE');
             $governance = $this->resolver($locked);
-            $unitId = $this->actorUnitId($actor);
-            abort_unless($unitId && in_array($unitId, $governance['required_unit_ids'], true), 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
+            abort_unless($actor->isActive() && $actor->can('meeting-reschedule.request-alternative'), 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
+            $unitId = $this->actorFormalUnitId($actor, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
+            abort_unless($unitId, 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
             $reason = trim((string) ($data['reason'] ?? ''));
             if ($reason === '') throw new HttpException(422, 'RESCHEDULE_REASON_REQUIRED');
             abort_if($proposal->alternativeRequests()->where('organizational_unit_id', $unitId)->where('status', 'OPEN')->exists(), 422, 'ALTERNATIVE_ALREADY_OPEN');
@@ -45,7 +46,11 @@ class RequestMeetingScheduleAlternative
             $this->recordMeetingAction($locked, $actor, 'RESCHEDULE_ALTERNATIVE_REQUESTED', $reason, [
                 'case_id' => $case->id, 'proposal_id' => $proposal->id, 'alternative_request_id' => $alternative->id, 'organizational_unit_id' => $unitId,
             ]);
-            $this->notifyUsers($this->authoritySchedulerIds($governance['authority_office_unit_id']), 'MEETING_RESCHEDULE', 'درخواست زمان بدیل', 'یک ریاست برای پیشنهاد رسمی زمان بدیل درخواست کرده است.', ['meeting_id' => $locked->id, 'case_id' => $case->id, 'proposal_id' => $proposal->id, 'alternative_request_id' => $alternative->id]);
+            if ($governance['authority_controlled']) {
+                $this->notifyUsers($this->authoritySchedulerIds($governance['authority_office_unit_id']), 'MEETING_RESCHEDULE', 'درخواست زمان بدیل', 'یک ریاست برای پیشنهاد رسمی زمان بدیل درخواست کرده است.', ['meeting_id' => $locked->id, 'case_id' => $case->id, 'proposal_id' => $proposal->id, 'alternative_request_id' => $alternative->id]);
+            } else {
+                $this->notifyFormalUnits($locked, $governance['required_unit_ids'], 'MEETING_RESCHEDULE', 'درخواست زمان بدیل', 'یکی از ریاست‌های رسمی برای زمان جلسه درخواست بدیل ثبت کرده است.', ['case_id' => $case->id, 'proposal_id' => $proposal->id, 'alternative_request_id' => $alternative->id]);
+            }
             return $alternative->fresh(['unit', 'requestedBy']);
         });
     }
