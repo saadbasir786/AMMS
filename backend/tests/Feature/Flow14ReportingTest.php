@@ -9,28 +9,42 @@ use App\Models\User;
 use App\Reporting\Filters\ReportingFilter;
 use App\Reporting\Queries\ReportingQueryService;
 use App\Reporting\Scopes\ReportingScopeResolver;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 final class Flow14ReportingTest extends TestCase
 {
-    use DatabaseMigrations;
-
     private array $fixture;
     private ReportingQueryService $service;
     private ReportingScopeResolver $scope;
     private ReportingFilter $filters;
     private string $fixturePath;
+    private string $fixtureDatabasePath;
+    private mixed $originalSqliteDatabase;
+    private mixed $originalDefaultConnection;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed();
 
+        $this->originalSqliteDatabase = config('database.connections.sqlite.database');
+        $this->originalDefaultConnection = config('database.default');
         $this->fixturePath = dirname(__DIR__, 3).'/flow14_canonical_fixture.json';
+        $this->fixtureDatabasePath = storage_path('framework/testing/flow14-'.getmypid().'-'.bin2hex(random_bytes(6)).'.sqlite');
+
         $this->regenerateCanonicalFixture();
+
+        config([
+            'database.default' => 'sqlite',
+            'database.connections.sqlite.database' => $this->fixtureDatabasePath,
+        ]);
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
+        DB::connection('sqlite')->beginTransaction();
+
         $this->fixture = json_decode(
             (string) file_get_contents($this->fixturePath),
             true,
@@ -38,8 +52,13 @@ final class Flow14ReportingTest extends TestCase
             JSON_THROW_ON_ERROR,
         );
 
-        // Bind a dedicated reporting actor to the generated canonical scope. The fixture itself
-        // remains deterministic and the assertions exercise the real ReportingQueryService.
+        if (($this->fixture['database_driver'] ?? null) !== 'sqlite') {
+            throw new \RuntimeException('FLOW-14 canonical fixture must be generated on isolated SQLite.');
+        }
+
+        // The canonical reporting database is deliberately isolated from the suite's MariaDB
+        // connection. Bind a temporary actor inside a rolled-back SQLite transaction so FLOW-14
+        // cannot leak fixture rows into later Feature tests.
         $user = User::query()->firstOrCreate(
             ['email' => 'flow14.fixture.actor@example.test'],
             ['name' => 'FLOW-14 Fixture Actor', 'password' => 'Flow14FixtureOnly!2026', 'status' => 'ACTIVE'],
@@ -65,8 +84,31 @@ final class Flow14ReportingTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (isset($this->fixtureDatabasePath)) {
+            try {
+                if (DB::connection('sqlite')->transactionLevel() > 0) {
+                    DB::connection('sqlite')->rollBack();
+                }
+            } catch (\Throwable) {
+                // Setup failures may occur before the isolated connection is available.
+            }
+
+            DB::disconnect('sqlite');
+        }
+
+        if (isset($this->originalDefaultConnection, $this->originalSqliteDatabase)) {
+            config([
+                'database.default' => $this->originalDefaultConnection,
+                'database.connections.sqlite.database' => $this->originalSqliteDatabase,
+            ]);
+            DB::purge('sqlite');
+        }
+
         if (isset($this->fixturePath) && is_file($this->fixturePath)) {
             @unlink($this->fixturePath);
+        }
+        if (isset($this->fixtureDatabasePath) && is_file($this->fixtureDatabasePath)) {
+            @unlink($this->fixtureDatabasePath);
         }
 
         parent::tearDown();
@@ -131,14 +173,44 @@ final class Flow14ReportingTest extends TestCase
             @unlink($this->fixturePath);
         }
 
-        $command = escapeshellarg(PHP_BINARY).' '.escapeshellarg(base_path('scripts/flow14_canonical_fixture.php'));
-        $output = [];
-        $exitCode = 0;
-        exec($command, $output, $exitCode);
+        $directory = dirname($this->fixtureDatabasePath);
+        if (! is_dir($directory) && ! mkdir($directory, 0777, true) && ! is_dir($directory)) {
+            throw new \RuntimeException('Unable to create FLOW-14 fixture directory.');
+        }
+        if (is_file($this->fixtureDatabasePath)) {
+            @unlink($this->fixtureDatabasePath);
+        }
+        if (! touch($this->fixtureDatabasePath)) {
+            throw new \RuntimeException('Unable to create FLOW-14 SQLite fixture database.');
+        }
 
-        if ($exitCode !== 0 || ! is_file($this->fixturePath)) {
-            $diagnostic = trim(implode(PHP_EOL, $output));
-            throw new \RuntimeException('FLOW-14 canonical fixture generation failed'.($diagnostic !== '' ? ': '.$diagnostic : '.'));
+        $environment = [
+            'APP_ENV' => 'testing',
+            'APP_KEY' => (string) (config('app.key') ?: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='),
+            'DB_CONNECTION' => 'sqlite',
+            'DB_DATABASE' => $this->fixtureDatabasePath,
+            'CACHE_STORE' => 'array',
+            'SESSION_DRIVER' => 'array',
+            'QUEUE_CONNECTION' => 'sync',
+            'MAIL_MAILER' => 'array',
+        ];
+
+        $this->runFixtureCommand([PHP_BINARY, 'artisan', 'migrate:fresh', '--seed', '--force'], $environment);
+        $this->runFixtureCommand([PHP_BINARY, 'scripts/flow14_canonical_fixture.php'], $environment);
+
+        if (! is_file($this->fixturePath)) {
+            throw new \RuntimeException('FLOW-14 canonical fixture generation did not produce its JSON contract.');
+        }
+    }
+
+    private function runFixtureCommand(array $command, array $environment): void
+    {
+        $process = new Process($command, base_path(), $environment, null, 120);
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            $diagnostic = trim($process->getErrorOutput().PHP_EOL.$process->getOutput());
+            throw new \RuntimeException('FLOW-14 isolated fixture command failed'.($diagnostic !== '' ? ': '.$diagnostic : '.'));
         }
     }
 
