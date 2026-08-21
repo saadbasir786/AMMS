@@ -52,7 +52,7 @@ class Flow04Test extends TestCase
         $this->actingAs($authority, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority/approve", ['comment' => 'با توجه به justification، تأیید شد.'])->assertOk()->assertJsonPath('data.status', 'HIGH_AUTHORITY_APPROVED');
 
         $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertOk()->assertJsonPath('data.status', 'AUTHORITY_SCHEDULING');
-        $proposalResponse = $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals", [
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals", [
             'meeting_date' => now()->addWeek()->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'دفتر مقام', 'comment' => 'پیشنهاد رسمی دفتر مقام.',
         ])->assertOk();
         $proposal = \App\Models\MeetingScheduleProposal::where('meeting_request_id', $request->id)->latest('id')->firstOrFail();
@@ -118,17 +118,61 @@ class Flow04Test extends TestCase
         $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals/{$proposal->id}/confirm")->assertStatus(422)->assertJsonPath('code', 'AUTHORITY_SCHEDULE_NOT_ACKNOWLEDGED');
     }
 
-    public function test_participant_ownership_is_separated_between_requester_and_authority_office(): void
+    public function test_participant_ownership_is_separated_between_requester_authority_office_and_secretary(): void
     {
         [$request] = $this->prepareDecision();
         $authority = User::where('email', 'high.authority@example.test')->firstOrFail();
         $office = User::where('email', 'authority.office@example.test')->firstOrFail();
+        $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
         $techExec = User::where('email', 'tech.exec@example.test')->firstOrFail();
         $authorityEmployee = Employee::where('employee_number', 'EMP-AUTH-001')->firstOrFail();
         $this->actingAs($authority, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority/approve")->assertOk();
-        $this->actingAs($office, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertOk();
+        $this->actingAs($office, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertStatus(403);
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertOk();
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-participants", ['employee_ids' => [$authorityEmployee->id]])->assertStatus(403);
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-participants", ['employee_ids' => [$authorityEmployee->id]])->assertStatus(403);
         $this->actingAs($office, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/high-authority/requester-participants", ['employee_ids' => [$authorityEmployee->id]])->assertStatus(403);
+    }
+
+    public function test_confirmed_authority_schedule_uses_server_owned_snapshot_without_overwriting_preferences(): void
+    {
+        [$request] = $this->prepareDecision();
+        $authority = User::where('email', 'high.authority@example.test')->firstOrFail();
+        $secretary = User::where('email', 'executive.secretary@example.test')->firstOrFail();
+        $techExec = User::where('email', 'tech.exec@example.test')->firstOrFail();
+        $meetingDate = now()->addDays(9)->format('Y-m-d');
+
+        $this->actingAs($authority, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority/approve")->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals", [
+            'meeting_date' => $meetingDate,
+            'start_time' => '13:15',
+            'end_time' => '14:45',
+            'location' => 'تالار مقام',
+        ])->assertOk();
+        $proposal = \App\Models\MeetingScheduleProposal::where('meeting_request_id', $request->id)->latest('id')->firstOrFail();
+        $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals/{$proposal->id}/acknowledge")->assertOk();
+        $this->actingAs($secretary, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-schedule/proposals/{$proposal->id}/confirm")->assertOk();
+
+        $fresh = $request->fresh();
+        $this->assertNull($fresh->preferred_date);
+        $this->assertNull($fresh->preferred_start_time);
+        $this->assertNull($fresh->proposed_location);
+        $this->assertSame($meetingDate, $fresh->scheduled_date->format('Y-m-d'));
+        $this->assertSame('13:15', substr((string) $fresh->scheduled_start_time, 0, 5));
+        $this->assertSame(90, (int) $fresh->scheduled_duration_minutes);
+        $this->assertSame('تالار مقام', $fresh->scheduled_location);
+        $this->assertSame($secretary->id, (int) $fresh->schedule_confirmed_by);
+        $this->assertNotNull($fresh->schedule_confirmed_at);
+    }
+
+    public function test_system_admin_cannot_enter_flow04_business_scheduling(): void
+    {
+        [$request] = $this->prepareDecision();
+        $authority = User::where('email', 'high.authority@example.test')->firstOrFail();
+        $system = User::where('email', 'system.admin@example.test')->firstOrFail();
+        $this->actingAs($authority, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority/approve")->assertOk();
+        $this->actingAs($system, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-scheduling/start")->assertStatus(403);
     }
 
     public function test_forward_stops_when_current_high_authority_holder_is_inactive(): void
