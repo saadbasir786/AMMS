@@ -142,7 +142,7 @@ class Flow0203AuditTest extends TestCase
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/units/{$tech->id}/participants", [
             'organizational_unit_id' => $tech->id,
             'employee_id' => $anotherTechEmployee->id,
-        ])->assertStatus(422)->assertJsonPath('code', 'PARTICIPANT_LIST_ALREADY_CONFIRMED');
+        ])->assertStatus(422)->assertJsonPath('code', 'PARTICIPANTS_ALREADY_CONFIRMED');
 
         $chair = Employee::where('employee_number', 'EMP-TECH-001')->firstOrFail();
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize-multi", [
