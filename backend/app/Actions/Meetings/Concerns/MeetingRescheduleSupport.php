@@ -63,6 +63,16 @@ trait MeetingRescheduleSupport
         return $actor->employee?->organizational_unit_id ? (int) $actor->employee->organizational_unit_id : null;
     }
 
+    private function actorFormalUnitId(User $actor, array $requiredUnitIds, array $roles = ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']): ?int
+    {
+        foreach (array_values(array_unique(array_map('intval', $requiredUnitIds))) as $unitId) {
+            foreach ($roles as $role) {
+                if ($actor->hasScopedRole($role, $unitId)) return $unitId;
+            }
+        }
+        return null;
+    }
+
     private function ensureNoActiveCase(Meeting $meeting): void
     {
         abort_if($meeting->active_reschedule_case_id, 422, 'RESCHEDULE_ALREADY_IN_PROGRESS');
@@ -87,13 +97,20 @@ trait MeetingRescheduleSupport
 
     private function notifyFormalUnits(Meeting $meeting, array $unitIds, string $type, string $title, string $message, array $data = []): void
     {
-        $userIds = User::query()->whereHas('employee', fn ($query) => $query->whereIn('organizational_unit_id', $unitIds))->pluck('id')->all();
+        $unitIds = array_values(array_unique(array_map('intval', $unitIds)));
+        $userIds = User::query()->whereHas('roleScopes', function ($query) use ($unitIds): void {
+            $query->whereIn('organizational_unit_id', $unitIds)
+                ->whereHas('role', fn ($role) => $role->whereIn('name', ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'])->where('guard_name', 'sanctum'));
+        })->get()->filter(fn (User $user) => $user->isActive())->pluck('id')->all();
         $this->notifyUsers($userIds, $type, $title, $message, $data + ['meeting_id' => $meeting->id]);
     }
 
     private function authoritySchedulerIds(int $officeUnitId): array
     {
-        return User::role('EXECUTIVE_SECRETARY')->whereHas('employee', fn ($query) => $query->where('organizational_unit_id', $officeUnitId))->pluck('id')->all();
+        return User::query()->whereHas('roleScopes', function ($query) use ($officeUnitId): void {
+            $query->where('organizational_unit_id', $officeUnitId)
+                ->whereHas('role', fn ($role) => $role->where('name', 'EXECUTIVE_SECRETARY')->where('guard_name', 'sanctum'));
+        })->get()->filter(fn (User $user) => $user->isActive())->pluck('id')->all();
     }
 
     private function meetingNotificationUserIds(Meeting $meeting, array $requiredUnitIds = []): array
@@ -103,7 +120,11 @@ trait MeetingRescheduleSupport
         if ($meeting->authorityContext?->authority_employee_id) $employeeIds[] = (int) $meeting->authorityContext->authority_employee_id;
         $userIds = User::whereIn('employee_id', array_values(array_unique($employeeIds)))->pluck('id')->all();
         if ($requiredUnitIds !== []) {
-            $userIds = array_merge($userIds, User::query()->whereHas('employee', fn ($query) => $query->whereIn('organizational_unit_id', $requiredUnitIds))->pluck('id')->all());
+            $requiredUnitIds = array_values(array_unique(array_map('intval', $requiredUnitIds)));
+            $userIds = array_merge($userIds, User::query()->whereHas('roleScopes', function ($query) use ($requiredUnitIds): void {
+                $query->whereIn('organizational_unit_id', $requiredUnitIds)
+                    ->whereHas('role', fn ($role) => $role->whereIn('name', ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'])->where('guard_name', 'sanctum'));
+            })->pluck('id')->all());
         }
         $userIds[] = (int) $meeting->coordinator_id;
         return array_values(array_unique(array_filter($userIds)));
