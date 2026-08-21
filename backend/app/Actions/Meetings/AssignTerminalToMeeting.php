@@ -8,7 +8,6 @@ use App\Models\Terminal;
 use App\Models\User;
 use App\Support\TerminalAssignmentConflictGuard;
 use App\Support\TerminalAuditLogger;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -22,11 +21,13 @@ class AssignTerminalToMeeting
     public function execute(User $actor, Meeting $meeting, Terminal $terminal, string $validFrom, string $validUntil): MeetingTerminalAssignment
     {
         return DB::transaction(function () use ($actor, $meeting, $terminal, $validFrom, $validUntil): MeetingTerminalAssignment {
+            // FLOW-09 lock order: Terminal -> Meeting -> Assignment/Session.
+            // Keep this consistent with revoke/refresh/activate to avoid cross-action deadlocks.
+            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($terminal->id);
             $lockedMeeting = Meeting::query()
                 ->with(['request', 'authorityContext', 'currentScheduleVersion', 'currentParticipantVersion'])
                 ->lockForUpdate()
                 ->findOrFail($meeting->id);
-            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($terminal->id);
             [$from, $until] = $this->guard->parseWindow($validFrom, $validUntil);
             $this->guard->assertAssignable($lockedTerminal, $lockedMeeting, $from, $until);
 
