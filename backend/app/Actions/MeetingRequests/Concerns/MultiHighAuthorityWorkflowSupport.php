@@ -19,7 +19,6 @@ trait MultiHighAuthorityWorkflowSupport
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
         abort_unless($locked->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'FLOW05_REQUEST_REQUIRED');
-
         return $locked->load([
             'requestingUnit.organization', 'units.unit', 'creator.employee', 'participants.employee.unit',
             'nominations.employee.unit', 'attachments', 'actions.actor', 'unitReviews.unit',
@@ -103,27 +102,27 @@ trait MultiHighAuthorityWorkflowSupport
 
     private function canManageUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || ($actor->can('meeting-request.create') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
+        return $actor->can('meeting-request.create') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function canRequesterApprove(User $actor, int $unitId): bool
     {
-        return $actor->can('meeting-request.approve') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->can('meeting-request.approve') && $actor->hasScopedRole('DIRECTOR', $unitId);
     }
 
     private function canParticipatingUnit(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->isActive() && ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId));
     }
 
     private function canAuthorityOffice(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-request.review') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId));
+        return $actor->can('authority-request.review') && $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId);
     }
 
     private function canScheduler(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-schedule.propose') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId) || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId));
+        return $actor->can('authority-schedule.propose') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId);
     }
 
     private function canHighAuthority(User $actor, Employee $holder, OrganizationAuthority $authority): bool
@@ -163,9 +162,7 @@ trait MultiHighAuthorityWorkflowSupport
         $ids = array_values(array_unique(array_map('intval', $employeeIds)));
         $employees = Employee::whereIn('id', $ids)->get();
         abort_if($employees->count() !== count($ids), 422, 'INVALID_PARTICIPANT');
-        foreach ($employees as $employee) {
-            abort_unless($employee->status === 'ACTIVE' && $unit->isWithinScope((int) $employee->organizational_unit_id), 422, 'PARTICIPANT_OUTSIDE_MULTI_DIRECTORATE_SCOPE');
-        }
+        foreach ($employees as $employee) abort_unless($employee->status === 'ACTIVE' && $unit->isWithinScope((int) $employee->organizational_unit_id), 422, 'PARTICIPANT_OUTSIDE_MULTI_DIRECTORATE_SCOPE');
     }
 
     private function allParticipatingApproved(MeetingRequest $request): bool
