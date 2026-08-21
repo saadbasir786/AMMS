@@ -7,6 +7,8 @@ api.interceptors.request.use(config => { const token = localStorage.getItem('amm
 const dataOf = (response:any) => response.data?.data ?? response.data
 const faDate = (value:any) => value ? new Date(value).toLocaleDateString('fa-AF') : '—'
 const errorOf = (error:any) => error?.response?.data?.message || error?.response?.data?.code || 'عملیات تغییر زمان انجام نشد.'
+const roleUnitId = (role:any) => Number(role?.organizational_unit_id ?? role?.unit?.id ?? 0)
+const hasScopedRole = (user:any, roleName:string, unitId:number) => !!unitId && !!user?.roles?.some((role:any) => role.role === roleName && roleUnitId(role) === Number(unitId))
 
 function ScheduleCard({title,schedule,version}:{title:string;schedule:any;version?:number}) {
   if (!schedule) return <div className="empty"><CalendarDays size={22}/><span>زمان‌بندی ثبت نشده است.</span></div>
@@ -21,18 +23,70 @@ function ScheduleForm({initial,onSubmit,label}:{initial?:any;onSubmit:(data:any)
 }
 
 export function MeetingRescheduleWorkspace() {
-  const id=location.pathname.split('/')[2]; const [workspace,setWorkspace]=useState<any>(null); const [user,setUser]=useState<any>(null); const [reason,setReason]=useState(''); const [alternative,setAlternative]=useState(''); const [error,setError]=useState(''); const [loadError,setLoadError]=useState(''); const [busy,setBusy]=useState(false)
+  const id=location.pathname.split('/')[2]
+  const [workspace,setWorkspace]=useState<any>(null)
+  const [user,setUser]=useState<any>(null)
+  const [reason,setReason]=useState('')
+  const [alternative,setAlternative]=useState('')
+  const [error,setError]=useState('')
+  const [loadError,setLoadError]=useState('')
+  const [busy,setBusy]=useState(false)
+
   const load=()=>api.get(`/meetings/${id}/reschedule`).then(r=>{setLoadError('');setWorkspace(dataOf(r))}).catch(e=>{setLoadError(errorOf(e));throw e})
   useEffect(()=>{load().catch(()=>{});api.get('/me').then(r=>setUser(dataOf(r))).catch(()=>{})},[id])
-  const meeting=workspace?.meeting; const current=workspace?.current_schedule_version; const activeCase=workspace?.active_reschedule_case; const activeProposal=activeCase?.proposals?.find((p:any)=>p.status==='ACTIVE'); const required=meeting?.request?.flow_type==='HIGH_AUTHORITY_INITIATED'?(meeting?.units||[]).filter((u:any)=>u.role==='PARTICIPATING'):(meeting?.units||[]).filter((u:any)=>['REQUESTING','PARTICIPATING'].includes(u.role)); const ackCount=activeProposal?.acknowledgements?.length||0; const openAlternatives=(activeCase?.alternative_requests||[]).filter((a:any)=>a.status==='OPEN'); const isSecretary=user?.roles?.some((r:any)=>r.role==='EXECUTIVE_SECRETARY'); const canPropose=!!user?.roles?.some((r:any)=>['EXECUTIVE_MANAGEMENT','EXECUTIVE_SECRETARY'].includes(r.role));
+
+  const meeting=workspace?.meeting
+  const current=workspace?.current_schedule_version
+  const activeCase=workspace?.active_reschedule_case
+  const activeProposal=activeCase?.proposals?.find((p:any)=>p.status==='ACTIVE')
+  const flowType=meeting?.request?.flow_type
+  const authorityControlled=['DIRECTORATE_WITH_HIGH_AUTHORITY','MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY','HIGH_AUTHORITY_INITIATED'].includes(flowType) || !!meeting?.authority_context
+  const authorityOfficeId=Number(meeting?.authority_context?.authority_office_unit_id||0)
+  const required=(flowType==='HIGH_AUTHORITY_INITIATED'?(meeting?.units||[]).filter((u:any)=>u.role==='PARTICIPATING'):(meeting?.units||[]).filter((u:any)=>['REQUESTING','PARTICIPATING'].includes(u.role)))
+  const formalUnitIds=required.map((u:any)=>Number(u.organizational_unit_id)).filter(Boolean)
+  const leadUnitId=Number((meeting?.units||[]).find((u:any)=>u.role==='REQUESTING')?.organizational_unit_id || formalUnitIds[0] || 0)
+  const actorFormalUnitId=formalUnitIds.find((unitId:number)=>hasScopedRole(user,'EXECUTIVE_MANAGEMENT',unitId)||hasScopedRole(user,'DIRECTOR',unitId))||0
+  const isSecretary=authorityControlled && hasScopedRole(user,'EXECUTIVE_SECRETARY',authorityOfficeId)
+  const isPeerExecutive=!!actorFormalUnitId && hasScopedRole(user,'EXECUTIVE_MANAGEMENT',actorFormalUnitId)
+  const isFormalDirector=!!actorFormalUnitId && hasScopedRole(user,'DIRECTOR',actorFormalUnitId)
+  const canCreateCase=authorityControlled ? isSecretary : (isPeerExecutive || isFormalDirector)
+  const canPropose=authorityControlled ? isSecretary : isPeerExecutive
+  const canAcknowledge=!authorityControlled && (isPeerExecutive || isFormalDirector) || authorityControlled && (isPeerExecutive || isFormalDirector)
+  const canRequestAlternative=canAcknowledge
+  const canConfirm=authorityControlled ? isSecretary : hasScopedRole(user,'EXECUTIVE_MANAGEMENT',leadUnitId)
+  const canResolveAlternative=authorityControlled && isSecretary
+  const ackCount=activeProposal?.acknowledgements?.length||0
+  const openAlternatives=(activeCase?.alternative_requests||[]).filter((a:any)=>a.status==='OPEN')
+
   const call=async(fn:()=>Promise<any>)=>{setBusy(true);setError('');try{await fn();await load()}catch(e:any){setError(errorOf(e))}finally{setBusy(false)}}
   const createCase=()=>call(()=>api.post(`/meetings/${id}/reschedule-cases`,{reason}))
-  const submitProposal=(data:any)=>call(()=>api.post(`/meetings/${id}/reschedule/${isSecretary?'authority-proposals':'proposals'}`,data))
+  const submitProposal=(data:any)=>call(()=>api.post(`/meetings/${id}/reschedule/${authorityControlled?'authority-proposals':'proposals'}`,data))
   const acknowledge=()=>activeProposal&&call(()=>api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/acknowledge`))
   const requestAlternative=()=>activeProposal&&call(()=>api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/request-alternative`,{reason:alternative}))
   const confirm=()=>call(()=>api.post(`/meetings/${id}/reschedule/confirm`))
   const resolve=(alt:any)=>call(()=>api.post(`/meetings/${id}/reschedule/alternative-requests/${alt.id}/resolve`))
   const history=useMemo(()=>[...(workspace?.schedule_versions||[])].sort((a:any,b:any)=>a.version_number-b.version_number),[workspace])
+
   if(!workspace)return <div className="screen-center">{loadError?<div className="panel form-error"><AlertCircle size={18}/><div><strong>دسترسی به فضای تغییر زمان ممکن نیست.</strong><p>{loadError}</p><a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a></div></div>:<div className="spinner"/>}</div>
-  return <><div className="page-title"><div><span className="eyebrow">FLOW-07 · تغییر زمان‌بندی</span><h1>فضای تغییر زمان جلسه</h1><p>{meeting?.meeting_number} · {meeting?.title}</p></div><div className="page-actions"><a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a>{meeting?.reschedule_pending&&<span className="status pending">تغییر زمان در جریان است</span>}</div></div>{error&&<div className="form-error"><AlertCircle size={16}/>{error}</div>}<div className="schedule-diff"><ScheduleCard title="زمان فعلی جلسه" schedule={current} version={current?.version_number}/>{activeProposal?<><div className="diff-arrow"><GitBranch size={20}/></div><ScheduleCard title="پیشنهاد فعال" schedule={activeProposal} /></>:<div className="diff-arrow"><RefreshCw size={20}/></div>}</div>{!activeCase?<div className="panel form-card"><div className="section-title"><span><Clock3 size={16}/> ایجاد پروندهٔ رسمی تغییر زمان</span><small>دلیل تغییر زمان اجباری است؛ جلسهٔ اصلی همچنان زمان فعلی را حفظ می‌کند.</small></div><textarea rows={3} placeholder="مثلاً: تداخل برنامه مقام" value={reason} onChange={e=>setReason(e.target.value)}/><button className="button primary" disabled={busy} onClick={createCase}>ایجاد پروندهٔ تغییر زمان</button></div>:<div className="panel"><div className="panel-head"><div><span className="eyebrow">پروندهٔ فعال · {activeCase.governance_mode}</span><h2>درخواست تغییر زمان در جریان است</h2><p>{activeCase.reason}</p></div><span className="tag">{activeCase.status}</span></div><div className="compare"><span>نسخهٔ مبنا</span><strong>{activeCase.baseline_schedule_version_id}</strong><span>تأییدهای فعلی</span><strong>{ackCount}/{required.length}</strong><span>زمان‌های بدیل باز</span><strong>{openAlternatives.length}</strong></div></div>}{activeCase&&canPropose&&<ScheduleForm onSubmit={submitProposal} label={isSecretary?'پیشنهاد رسمی دفتر مقام':'پیشنهاد ریاست / پیشنهاد متقابل'}/>} {activeProposal&&<div className="panel"><div className="panel-head"><div><span className="eyebrow">پیشنهاد فعال</span><h2>{activeProposal.proposal_type==='AUTHORITY_OFFICIAL'?'پیشنهاد رسمی دفتر مقام':'پیشنهاد peer'}</h2></div><span className="status approved">فعال</span></div><ScheduleCard title="پیشنهاد برای بررسی" schedule={activeProposal}/><div className="ack-grid">{required.map((unit:any)=><div className="compare" key={unit.id}><span>{unit.unit?.name||unit.name||`واحد ${unit.organizational_unit_id}`}</span><strong>{activeProposal.acknowledgements?.some((a:any)=>a.organizational_unit_id===unit.organizational_unit_id)?'تأیید شده':'منتظر'}</strong></div>)}</div><div className="form-actions"><button className="button success" disabled={busy} onClick={acknowledge}><CheckCircle2 size={16}/> تأیید پیشنهاد برای ریاست من</button><textarea placeholder="دلیل درخواست زمان بدیل" value={alternative} onChange={e=>setAlternative(e.target.value)}/><button className="button warning" disabled={busy} onClick={requestAlternative}>درخواست زمان بدیل</button></div></div>}{openAlternatives.length>0&&<div className="panel"><div className="panel-head"><div><span className="eyebrow">درخواست‌های بدیل</span><h2>مواردی که confirmation را متوقف می‌کنند</h2></div><AlertCircle size={20}/></div>{openAlternatives.map((alt:any)=><div className="proposal-row" key={alt.id}><div><strong>{alt.unit?.name||'ریاست'}</strong><span>{alt.reason}</span></div>{isSecretary&&<button className="button small primary" onClick={()=>resolve(alt)}>حل درخواست بدیل</button>}</div>)}</div>}{activeCase&&<div className="panel action-panel"><span className="eyebrow">تأیید نهایی</span><h3>تغییر زمان پس از کنترل همهٔ قواعد اعمال می‌شود</h3><p className="muted">نسخهٔ فعلی تا زمان تأیید نهایی معتبر باقی می‌ماند.</p><button className="button primary full" disabled={busy||ackCount<required.length||openAlternatives.length>0} onClick={confirm}>تأیید و اعمال نسخهٔ جدید</button></div>}<div className="panel"><div className="panel-head"><div><span className="eyebrow">تاریخچهٔ immutable</span><h2>تاریخچهٔ زمان‌بندی</h2></div><History size={20}/></div>{history.map((version:any)=><div className={`proposal-row ${version.id===current?.id?'current':''}`} key={version.id}><div><strong>نسخهٔ {version.version_number}</strong><span>{faDate(version.meeting_date)} · {version.start_time} تا {version.end_time} · {version.location}</span></div><span className="tag">{version.id===current?.id?'جاری':'تاریخی'}</span></div>)}</div></>
+
+  return <>
+    <div className="page-title"><div><span className="eyebrow">FLOW-07 · تغییر زمان‌بندی</span><h1>فضای تغییر زمان جلسه</h1><p>{meeting?.meeting_number} · {meeting?.title}</p></div><div className="page-actions"><a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a>{meeting?.reschedule_pending&&<span className="status pending">تغییر زمان در جریان است</span>}</div></div>
+    {error&&<div className="form-error"><AlertCircle size={16}/>{error}</div>}
+    <div className="schedule-diff"><ScheduleCard title="زمان فعلی جلسه" schedule={current} version={current?.version_number}/>{activeProposal?<><div className="diff-arrow"><GitBranch size={20}/></div><ScheduleCard title="پیشنهاد فعال" schedule={activeProposal}/></>:<div className="diff-arrow"><RefreshCw size={20}/></div>}</div>
+
+    {!activeCase&&canCreateCase&&<div className="panel form-card"><div className="section-title"><span><Clock3 size={16}/> ایجاد پروندهٔ رسمی تغییر زمان</span><small>دلیل تغییر زمان اجباری است؛ جلسهٔ اصلی همچنان زمان فعلی را حفظ می‌کند.</small></div><textarea rows={3} placeholder="مثلاً: تداخل برنامه رسمی" value={reason} onChange={e=>setReason(e.target.value)}/><button className="button primary" disabled={busy||!reason.trim()} onClick={createCase}>ایجاد پروندهٔ تغییر زمان</button></div>}
+    {!activeCase&&!canCreateCase&&<div className="panel form-error"><AlertCircle size={18}/><span>برای این جلسه صلاحیت ایجاد پروندهٔ تغییر زمان ندارید.</span></div>}
+
+    {activeCase&&<div className="panel"><div className="panel-head"><div><span className="eyebrow">پروندهٔ فعال · {activeCase.governance_mode}</span><h2>درخواست تغییر زمان در جریان است</h2><p>{activeCase.reason}</p></div><span className="tag">{activeCase.status}</span></div><div className="compare"><span>نسخهٔ مبنا</span><strong>{activeCase.baseline_schedule_version_id}</strong><span>تأییدهای فعلی</span><strong>{ackCount}/{required.length}</strong><span>زمان‌های بدیل باز</span><strong>{openAlternatives.length}</strong></div></div>}
+
+    {activeCase&&canPropose&&<ScheduleForm onSubmit={submitProposal} label={authorityControlled?'پیشنهاد رسمی دبیر اجرائیه':'پیشنهاد ریاست / پیشنهاد متقابل'}/>} 
+
+    {activeProposal&&<div className="panel"><div className="panel-head"><div><span className="eyebrow">پیشنهاد فعال</span><h2>{activeProposal.proposal_type==='AUTHORITY_OFFICIAL'?'پیشنهاد رسمی دبیر اجرائیه':'پیشنهاد peer'}</h2></div><span className="status approved">فعال</span></div><ScheduleCard title="پیشنهاد برای بررسی" schedule={activeProposal}/><div className="ack-grid">{required.map((unit:any)=><div className="compare" key={unit.id}><span>{unit.unit?.name||unit.name||`واحد ${unit.organizational_unit_id}`}</span><strong>{activeProposal.acknowledgements?.some((a:any)=>Number(a.organizational_unit_id)===Number(unit.organizational_unit_id))?'تأیید شده':'منتظر'}</strong></div>)}</div>{(canAcknowledge||canRequestAlternative)&&<div className="form-actions">{canAcknowledge&&<button className="button success" disabled={busy} onClick={acknowledge}><CheckCircle2 size={16}/> تأیید پیشنهاد برای ریاست من</button>}{canRequestAlternative&&<><textarea placeholder="دلیل درخواست زمان بدیل" value={alternative} onChange={e=>setAlternative(e.target.value)}/><button className="button warning" disabled={busy||!alternative.trim()} onClick={requestAlternative}>درخواست زمان بدیل</button></>}</div>}</div>}
+
+    {openAlternatives.length>0&&<div className="panel"><div className="panel-head"><div><span className="eyebrow">درخواست‌های بدیل</span><h2>مواردی که confirmation را متوقف می‌کنند</h2></div><AlertCircle size={20}/></div>{openAlternatives.map((alt:any)=><div className="proposal-row" key={alt.id}><div><strong>{alt.unit?.name||'ریاست'}</strong><span>{alt.reason}</span></div>{canResolveAlternative&&<button className="button small primary" onClick={()=>resolve(alt)}>حل درخواست بدیل</button>}</div>)}</div>}
+
+    {activeCase&&canConfirm&&<div className="panel action-panel"><span className="eyebrow">تأیید نهایی</span><h3>تغییر زمان پس از کنترل همهٔ قواعد اعمال می‌شود</h3><p className="muted">نسخهٔ فعلی تا زمان تأیید نهایی معتبر باقی می‌ماند.</p><button className="button primary full" disabled={busy||!activeProposal||ackCount<required.length||openAlternatives.length>0} onClick={confirm}>تأیید و اعمال نسخهٔ جدید</button></div>}
+
+    <div className="panel"><div className="panel-head"><div><span className="eyebrow">تاریخچهٔ immutable</span><h2>تاریخچهٔ زمان‌بندی</h2></div><History size={20}/></div>{history.map((version:any)=><div className={`proposal-row ${version.id===current?.id?'current':''}`} key={version.id}><div><strong>نسخهٔ {version.version_number}</strong><span>{faDate(version.meeting_date)} · {version.start_time} تا {version.end_time} · {version.location}</span></div><span className="tag">{version.id===current?.id?'جاری':'تاریخی'}</span></div>)}</div>
+  </>
 }
