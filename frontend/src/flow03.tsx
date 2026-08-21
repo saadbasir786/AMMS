@@ -17,8 +17,8 @@ function MultiBadge({ value }: { value: string }) { return <span className={`sta
 function MultiPageTitle({ eyebrow, title, description, action }: Any) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div> }
 function EmptyState({ text }: { text: string }) { return <div className="empty"><Clock3 size={24} /><span>{text}</span></div> }
 function useMultiUser() { const [user, setUser] = useState<Any>(null); useEffect(() => { api.get('/me').then(r => setUser(unwrap(r))).catch(() => {}) }, []); return user }
-function scoped(user: Any, role: string, unitId: number) { return user?.roles?.some((r: Any) => r.role === 'SYSTEM_ADMIN' || (r.role === role && Number(r.unit?.id || r.organizational_unit_id) === Number(unitId))) }
-function activeUnitIds(user: Any, roles: string[]) { return (user?.roles || []).filter((r: Any) => r.role === 'SYSTEM_ADMIN' || roles.includes(r.role)).map((r: Any) => Number(r.unit?.id || r.organizational_unit_id)).filter(Boolean) }
+function scoped(user: Any, role: string, unitId: number) { return user?.roles?.some((r: Any) => (r.role === role && Number(r.unit?.id || r.organizational_unit_id) === Number(unitId))) }
+function activeUnitIds(user: Any, roles: string[]) { return (user?.roles || []).filter((r: Any) => roles.includes(r.role)).map((r: Any) => Number(r.unit?.id || r.organizational_unit_id)).filter(Boolean) }
 
 export function CreateMultiDirectorate() {
   const navigate = useNavigate(); const [units, setUnits] = useState<Any[]>([]); const [employees, setEmployees] = useState<Any[]>([]); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)

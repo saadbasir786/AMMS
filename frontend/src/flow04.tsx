@@ -15,7 +15,7 @@ function Badge({ value }: { value: string }) { return <span className={`status $
 function Title({ eyebrow, title, description, action }: Any) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div> }
 function errText(e: Any) { return apiError(e) }
 function useCurrentUser() { const [user,setUser] = useState<Any>(null); useEffect(()=>{api.get('/me').then(r=>setUser(unwrap(r))).catch(()=>{})},[]); return user }
-function hasRole(user: Any, role: string, unitId?: number) { return !!user?.roles?.some((r: Any) => r.role === 'SYSTEM_ADMIN' || (r.role === role && (unitId === undefined || Number(r.unit?.id || r.organizational_unit_id) === Number(unitId)))) }
+function hasRole(user: Any, role: string, unitId?: number) { return !!user?.roles?.some((r: Any) => (r.role === role && (unitId === undefined || Number(r.unit?.id || r.organizational_unit_id) === Number(unitId)))) }
 
 export function CreateHighAuthority() {
   const navigate = useNavigate(); const [units,setUnits] = useState<Any[]>([]); const [employees,setEmployees] = useState<Any[]>([]); const [busy,setBusy] = useState(false); const [error,setError] = useState('')

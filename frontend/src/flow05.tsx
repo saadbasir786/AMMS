@@ -14,7 +14,7 @@ const priorityLabels:Record<string,string>={NORMAL:'عادی',HIGH:'بلند',UR
 function Badge({value}:{value:string}){return <span className={`status ${value?.toLowerCase()}`}>{statusLabels[value]||value}</span>}
 function Title({eyebrow,title,description,action}:Any){return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description&&<p>{description}</p>}</div>{action}</div>}
 function useUser(){const [u,setU]=useState<Any>(null);useEffect(()=>{api.get('/me').then(r=>setU(unwrap(r))).catch(()=>{})},[]);return u}
-function hasRole(u:Any,role:string,unitId?:number){return !!u?.roles?.some((r:Any)=>r.role==='SYSTEM_ADMIN'||(r.role===role&&(unitId===undefined||Number(r.organizational_unit_id||r.unit?.id)===Number(unitId))))}
+function hasRole(u:Any,role:string,unitId?:number){return !!u?.roles?.some((r:Any)=>(r.role===role&&(unitId===undefined||Number(r.organizational_unit_id||r.unit?.id)===Number(unitId))))}
 
 export function CreateMultiHighAuthority(){
  const nav=useNavigate();const [units,setUnits]=useState<Any[]>([]);const [employees,setEmployees]=useState<Any[]>([]);const [error,setError]=useState('');const [busy,setBusy]=useState(false)

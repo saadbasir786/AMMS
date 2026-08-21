@@ -11,7 +11,7 @@ class MeetingPolicy
     public function before(User $user, string $ability): ?bool
     {
         if (!$user->isActive()) return false;
-        return in_array($ability, ['viewAny', 'view'], true) && $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('meeting.view') ? true : null;
+        return null;
     }
 
     public function viewAny(User $user): bool

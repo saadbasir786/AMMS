@@ -10,7 +10,7 @@ class MeetingRequestAttachmentPolicy
     public function before(User $user): ?bool
     {
         if (!$user->isActive()) return false;
-        return $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('meeting-request.attachment-download') ? true : null;
+        return null;
     }
 
     public function view(User $user, MeetingRequestAttachment $attachment): bool

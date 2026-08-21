@@ -43,8 +43,8 @@ export function MeetingParticipantChangeWorkspace() {
   const currentParticipants = workspace?.current_participants || []
   const history = useMemo(() => [...(workspace?.participant_versions||[])].sort((a:any,b:any)=>a.version_number-b.version_number), [workspace])
   const activeItems = activeCase?.items || []
-  const isPreparer = user?.roles?.some((r:any)=>['EXECUTIVE_MANAGEMENT','AUTHORITY_OFFICE','SYSTEM_ADMIN'].includes(r.role))
-  const isConfirmer = user?.roles?.some((r:any)=>['DIRECTOR','AUTHORITY_OFFICE','SYSTEM_ADMIN'].includes(r.role))
+  const isPreparer = user?.roles?.some((r:any)=>['EXECUTIVE_MANAGEMENT','AUTHORITY_OFFICE'].includes(r.role))
+  const isConfirmer = user?.roles?.some((r:any)=>['DIRECTOR','AUTHORITY_OFFICE'].includes(r.role))
 
   const createCase = () => call(() => api.post(`/meetings/${id}/participant-change-cases`, { reason }))
   const addItem = () => call(() => api.post(`/meetings/${id}/participant-change/${activeCase.id}/items`, {
