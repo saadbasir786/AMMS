@@ -21,14 +21,15 @@ class RefreshMeetingTerminalAssignment
     public function execute(User $actor, Meeting $meeting, MeetingTerminalAssignment $assignment): MeetingTerminalAssignment
     {
         return DB::transaction(function () use ($actor, $meeting, $assignment): MeetingTerminalAssignment {
+            // FLOW-09 lock order: Terminal -> Meeting -> Assignment/Session.
+            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($assignment->terminal_id);
             $lockedMeeting = Meeting::query()
                 ->with(['request', 'authorityContext', 'currentScheduleVersion', 'currentParticipantVersion'])
                 ->lockForUpdate()
                 ->findOrFail($meeting->id);
-            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($assignment->terminal_id);
             $locked = MeetingTerminalAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
-            if ((int) $locked->meeting_id !== (int) $lockedMeeting->id) abort(404, 'TERMINAL_ASSIGNMENT_NOT_FOUND');
+            if ((int) $locked->meeting_id !== (int) $lockedMeeting->id || (int) $locked->terminal_id !== (int) $lockedTerminal->id) abort(404, 'TERMINAL_ASSIGNMENT_NOT_FOUND');
             if ($locked->status === 'REVOKED') abort(422, 'TERMINAL_ASSIGNMENT_REVOKED');
             if ($locked->status === 'EXPIRED') abort(422, 'TERMINAL_ASSIGNMENT_EXPIRED');
             if (!$locked->isStale($lockedMeeting)) abort(422, 'TERMINAL_ASSIGNMENT_NOT_STALE');
