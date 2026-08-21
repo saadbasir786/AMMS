@@ -70,8 +70,19 @@ class RoleModelConsolidationEffectiveAuthorizationTest extends TestCase
         $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meeting-requests/{$authorityInitiated->id}/authority-initiated/authority-participants", ['employee_ids' => [$employees['authority']]])->assertForbidden();
         $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meeting-requests/{$authorityInitiated->id}/authority-initiated/finalize", ['agenda' => 'آجندا'])->assertForbidden();
 
-        // Director does not acquire coordinator scheduling authority.
-        $this->actingAs($users['director'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertForbidden();
+        // Director scheduling denial must be proved on a valid FLOW-01 resource; otherwise a
+        // cross-flow endpoint mismatch can mask the role boundary we are trying to test.
+        $this->actingAs($users['exec'], 'sanctum')->postJson('/api/meeting-requests', [
+            'requesting_unit_id' => $units['tech']->id,
+            'subject' => 'آزمون مرز زمان‌بندی ریاست',
+            'purpose' => 'COORDINATION',
+            'priority' => 'NORMAL',
+            'participant_ids' => [$employees['tech']],
+        ])->assertCreated();
+        $flow01 = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meeting-requests/{$flow01->id}/submit")->assertOk();
+        $this->actingAs($users['director'], 'sanctum')->postJson("/api/meeting-requests/{$flow01->id}/approve")->assertOk();
+        $this->actingAs($users['director'], 'sanctum')->postJson("/api/meeting-requests/{$flow01->id}/start-scheduling")->assertForbidden();
     }
 
     private function prepareHighAuthorityDecision(array $users, array $units, array $employees): MeetingRequest
