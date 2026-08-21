@@ -23,7 +23,13 @@ class CreateAuthorityInitiatedDraft
             $this->assertFlow06UnitSet($units);
             abort_if($units->contains(fn (OrganizationalUnit $unit) => $unit->unit_type === 'AUTHORITY_OFFICE'), 422, 'AUTHORITY_OFFICE_NOT_A_FORMAL_DIRECTORATE');
             $authority = $this->authorityForOrganization((int) $units->first()->organization_id);
-            abort_unless($this->actorCanPrepare($actor, (int) $authority->authority_office_unit_id), 403, 'FORBIDDEN');
+            $holder = $this->currentAuthorityHolder($authority);
+            $positionUnitId = (int) $authority->authorityPosition->organizational_unit_id;
+            $canPrepare = $actor->can('authority-initiated-meeting.prepare') && (
+                $actor->hasScopedRole('AUTHORITY_OFFICE', (int) $authority->authority_office_unit_id)
+                || ((int) $actor->employee_id === (int) $holder->id && $actor->hasScopedRole('HIGH_AUTHORITY', $positionUnitId))
+            );
+            abort_unless($canPrepare, 403, 'FORBIDDEN');
 
             $request = MeetingRequest::create([
                 'flow_type' => 'HIGH_AUTHORITY_INITIATED',

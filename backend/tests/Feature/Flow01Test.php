@@ -7,7 +7,6 @@ use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
-use App\Models\MeetingRequestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -35,19 +34,79 @@ class Flow01Test extends TestCase
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk()->assertJsonPath('data.status','PENDING_INTERNAL_APPROVAL');
         $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk()->assertJsonPath('data.status','APPROVED');
 
-        $coordinator = User::where('email','tech.exec@example.test')->firstOrFail();
-        $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk()->assertJsonPath('data.status','SCHEDULING');
         $schedule = ['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'09:00','duration_minutes'=>60,'location'=>'اتاق جلسات تکنالوژی','chairperson_employee_id'=>$employees[0],'participant_ids'=>$employees];
-        $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule",$schedule)->assertOk()->assertJsonPath('data.status','SCHEDULE_CONFIRMED');
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule",$schedule)->assertOk()->assertJsonPath('data.status','SCHEDULE_CONFIRMED');
         $finalize = ['meeting_date'=>$schedule['meeting_date'],'start_time'=>'09:00','end_time'=>'10:00','location'=>$schedule['location'],'chairperson_employee_id'=>$employees[0],'agenda'=>'بررسی پلان توسعه سیستم‌ها'];
-        $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertOk();
-        $this->actingAs($coordinator, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertStatus(422)->assertJsonPath('code','SCHEDULE_INCOMPLETE');
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertOk();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertForbidden();
         $this->assertSame(1, Meeting::where('meeting_request_id',$request->id)->count());
         $this->assertSame('MT-'.now()->format('Y').'-00001', Meeting::where('meeting_request_id',$request->id)->firstOrFail()->meeting_number);
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
         $this->assertSame('MR-'.now()->format('Y').'-00001', $request->fresh()->request_number);
         $this->assertGreaterThanOrEqual(5, $request->actions()->count());
         $this->assertGreaterThanOrEqual(1, $director->fresh()->notifications()->where('title','جلسه ایجاد شد')->count());
+    }
+
+    public function test_schedule_cannot_be_confirmed_before_scheduling_starts(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $director = User::where('email','tech.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+        $employees = Employee::whereIn('employee_number',['EMP-TECH-001','EMP-TECH-003'])->pluck('id')->all();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', ['requesting_unit_id'=>$tech->id,'subject'=>'آزمون ترتیب زمان‌بندی','purpose'=>'COORDINATION','priority'=>'NORMAL','participant_ids'=>$employees])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
+        $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk();
+
+        $schedule = ['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'09:00','duration_minutes'=>60,'location'=>'اتاق جلسات تکنالوژی','chairperson_employee_id'=>$employees[0],'participant_ids'=>$employees];
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule", $schedule)
+            ->assertStatus(422)
+            ->assertJsonPath('code','SCHEDULING_NOT_STARTED');
+        $this->assertSame('APPROVED', $request->fresh()->status);
+    }
+
+    public function test_system_admin_cannot_list_business_meeting_requests(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $system = User::where('email','system.admin@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+        $employee = Employee::where('employee_number','EMP-TECH-003')->firstOrFail();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', ['requesting_unit_id'=>$tech->id,'subject'=>'درخواست محرمانه کاری','purpose'=>'COORDINATION','priority'=>'NORMAL','participant_ids'=>[$employee->id]])->assertCreated();
+
+        $response = $this->actingAs($system, 'sanctum')->getJson('/api/meeting-requests')->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_creator_without_current_executive_scope_cannot_schedule(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $director = User::where('email','tech.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+        $employee = Employee::where('employee_number','EMP-TECH-003')->firstOrFail();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', ['requesting_unit_id'=>$tech->id,'subject'=>'آزمون سلب صلاحیت','purpose'=>'COORDINATION','priority'=>'NORMAL','participant_ids'=>[$employee->id]])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
+        $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk();
+
+        $exec->roleScopes()->delete();
+        $exec->syncRoles([]);
+
+        $this->actingAs($exec->fresh(), 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertStatus(403);
+        $this->assertSame('APPROVED', $request->fresh()->status);
+    }
+
+    public function test_seeded_finance_executive_position_belongs_to_finance_management(): void
+    {
+        $financeExec = Employee::where('employee_number','EMP-FIN-002')->with('position')->firstOrFail();
+        $financeExecUnit = OrganizationalUnit::where('code','FIN-EXEC')->firstOrFail();
+
+        $this->assertSame($financeExecUnit->id, $financeExec->organizational_unit_id);
+        $this->assertSame($financeExecUnit->id, $financeExec->position->organizational_unit_id);
+        $this->assertSame('EXECUTIVE_MANAGEMENT', $financeExec->position->position_type);
     }
 
     public function test_login_contract_and_disabled_account_rejection(): void

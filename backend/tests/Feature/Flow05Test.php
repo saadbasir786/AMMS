@@ -37,9 +37,9 @@ class Flow05Test extends TestCase
         foreach ([['unit' => $units['tech'], 'actor' => $users['techExec']], ['unit' => $units['finance'], 'actor' => $users['financeExec']]] as $pair) $this->actingAs($pair['actor'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/acknowledge", ['proposal_id' => $proposal->id, 'organizational_unit_id' => $pair['unit']->id])->assertOk();
         $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/confirm")->assertOk()->assertJsonPath('data.status', 'SCHEDULE_CONFIRMED');
         $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertOk();
-        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants/confirm")->assertOk();
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants/confirm")->assertOk();
         $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['finance']->id}/participants", ['employee_ids' => [$employees['finance']]])->assertOk();
-        $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['finance']->id}/participants/confirm")->assertOk();
+        $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['finance']->id}/participants/confirm")->assertOk();
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-participants", ['employee_ids' => [$employees['authority']]])->assertOk();
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-participants/confirm")->assertOk();
         $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/finalize", ['agenda' => 'آجندا'])->assertOk();
@@ -69,6 +69,30 @@ class Flow05Test extends TestCase
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority/approve")->assertStatus(403);
     }
 
+    public function test_authority_office_cannot_schedule_and_secretary_cannot_manage_authority_participants(): void
+    {
+        [$request, $users] = $this->prepareOfficeReview();
+        $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-office/forward")->assertOk();
+        $this->actingAs($users['authority'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority/approve")->assertOk();
+        $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-scheduling/start")->assertStatus(403);
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-scheduling/start")->assertOk();
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-participants", ['employee_ids' => []])->assertStatus(403);
+    }
+
+    public function test_executive_management_nominates_but_only_director_confirms_unit_participants(): void
+    {
+        [$request, $users, $units, $employees] = $this->prepareScheduling();
+        $proposal = \App\Models\MeetingScheduleProposal::where('meeting_request_id', $request->id)->latest('id')->firstOrFail();
+        foreach ([['unit' => $units['tech'], 'actor' => $users['techExec']], ['unit' => $units['finance'], 'actor' => $users['financeExec']]] as $pair) {
+            $this->actingAs($pair['actor'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/acknowledge", ['proposal_id' => $proposal->id, 'organizational_unit_id' => $pair['unit']->id])->assertOk();
+        }
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/confirm")->assertOk();
+        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertOk();
+        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants/confirm")->assertStatus(403);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertStatus(403);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/units/{$units['tech']->id}/participants/confirm")->assertOk();
+    }
+
     private function createDraft(): array
     {
         $u=fn($e)=>User::where('email',$e)->firstOrFail();$unit=fn($c)=>OrganizationalUnit::where('code',$c)->firstOrFail();$emp=fn($n)=>Employee::where('employee_number',$n)->firstOrFail();
@@ -86,6 +110,6 @@ class Flow05Test extends TestCase
 
     private function prepareScheduling(): array
     {
-        [$request,$users,$units] = $this->prepareOfficeReview();$this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-office/forward");$this->actingAs($users['authority'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority/approve");$this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-scheduling/start");$this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/proposals",['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'10:00','end_time'=>'11:00','location'=>'دفتر مقام']);return [$request->fresh(),$users,$units];
+        [$request,$users,$units] = $this->prepareOfficeReview();$this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-office/forward");$this->actingAs($users['authority'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority/approve");$this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-scheduling/start");$this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi-high/authority-schedule/proposals",['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'10:00','end_time'=>'11:00','location'=>'دفتر مقام']);return [$request->fresh(),$users,$units, ['tech'=>Employee::where('employee_number','EMP-TECH-003')->firstOrFail()->id,'finance'=>Employee::where('employee_number','EMP-FIN-002')->firstOrFail()->id,'authority'=>Employee::where('employee_number','EMP-AUTH-001')->firstOrFail()->id]];
     }
 }

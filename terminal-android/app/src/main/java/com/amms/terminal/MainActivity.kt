@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 26f
         }
         val state = TextView(this).apply {
-            text = "وضعیت: بسته  |  درایور آزمایشی FLOW-10A فعال است"
+            text = "وضعیت: بسته | FLOW-10A نرم‌افزاری؛ درایور سخت‌افزاری واقعی پیکربندی نشده است"
             textSize = 17f
         }
         val enrollment = Button(this).apply { text = "حالت ثبت اثر انگشت" }

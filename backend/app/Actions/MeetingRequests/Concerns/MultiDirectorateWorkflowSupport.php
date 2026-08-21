@@ -9,9 +9,7 @@ use App\Models\MeetingRequest;
 use App\Models\MeetingRequestAction;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 trait MultiDirectorateWorkflowSupport
 {
@@ -118,13 +116,12 @@ trait MultiDirectorateWorkflowSupport
 
     private function canManageUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function canCoordinateUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN')
-            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function assertMultiUnitSet(Collection $units): void

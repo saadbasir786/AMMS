@@ -2,6 +2,8 @@
 
 namespace App\Actions\Terminals;
 
+use App\Models\Meeting;
+use App\Models\MeetingTerminalAssignment;
 use App\Models\Terminal;
 use App\Models\TerminalMeetingSession;
 use App\Models\User;
@@ -28,13 +30,39 @@ class RevokeTerminal
                 ->lockForUpdate()
                 ->get();
             foreach ($sessions as $session) {
+                $meeting = Meeting::query()->lockForUpdate()->findOrFail($session->meeting_id);
+                $assignment = MeetingTerminalAssignment::query()->lockForUpdate()->findOrFail($session->assignment_id);
+
                 $session->forceFill([
                     'status' => 'REVOKED',
                     'closed_at' => now(),
                     'close_reason' => $reason,
                 ])->save();
-                $this->audit->record('TERMINAL_SESSION_REVOKED', $actor, $locked, $session->meeting, $session->assignment, $session, [
+
+                if ((int) $meeting->current_terminal_session_id === (int) $session->id) {
+                    $meeting->forceFill(['current_terminal_session_id' => null])->save();
+                }
+
+                $this->audit->record('TERMINAL_SESSION_REVOKED', $actor, $locked, $meeting, $assignment, $session, [
                     'reason' => $reason,
+                ]);
+            }
+
+            $assignments = MeetingTerminalAssignment::query()
+                ->where('terminal_id', $locked->id)
+                ->whereIn('status', ['ASSIGNED', 'STALE'])
+                ->lockForUpdate()
+                ->get();
+            foreach ($assignments as $assignment) {
+                $assignment->forceFill([
+                    'status' => 'REVOKED',
+                    'revoked_by_user_id' => $actor->id,
+                    'revoked_at' => now(),
+                    'revoke_reason' => $reason,
+                ])->save();
+                $this->audit->record('TERMINAL_ASSIGNMENT_REVOKED', $actor, $locked, $assignment->meeting, $assignment, metadata: [
+                    'reason' => $reason,
+                    'source' => 'TERMINAL_REVOKED',
                 ]);
             }
 

@@ -58,6 +58,16 @@ class Flow10ATerminalBoundaryTest extends TestCase
         $terminalA = app(RegisterTerminal::class)->execute($admin, ['organization_id' => $this->unit('TECH')->organization_id, 'code' => 'FLOW10A-ISO-A-'.uniqid(), 'name' => 'ترمینال ایزوله A', 'status' => 'ACTIVE']);
         $terminalB = app(RegisterTerminal::class)->execute($admin, ['organization_id' => $this->unit('TECH')->organization_id, 'code' => 'FLOW10A-ISO-B-'.uniqid(), 'name' => 'ترمینال ایزوله B', 'status' => 'ACTIVE']);
         $credentialA = app(\App\Actions\Terminals\IssueTerminalCredential::class)->execute($admin, $terminalA);
+
+        // Submission revalidates the enrollment operator's CURRENT authority. The isolation fixture
+        // therefore needs legitimate scopes for both employees; the wrong-terminal assertion must
+        // fail because of terminal isolation, not because the test actor was never authorized.
+        $role = Role::findByName('BIOMETRIC_ENROLLMENT_OFFICER', 'sanctum');
+        $actor->assignRole($role);
+        foreach ([$this->unit('TECH')->id, $this->unit('FIN')->id] as $unitId) {
+            AmmsRoleScope::firstOrCreate(['user_id' => $actor->id, 'role_id' => $role->id, 'organizational_unit_id' => $unitId]);
+        }
+
         $enrollmentA = app(StartBiometricEnrollment::class)->execute($actor, $employeeA, $terminalA);
         $enrollmentB = app(StartBiometricEnrollment::class)->execute($actor, $employeeB, $terminalB);
 

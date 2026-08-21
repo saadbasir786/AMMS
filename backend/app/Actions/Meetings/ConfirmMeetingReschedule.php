@@ -6,13 +6,11 @@ use App\Actions\Meetings\Concerns\MeetingRescheduleSupport;
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingRescheduleCase;
-use App\Models\MeetingRescheduleProposal;
 use App\Models\User;
 use App\Support\ScheduleConflictGuard;
 use App\Support\ScheduleGovernanceResolver;
 use App\Support\ScheduleVersionService;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ConfirmMeetingReschedule
 {
@@ -69,11 +67,12 @@ class ConfirmMeetingReschedule
 
     private function assertActorCanConfirm(User $actor, Meeting $meeting, array $governance): void
     {
+        abort_unless($actor->isActive() && $actor->can('meeting-reschedule.confirm'), 403, 'UNAUTHORIZED_RESCHEDULE_CONFIRMATION');
         if ($governance['mode'] === 'AUTHORITY_CONTROLLED') {
             abort_unless($governance['authority_office_unit_id'] && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']), 403, 'UNAUTHORIZED_RESCHEDULE_CONFIRMATION');
             return;
         }
-        $unitId = $this->actorUnitId($actor);
-        abort_unless($actor->id === $meeting->coordinator_id || ($unitId && in_array($unitId, $governance['required_unit_ids'], true)), 403, 'UNAUTHORIZED_RESCHEDULE_CONFIRMATION');
+        $leadUnitId = (int) ($meeting->units()->where('role', 'REQUESTING')->value('organizational_unit_id') ?: ($governance['required_unit_ids'][0] ?? 0));
+        abort_unless($leadUnitId > 0 && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $leadUnitId), 403, 'UNAUTHORIZED_RESCHEDULE_CONFIRMATION');
     }
 }

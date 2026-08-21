@@ -61,7 +61,7 @@ enum MeetingRequestStatus: string
             self::DRAFT->value => [self::PENDING_INTERNAL_APPROVAL, self::PENDING_REQUESTER_APPROVAL, self::PENDING_HIGH_AUTHORITY_ISSUANCE],
             self::PENDING_INTERNAL_APPROVAL->value => [self::APPROVED, self::RETURNED_FOR_REVISION, self::REJECTED],
             self::RETURNED_FOR_REVISION->value => [self::PENDING_INTERNAL_APPROVAL],
-            self::APPROVED->value => [self::SCHEDULING, self::SCHEDULE_CONFIRMED],
+            self::APPROVED->value => [self::SCHEDULING],
             self::SCHEDULING->value => [self::SCHEDULE_CONFIRMED],
             self::SCHEDULE_CONFIRMED->value => [self::CONVERTED_TO_MEETING],
             self::REJECTED->value => [],

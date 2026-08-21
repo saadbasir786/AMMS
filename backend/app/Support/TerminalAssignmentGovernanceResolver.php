@@ -35,28 +35,37 @@ class TerminalAssignmentGovernanceResolver
     public function mayView(Meeting $meeting, User $actor): bool
     {
         if (!$actor->isActive() || !$actor->can('meeting-terminal.view')) return false;
-        if ($actor->id === $meeting->coordinator_id) return true;
+
+        // SYSTEM_ADMIN may inspect infrastructure state, but may not perform meeting-governed
+        // assignment/refresh/revoke operations (see isGovernedActor()).
         if ($actor->hasScopedRole('SYSTEM_ADMIN')) return true;
+
         $governance = $this->resolve($meeting);
         if ($governance['authority_controlled']) {
             return $governance['authority_office_unit_id'] > 0
                 && ($actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id'])
                     || $actor->hasScopedRole('AUTHORITY_OFFICE', $governance['authority_office_unit_id']));
         }
-        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id)
-            || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id)
-            || $actor->hasScopedRole('DIRECTOR', $meeting->organizing_unit_id);
+
+        foreach ($governance['required_unit_ids'] as $unitId) {
+            if ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $unitId)
+                || $actor->hasScopedRole('DIRECTOR', (int) $unitId)) return true;
+        }
+        return false;
     }
 
     private function isGovernedActor(Meeting $meeting, User $actor): bool
     {
-        if ($actor->id === $meeting->coordinator_id) return true;
         if ($actor->hasScopedRole('SYSTEM_ADMIN')) return false;
+
         $governance = $this->resolve($meeting);
         if ($governance['authority_controlled']) {
             return $governance['authority_office_unit_id'] > 0
                 && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
         }
-        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $meeting->organizing_unit_id);
+
+        $leadUnitId = (int) ($meeting->units()->where('role', 'REQUESTING')->value('organizational_unit_id')
+            ?: ($governance['required_unit_ids'][0] ?? 0));
+        return $leadUnitId > 0 && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $leadUnitId);
     }
 }

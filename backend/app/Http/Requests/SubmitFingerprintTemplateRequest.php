@@ -14,7 +14,9 @@ class SubmitFingerprintTemplateRequest extends FormRequest
             'template_vendor' => ['required', 'string', 'max:120'],
             'template_format' => ['required', 'string', 'max:120'],
             'algorithm_version' => ['required', 'string', 'max:120'],
-            'template_data' => ['required', 'string'],
+            // Fingerprint templates are compact feature data, not raw images. Keep a generous
+            // upper bound to reject accidental/hostile multi-megabyte payloads at the API edge.
+            'template_data' => ['required', 'string', 'max:262144'],
             'quality_score' => ['nullable', 'numeric'],
             'quality_accepted' => ['sometimes', 'boolean'],
             'replace_active' => ['sometimes', 'boolean'],

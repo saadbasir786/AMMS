@@ -15,10 +15,13 @@ class FinalizeInterDirectorateMeetingRequest extends FormRequest
     {
         return [
             'chairperson_employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'end_time' => ['nullable', 'date_format:H:i'],
             'agenda' => ['nullable', 'string'],
             'target_coordinator_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'meeting_date' => ['prohibited'],
+            'start_time' => ['prohibited'],
+            'duration_minutes' => ['prohibited'],
+            'end_time' => ['prohibited'],
+            'location' => ['prohibited'],
         ];
     }
 }

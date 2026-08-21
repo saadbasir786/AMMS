@@ -16,9 +16,10 @@ class StartAuthorityInitiatedScheduling
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $request = $this->lockFlow06Request($request);
+            $this->assertActiveActor($actor);
             $context = $request->authorityContext;
             $officeId = (int) ($context?->authority_office_unit_id ?? 0);
-            abort_unless($officeId && $actor->can('authority-schedule.view') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId)), 403, 'UNAUTHORIZED_AUTHORITY_SCHEDULER');
+            abort_unless($officeId && $actor->can('authority-schedule.view') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId), 403, 'UNAUTHORIZED_AUTHORITY_SCHEDULER');
             abort_unless($request->status === MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED->value, 422, 'ALL_DIRECTORATE_ACKNOWLEDGEMENTS_REQUIRED');
             abort_unless($this->allCurrentAcknowledged($request), 422, 'ALL_DIRECTORATE_ACKNOWLEDGEMENTS_REQUIRED');
             $from = $this->transition06($request, MeetingRequestStatus::AUTHORITY_SCHEDULING);

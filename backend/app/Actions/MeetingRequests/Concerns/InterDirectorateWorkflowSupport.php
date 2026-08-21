@@ -9,9 +9,7 @@ use App\Models\MeetingRequest;
 use App\Models\MeetingRequestAction;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 trait InterDirectorateWorkflowSupport
 {
@@ -81,12 +79,12 @@ trait InterDirectorateWorkflowSupport
 
     private function canManageUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function canCoordinateUnit(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function assertParticipantEmployees(array $employeeIds, OrganizationalUnit $requester, OrganizationalUnit $target): void

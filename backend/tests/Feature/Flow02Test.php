@@ -52,7 +52,7 @@ class Flow02Test extends TestCase
         $this->actingAs($financeDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/target-approve")->assertOk()->assertJsonPath('data.status', 'BILATERAL_APPROVED');
 
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-inter-directorate-scheduling")->assertOk()->assertJsonPath('data.status', 'SCHEDULING');
-        $firstProposal = $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/schedule-proposals", [
+        $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/schedule-proposals", [
             'proposed_by_unit_id' => $tech->id, 'meeting_date' => now()->addDays(3)->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'اتاق جلسات تکنالوژی',
         ])->assertOk();
         $this->actingAs($financeExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/schedule-proposals", [
@@ -69,7 +69,8 @@ class Flow02Test extends TestCase
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-inter-directorate-schedule")->assertOk()->assertJsonPath('data.status', 'SCHEDULE_CONFIRMED');
 
         $final = $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize-inter-directorate", [
-            'chairperson_employee_id' => $techEmployee->id, 'location' => 'اتاق کنفرانس مرکزی', 'end_time' => '11:00', 'agenda' => 'بررسی بودجه و هماهنگی اجراآت.',
+            'chairperson_employee_id' => $techEmployee->id,
+            'agenda' => 'بررسی بودجه و هماهنگی اجراآت.',
         ]);
         $final->assertOk()->assertJsonPath('data.status', 'SCHEDULED');
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
@@ -119,8 +120,8 @@ class Flow02Test extends TestCase
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-inter-directorate-scheduling")->assertOk();
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/participant-nominations", ['nominated_by_unit_id' => $finance->id, 'employee_id' => $financeEmployee->id])->assertStatus(403);
 
-        $hr = \App\Models\OrganizationalUnit::create(['organization_id' => $tech->organization_id, 'parent_id' => null, 'name' => 'ریاست منابع بشری', 'code' => 'HR', 'unit_type' => 'DIRECTORATE', 'status' => 'ACTIVE']);
-        $hrEmployee = \App\Models\Employee::create(['employee_number' => 'EMP-HR-001', 'first_name' => 'حسن', 'last_name' => 'احمدی', 'father_name' => 'کریم', 'organizational_unit_id' => $hr->id, 'status' => 'ACTIVE']);
+        $hr = \App\Models\OrganizationalUnit::create(['organization_id' => $tech->organization_id, 'parent_id' => null, 'name' => 'ریاست منابع بشری', 'code' => 'HR-NEG', 'unit_type' => 'DIRECTORATE', 'status' => 'ACTIVE']);
+        $hrEmployee = \App\Models\Employee::create(['employee_number' => 'EMP-HR-NEG-001', 'first_name' => 'حسن', 'last_name' => 'احمدی', 'father_name' => 'کریم', 'organizational_unit_id' => $hr->id, 'status' => 'ACTIVE']);
         $this->actingAs($techExec, 'sanctum')->postJson('/api/meeting-requests/inter-directorate', ['requesting_unit_id' => $tech->id, 'target_unit_id' => $finance->id, 'subject' => 'ریاست سوم', 'purpose' => 'COORDINATION', 'priority' => 'NORMAL', 'participant_ids' => [$hrEmployee->id]])->assertStatus(422)->assertJsonPath('code', 'THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_FLOW');
     }
 

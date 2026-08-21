@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Support\ScheduleConflictGuard;
 use App\Support\ScheduleVersionService;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CreatePeerRescheduleProposal
 {
@@ -23,9 +22,10 @@ class CreatePeerRescheduleProposal
             $this->ensureReschedulable($locked);
             $this->ensureCaseActive($case->fresh());
             $governance = $this->resolver($locked);
-            abort_unless($governance['mode'] === 'PEER_MULTI_UNIT', 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
-            $unitId = $this->actorUnitId($actor);
-            abort_unless($unitId && in_array($unitId, $governance['required_unit_ids'], true), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
+            abort_unless(in_array($governance['mode'], ['INTERNAL_SINGLE_UNIT', 'PEER_MULTI_UNIT'], true), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
+            abort_unless($actor->isActive() && $actor->can('meeting-reschedule.propose'), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
+            $unitId = $this->actorFormalUnitId($actor, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT']);
+            abort_unless($unitId, 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
             $schedule = app(ScheduleVersionService::class)->normalize($data);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
@@ -37,7 +37,7 @@ class CreatePeerRescheduleProposal
                 'meeting_id' => $locked->id,
                 'proposed_by_user_id' => $actor->id,
                 'proposed_by_unit_id' => $unitId,
-                'proposal_type' => 'PEER_PROPOSAL',
+                'proposal_type' => $governance['mode'] === 'INTERNAL_SINGLE_UNIT' ? 'INTERNAL_PROPOSAL' : 'PEER_PROPOSAL',
                 ...$schedule,
                 'comment' => $data['comment'] ?? null,
                 'status' => 'ACTIVE',

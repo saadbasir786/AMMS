@@ -16,11 +16,12 @@ class CloseTerminalMeetingSession
     public function execute(TerminalMeetingSession $session, string $reason): TerminalMeetingSession
     {
         return DB::transaction(function () use ($session, $reason): TerminalMeetingSession {
-            $meeting = Meeting::query()->lockForUpdate()->findOrFail($session->meeting_id);
+            // FLOW-09 lock order: Terminal -> Meeting -> Assignment/Session.
             $terminal = Terminal::query()->lockForUpdate()->findOrFail($session->terminal_id);
+            $meeting = Meeting::query()->lockForUpdate()->findOrFail($session->meeting_id);
             $assignment = MeetingTerminalAssignment::query()->lockForUpdate()->findOrFail($session->assignment_id);
             $locked = TerminalMeetingSession::query()->lockForUpdate()->findOrFail($session->id);
-            if ((int) $locked->terminal_id !== (int) $terminal->id || (int) $locked->meeting_id !== (int) $meeting->id) abort(404, 'TERMINAL_SESSION_NOT_FOUND');
+            if ((int) $locked->terminal_id !== (int) $terminal->id || (int) $locked->meeting_id !== (int) $meeting->id || (int) $locked->assignment_id !== (int) $assignment->id) abort(404, 'TERMINAL_SESSION_NOT_FOUND');
             if ($locked->status !== 'ACTIVE') abort(422, 'TERMINAL_SESSION_INACTIVE');
 
             $locked->forceFill(['status' => 'CLOSED', 'closed_at' => now(), 'close_reason' => $reason])->save();

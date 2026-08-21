@@ -21,6 +21,7 @@ class NominateMultiMeetingParticipant
             $unitId = (int) $data['organizational_unit_id'];
             $unit = $this->assertParticipatingMember($locked, $unitId);
             abort_unless($this->canManageUnit($actor, $unit->id), 403, 'FORBIDDEN');
+            abort_if($locked->participantConfirmations->contains('organizational_unit_id', $unitId), 422, 'PARTICIPANTS_ALREADY_CONFIRMED');
 
             $employee = Employee::with('unit.parent')->findOrFail((int) $data['employee_id']);
             abort_unless($employee->status === 'ACTIVE', 422, 'INVALID_PARTICIPANT');

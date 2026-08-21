@@ -19,8 +19,11 @@ class AcceptMultiScheduleProposal
             $locked = $this->lockFlow03Request($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->status === MeetingRequestStatus::SCHEDULING->value, 422, 'SCHEDULING_REQUIRED');
-            abort_unless((int) $proposal->meeting_request_id === (int) $locked->id, 404, 'PROPOSAL_NOT_FOUND');
-            abort_unless(in_array($proposal->status, ['PROPOSED', 'COUNTER_PROPOSED', 'ACCEPTED'], true), 422, 'PROPOSAL_NOT_ACTIVE');
+
+            $lockedProposal = MeetingScheduleProposal::query()->lockForUpdate()->findOrFail($proposal->id);
+            $lockedProposal->load('acceptances');
+            abort_unless((int) $lockedProposal->meeting_request_id === (int) $locked->id, 404, 'PROPOSAL_NOT_FOUND');
+            abort_unless(in_array($lockedProposal->status, ['PROPOSED', 'COUNTER_PROPOSED', 'ACCEPTED'], true), 422, 'PROPOSAL_NOT_ACTIVE');
 
             $participatingIds = $locked->units->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->values();
             $candidateIds = $unitId ? collect([(int) $unitId]) : collect();
@@ -31,23 +34,23 @@ class AcceptMultiScheduleProposal
             $acceptedUnitId = (int) $candidateIds->first();
             $this->assertParticipatingMember($locked, $acceptedUnitId);
             abort_unless($this->canCoordinateUnit($actor, $acceptedUnitId), 403, 'FORBIDDEN');
-            abort_if($proposal->acceptances->contains('organizational_unit_id', $acceptedUnitId), 422, 'UNIT_SCHEDULE_ALREADY_ACCEPTED');
+            abort_if($lockedProposal->acceptances->contains('organizational_unit_id', $acceptedUnitId), 422, 'UNIT_SCHEDULE_ALREADY_ACCEPTED');
 
-            $proposal->acceptances()->create([
+            $lockedProposal->acceptances()->create([
                 'organizational_unit_id' => $acceptedUnitId,
                 'accepted_by' => $actor->id,
                 'accepted_at' => now(),
             ]);
             $this->record($locked, $actor, 'SCHEDULE_UNIT_ACCEPTED', $locked->status, $locked->status, null, [
                 'unit_id' => $acceptedUnitId,
-                'proposal_id' => $proposal->id,
+                'proposal_id' => $lockedProposal->id,
             ]);
 
-            $proposal->load('acceptances');
-            if ($proposal->acceptances->pluck('organizational_unit_id')->unique()->count() >= $participatingIds->count()) {
-                $proposal->update(['status' => 'ACCEPTED']);
+            $lockedProposal->load('acceptances');
+            if ($lockedProposal->acceptances->pluck('organizational_unit_id')->unique()->count() >= $participatingIds->count()) {
+                $lockedProposal->update(['status' => 'ACCEPTED']);
                 $this->record($locked, $actor, 'SCHEDULE_ACCEPTED_BY_ALL', $locked->status, $locked->status, null, [
-                    'proposal_id' => $proposal->id,
+                    'proposal_id' => $lockedProposal->id,
                     'unit_ids' => $participatingIds->all(),
                 ]);
                 foreach ($this->participatingUnits($locked) as $unit) {

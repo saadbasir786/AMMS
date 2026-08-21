@@ -52,6 +52,7 @@ $employees = [
     'tech_exec' => Employee::where('email', 'tech.exec@example.test')->firstOrFail(),
     'finance_exec' => Employee::where('email', 'finance.exec@example.test')->firstOrFail(),
     'hr_exec' => Employee::where('email', 'hr.exec@example.test')->firstOrFail(),
+    'authority_office' => Employee::where('email', 'authority.office@example.test')->firstOrFail(),
     'high_authority' => Employee::where('email', 'high.authority@example.test')->firstOrFail(),
 ];
 $prefix = 'FLOW14-CANONICAL-';
@@ -121,6 +122,7 @@ DB::transaction(function () use ($cleanup, $owner, $director, $highUser, $tech, 
     $now = now();
     $unitByCode = ['TECH' => $tech, 'FIN' => $finance, 'HR' => $hr];
     $directorRole = Role::where('name', 'DIRECTOR')->where('guard_name', 'sanctum')->firstOrFail();
+    $highAuthorityRecord = OrganizationAuthority::query()->firstOrFail();
     AmmsRoleScope::firstOrCreate(['user_id' => $director->id, 'role_id' => $directorRole->id, 'organizational_unit_id' => $fixtureUnit->id]);
     $requestKeys = [];
     $meetingKeys = [];
@@ -158,7 +160,11 @@ DB::transaction(function () use ($cleanup, $owner, $director, $highUser, $tech, 
         ['m-scheduled-3', 'INTER_DIRECTORATE', 'SCHEDULED', $hr, '2026-09-03'],
     ] as [$key, $flow, $status, $unit, $date]) {
         $request = $createRequest($key, $flow, 'CONVERTED_TO_MEETING', $unit);
-        $chair = $status === 'COMPLETED' && $key === 'm-completed-2' ? $employees['high_authority'] : ($unit->code === 'FIN' ? $employees['finance_exec'] : ($unit->code === 'HR' ? $employees['hr_exec'] : $employees['tech_director']));
+        $chair = match ($key) {
+            'm-completed-2' => $employees['high_authority'],
+            'm-cancelled' => $employees['authority_office'],
+            default => $unit->code === 'FIN' ? $employees['finance_exec'] : ($unit->code === 'HR' ? $employees['hr_exec'] : $employees['tech_director']),
+        };
         $meeting = Meeting::create([
             'meeting_request_id' => $request->id,
             'meeting_number' => $prefix.'M-'.strtoupper(str_replace('-', '-', $key)),
@@ -174,6 +180,9 @@ DB::transaction(function () use ($cleanup, $owner, $director, $highUser, $tech, 
             'agenda' => 'گزارش‌دهی و سنجش رسمی',
             'status' => $status,
         ]);
+        if ($key === 'm-completed-2') {
+            MeetingAuthorityContext::create(['meeting_id' => $meeting->id, 'organization_authority_id' => $highAuthorityRecord->id, 'authority_type' => 'HIGH_AUTHORITY', 'authority_position_id' => $employees['high_authority']->position_id, 'authority_employee_id' => $employees['high_authority']->id, 'authority_office_unit_id' => $authorityOffice->id]);
+        }
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $fixtureUnit->id, 'role' => 'PARTICIPATING']);
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $unit->id, 'role' => 'PARTICIPATING']);
         if ($flow === 'MULTI_DIRECTORATE') {
@@ -200,9 +209,6 @@ DB::transaction(function () use ($cleanup, $owner, $director, $highUser, $tech, 
         ['r-rejected-2', 'AUTHORITY_INITIATED', 'REJECTED', $tech],
         ['r-returned-2', 'INTERNAL_DIRECTORATE', 'RETURNED_FOR_REVISION', $finance],
     ] as [$key, $flow, $status, $unit]) $createRequest($key, $flow, $status, $unit);
-
-    $highAuthorityRecord = OrganizationAuthority::query()->firstOrFail();
-    MeetingAuthorityContext::create(['meeting_id' => $meetingKeys['m-completed-2']['id'], 'organization_authority_id' => $highAuthorityRecord->id, 'authority_type' => 'HIGH_AUTHORITY', 'authority_position_id' => $employees['high_authority']->position_id, 'authority_employee_id' => $employees['high_authority']->id, 'authority_office_unit_id' => $authorityOffice->id]);
 
     $reschedule = MeetingRescheduleCase::create(['meeting_id' => $meetingKeys['m-scheduled-2']['id'], 'baseline_schedule_version_id' => $meetingKeys['m-scheduled-2']['schedule_id'], 'initiated_by_user_id' => $owner->id, 'initiated_by_unit_id' => $fixtureUnit->id, 'reason' => 'FLOW-14 deterministic FLOW-07 history', 'governance_mode' => 'UNIT', 'status' => 'CONFIRMED', 'confirmed_at' => $now->copy()->subDays(2)]);
     $meeting = Meeting::findOrFail($meetingKeys['m-scheduled-2']['id']);

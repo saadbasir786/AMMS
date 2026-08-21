@@ -19,16 +19,21 @@ class CreateMeetingRescheduleCase
         return DB::transaction(function () use ($actor, $meeting, $reason): MeetingRescheduleCase {
             $locked = $this->lockMeeting($meeting);
             $this->ensureReschedulable($locked);
+            abort_unless($actor->isActive() && $actor->can('meeting-reschedule.create'), 403, 'UNAUTHORIZED_RESCHEDULE_CASE');
             $reason = trim($reason);
             if ($reason === '') throw new HttpException(422, 'RESCHEDULE_REASON_REQUIRED');
             $this->ensureNoActiveCase($locked);
             $governance = $this->resolver($locked);
+            $formalUnitId = $this->actorFormalUnitId($actor, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
+            $isAuthorityScheduler = $governance['authority_controlled'] && $governance['authority_office_unit_id'] > 0
+                && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
+            abort_unless($formalUnitId || $isAuthorityScheduler, 403, 'UNAUTHORIZED_RESCHEDULE_CASE');
             $baseline = app(ScheduleVersionService::class)->current($locked);
             $case = MeetingRescheduleCase::create([
                 'meeting_id' => $locked->id,
                 'baseline_schedule_version_id' => $baseline->id,
                 'initiated_by_user_id' => $actor->id,
-                'initiated_by_unit_id' => $this->actorUnitId($actor),
+                'initiated_by_unit_id' => $isAuthorityScheduler ? $governance['authority_office_unit_id'] : $formalUnitId,
                 'reason' => $reason,
                 'governance_mode' => $governance['mode'],
                 'status' => 'OPEN',

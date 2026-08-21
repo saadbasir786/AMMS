@@ -85,7 +85,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('meeting_request_authority_contexts', function (Blueprint $table): void {
-            $table->dropForeign(['current_directive_version_id']);
+            $table->dropForeign('fac_current_directive_fk');
             $table->dropIndex('flow06_authority_origin_idx');
             $table->dropColumn(['origin_type', 'current_directive_version_id']);
         });

@@ -27,11 +27,24 @@ class RecordFingerprintAttendance
                 $this->fail('MEETING_ATTENDANCE_CLOSED', 422, 'حضور جلسه پس از پایان بسته شده است.');
             }
             $this->candidates->assertValid($lockedSession);
-            $clientEvent = (string) $data['client_event_uuid'];
-            $existingEvent = MeetingAttendanceRecord::query()->where('client_event_uuid', $clientEvent)->lockForUpdate()->first();
-            if ($existingEvent !== null) return $existingEvent->load(['employee', 'matchedTemplate']);
 
+            $clientEvent = (string) $data['client_event_uuid'];
             $employeeId = (int) $data['employee_id'];
+            $existingEvent = MeetingAttendanceRecord::query()->where('client_event_uuid', $clientEvent)->lockForUpdate()->first();
+            if ($existingEvent !== null) {
+                $sameContext = (int) $existingEvent->meeting_id === (int) $lockedSession->meeting_id
+                    && (int) $existingEvent->terminal_session_id === (int) $lockedSession->id
+                    && (int) $existingEvent->employee_id === $employeeId
+                    && (string) ($existingEvent->matchedTemplate?->uuid ?? '') === (string) $data['matched_template_uuid']
+                    && hash_equals((string) $existingEvent->candidate_set_checksum, (string) $data['candidate_set_checksum']);
+
+                if (!$sameContext) {
+                    $this->fail('ATTENDANCE_EVENT_UUID_CONFLICT', 409, 'شناسهٔ رویداد حضور قبلاً برای رویداد دیگری استفاده شده است.');
+                }
+
+                return $existingEvent->load(['employee', 'matchedTemplate']);
+            }
+
             $member = $lockedSession->participantVersion->members->firstWhere('employee_id', $employeeId);
             if ($member === null) $this->fail('BIOMETRIC_MATCH_EMPLOYEE_NOT_PARTICIPANT', 422, 'کارمند عضو نسخهٔ رسمی اشتراک‌کنندگان نیست.');
 

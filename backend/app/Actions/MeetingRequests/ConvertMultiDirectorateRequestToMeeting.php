@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ConvertMultiDirectorateRequestToMeeting
@@ -25,6 +26,7 @@ class ConvertMultiDirectorateRequestToMeeting
             abort_unless($this->canCoordinateUnit($actor, $locked->lead_coordinator_unit_id), 403, 'FORBIDDEN');
             abort_unless($this->allTargetsApproved($locked), 422, 'ALL_TARGET_APPROVALS_REQUIRED');
             abort_if($locked->meeting()->exists(), 422, 'MEETING_ALREADY_CREATED');
+            abort_unless($locked->scheduled_date && $locked->scheduled_start_time && $locked->scheduled_duration_minutes && $locked->scheduled_location, 422, 'SCHEDULE_NOT_CONFIRMED');
 
             $units = $this->participatingUnits($locked);
             $proposal = $locked->scheduleProposals->firstWhere('status', 'ACCEPTED');
@@ -39,16 +41,16 @@ class ConvertMultiDirectorateRequestToMeeting
             $chairperson = Employee::with('unit')->findOrFail((int) $data['chairperson_employee_id']);
             abort_unless($chairperson->status === 'ACTIVE', 422, 'INVALID_CHAIRPERSON');
             abort_unless($units->contains(fn ($unit) => $unit->isWithinScope($chairperson->organizational_unit_id)), 422, 'INVALID_CHAIRPERSON');
-            $location = $data['location'] ?? $proposal->location;
-            abort_unless(filled($location), 422, 'VALIDATION_ERROR');
-            $endTime = $data['end_time'] ?? $proposal->end_time;
-            abort_unless(filled($proposal->meeting_date) && filled($proposal->start_time) && filled($endTime), 422, 'SCHEDULE_NOT_CONFIRMED');
-            abort_unless((string) $endTime > (string) $proposal->start_time, 422, 'INVALID_SCHEDULE_TIME');
 
             $nominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'CONFIRMED')->get();
             foreach ($units as $unit) {
                 abort_unless($nominations->where('nominated_by_unit_id', $unit->id)->isNotEmpty(), 422, 'ALL_UNIT_PARTICIPANTS_REQUIRED');
             }
+
+            $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
+            $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)
+                ->addMinutes((int) $locked->scheduled_duration_minutes)
+                ->format('H:i');
 
             $meeting = Meeting::create([
                 'meeting_request_id' => $locked->id,
@@ -58,10 +60,10 @@ class ConvertMultiDirectorateRequestToMeeting
                 'organizing_unit_id' => $this->requesterUnit($locked)->id,
                 'coordinator_id' => $locked->lead_coordinator_user_id,
                 'chairperson_employee_id' => $chairperson->id,
-                'meeting_date' => $proposal->meeting_date,
-                'start_time' => $proposal->start_time,
-                'end_time' => $endTime,
-                'location' => $location,
+                'meeting_date' => $locked->scheduled_date->format('Y-m-d'),
+                'start_time' => $scheduledStart,
+                'end_time' => $scheduledEnd,
+                'location' => $locked->scheduled_location,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);

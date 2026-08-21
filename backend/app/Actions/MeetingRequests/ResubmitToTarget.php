@@ -19,7 +19,7 @@ class ResubmitToTarget
             abort_unless($actor->can('meeting-request.resubmit'), 403, 'FORBIDDEN');
             $locked = $this->lockFlow02Request($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
-            abort_unless($locked->created_by === $actor->id || $this->canManageUnit($actor, $requester->id), 403, 'FORBIDDEN');
+            abort_unless($this->canManageUnit($actor, $requester->id), 403, 'FORBIDDEN');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::RETURNED_BY_TARGET, 422, 'REQUEST_NOT_AVAILABLE_TO_TARGET');
             $from = $this->updateStatus($locked, MeetingRequestStatus::RESUBMITTED_TO_TARGET);
             $this->record($locked, $actor, 'TARGET_RESUBMITTED', $from, MeetingRequestStatus::RESUBMITTED_TO_TARGET->value);
