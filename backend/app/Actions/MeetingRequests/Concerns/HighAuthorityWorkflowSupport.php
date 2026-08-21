@@ -11,7 +11,6 @@ use App\Models\OrganizationAuthority;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 trait HighAuthorityWorkflowSupport
 {
@@ -21,27 +20,13 @@ trait HighAuthorityWorkflowSupport
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
         abort_unless($locked->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'FLOW04_REQUEST_REQUIRED');
         return $locked->load([
-            'requestingUnit.organization',
-            'creator.employee',
-            'participants.employee.unit',
-            'attachments',
-            'actions.actor',
-            'scheduleProposals.proposedByUnit',
-            'scheduleProposals.proposedByUser',
-            'scheduleProposals.authorityAcknowledgements',
-            'authorityContext.authorityOfficeUnit',
-            'authorityContext.authorityPosition',
-            'authorityContext.authorityEmployee.position',
-            'authorityContext.authorityEmployee.unit',
-            'authorityContext.officeReviewer',
-            'authorityContext.authorityDecider',
-            'authorityScheduleAcknowledgements',
-            'authorityParticipantConfirmations.confirmedBy',
-            'meeting.authorityContext.authorityEmployee',
-            'meeting.authorityContext.authorityPosition',
-            'meeting.authorityContext.authorityOfficeUnit',
-            'meeting.units.unit',
-            'meeting.participants.employee.unit',
+            'requestingUnit.organization', 'creator.employee', 'participants.employee.unit', 'attachments', 'actions.actor',
+            'scheduleProposals.proposedByUnit', 'scheduleProposals.proposedByUser', 'scheduleProposals.authorityAcknowledgements',
+            'authorityContext.authorityOfficeUnit', 'authorityContext.authorityPosition', 'authorityContext.authorityEmployee.position',
+            'authorityContext.authorityEmployee.unit', 'authorityContext.officeReviewer', 'authorityContext.authorityDecider',
+            'authorityScheduleAcknowledgements', 'authorityParticipantConfirmations.confirmedBy',
+            'meeting.authorityContext.authorityEmployee', 'meeting.authorityContext.authorityPosition',
+            'meeting.authorityContext.authorityOfficeUnit', 'meeting.units.unit', 'meeting.participants.employee.unit',
         ]);
     }
 
@@ -60,29 +45,22 @@ trait HighAuthorityWorkflowSupport
         $requester = $request->requestingUnit?->load('organization');
         $organization = $requester?->organization;
         abort_unless($organization && $organization->status === 'ACTIVE', 422, 'HIGH_AUTHORITY_NOT_CONFIGURED');
-
         $authority = OrganizationAuthority::with(['organization', 'authorityPosition.unit.organization', 'authorityOfficeUnit.organization'])
-            ->where('organization_id', $organization->id)
-            ->where('status', 'ACTIVE')
-            ->where('is_primary', true)
-            ->first();
+            ->where('organization_id', $organization->id)->where('status', 'ACTIVE')->where('is_primary', true)->first();
         abort_unless($authority, 422, 'HIGH_AUTHORITY_NOT_CONFIGURED');
         abort_unless($authority->authorityPosition && $authority->authorityPosition->status === 'ACTIVE', 422, 'INVALID_HIGH_AUTHORITY_HOLDER');
         abort_unless($authority->authorityOfficeUnit && $authority->authorityOfficeUnit->status === 'ACTIVE', 422, 'AUTHORITY_OFFICE_NOT_CONFIGURED');
         abort_unless($authority->authorityPosition->unit?->organization_id === $organization->id, 422, 'INVALID_HIGH_AUTHORITY_HOLDER');
         abort_unless($authority->authorityOfficeUnit->organization_id === $organization->id, 422, 'AUTHORITY_OFFICE_NOT_CONFIGURED');
-
         return $authority;
     }
 
     private function currentAuthorityHolder(OrganizationAuthority $authority): Employee
     {
         $holder = Employee::with(['position', 'unit.organization'])
-            ->where('position_id', $authority->authority_position_id)
-            ->where('status', 'ACTIVE')
+            ->where('position_id', $authority->authority_position_id)->where('status', 'ACTIVE')
             ->whereHas('position', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->whereHas('unit', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->first();
+            ->whereHas('unit', fn ($q) => $q->where('status', 'ACTIVE'))->first();
         abort_unless($holder, 422, 'HIGH_AUTHORITY_HOLDER_NOT_AVAILABLE');
         abort_unless($holder->position_id === $authority->authority_position_id, 422, 'INVALID_HIGH_AUTHORITY_HOLDER');
         return $holder;
@@ -101,27 +79,27 @@ trait HighAuthorityWorkflowSupport
 
     private function canManageRequester(User $actor, int $unitId): bool
     {
-        return $actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        return $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function canRequesterApprove(User $actor, int $unitId): bool
     {
-        return $actor->can('meeting-request.approve') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->can('meeting-request.approve') && $actor->hasScopedRole('DIRECTOR', $unitId);
     }
 
     private function canAuthorityOffice(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-request.review') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId));
+        return $actor->can('authority-request.review') && $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId);
     }
 
     private function canStartAuthorityScheduling(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-schedule.view') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId) || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId));
+        return $actor->can('authority-schedule.view') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId);
     }
 
     private function canAuthorityScheduler(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-schedule.propose') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId) || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId));
+        return $actor->can('authority-schedule.propose') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId);
     }
 
     private function canHighAuthority(User $actor, Employee $holder, OrganizationAuthority $authority): bool
@@ -148,15 +126,7 @@ trait HighAuthorityWorkflowSupport
 
     private function record(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
     {
-        MeetingRequestAction::create([
-            'meeting_request_id' => $request->id,
-            'actor_id' => $actor->id,
-            'action' => $action,
-            'from_status' => $from,
-            'to_status' => $to,
-            'comment' => $comment,
-            'metadata' => $metadata ?: null,
-        ]);
+        MeetingRequestAction::create(['meeting_request_id' => $request->id, 'actor_id' => $actor->id, 'action' => $action, 'from_status' => $from, 'to_status' => $to, 'comment' => $comment, 'metadata' => $metadata ?: null]);
     }
 
     private function notifyUsersForUnit(int $unitId, array $roles, string $title, string $message, MeetingRequest $request): void
@@ -164,15 +134,12 @@ trait HighAuthorityWorkflowSupport
         $users = User::query()->whereHas('roleScopes', function ($query) use ($unitId, $roles): void {
             $query->where('organizational_unit_id', $unitId)->whereHas('role', fn ($role) => $role->whereIn('name', $roles)->where('guard_name', 'sanctum'));
         })->get()->filter(fn (User $user) => $user->isActive());
-        foreach ($users as $user) {
-            AmmsNotification::create(['user_id' => $user->id, 'type' => 'HIGH_AUTHORITY_MEETING_REQUEST', 'title' => $title, 'message' => $message, 'data' => ['meeting_request_id' => $request->id]]);
-        }
+        foreach ($users as $user) AmmsNotification::create(['user_id' => $user->id, 'type' => 'HIGH_AUTHORITY_MEETING_REQUEST', 'title' => $title, 'message' => $message, 'data' => ['meeting_request_id' => $request->id]]);
     }
 
     private function notifyUser(?int $userId, string $title, string $message, MeetingRequest $request): void
     {
-        if (!$userId) return;
-        AmmsNotification::create(['user_id' => $userId, 'type' => 'HIGH_AUTHORITY_MEETING_REQUEST', 'title' => $title, 'message' => $message, 'data' => ['meeting_request_id' => $request->id]]);
+        if ($userId) AmmsNotification::create(['user_id' => $userId, 'type' => 'HIGH_AUTHORITY_MEETING_REQUEST', 'title' => $title, 'message' => $message, 'data' => ['meeting_request_id' => $request->id]]);
     }
 
     private function assertRequesterParticipants(MeetingRequest $request, array $employeeIds): void
@@ -201,27 +168,13 @@ trait HighAuthorityWorkflowSupport
     private function responseRequest(MeetingRequest $request): MeetingRequest
     {
         return $request->fresh([
-            'requestingUnit.organization',
-            'creator.employee',
-            'participants.employee.unit',
-            'attachments',
-            'actions.actor',
-            'scheduleProposals.proposedByUnit',
-            'scheduleProposals.proposedByUser',
-            'scheduleProposals.authorityAcknowledgements',
-            'authorityContext.authorityOfficeUnit',
-            'authorityContext.authorityPosition',
-            'authorityContext.authorityEmployee.position',
-            'authorityContext.authorityEmployee.unit',
-            'authorityContext.officeReviewer',
-            'authorityContext.authorityDecider',
-            'authorityScheduleAcknowledgements',
-            'authorityParticipantConfirmations.confirmedBy',
-            'meeting.authorityContext.authorityEmployee',
-            'meeting.authorityContext.authorityPosition',
-            'meeting.authorityContext.authorityOfficeUnit',
-            'meeting.units.unit',
-            'meeting.participants.employee.unit',
+            'requestingUnit.organization', 'creator.employee', 'participants.employee.unit', 'attachments', 'actions.actor',
+            'scheduleProposals.proposedByUnit', 'scheduleProposals.proposedByUser', 'scheduleProposals.authorityAcknowledgements',
+            'authorityContext.authorityOfficeUnit', 'authorityContext.authorityPosition', 'authorityContext.authorityEmployee.position',
+            'authorityContext.authorityEmployee.unit', 'authorityContext.officeReviewer', 'authorityContext.authorityDecider',
+            'authorityScheduleAcknowledgements', 'authorityParticipantConfirmations.confirmedBy',
+            'meeting.authorityContext.authorityEmployee', 'meeting.authorityContext.authorityPosition',
+            'meeting.authorityContext.authorityOfficeUnit', 'meeting.units.unit', 'meeting.participants.employee.unit',
         ]);
     }
 }
