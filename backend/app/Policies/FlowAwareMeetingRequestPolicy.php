@@ -69,4 +69,33 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
             && $request->status === 'DRAFT';
     }
+
+    public function flow02RequesterEdit(User $user, MeetingRequest $request): bool
+    {
+        if ($request->flow_type !== 'INTER_DIRECTORATE') return false;
+        $unitId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
+        return $user->isActive()
+            && $user->can('meeting-request.update')
+            && $unitId > 0
+            && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+            && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'RETURNED_BY_TARGET'], true);
+    }
+
+    public function flow02Coordinate(User $user, MeetingRequest $request): bool
+    {
+        if ($request->flow_type !== 'INTER_DIRECTORATE' || !$user->isActive() || !$user->can('meeting-schedule.propose')) return false;
+        $unitIds = $request->units()->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->all();
+        return collect($unitIds)->contains(fn (int $unitId) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
+    }
+
+    public function flow03RequesterEdit(User $user, MeetingRequest $request): bool
+    {
+        if ($request->flow_type !== 'MULTI_DIRECTORATE') return false;
+        $unitId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
+        return $user->isActive()
+            && $user->can('meeting-request.update')
+            && $unitId > 0
+            && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+            && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'TARGET_ACTION_REQUIRED'], true);
+    }
 }
