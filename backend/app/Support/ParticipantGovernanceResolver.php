@@ -59,13 +59,9 @@ class ParticipantGovernanceResolver
             return ['owner_type' => 'AUTHORITY', 'owner_unit_id' => null];
         }
 
-        $employeeUnitId = (int) ($actor->employee?->organizational_unit_id ?? 0);
-        if (!$employeeUnitId) return null;
-
-        foreach ($this->resolve($meeting)['formal_units'] as $formalUnit) {
-            $unit = $formalUnit->unit ?? null;
-            if ($unit && $unit->isWithinScope($employeeUnitId)) {
-                return ['owner_type' => 'UNIT', 'owner_unit_id' => (int) $formalUnit->organizational_unit_id];
+        foreach ($this->resolve($meeting)['formal_unit_ids'] as $unitId) {
+            if ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $unitId) || $actor->hasScopedRole('DIRECTOR', (int) $unitId)) {
+                return ['owner_type' => 'UNIT', 'owner_unit_id' => (int) $unitId];
             }
         }
 
@@ -94,13 +90,14 @@ class ParticipantGovernanceResolver
     {
         if (!$actor->isActive() || !$actor->can('meeting-participant-change.confirm')) return false;
         if ($ownerType === 'AUTHORITY') return $this->isAuthorityOwner($meeting, $actor);
-        if ($ownerType !== 'UNIT' || !$ownerUnitId || $this->resolve($meeting)['authority_controlled']) return false;
-        return $actor->hasScopedRole('DIRECTOR', $ownerUnitId);
+        if ($ownerType !== 'UNIT' || !$ownerUnitId) return false;
+        return in_array($ownerUnitId, $this->resolve($meeting)['formal_unit_ids'], true)
+            && $actor->hasScopedRole('DIRECTOR', $ownerUnitId);
     }
 
     public function mayView(Meeting $meeting, User $actor): bool
     {
         return $actor->isActive() && $actor->can('meeting-participant-change.view-history')
-            && (app(\App\Policies\MeetingPolicy::class)->view($actor, $meeting));
+            && app(\App\Policies\FlowAwareMeetingPolicy::class)->view($actor, $meeting);
     }
 }
