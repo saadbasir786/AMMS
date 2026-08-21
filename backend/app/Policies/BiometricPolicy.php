@@ -46,20 +46,22 @@ class BiometricPolicy
     {
         if (!$user->isActive() || !$user->hasPermissionTo($permission, 'sanctum')) return false;
 
-        $employeeUnitId = (int) $employee->organizational_unit_id;
-        if ($employeeUnitId <= 0) return false;
-
         $scopeUnitIds = $user->roleScopes()
             ->whereHas('role', fn ($role) => $role->where('name', 'BIOMETRIC_ENROLLMENT_OFFICER')->where('guard_name', 'sanctum'))
             ->whereNotNull('organizational_unit_id')
             ->pluck('organizational_unit_id')
             ->map(fn ($id): int => (int) $id)
             ->unique()
-            ->values();
+            ->flip();
 
-        if ($scopeUnitIds->isEmpty()) return false;
+        $currentUnitId = (int) $employee->organizational_unit_id;
+        $visited = [];
+        while ($currentUnitId > 0 && !isset($visited[$currentUnitId])) {
+            if ($scopeUnitIds->has($currentUnitId)) return true;
+            $visited[$currentUnitId] = true;
+            $currentUnitId = (int) (OrganizationalUnit::query()->whereKey($currentUnitId)->value('parent_id') ?? 0);
+        }
 
-        $scopeUnits = OrganizationalUnit::query()->with('children.children.children.children')->whereIn('id', $scopeUnitIds)->get();
-        return $scopeUnits->contains(fn (OrganizationalUnit $scopeUnit): bool => $scopeUnit->isWithinScope($employeeUnitId));
+        return false;
     }
 }
