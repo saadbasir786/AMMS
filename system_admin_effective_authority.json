@@ -1,0 +1,64 @@
+{
+  "artifact": "SYSTEM_ADMIN_EFFECTIVE_AUTHORITY",
+  "project": "AMMS",
+  "date": "2026-08-21",
+  "tests": [
+    {
+      "actor": "system.admin@example.test",
+      "operation": "High Authority decision endpoint",
+      "method": "POST",
+      "path": "/api/meeting-requests/1/authority/approve",
+      "resource_flow": "DIRECTORATE_WITH_HIGH_AUTHORITY",
+      "resource_state": "PENDING_HIGH_AUTHORITY_DECISION",
+      "expected_status": 403,
+      "actual_status": 403,
+      "business_code": "UNAUTHORIZED_HIGH_AUTHORITY_DECISION",
+      "state_mutated": false
+    },
+    {
+      "actor": "system.admin@example.test",
+      "operation": "Executive Secretary-only authority scheduling endpoint",
+      "method": "POST",
+      "path": "/api/meeting-requests/1/authority-scheduling/start",
+      "resource_flow": "DIRECTORATE_WITH_HIGH_AUTHORITY",
+      "resource_state": "HIGH_AUTHORITY_APPROVED",
+      "expected_status": 403,
+      "actual_status": 200,
+      "business_code": null,
+      "state_mutated": true,
+      "resulting_state": "AUTHORITY_SCHEDULING"
+    },
+    {
+      "actor": "system.admin@example.test",
+      "operation": "Coordinator-owned FLOW-01 scheduling endpoint",
+      "method": "POST",
+      "path": "/api/meeting-requests/2/start-scheduling",
+      "resource_flow": "INTERNAL_DIRECTORATE",
+      "resource_state": "APPROVED",
+      "expected_status": 403,
+      "actual_status": 200,
+      "business_code": null,
+      "state_mutated": true,
+      "resulting_state": "SCHEDULING"
+    }
+  ],
+  "flow12_completion_verification": {
+    "performed": false,
+    "reason": "No deterministic eligible FLOW-12 completion-verification resource was convenient; the minimum A-C gate already established the effective-authority contradiction."
+  },
+  "system_admin_business_authority_denied": false,
+  "preexisting_business_bypass_exists": true,
+  "bypass_source": "Existing MeetingRequestPolicy::before() global SYSTEM_ADMIN bypass",
+  "bypass_scope_observed": [
+    "Executive Secretary-only authority scheduling",
+    "Coordinator-owned FLOW-01 scheduling"
+  ],
+  "production_code_changed": false,
+  "full_regression_rerun": false,
+  "flow04_flow05_flow06_started": false,
+  "flow10b_touched": false,
+  "flow15_touched": false,
+  "overall_pass": false,
+  "final_classification": "ARCHITECTURE/SECURITY BLOCKER FOUND",
+  "pending_explicit_user_approval": true
+}
