@@ -242,7 +242,10 @@ class Flow03Test extends TestCase
             'agenda' => 'آزمایش جلوگیری از ایجاد جلسهٔ تکراری.',
         ];
         $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)->assertOk();
-        $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)->assertForbidden();
+        $this->actingAs($ctx['techExec'], 'sanctum')
+            ->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'SCHEDULE_NOT_CONFIRMED');
 
         $this->assertSame(1, Meeting::where('meeting_request_id', $ctx['request']->id)->count());
     }
