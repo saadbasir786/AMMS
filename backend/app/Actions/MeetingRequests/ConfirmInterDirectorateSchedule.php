@@ -20,10 +20,10 @@ class ConfirmInterDirectorateSchedule
             $locked = $this->lockFlow02Request($request);
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SCHEDULING, 422, 'SCHEDULE_NOT_CONFIRMED');
             $requester = $this->unitFor($locked, 'REQUESTER');
-            $target = $this->unitFor($locked, 'TARGET');
-            abort_unless($actor->id === $locked->lead_coordinator_user_id || $this->canCoordinateUnit($actor, $requester->id) || $this->canCoordinateUnit($actor, $target->id), 403, 'FORBIDDEN');
+            abort_unless($this->canCoordinateUnit($actor, $requester->id), 403, 'REQUESTER_LEAD_REQUIRED');
             $proposal = $locked->scheduleProposals()->where('status', 'ACCEPTED')->latest('id')->first();
             abort_unless($proposal, 422, 'SCHEDULE_NOT_ACCEPTED');
+            abort_unless($locked->requester_participants_confirmed_at && $locked->target_participants_confirmed_at, 422, 'PARTICIPANTS_NOT_CONFIRMED');
             $this->assertTransition($locked, MeetingRequestStatus::SCHEDULE_CONFIRMED, 'SCHEDULE_NOT_CONFIRMED');
 
             $locked->update([
