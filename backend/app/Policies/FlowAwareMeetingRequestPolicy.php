@@ -7,6 +7,17 @@ use App\Models\User;
 
 class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
 {
+    public function view(User $user, MeetingRequest $request): bool
+    {
+        if (in_array($request->flow_type, ['INTER_DIRECTORATE', 'MULTI_DIRECTORATE'], true)) {
+            return $user->isActive()
+                && $user->can('meeting-request.view')
+                && parent::view($user, $request);
+        }
+
+        return parent::view($user, $request);
+    }
+
     public function update(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'INTERNAL_DIRECTORATE') {
@@ -91,6 +102,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
     public function flow02LeadCoordinate(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'INTER_DIRECTORATE' || !$user->isActive()) return false;
+        if (!$user->can('meeting-schedule.propose') && !$user->can('meeting-schedule.accept') && !$user->can('meeting.create')) return false;
         $requesterId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
         return $requesterId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $requesterId);
     }
@@ -109,6 +121,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
     public function flow03LeadCoordinate(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'MULTI_DIRECTORATE' || !$user->isActive()) return false;
+        if (!$user->can('meeting-schedule.propose') && !$user->can('meeting-schedule.accept') && !$user->can('meeting.create')) return false;
         $requesterId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
         return $requesterId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $requesterId);
     }
