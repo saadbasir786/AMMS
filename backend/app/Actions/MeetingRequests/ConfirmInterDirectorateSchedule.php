@@ -5,7 +5,6 @@ namespace App\Actions\MeetingRequests;
 use App\Actions\MeetingRequests\Concerns\InterDirectorateWorkflowSupport;
 use App\Enums\MeetingRequestStatus;
 use App\Models\MeetingRequest;
-use App\Models\MeetingScheduleProposal;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -26,11 +25,12 @@ class ConfirmInterDirectorateSchedule
             $proposal = $locked->scheduleProposals()->where('status', 'ACCEPTED')->latest('id')->first();
             abort_unless($proposal, 422, 'SCHEDULE_NOT_ACCEPTED');
             $this->assertTransition($locked, MeetingRequestStatus::SCHEDULE_CONFIRMED, 'SCHEDULE_NOT_CONFIRMED');
+
             $locked->update([
-                'preferred_date' => $proposal->meeting_date,
-                'preferred_start_time' => $proposal->start_time,
-                'estimated_duration_minutes' => $this->durationMinutes($proposal->start_time, $proposal->end_time),
-                'proposed_location' => $proposal->location,
+                'scheduled_date' => $proposal->meeting_date,
+                'scheduled_start_time' => $proposal->start_time,
+                'scheduled_duration_minutes' => $this->durationMinutes($proposal->start_time, $proposal->end_time),
+                'scheduled_location' => $proposal->location,
                 'schedule_confirmed_by' => $actor->id,
                 'schedule_confirmed_at' => now(),
                 'status' => MeetingRequestStatus::SCHEDULE_CONFIRMED->value,
