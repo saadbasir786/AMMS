@@ -40,7 +40,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             if (!$user->isActive() || !$user->can('authority-directive.view')) return false;
             $context = $request->authorityContext()->first();
             if (!$context) return false;
-            if ($user->employee_id && (int) $context->authority_employee_id === (int) $user->employee_id) return true;
+            if ($this->flow06HighAuthorityActor($user, $request)) return true;
             if ($user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id) || $user->hasScopedRole('EXECUTIVE_SECRETARY', (int) $context->authority_office_unit_id)) return true;
             if (in_array($request->status, ['DRAFT', 'PENDING_HIGH_AUTHORITY_ISSUANCE', 'RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION', 'ISSUED_BY_HIGH_AUTHORITY'], true)) return false;
             return $request->units()->where('role', 'PARTICIPATING')->pluck('organizational_unit_id')->contains(fn ($id) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $id) || $user->hasScopedRole('DIRECTOR', (int) $id));
@@ -211,15 +211,13 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         if ($request->flow_type !== 'HIGH_AUTHORITY_INITIATED' || !$user->isActive() || !$context) return false;
         return $user->can('authority-initiated-meeting.prepare')
             && ($user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id)
-                || ($user->employee_id && (int) $context->authority_employee_id === (int) $user->employee_id));
+                || $this->flow06HighAuthorityActor($user, $request));
     }
 
     public function flow06Issue(User $user, MeetingRequest $request): bool
     {
-        $employeeId = (int) $request->authorityContext()->value('authority_employee_id');
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
-            && $user->can('authority-initiated-meeting.issue') && $employeeId > 0
-            && (int) $user->employee_id === $employeeId;
+            && $user->can('authority-initiated-meeting.issue') && $this->flow06HighAuthorityActor($user, $request);
     }
 
     public function flow06UnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
@@ -242,5 +240,20 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive() && $officeId > 0
             && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId)
             && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
+    }
+
+    private function flow06HighAuthorityActor(User $user, MeetingRequest $request): bool
+    {
+        $context = $request->authorityContext()->first();
+        if (!$context || !$user->employee_id) return false;
+        if ($context->authority_employee_id) {
+            return (int) $context->authority_employee_id === (int) $user->employee_id;
+        }
+        $employee = $user->employee;
+        $positionUnitId = (int) $context->authorityPosition()->value('organizational_unit_id');
+        return $employee?->status === 'ACTIVE'
+            && (int) $employee->position_id === (int) $context->authority_position_id
+            && $positionUnitId > 0
+            && $user->hasScopedRole('HIGH_AUTHORITY', $positionUnitId);
     }
 }
