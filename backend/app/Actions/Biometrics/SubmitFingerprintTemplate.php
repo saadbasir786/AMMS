@@ -5,6 +5,7 @@ namespace App\Actions\Biometrics;
 use App\Models\BiometricEnrollmentSession;
 use App\Models\EmployeeBiometricTemplate;
 use App\Models\User;
+use App\Policies\BiometricPolicy;
 use App\Support\BiometricFingerPosition;
 use App\Support\TerminalAuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,11 @@ class SubmitFingerprintTemplate
                 ->with(['employee.unit', 'terminal'])
                 ->lockForUpdate()
                 ->findOrFail($enrollment->id);
+
+            $currentActor = User::query()->lockForUpdate()->findOrFail($actor->id);
+            if (!app(BiometricPolicy::class)->enroll($currentActor, $session->employee)) {
+                $this->fail('BIOMETRIC_ENROLLMENT_AUTHORITY_REVOKED', 403, 'صلاحیت ثبت بایومتریک این نشست دیگر معتبر نیست.');
+            }
 
             if (!$session->isActive()) {
                 if ($session->isExpired() && $session->status !== BiometricEnrollmentSession::EXPIRED) {
@@ -85,7 +91,7 @@ class SubmitFingerprintTemplate
                 'status' => EmployeeBiometricTemplate::ACTIVE,
                 'source_terminal_id' => $session->terminal_id,
                 'enrollment_session_id' => $session->id,
-                'enrolled_by_user_id' => $actor->id,
+                'enrolled_by_user_id' => $currentActor->id,
                 'enrolled_at' => now(),
             ]);
 
@@ -94,7 +100,7 @@ class SubmitFingerprintTemplate
                     'status' => EmployeeBiometricTemplate::SUPERSEDED,
                     'superseded_at' => now(),
                 ])->saveQuietly();
-                $this->audit->record('BIOMETRIC_TEMPLATE_SUPERSEDED', $actor, $session->terminal, null, null, null, [
+                $this->audit->record('BIOMETRIC_TEMPLATE_SUPERSEDED', $currentActor, $session->terminal, null, null, null, [
                     'employee_id' => $employeeLock->id,
                     'template_uuid' => $active->uuid,
                     'finger_position' => $fingerPosition,
@@ -103,7 +109,7 @@ class SubmitFingerprintTemplate
             }
 
             $session->forceFill(['status' => BiometricEnrollmentSession::IN_PROGRESS])->saveQuietly();
-            $this->audit->record('BIOMETRIC_TEMPLATE_ENROLLED', $actor, $session->terminal, null, null, null, [
+            $this->audit->record('BIOMETRIC_TEMPLATE_ENROLLED', $currentActor, $session->terminal, null, null, null, [
                 'enrollment_session_uuid' => $session->uuid,
                 'employee_id' => $employeeLock->id,
                 'template_uuid' => $template->uuid,
