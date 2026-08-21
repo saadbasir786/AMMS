@@ -31,7 +31,7 @@ class ConvertInterDirectorateRequestToMeeting
 
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');
-            abort_unless($this->canCoordinateUnit($actor, $requester->id) || $this->canCoordinateUnit($actor, $target->id), 403, 'FORBIDDEN');
+            abort_unless($this->canCoordinateUnit($actor, $requester->id), 403, 'REQUESTER_LEAD_REQUIRED');
 
             $chairperson = Employee::with('unit')->findOrFail($data['chairperson_employee_id']);
             abort_unless($chairperson->status === 'ACTIVE', 422, 'INVALID_CHAIRPERSON');
