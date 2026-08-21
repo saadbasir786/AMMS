@@ -51,9 +51,9 @@ class Flow06Test extends TestCase
         }
 
         $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertOk();
-        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants/confirm")->assertOk();
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants/confirm")->assertOk();
         $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['finance']->id}/participants", ['employee_ids' => [$employees['finance']]])->assertOk();
-        $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['finance']->id}/participants/confirm")->assertOk();
+        $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['finance']->id}/participants/confirm")->assertOk();
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/authority-participants", ['employee_ids' => [$employees['authority']]])->assertOk();
         $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/authority-participants/confirm")->assertOk();
         $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/schedule/confirm")->assertOk()->assertJsonPath('data.status', 'SCHEDULE_CONFIRMED');
@@ -144,6 +144,30 @@ class Flow06Test extends TestCase
         $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/acknowledge")->assertStatus(403);
         $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants", ['employee_ids' => [1]])->assertStatus(403);
         $this->assertFalse(method_exists(\App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController::class, 'approveDirectorate'));
+    }
+
+    public function test_flow06_office_cannot_schedule_and_secretary_cannot_own_authority_participants(): void
+    {
+        [$users, $units, $employees] = $this->fixture();
+        $request = $this->issuedAndDistributed($users, $units);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/acknowledge")->assertOk();
+        $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['finance']->id}/acknowledge")->assertOk();
+        $this->actingAs($users['office'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/scheduling/start")->assertStatus(403);
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/scheduling/start")->assertOk();
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/authority-participants", ['employee_ids' => [$employees['authority']]])->assertStatus(403);
+    }
+
+    public function test_flow06_executive_management_nominates_and_director_confirms_participants(): void
+    {
+        [$users, $units, $employees] = $this->fixture();
+        $request = $this->issuedAndDistributed($users, $units);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/acknowledge")->assertOk();
+        $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['finance']->id}/acknowledge")->assertOk();
+        $this->actingAs($users['secretary'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/scheduling/start")->assertOk();
+        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertOk();
+        $this->actingAs($users['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants/confirm")->assertStatus(403);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants", ['employee_ids' => [$employees['tech']]])->assertStatus(403);
+        $this->actingAs($users['techDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants/confirm")->assertOk();
     }
 
     private function issuedAndDistributed(array $users, array $units): MeetingRequest
