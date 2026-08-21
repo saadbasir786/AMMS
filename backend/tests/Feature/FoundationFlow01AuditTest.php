@@ -154,6 +154,58 @@ class FoundationFlow01AuditTest extends TestCase
         $this->assertSame((int) $request->scheduled_chairperson_employee_id, (int) $meeting->chairperson_employee_id);
     }
 
+    public function test_flow01_generic_workflow_endpoints_reject_other_flow_types(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+        $request = MeetingRequest::create([
+            'flow_type'=>'INTER_DIRECTORATE',
+            'requesting_unit_id'=>$tech->id,
+            'created_by'=>$exec->id,
+            'subject'=>'درخواست غیر FLOW-01',
+            'purpose'=>'COORDINATION',
+            'priority'=>'NORMAL',
+            'status'=>'DRAFT',
+        ]);
+
+        $this->actingAs($exec, 'sanctum')
+            ->postJson("/api/meeting-requests/{$request->id}/submit")
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'FLOW_ENDPOINT_MISMATCH');
+
+        $this->assertSame('DRAFT', $request->fresh()->status);
+    }
+
+    public function test_flow01_creator_cannot_continue_after_executive_scope_is_revoked(): void
+    {
+        $exec = User::where('email','tech.exec@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code','TECH')->firstOrFail();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', [
+            'requesting_unit_id'=>$tech->id,
+            'subject'=>'آزمون سلب صلاحیت جاری',
+            'purpose'=>'COORDINATION',
+            'priority'=>'NORMAL',
+            'participant_ids'=>[],
+        ])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+
+        $exec->roleScopes()->delete();
+
+        $this->actingAs($exec, 'sanctum')->putJson("/api/meeting-requests/{$request->id}", [
+            'subject'=>'تغییر غیرمجاز پس از سلب صلاحیت',
+            'purpose'=>'COORDINATION',
+            'priority'=>'NORMAL',
+        ])->assertForbidden();
+
+        $this->actingAs($exec, 'sanctum')
+            ->postJson("/api/meeting-requests/{$request->id}/submit")
+            ->assertForbidden();
+
+        $this->assertSame('آزمون سلب صلاحیت جاری', $request->fresh()->subject);
+        $this->assertSame('DRAFT', $request->fresh()->status);
+    }
+
     private function createFlow01Meeting(): array
     {
         $exec = User::where('email','tech.exec@example.test')->firstOrFail();
