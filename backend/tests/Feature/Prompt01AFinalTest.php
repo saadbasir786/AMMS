@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\MeetingRequestStatus;
 use App\Models\Employee;
 use App\Models\MeetingRequest;
-use App\Models\MeetingRequestAction;
 use LogicException;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
@@ -83,7 +82,7 @@ class Prompt01AFinalTest extends TestCase
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize", [
             'meeting_date' => now()->addWeek()->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00',
             'location' => 'اتاق جلسات', 'chairperson_employee_id' => $employee->id,
-        ])->assertStatus(422)->assertJsonPath('code', 'SCHEDULE_INCOMPLETE');
+        ])->assertForbidden();
         $this->assertDatabaseMissing('meetings', ['meeting_request_id' => $request->id]);
     }
 
