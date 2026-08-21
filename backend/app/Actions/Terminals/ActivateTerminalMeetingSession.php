@@ -7,7 +7,6 @@ use App\Models\MeetingTerminalAssignment;
 use App\Models\Terminal;
 use App\Models\TerminalMeetingSession;
 use App\Support\TerminalAuditLogger;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -18,11 +17,12 @@ class ActivateTerminalMeetingSession
     public function execute(Terminal $terminal, MeetingTerminalAssignment $assignment): array
     {
         return DB::transaction(function () use ($terminal, $assignment): array {
+            // FLOW-09 lock order: Terminal -> Meeting -> Assignment/Session.
+            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($terminal->id);
             $meeting = Meeting::query()
                 ->with(['currentScheduleVersion', 'currentParticipantVersion'])
                 ->lockForUpdate()
                 ->findOrFail($assignment->meeting_id);
-            $lockedTerminal = Terminal::query()->lockForUpdate()->findOrFail($terminal->id);
             $lockedAssignment = MeetingTerminalAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
             if ((int) $lockedAssignment->terminal_id !== (int) $lockedTerminal->id) abort(404, 'TERMINAL_ASSIGNMENT_NOT_FOUND');
