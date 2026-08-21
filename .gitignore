@@ -24,3 +24,9 @@ frontend/dist/
 /*.pdf
 /browser_failures/
 /evidence/
+
+# Prevent one-off debug/manual verification scripts from accumulating in source roots.
+/backend/check_*.php
+/backend/debug_*.php
+/backend/seed_*_live.php
+/frontend/*.log
