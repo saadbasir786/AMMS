@@ -42,7 +42,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return $user->isActive()
             && $user->can('meeting.schedule')
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
-            && in_array($request->status, ['APPROVED', 'SCHEDULING', 'SCHEDULE_CONFIRMED'], true);
+            && in_array($request->status, ['APPROVED', 'SCHEDULING'], true);
     }
 
     public function finalize(User $user, MeetingRequest $request): bool
