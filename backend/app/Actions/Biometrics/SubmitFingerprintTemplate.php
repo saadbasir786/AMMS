@@ -34,7 +34,10 @@ class SubmitFingerprintTemplate
                 ->findOrFail($enrollment->id);
 
             $currentActor = User::query()->lockForUpdate()->findOrFail($actor->id);
-            if (!app(BiometricPolicy::class)->enroll($currentActor, $session->employee)) {
+            // Terminal capture may happen minutes after a human operator opened the enrollment.
+            // Re-check current authority before accepting machine-submitted template bytes so a
+            // revoked operator cannot continue an already-open terminal enrollment session.
+            if ($session->terminal_id !== null && !app(BiometricPolicy::class)->enroll($currentActor, $session->employee)) {
                 $this->fail('BIOMETRIC_ENROLLMENT_AUTHORITY_REVOKED', 403, 'صلاحیت ثبت بایومتریک این نشست دیگر معتبر نیست.');
             }
 
