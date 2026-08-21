@@ -8,7 +8,6 @@ use App\Models\Employee;
 use App\Models\MeetingRequest;
 use App\Models\MeetingRequestAction;
 use App\Models\MeetingRequestDirectiveVersion;
-use App\Models\MeetingRequestUnitResponse;
 use App\Models\OrganizationAuthority;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
@@ -21,7 +20,6 @@ trait AuthorityInitiatedWorkflowSupport
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
         abort_unless($locked->flow_type === 'HIGH_AUTHORITY_INITIATED', 422, 'FLOW06_REQUEST_REQUIRED');
-
         return $locked->load([
             'requestingUnit.organization', 'units.unit', 'creator.employee', 'participants.employee.unit',
             'nominations.employee.unit', 'attachments', 'actions.actor', 'scheduleProposals.proposedByUnit',
@@ -54,9 +52,7 @@ trait AuthorityInitiatedWorkflowSupport
         abort_unless($units->isNotEmpty(), 422, 'AUTHORITY_INITIATED_REQUIRES_DIRECTORATE');
         $ids = $units->pluck('id')->map(fn ($id) => (int) $id)->all();
         abort_unless(count($ids) === count(array_unique($ids)), 422, 'DUPLICATE_PARTICIPATING_DIRECTORATE');
-        foreach ($units as $unit) {
-            abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_PARTICIPATING_DIRECTORATE');
-        }
+        foreach ($units as $unit) abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_PARTICIPATING_DIRECTORATE');
         $organizationIds = $units->pluck('organization_id')->unique();
         abort_unless($organizationIds->count() === 1, 422, 'CROSS_ORGANIZATION_AUTHORITY_INITIATED_MEETING_NOT_ALLOWED');
     }
@@ -98,10 +94,7 @@ trait AuthorityInitiatedWorkflowSupport
 
     private function record06(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
     {
-        MeetingRequestAction::create([
-            'meeting_request_id' => $request->id, 'actor_id' => $actor->id, 'action' => $action,
-            'from_status' => $from, 'to_status' => $to, 'comment' => $comment, 'metadata' => $metadata ?: null,
-        ]);
+        MeetingRequestAction::create(['meeting_request_id' => $request->id, 'actor_id' => $actor->id, 'action' => $action, 'from_status' => $from, 'to_status' => $to, 'comment' => $comment, 'metadata' => $metadata ?: null]);
     }
 
     private function response06(MeetingRequest $request): MeetingRequest
@@ -117,8 +110,9 @@ trait AuthorityInitiatedWorkflowSupport
             'unitResponses.unit', 'unitResponses.directiveVersion', 'unitResponses.coordinationStarter',
             'unitResponses.acknowledger', 'directiveClarifications.unit', 'directiveClarifications.requester',
             'directiveClarifications.responder', 'authorityScheduleUnitAcknowledgements.unit',
-            'participantConfirmations.unit', 'authorityParticipantConfirmations.confirmedBy', 'meeting.authorityContext.authorityEmployee',
-            'meeting.authorityContext.authorityPosition', 'meeting.authorityContext.authorityOfficeUnit', 'meeting.units.unit', 'meeting.participants.employee.unit',
+            'participantConfirmations.unit', 'authorityParticipantConfirmations.confirmedBy',
+            'meeting.authorityContext.authorityEmployee', 'meeting.authorityContext.authorityPosition',
+            'meeting.authorityContext.authorityOfficeUnit', 'meeting.units.unit', 'meeting.participants.employee.unit',
         ]);
     }
 
@@ -137,7 +131,8 @@ trait AuthorityInitiatedWorkflowSupport
 
     private function actorCanPrepare(User $actor, int $officeUnitId): bool
     {
-        return $actor->can('authority-initiated-meeting.prepare') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId) || $actor->hasScopedRole('HIGH_AUTHORITY'));
+        return $actor->can('authority-initiated-meeting.prepare')
+            && ($actor->hasScopedRole('AUTHORITY_OFFICE', $officeUnitId) || $actor->hasScopedRole('HIGH_AUTHORITY'));
     }
 
     private function actorIsHighAuthority(User $actor, Employee $holder): bool
@@ -147,22 +142,22 @@ trait AuthorityInitiatedWorkflowSupport
 
     private function actorOwnsDirectorate(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->isActive() && ($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId));
     }
 
     private function actorCoordinates(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && $actor->can('authority-directive.coordinate') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
+        return $actor->isActive() && $actor->can('authority-directive.coordinate') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
     private function actorCanAcknowledge(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && $actor->can('authority-directive.acknowledge') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->isActive() && $actor->can('authority-directive.acknowledge') && $actor->hasScopedRole('DIRECTOR', $unitId);
     }
 
     private function actorCanClarify(User $actor, int $unitId): bool
     {
-        return $actor->isActive() && $actor->can('authority-directive.clarification-request') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $unitId));
+        return $actor->isActive() && $actor->can('authority-directive.clarification-request') && $actor->hasScopedRole('DIRECTOR', $unitId);
     }
 
     private function nextNumber(string $name, string $prefix): string
@@ -178,15 +173,15 @@ trait AuthorityInitiatedWorkflowSupport
         $ids = array_values(array_unique(array_map('intval', $employeeIds)));
         $employees = Employee::whereIn('id', $ids)->get();
         abort_if($employees->count() !== count($ids), 422, 'INVALID_PARTICIPANT');
-        foreach ($employees as $employee) {
-            abort_unless($employee->status === 'ACTIVE' && $unit->isWithinScope((int) $employee->organizational_unit_id), 422, 'PARTICIPANT_OUTSIDE_DIRECTORATE_SCOPE');
-        }
+        foreach ($employees as $employee) abort_unless($employee->status === 'ACTIVE' && $unit->isWithinScope((int) $employee->organizational_unit_id), 422, 'PARTICIPANT_OUTSIDE_DIRECTORATE_SCOPE');
     }
 
     private function allCurrentAcknowledged(MeetingRequest $request): bool
     {
         $version = $this->currentVersion($request);
         $ids = $this->flow06Units($request)->pluck('id')->map(fn ($id) => (int) $id);
-        return $ids->isNotEmpty() && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->count() === $ids->count() && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->every(fn ($row) => $row->response_status === 'ACKNOWLEDGED');
+        return $ids->isNotEmpty()
+            && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->count() === $ids->count()
+            && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->every(fn ($row) => $row->response_status === 'ACKNOWLEDGED');
     }
 }
