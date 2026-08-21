@@ -88,6 +88,13 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return collect($unitIds)->contains(fn (int $unitId) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
     }
 
+    public function flow02LeadCoordinate(User $user, MeetingRequest $request): bool
+    {
+        if ($request->flow_type !== 'INTER_DIRECTORATE' || !$user->isActive()) return false;
+        $requesterId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
+        return $requesterId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $requesterId);
+    }
+
     public function flow03RequesterEdit(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'MULTI_DIRECTORATE') return false;
