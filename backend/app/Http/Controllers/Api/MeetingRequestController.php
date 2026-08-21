@@ -10,6 +10,7 @@ use App\Actions\MeetingRequests\ResubmitMeetingRequest;
 use App\Actions\MeetingRequests\ReturnMeetingRequest;
 use App\Actions\MeetingRequests\StartScheduling;
 use App\Actions\MeetingRequests\SubmitMeetingRequest;
+use App\Actions\MeetingRequests\UpdateInterDirectorateMeetingRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FinalizeMeetingRequest;
 use App\Http\Requests\ReviewMeetingRequestRequest;
@@ -24,6 +25,7 @@ use Illuminate\Http\Request;
 class MeetingRequestController extends Controller
 {
     private const FLOW_01 = 'INTERNAL_DIRECTORATE';
+    private const FLOW_02 = 'INTER_DIRECTORATE';
 
     public function __construct(private MeetingRequestService $service) {}
 
@@ -59,8 +61,13 @@ class MeetingRequestController extends Controller
         return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityContext.currentDirectiveVersion','authorityContext.organizationAuthority','authorityScheduleAcknowledgements','authorityScheduleUnitAcknowledgements.unit','authorityParticipantConfirmations','directiveVersions.preparedBy','directiveVersions.issuer','currentDirectiveVersion','unitResponses.unit','unitResponses.directiveVersion','unitResponses.coordinationStarter','unitResponses.acknowledger','directiveClarifications.unit','directiveClarifications.requester','directiveClarifications.responder'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
     }
 
-    public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest)
+    public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest, UpdateInterDirectorateMeetingRequest $flow02Update)
     {
+        if ($meetingRequest->flow_type === self::FLOW_02) {
+            $this->authorize('flow02RequesterEdit', $meetingRequest);
+            return (new MeetingRequestResource($flow02Update($request->user(), $meetingRequest, $request->validated())))->additional(['success'=>true,'message'=>'درخواست بین‌ریاستی اصلاح شد.']);
+        }
+
         $this->authorize('update', $meetingRequest);
         if ($meetingRequest->flow_type === self::FLOW_01) $this->assertCurrentFlow01Executive($request, $meetingRequest);
         return (new MeetingRequestResource($this->service->update($request->user(), $meetingRequest, $request->validated())))->additional(['success'=>true,'message'=>'درخواست اصلاح شد.']);
