@@ -7,6 +7,9 @@ import com.amms.terminal.core.TerminalSessionState
 /**
  * Android-facing orchestration boundary. Network implementations are injected so
  * the state machine remains JVM-testable and vendor-independent.
+ *
+ * FLOW-10A intentionally injects the synthetic adapter. A production hardware
+ * adapter belongs to FLOW-10B and must not silently fall back to fake capture.
  */
 class TerminalWorkflow(private val api: TerminalApi, private val adapter: FakeFingerprintAdapter) {
     companion object {
@@ -39,7 +42,9 @@ class TerminalWorkflow(private val api: TerminalApi, private val adapter: FakeFi
         check(state.mode() == TerminalSessionState.Mode.MEETING)
         check(state.sessionUuid() == sessionUuid)
         check(outcome.status() == FingerprintOutcome.Status.MATCH)
-        return api.attendance(sessionToken, sessionUuid, outcome.templateUuid(), checksum, eventUuid, outcome.score())
+        val employeeId = requireNotNull(outcome.employeeId()) { "matched employee id required" }
+        val templateUuid = requireNotNull(outcome.templateUuid()) { "matched template uuid required" }
+        return api.attendance(sessionToken, sessionUuid, employeeId, templateUuid, checksum, eventUuid, outcome.score())
     }
 
     fun startEnrollment(rawTerminalCredential: String, enrollmentUuid: String) {
@@ -51,8 +56,11 @@ class TerminalWorkflow(private val api: TerminalApi, private val adapter: FakeFi
         api.submitTemplate(rawTerminalCredential, enrollmentUuid, fingerPosition, templateData, qualityAccepted)
 
     fun close(sessionToken: String, sessionUuid: String) {
-        api.close(sessionToken, sessionUuid)
-        state.closeAndClear()
+        try {
+            api.close(sessionToken, sessionUuid)
+        } finally {
+            state.closeAndClear()
+        }
     }
 
     interface TerminalApi {
@@ -60,7 +68,7 @@ class TerminalWorkflow(private val api: TerminalApi, private val adapter: FakeFi
         fun currentAssignments(rawCredential: String): List<TerminalAssignment>
         fun activate(rawCredential: String, assignmentUuid: String): ActivatedSession
         fun candidates(sessionToken: String, sessionUuid: String): CandidateDownload
-        fun attendance(sessionToken: String, sessionUuid: String, templateUuid: String, checksum: String, eventUuid: String, score: Int): AttendanceResult
+        fun attendance(sessionToken: String, sessionUuid: String, employeeId: Long, templateUuid: String, checksum: String, eventUuid: String, score: Int): AttendanceResult
         fun enrollmentTask(rawCredential: String, enrollmentUuid: String): EnrollmentTask
         fun submitTemplate(rawCredential: String, enrollmentUuid: String, fingerPosition: String, templateData: String, qualityAccepted: Boolean): EnrollmentResult
         fun close(sessionToken: String, sessionUuid: String)
