@@ -9,38 +9,37 @@ use App\Models\User;
 use App\Reporting\Filters\ReportingFilter;
 use App\Reporting\Queries\ReportingQueryService;
 use App\Reporting\Scopes\ReportingScopeResolver;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 final class Flow14ReportingTest extends TestCase
 {
+    use DatabaseMigrations;
+
     private array $fixture;
     private ReportingQueryService $service;
     private ReportingScopeResolver $scope;
     private ReportingFilter $filters;
-    private mixed $originalSqliteDatabase;
-    private mixed $originalDefaultConnection;
+    private string $fixturePath;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalSqliteDatabase = config('database.connections.sqlite.database');
-        $this->originalDefaultConnection = config('database.default');
-        config([
-            'database.default' => 'sqlite',
-            'database.connections.sqlite.database' => dirname(__DIR__, 2).'/database/database.sqlite',
-        ]);
-        DB::purge('sqlite');
-        DB::reconnect('sqlite');
-        DB::connection('sqlite')->beginTransaction();
+        $this->seed();
 
-        $this->fixture = json_decode((string) file_get_contents(dirname(__DIR__, 3).'/flow14_canonical_fixture.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->fixturePath = dirname(__DIR__, 3).'/flow14_canonical_fixture.json';
+        $this->regenerateCanonicalFixture();
+        $this->fixture = json_decode(
+            (string) file_get_contents($this->fixturePath),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
 
-        // The frozen reporting database is a data fixture, not an authentication seeder. Bind a
-        // temporary actor to the fixture's declared scope inside a rolled-back SQLite transaction
-        // instead of depending on a historical seeded email or the CI suite's default database.
+        // Bind a dedicated reporting actor to the generated canonical scope. The fixture itself
+        // remains deterministic and the assertions exercise the real ReportingQueryService.
         $user = User::query()->firstOrCreate(
             ['email' => 'flow14.fixture.actor@example.test'],
             ['name' => 'FLOW-14 Fixture Actor', 'password' => 'Flow14FixtureOnly!2026', 'status' => 'ACTIVE'],
@@ -66,15 +65,10 @@ final class Flow14ReportingTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (DB::connection('sqlite')->transactionLevel() > 0) {
-            DB::connection('sqlite')->rollBack();
+        if (isset($this->fixturePath) && is_file($this->fixturePath)) {
+            @unlink($this->fixturePath);
         }
-        DB::disconnect('sqlite');
-        config([
-            'database.default' => $this->originalDefaultConnection,
-            'database.connections.sqlite.database' => $this->originalSqliteDatabase,
-        ]);
-        DB::purge('sqlite');
+
         parent::tearDown();
     }
 
@@ -129,6 +123,23 @@ final class Flow14ReportingTest extends TestCase
         $this->assertNotSame('RESUMPTION', 'POSTPONEMENT');
         $this->assertSame(1, $this->fixture['expected']['reschedule_confirmed_count']);
         $this->assertSame(1, $this->fixture['expected']['participant_change_confirmed_count']);
+    }
+
+    private function regenerateCanonicalFixture(): void
+    {
+        if (is_file($this->fixturePath)) {
+            @unlink($this->fixturePath);
+        }
+
+        $command = escapeshellarg(PHP_BINARY).' '.escapeshellarg(base_path('scripts/flow14_canonical_fixture.php'));
+        $output = [];
+        $exitCode = 0;
+        exec($command, $output, $exitCode);
+
+        if ($exitCode !== 0 || ! is_file($this->fixturePath)) {
+            $diagnostic = trim(implode(PHP_EOL, $output));
+            throw new \RuntimeException('FLOW-14 canonical fixture generation failed'.($diagnostic !== '' ? ': '.$diagnostic : '.'));
+        }
     }
 
     private function sorted(array $value): array
