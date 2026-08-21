@@ -18,6 +18,8 @@ class RefreshParticipantChangeCaseBaseline
             $meeting = $this->lockMeeting($meeting);
             $case = $this->lockCase($meeting, $case);
             $this->assertManage($actor, $case, $this->governance());
+            $this->assertState($case, ['DRAFT', 'RETURNED_FOR_CORRECTION', 'PENDING_CONFIRMATION']);
+            abort_unless((int) $meeting->active_participant_change_case_id === (int) $case->id, 422, 'PARTICIPANT_CHANGE_NOT_ACTIVE');
             $this->validator()->assertMeetingEditable($meeting);
             $case->forceFill([
                 'baseline_schedule_version_id' => $meeting->current_schedule_version_id,
