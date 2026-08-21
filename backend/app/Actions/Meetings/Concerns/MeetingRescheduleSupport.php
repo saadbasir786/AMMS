@@ -124,9 +124,8 @@ trait MeetingRescheduleSupport
             $userIds = array_merge($userIds, User::query()->whereHas('roleScopes', function ($query) use ($requiredUnitIds): void {
                 $query->whereIn('organizational_unit_id', $requiredUnitIds)
                     ->whereHas('role', fn ($role) => $role->whereIn('name', ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'])->where('guard_name', 'sanctum'));
-            })->pluck('id')->all());
+            })->get()->filter(fn (User $user) => $user->isActive())->pluck('id')->all());
         }
-        $userIds[] = (int) $meeting->coordinator_id;
         return array_values(array_unique(array_filter($userIds)));
     }
 }
