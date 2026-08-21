@@ -14,6 +14,7 @@ use App\Actions\MeetingRequests\NominateMeetingParticipant;
 use App\Actions\MeetingRequests\ProposeMeetingSchedule;
 use App\Actions\MeetingRequests\RejectRequesterSideRequest;
 use App\Actions\MeetingRequests\RejectTargetSideRequest;
+use App\Actions\MeetingRequests\ResubmitRequesterSideRequest;
 use App\Actions\MeetingRequests\ResubmitToTarget;
 use App\Actions\MeetingRequests\ReturnRequesterSideRequest;
 use App\Actions\MeetingRequests\ReturnTargetSideRequest;
@@ -73,6 +74,12 @@ class InterDirectorateMeetingRequestController extends Controller
     {
         $this->authorize('flow02RequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست داخلی رد شد.');
+    }
+
+    public function resubmitRequester(Request $request, MeetingRequest $meetingRequest, ResubmitRequesterSideRequest $action)
+    {
+        $this->authorize('flow02RequesterEdit', $meetingRequest);
+        return $this->ok($action($request->user(), $meetingRequest), 'درخواست اصلاح‌شده دوباره برای تأیید ریاست درخواست‌کننده ارسال شد.');
     }
 
     public function targetReview(Request $request, MeetingRequest $meetingRequest, StartTargetReview $action)
