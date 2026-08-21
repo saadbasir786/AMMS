@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\BiometricEnrollmentSession;
 use App\Models\Employee;
 use App\Models\EmployeeBiometricTemplate;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
 
 class BiometricPolicy
@@ -44,7 +45,21 @@ class BiometricPolicy
     private function employeeScoped(User $user, Employee $employee, string $permission): bool
     {
         if (!$user->isActive() || !$user->hasPermissionTo($permission, 'sanctum')) return false;
-        $unitId = (int) $employee->organizational_unit_id;
-        return $user->hasScopedRole('BIOMETRIC_ENROLLMENT_OFFICER', $unitId);
+
+        $employeeUnitId = (int) $employee->organizational_unit_id;
+        if ($employeeUnitId <= 0) return false;
+
+        $scopeUnitIds = $user->roleScopes()
+            ->whereHas('role', fn ($role) => $role->where('name', 'BIOMETRIC_ENROLLMENT_OFFICER')->where('guard_name', 'sanctum'))
+            ->whereNotNull('organizational_unit_id')
+            ->pluck('organizational_unit_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($scopeUnitIds->isEmpty()) return false;
+
+        $scopeUnits = OrganizationalUnit::query()->with('children.children.children.children')->whereIn('id', $scopeUnitIds)->get();
+        return $scopeUnits->contains(fn (OrganizationalUnit $scopeUnit): bool => $scopeUnit->isWithinScope($employeeUnitId));
     }
 }
