@@ -49,6 +49,7 @@ class FoundationToFlow06FinalRegressionAuditTest extends TestCase
         $system = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
         $tech = \App\Models\OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $finance = \App\Models\OrganizationalUnit::query()->where('code', 'FIN')->firstOrFail();
+        $hr = \App\Models\OrganizationalUnit::query()->where('code', 'HR')->firstOrFail();
 
         $common = [
             'subject' => 'Business authority boundary audit',
@@ -67,7 +68,7 @@ class FoundationToFlow06FinalRegressionAuditTest extends TestCase
 
         $this->actingAs($system, 'sanctum')->postJson('/api/meeting-requests/multi-directorate', $common + [
             'requesting_unit_id' => $tech->id,
-            'target_unit_ids' => [$finance->id],
+            'target_unit_ids' => [$finance->id, $hr->id],
         ])->assertStatus(403);
 
         $this->actingAs($system, 'sanctum')->postJson('/api/meeting-requests/high-authority', $common + [
