@@ -24,8 +24,9 @@ class AcknowledgeMeetingRescheduleProposal
             $this->ensureCaseActive($case);
             abort_unless((int) $proposal->meeting_id === (int) $locked->id && (int) $proposal->reschedule_case_id === (int) $case->id && $proposal->status === 'ACTIVE', 422, 'RESCHEDULE_PROPOSAL_NOT_ACTIVE');
             $governance = $this->resolver($locked);
-            $unitId = $this->actorUnitId($actor);
-            abort_unless($unitId && in_array($unitId, $governance['required_unit_ids'], true), 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
+            abort_unless($actor->isActive() && $actor->can('meeting-reschedule.acknowledge'), 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
+            $unitId = $this->actorFormalUnitId($actor, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
+            abort_unless($unitId, 403, 'UNAUTHORIZED_RESCHEDULE_ACKNOWLEDGEMENT');
             $ack = MeetingRescheduleAcknowledgement::firstOrCreate([
                 'proposal_id' => $proposal->id,
                 'organizational_unit_id' => $unitId,
