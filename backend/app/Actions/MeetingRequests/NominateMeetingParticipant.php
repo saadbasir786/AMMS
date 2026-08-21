@@ -25,6 +25,13 @@ class NominateMeetingParticipant
             $side = \App\Models\OrganizationalUnit::findOrFail($data['nominated_by_unit_id']);
             abort_unless(in_array($side->id, [$requester->id, $target->id], true), 403, 'FORBIDDEN');
             abort_unless($this->canCoordinateUnit($actor, $side->id), 403, 'FORBIDDEN');
+
+            if ($side->id === $requester->id) {
+                abort_if($locked->requester_participants_confirmed_at, 422, 'PARTICIPANTS_ALREADY_CONFIRMED');
+            } else {
+                abort_if($locked->target_participants_confirmed_at, 422, 'PARTICIPANTS_ALREADY_CONFIRMED');
+            }
+
             $employee = Employee::with('unit')->findOrFail($data['employee_id']);
             abort_unless($employee->status === 'ACTIVE', 422, 'INVALID_PARTICIPANT');
             abort_unless($side->isWithinScope($employee->organizational_unit_id), 422, 'PARTICIPANT_OUTSIDE_ALLOWED_UNITS');
