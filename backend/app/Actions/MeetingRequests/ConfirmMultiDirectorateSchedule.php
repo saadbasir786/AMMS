@@ -27,6 +27,17 @@ class ConfirmMultiDirectorateSchedule
             $acceptedIds = $proposal->acceptances->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->unique();
             abort_unless($acceptedIds->diff($unitIds)->isEmpty() && $acceptedIds->count() === $unitIds->count(), 422, 'SCHEDULE_NOT_ACCEPTED_BY_ALL_UNITS');
 
+            $confirmedParticipantUnitIds = $locked->participantConfirmations
+                ->pluck('organizational_unit_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique();
+            abort_unless(
+                $confirmedParticipantUnitIds->diff($unitIds)->isEmpty()
+                && $confirmedParticipantUnitIds->count() === $unitIds->count(),
+                422,
+                'UNIT_PARTICIPANTS_NOT_CONFIRMED'
+            );
+
             $locked->update([
                 'status' => MeetingRequestStatus::SCHEDULE_CONFIRMED->value,
                 'schedule_confirmed_by' => $actor->id,
