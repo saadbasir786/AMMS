@@ -159,7 +159,8 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
-            && $user->can('authority-participant.manage') && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId);
+            && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId)
+            && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 
     public function flow05RequesterEdit(User $user, MeetingRequest $request): bool
@@ -182,11 +183,26 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && $user->can('authority-schedule.view') && $user->hasScopedRole('EXECUTIVE_SECRETARY', $officeId);
     }
 
+    public function flow05UnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
+    {
+        return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
+            && $request->units()->whereIn('role', ['REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists()
+            && $user->can('meeting-participant.nominate') && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+    }
+
+    public function flow05UnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
+    {
+        return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
+            && $request->units()->whereIn('role', ['REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists()
+            && $user->can('meeting-participant.confirm') && $user->hasScopedRole('DIRECTOR', $unitId);
+    }
+
     public function flow05AuthorityParticipants(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
-            && $user->can('authority-participant.manage') && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId);
+            && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId)
+            && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 
     public function flow06Prepare(User $user, MeetingRequest $request): bool
@@ -204,5 +220,27 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
             && $user->can('authority-initiated-meeting.issue') && $employeeId > 0
             && (int) $user->employee_id === $employeeId;
+    }
+
+    public function flow06UnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
+    {
+        return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
+            && $request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists()
+            && $user->can('meeting-participant.nominate') && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+    }
+
+    public function flow06UnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
+    {
+        return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
+            && $request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists()
+            && $user->can('meeting-participant.confirm') && $user->hasScopedRole('DIRECTOR', $unitId);
+    }
+
+    public function flow06AuthorityParticipants(User $user, MeetingRequest $request): bool
+    {
+        $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
+        return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive() && $officeId > 0
+            && $user->hasScopedRole('AUTHORITY_OFFICE', $officeId)
+            && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 }
