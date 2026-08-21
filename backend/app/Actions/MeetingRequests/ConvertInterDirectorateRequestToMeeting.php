@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ConvertInterDirectorateRequestToMeeting
@@ -26,16 +27,25 @@ class ConvertInterDirectorateRequestToMeeting
             abort_unless($locked->requester_participants_confirmed_at, 422, 'REQUESTER_PARTICIPANTS_NOT_CONFIRMED');
             abort_unless($locked->target_participants_confirmed_at, 422, 'TARGET_PARTICIPANTS_NOT_CONFIRMED');
             abort_unless(!$locked->meeting()->exists(), 422, 'MEETING_ALREADY_CREATED');
+            abort_unless($locked->scheduled_date && $locked->scheduled_start_time && $locked->scheduled_duration_minutes && $locked->scheduled_location, 422, 'SCHEDULE_NOT_CONFIRMED');
+
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');
             abort_unless($this->canCoordinateUnit($actor, $requester->id) || $this->canCoordinateUnit($actor, $target->id), 403, 'FORBIDDEN');
+
             $chairperson = Employee::with('unit')->findOrFail($data['chairperson_employee_id']);
             abort_unless($chairperson->status === 'ACTIVE', 422, 'INVALID_CHAIRPERSON');
             abort_unless($requester->isWithinScope($chairperson->organizational_unit_id) || $target->isWithinScope($chairperson->organizational_unit_id), 422, 'INVALID_CHAIRPERSON');
-            abort_unless(filled($data['location'] ?? $locked->proposed_location), 422, 'VALIDATION_ERROR');
+
             $nominations = $locked->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'CONFIRMED')->get();
             abort_unless($nominations->where('nominated_by_unit_id', $requester->id)->isNotEmpty(), 422, 'REQUESTER_PARTICIPANTS_NOT_CONFIRMED');
             abort_unless($nominations->where('nominated_by_unit_id', $target->id)->isNotEmpty(), 422, 'TARGET_PARTICIPANTS_NOT_CONFIRMED');
+
+            $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
+            $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)
+                ->addMinutes((int) $locked->scheduled_duration_minutes)
+                ->format('H:i');
+
             $meeting = Meeting::create([
                 'meeting_request_id' => $locked->id,
                 'meeting_number' => $this->nextNumber('meetings', 'MT'),
@@ -44,10 +54,10 @@ class ConvertInterDirectorateRequestToMeeting
                 'organizing_unit_id' => $requester->id,
                 'coordinator_id' => $locked->lead_coordinator_user_id,
                 'chairperson_employee_id' => $chairperson->id,
-                'meeting_date' => $locked->preferred_date,
-                'start_time' => $locked->preferred_start_time,
-                'end_time' => $data['end_time'] ?? $this->endTime($locked->preferred_start_time, $locked->estimated_duration_minutes),
-                'location' => $data['location'] ?? $locked->proposed_location,
+                'meeting_date' => $locked->scheduled_date->format('Y-m-d'),
+                'start_time' => $scheduledStart,
+                'end_time' => $scheduledEnd,
+                'location' => $locked->scheduled_location,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
@@ -56,22 +66,25 @@ class ConvertInterDirectorateRequestToMeeting
                 ['organizational_unit_id' => $target->id, 'role' => 'TARGET'],
             ]);
             foreach ($nominations as $nomination) {
-                $meeting->participants()->create(['employee_id' => $nomination->employee_id, 'organizational_unit_id' => $nomination->nominated_by_unit_id, 'role' => $nomination->nominated_by_unit_id === $requester->id ? 'REQUESTING' : 'TARGET']);
+                $meeting->participants()->create([
+                    'employee_id' => $nomination->employee_id,
+                    'organizational_unit_id' => $nomination->nominated_by_unit_id,
+                    'role' => $nomination->nominated_by_unit_id === $requester->id ? 'REQUESTING' : 'TARGET',
+                ]);
             }
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
             $this->record($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value);
-            $recipientIds = User::whereIn('employee_id', $nominations->pluck('employee_id')->all())->pluck('id')->push($locked->lead_coordinator_user_id)->push($data['target_coordinator_user_id'] ?? null)->filter()->unique();
+            $recipientIds = User::whereIn('employee_id', $nominations->pluck('employee_id')->all())
+                ->pluck('id')
+                ->push($locked->lead_coordinator_user_id)
+                ->push($data['target_coordinator_user_id'] ?? null)
+                ->filter()
+                ->unique();
             foreach ($recipientIds as $recipientId) {
                 $this->notifyUser((int) $recipientId, 'جلسهٔ بین‌ریاستی ایجاد شد', 'جلسه پس از تکمیل تأییدها و زمان‌بندی ایجاد و نهایی شد.', $locked);
             }
             return $meeting->fresh(['request.units.unit', 'units.unit', 'participants.employee', 'chairperson']);
         });
-    }
-
-    private function endTime(?string $start, ?int $duration): string
-    {
-        abort_unless($start && $duration, 422, 'SCHEDULE_NOT_CONFIRMED');
-        return date('H:i:s', strtotime($start) + ($duration * 60));
     }
 }
