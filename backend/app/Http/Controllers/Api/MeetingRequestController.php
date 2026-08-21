@@ -35,10 +35,10 @@ class MeetingRequestController extends Controller
         $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('DIRECTOR')));
         $officeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
         $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
-            $q->where('created_by', $user->id)->orWhereIn('requesting_unit_id', $unitIds ?: [-1]);
+            $q->whereIn('requesting_unit_id', $unitIds ?: [-1]);
             if ($officeIds) $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
             if ($user->employee_id) $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
-            if ($unitIds) $q->orWhereHas('units', fn ($units) => $units->where('role', 'PARTICIPATING')->whereIn('organizational_unit_id', $unitIds));
+            if ($unitIds) $q->orWhereHas('units', fn ($units) => $units->whereIn('role', ['REQUESTER','TARGET','PARTICIPATING'])->whereIn('organizational_unit_id', $unitIds));
         });
         if ($request->filled('status')) $query->where('status', $request->string('status'));
         if ($request->filled('priority')) $query->where('priority', $request->string('priority'));
