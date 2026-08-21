@@ -33,10 +33,30 @@ class UpdateHighAuthorityParticipants
             }
             abort_unless(in_array($holder->id, $ids, true), 422, 'HIGH_AUTHORITY_PARTICIPANT_REQUIRED');
 
-            $locked->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $context->authority_office_unit_id)->delete();
-            $locked->participants()->where('participant_type', 'FINAL')->whereIn('employee_id', $ids)->delete();
+            $oldAuthorityIds = $locked->nominations()
+                ->where('participant_stage', 'FINAL')
+                ->where('nominated_by_unit_id', $context->authority_office_unit_id)
+                ->pluck('employee_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $locked->nominations()
+                ->where('participant_stage', 'FINAL')
+                ->where('nominated_by_unit_id', $context->authority_office_unit_id)
+                ->delete();
+            if ($oldAuthorityIds) {
+                $locked->participants()->where('participant_type', 'FINAL')->whereIn('employee_id', $oldAuthorityIds)->delete();
+            }
+
             foreach ($employees as $employee) {
-                $locked->nominations()->create(['employee_id' => $employee->id, 'organizational_unit_id' => $employee->organizational_unit_id, 'nominated_by_unit_id' => $context->authority_office_unit_id, 'nominated_by_user_id' => $actor->id, 'participant_stage' => 'FINAL', 'nomination_status' => 'NOMINATED']);
+                $locked->nominations()->create([
+                    'employee_id' => $employee->id,
+                    'organizational_unit_id' => $employee->organizational_unit_id,
+                    'nominated_by_unit_id' => $context->authority_office_unit_id,
+                    'nominated_by_user_id' => $actor->id,
+                    'participant_stage' => 'FINAL',
+                    'nomination_status' => 'NOMINATED',
+                ]);
                 if (!$locked->participants()->where('participant_type', 'FINAL')->where('employee_id', $employee->id)->exists()) {
                     $locked->participants()->create(['employee_id' => $employee->id, 'participant_type' => 'FINAL', 'created_by' => $actor->id]);
                 }
