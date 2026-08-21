@@ -175,13 +175,13 @@ class AuthorityInitiatedMeetingRequestController
     public function unitParticipants(Request $request, MeetingRequest $meetingRequest, int $unit, ManageAuthorityInitiatedUnitParticipants $action): JsonResponse
     {
         $ids = $request->validate(['employee_ids' => ['required', 'array'], 'employee_ids.*' => ['integer', 'distinct']])['employee_ids'];
-        Gate::authorize('flow06UnitParticipants', [$meetingRequest, $unit]);
+        Gate::authorize('flow06UnitParticipantsManage', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit, $ids));
     }
 
     public function unitParticipantsConfirm(Request $request, MeetingRequest $meetingRequest, int $unit, ConfirmAuthorityInitiatedUnitParticipants $action): JsonResponse
     {
-        Gate::authorize('flow06UnitParticipants', [$meetingRequest, $unit]);
+        Gate::authorize('flow06UnitParticipantsConfirm', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
