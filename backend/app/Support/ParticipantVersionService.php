@@ -7,6 +7,7 @@ use App\Models\MeetingAction;
 use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingParticipantVersion;
 use App\Models\MeetingParticipantVersionMember;
+use App\Models\OrganizationalUnit;
 
 class ParticipantVersionService
 {
@@ -18,11 +19,21 @@ class ParticipantVersionService
             return $existing->load('members.employee.unit');
         }
 
-        $meeting->loadMissing(['units.unit', 'authorityContext', 'participants.employee.unit']);
+        $meeting->loadMissing(['units.unit', 'request', 'authorityContext', 'participants.employee.unit']);
         $formalUnits = $meeting->units->whereIn('role', ['REQUESTER', 'TARGET', 'REQUESTING', 'PARTICIPATING'])->values();
+        $formalUnitIds = $formalUnits->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->filter()->unique()->values();
+
+        // FLOW-01 legacy/current conversion may not persist a meeting_units row. The organizing
+        // Directorate is still the formal participant domain and must remain the ownership root.
+        if ($formalUnitIds->isEmpty()) {
+            $fallbackUnitId = (int) ($meeting->organizing_unit_id ?: $meeting->request?->requesting_unit_id ?: 0);
+            if ($fallbackUnitId > 0) $formalUnitIds->push($fallbackUnitId);
+        }
+        $formalUnitModels = OrganizationalUnit::query()->whereIn('id', $formalUnitIds->all())->get()->keyBy('id');
+
         $authorityEmployeeId = (int) ($meeting->authorityContext?->authority_employee_id ?? 0);
         $authorityOfficeUnitId = (int) ($meeting->authorityContext?->authority_office_unit_id ?? 0);
-        $authorityOffice = $authorityOfficeUnitId > 0 ? \App\Models\OrganizationalUnit::find($authorityOfficeUnitId) : null;
+        $authorityOffice = $authorityOfficeUnitId > 0 ? OrganizationalUnit::find($authorityOfficeUnitId) : null;
 
         $version = MeetingParticipantVersion::create([
             'meeting_id' => $meeting->id,
@@ -36,12 +47,12 @@ class ParticipantVersionService
             $employeeUnitId = (int) $participant->organizational_unit_id;
             $isAuthority = $authorityEmployeeId > 0 && (int) $participant->employee_id === $authorityEmployeeId;
             $isAuthoritySide = $isAuthority || ($authorityOffice && $authorityOffice->isWithinScope($employeeUnitId));
-            $formalOwner = $formalUnits->first(function ($formalUnit) use ($employeeUnitId): bool {
-                $unit = $formalUnit->unit;
+            $formalOwnerUnitId = $formalUnitIds->first(function (int $unitId) use ($formalUnitModels, $employeeUnitId): bool {
+                $unit = $formalUnitModels->get($unitId);
                 return $unit && $unit->isWithinScope($employeeUnitId);
             });
 
-            if (!$isAuthoritySide && !$formalOwner) {
+            if (!$isAuthoritySide && !$formalOwnerUnitId) {
                 throw new \RuntimeException('PARTICIPANT_OWNER_DOMAIN_NOT_FOUND');
             }
 
@@ -51,7 +62,7 @@ class ParticipantVersionService
                 'organizational_unit_id' => $employeeUnitId,
                 'participant_role' => $participant->role,
                 'owner_type' => $isAuthoritySide ? 'AUTHORITY' : 'UNIT',
-                'owner_unit_id' => $isAuthoritySide ? null : (int) $formalOwner->organizational_unit_id,
+                'owner_unit_id' => $isAuthoritySide ? null : (int) $formalOwnerUnitId,
                 'is_mandatory' => $isAuthority,
                 'created_at' => now(),
             ]);
