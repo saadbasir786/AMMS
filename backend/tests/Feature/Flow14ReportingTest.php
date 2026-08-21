@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AmmsRoleScope;
 use App\Models\User;
 use App\Reporting\Filters\ReportingFilter;
 use App\Reporting\Queries\ReportingQueryService;
 use App\Reporting\Scopes\ReportingScopeResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 final class Flow14ReportingTest extends TestCase
@@ -27,9 +29,26 @@ final class Flow14ReportingTest extends TestCase
         config(['database.connections.sqlite.database' => dirname(__DIR__, 2).'/database/database.sqlite']);
         DB::purge('sqlite');
         DB::reconnect('sqlite');
+        DB::beginTransaction();
+
         $this->fixture = json_decode((string) file_get_contents(dirname(__DIR__, 3).'/flow14_canonical_fixture.json'), true, 512, JSON_THROW_ON_ERROR);
-        $user = User::where('email', 'tech.exec@example.test')->firstOrFail();
-        $this->scope = new ReportingScopeResolver($user);
+
+        // The frozen reporting database is a data fixture, not an authentication seeder. Bind a
+        // temporary actor to the fixture's declared scope inside a rolled-back transaction instead
+        // of depending on a historical seeded email that may legitimately disappear.
+        $user = User::query()->firstOrCreate(
+            ['email' => 'flow14.fixture.actor@example.test'],
+            ['name' => 'FLOW-14 Fixture Actor', 'password' => 'Flow14FixtureOnly!2026', 'status' => 'ACTIVE'],
+        );
+        $role = Role::query()->firstOrCreate(['name' => 'EXECUTIVE_MANAGEMENT', 'guard_name' => 'sanctum']);
+        $user->assignRole($role);
+        AmmsRoleScope::query()->firstOrCreate([
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'organizational_unit_id' => (int) $this->fixture['scope_unit_id'],
+        ]);
+
+        $this->scope = new ReportingScopeResolver($user->fresh());
         $this->filters = ReportingFilter::fromRequest(Request::create('/', 'GET', [
             'from' => '2026-08-01',
             'to' => '2026-09-10',
@@ -42,6 +61,7 @@ final class Flow14ReportingTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (DB::transactionLevel() > 0) DB::rollBack();
         DB::disconnect('sqlite');
         config(['database.connections.sqlite.database' => $this->originalSqliteDatabase]);
         DB::purge('sqlite');
