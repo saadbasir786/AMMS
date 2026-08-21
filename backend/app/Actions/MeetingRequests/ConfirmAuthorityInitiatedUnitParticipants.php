@@ -15,12 +15,14 @@ class ConfirmAuthorityInitiatedUnitParticipants
     {
         return DB::transaction(function () use ($actor, $request, $unitId): MeetingRequest {
             $request = $this->lockFlow06Request($request);
+            $this->assertActiveActor($actor);
             abort_unless($request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists(), 403, 'DIRECTORATE_NOT_PART_OF_DIRECTIVE');
-            abort_unless($actor->isActive() && $actor->can('meeting-participant.confirm') && $this->actorOwnsDirectorate($actor, $unitId), 403, 'UNAUTHORIZED_PARTICIPATING_UNIT_ACTION');
+            abort_unless($actor->can('meeting-participant.confirm') && $actor->hasScopedRole('DIRECTOR', $unitId), 403, 'UNAUTHORIZED_PARTICIPATING_UNIT_ACTION');
             abort_unless(in_array($request->status, ['AUTHORITY_SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'AUTHORITY_SCHEDULE_REQUIRED');
-            abort_unless($request->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $unitId)->exists(), 422, 'UNIT_PARTICIPANTS_NOT_CONFIRMED');
+            abort_if($request->participantConfirmations()->where('organizational_unit_id', $unitId)->exists(), 422, 'UNIT_PARTICIPANTS_ALREADY_CONFIRMED');
+            abort_unless($request->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'NOMINATED')->where('nominated_by_unit_id', $unitId)->exists(), 422, 'UNIT_PARTICIPANTS_NOT_CONFIRMED');
             $request->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $unitId)->update(['nomination_status' => 'CONFIRMED']);
-            $request->participantConfirmations()->updateOrCreate(['organizational_unit_id' => $unitId], ['confirmed_by' => $actor->id, 'confirmed_at' => now()]);
+            $request->participantConfirmations()->create(['organizational_unit_id' => $unitId, 'confirmed_by' => $actor->id, 'confirmed_at' => now()]);
             $this->record06($request, $actor, 'UNIT_PARTICIPANTS_CONFIRMED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId]);
             return $this->response06($request);
         });
