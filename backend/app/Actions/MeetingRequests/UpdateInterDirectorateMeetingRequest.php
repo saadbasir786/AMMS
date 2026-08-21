@@ -27,6 +27,7 @@ class UpdateInterDirectorateMeetingRequest
                 MeetingRequestStatus::RETURNED_BY_TARGET->value,
             ], true), 422, 'REQUEST_NOT_EDITABLE');
 
+            $originalStatus = $locked->status;
             $material = (array_key_exists('subject', $data) && $data['subject'] !== $locked->subject)
                 || (array_key_exists('purpose', $data) && $data['purpose'] !== $locked->purpose);
 
@@ -47,8 +48,7 @@ class UpdateInterDirectorateMeetingRequest
                 }
             }
 
-            if ($material && $locked->getOriginal('status') === MeetingRequestStatus::RETURNED_BY_TARGET->value) {
-                $from = MeetingRequestStatus::RETURNED_BY_TARGET->value;
+            if ($material && $originalStatus === MeetingRequestStatus::RETURNED_BY_TARGET->value) {
                 $locked->update([
                     'status' => MeetingRequestStatus::PENDING_REQUESTER_APPROVAL->value,
                     'requester_approved_by' => null,
@@ -56,13 +56,13 @@ class UpdateInterDirectorateMeetingRequest
                     'target_approved_by' => null,
                     'target_approved_at' => null,
                 ]);
-                $this->record($locked, $actor, 'MATERIAL_CHANGE_REQUIRES_REAPPROVAL', $from, $locked->status, null, [
+                $this->record($locked, $actor, 'MATERIAL_CHANGE_REQUIRES_REAPPROVAL', $originalStatus, $locked->status, null, [
                     'requester_unit_id' => $requester->id,
                     'target_unit_id' => $target->id,
                 ]);
                 $this->notifyUnit($requester->id, ['DIRECTOR'], 'درخواست اصلاح‌شده نیازمند تأیید مجدد است', 'تغییر اساسی پس از برگشت ریاست مقصد انجام شده و تأیید مجدد ریاست درخواست‌کننده لازم است.', $locked);
             } else {
-                $this->record($locked, $actor, 'UPDATED', $locked->status, $locked->status, null, ['material' => $material]);
+                $this->record($locked, $actor, 'UPDATED', $originalStatus, $locked->status, null, ['material' => $material]);
             }
 
             return $this->responseRequest($locked);
