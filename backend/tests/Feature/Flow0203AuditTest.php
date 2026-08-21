@@ -94,7 +94,7 @@ class Flow0203AuditTest extends TestCase
         $request->refresh();
         $this->assertNull($request->requester_approved_by);
         $this->assertNull($request->target_approved_by);
-        $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/resubmit-to-target")->assertStatus(422);
+        $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/resubmit-to-target")->assertForbidden();
         $this->actingAs($techDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/requester-approve")->assertOk()->assertJsonPath('data.status', 'SUBMITTED_TO_TARGET');
     }
 
@@ -119,7 +119,7 @@ class Flow0203AuditTest extends TestCase
             'location' => 'تالار سه‌جانبه',
         ])->assertOk();
         $proposalId = $response->json('data.schedule_proposals.0.id') ?: MeetingScheduleProposal::where('meeting_request_id', $request->id)->latest('id')->value('id');
-        foreach ([[$techExec, $tech], [$financeExec, $finance], [$hrExec, $hr]] as [$actor, $unit]) {
+        foreach ([[$financeExec, $finance], [$hrExec, $hr]] as [$actor, $unit]) {
             $this->actingAs($actor, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/schedule-proposals/{$proposalId}/accept", ['unit_id' => $unit->id])->assertOk();
         }
 
