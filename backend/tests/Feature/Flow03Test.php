@@ -82,8 +82,6 @@ class Flow03Test extends TestCase
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-multi-schedule")->assertOk()->assertJsonPath('data.status', 'SCHEDULE_CONFIRMED');
         $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize-multi", [
             'chairperson_employee_id' => $chairperson->id,
-            'location' => 'تالار کنفرانس مرکزی',
-            'end_time' => '11:00',
             'agenda' => 'بررسی پلان، هماهنگی مسئولیت‌ها و تعیین اقدامات بعدی.',
         ])->assertOk();
 
@@ -136,6 +134,7 @@ class Flow03Test extends TestCase
         $this->assertDatabaseHas('meeting_request_actions', ['meeting_request_id' => $request->id, 'action' => 'MATERIAL_CHANGE_REQUIRES_REAPPROVAL']);
         $this->assertDatabaseHas('meeting_request_unit_reviews', ['meeting_request_id' => $request->id, 'organizational_unit_id' => $finance->id, 'review_status' => 'PENDING_REVIEW']);
     }
+
     public function test_finance_director_cannot_approve_hr_target(): void
     {
         $ctx = $this->createApprovedRequesterSide();
@@ -214,15 +213,13 @@ class Flow03Test extends TestCase
         $this->actingAs($ctx['techExec'], 'sanctum')
             ->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", [
                 'chairperson_employee_id' => $ctx['chairperson']->id,
-                'location' => 'تالار کنفرانس مرکزی',
-                'end_time' => '11:00',
                 'agenda' => 'آزمایش نهایی‌سازی زودهنگام.',
             ])
             ->assertStatus(422)
             ->assertJsonPath('code', 'SCHEDULE_NOT_CONFIRMED');
     }
 
-    public function test_finalization_rejects_end_time_not_after_start_time(): void
+    public function test_finalization_rejects_client_schedule_override_fields(): void
     {
         $ctx = $this->enterScheduling($this->createApprovedRequesterSide(), true);
         $this->nominateAndConfirmAll($ctx);
@@ -231,8 +228,8 @@ class Flow03Test extends TestCase
             'chairperson_employee_id' => $ctx['chairperson']->id,
             'location' => 'تالار مرکزی',
             'end_time' => '10:00',
-            'agenda' => 'زمان نامعتبر.',
-        ])->assertStatus(422)->assertJsonPath('code', 'INVALID_SCHEDULE_TIME');
+            'agenda' => 'نباید زمان‌بندی server-owned را override کند.',
+        ])->assertStatus(422)->assertJsonPath('code', 'VALIDATION_ERROR');
     }
 
     public function test_duplicate_finalization_creates_only_one_meeting(): void
@@ -242,12 +239,10 @@ class Flow03Test extends TestCase
         $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/confirm-multi-schedule")->assertOk();
         $payload = [
             'chairperson_employee_id' => $ctx['chairperson']->id,
-            'location' => 'تالار کنفرانس مرکزی',
-            'end_time' => '11:00',
             'agenda' => 'آزمایش جلوگیری از ایجاد جلسهٔ تکراری.',
         ];
         $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)->assertOk();
-        $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)->assertStatus(422);
+        $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", $payload)->assertForbidden();
 
         $this->assertSame(1, Meeting::where('meeting_request_id', $ctx['request']->id)->count());
     }
@@ -487,8 +482,10 @@ class Flow03Test extends TestCase
             $this->actingAs($actor, 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/multi/units/{$unit->id}/participants", ['organizational_unit_id' => $unit->id, 'employee_id' => $employee->id])->assertOk();
             $this->actingAs($actor, 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/multi/units/{$unit->id}/participants/confirm")->assertOk();
         }
-        $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/confirm-multi-schedule")->assertOk();
-        $this->actingAs($ctx['techExec'], 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/finalize-multi", ['chairperson_employee_id' => $ctx['chairperson']->id, 'location' => 'تالار مرکزی', 'end_time' => '11:00'])->assertStatus(422)->assertJsonPath('code', 'UNIT_PARTICIPANTS_NOT_CONFIRMED');
+        $this->actingAs($ctx['techExec'], 'sanctum')
+            ->postJson("/api/meeting-requests/{$ctx['request']->id}/confirm-multi-schedule")
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'UNIT_PARTICIPANTS_NOT_CONFIRMED');
     }
 
     public function test_timeline_stores_unit_specific_target_events(): void
