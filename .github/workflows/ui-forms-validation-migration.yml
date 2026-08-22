@@ -44,3 +44,5 @@ jobs:
           git rm .github/workflows/ui-forms-validation-migration.yml frontend/scripts/migrate_forms_validation.py
           git commit -m "refactor: standardize form and validation UX"
           git push origin HEAD:refactor/forms-validation
+
+# Triggered after form-system preparation.
