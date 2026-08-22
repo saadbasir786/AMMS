@@ -11,6 +11,12 @@ import { Button } from '@/components/ui/button'
 
 type Any = any
 
+type UnitCapability = {
+  unitId: number
+  canCoordinate: boolean
+  canAcknowledge: boolean
+}
+
 const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use(config => {
   const token = sessionStorage.getItem('amms_token')
@@ -58,12 +64,12 @@ export function AuthorityInitiatedDetail() {
   const isOffice = hasRole(user, 'AUTHORITY_OFFICE', officeId)
   const isSecretary = hasRole(user, 'EXECUTIVE_SECRETARY', officeId)
   const isAuthority = Number(user?.employee_id || user?.employee?.id) === Number(ctx?.authority_employee_id)
-  const unitCapabilities = units.map((unit: Any) => ({
+  const unitCapabilities: UnitCapability[] = units.map((unit: Any) => ({
     unitId: Number(unit.organizational_unit_id),
     canCoordinate: hasRole(user, 'EXECUTIVE_MANAGEMENT', Number(unit.organizational_unit_id)),
     canAcknowledge: hasRole(user, 'DIRECTOR', Number(unit.organizational_unit_id)),
   }))
-  const canOpenScheduling = isSecretary || isOffice || unitCapabilities.some(item => item.canCoordinate || item.canAcknowledge)
+  const canOpenScheduling = isSecretary || isOffice || unitCapabilities.some((item: UnitCapability) => item.canCoordinate || item.canAcknowledge)
 
   const action = async (path: string, body?: Any) => {
     await api.post(`/meeting-requests/${request.id}/authority-initiated/${path}`, body)
