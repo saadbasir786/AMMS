@@ -7,6 +7,8 @@ import './styles.css'
 import { ApplicationShell } from '@/components/layout/application-shell'
 import { DashboardOverview } from '@/components/amms/dashboard-overview'
 import { PageHeader } from '@/components/amms/page-header'
+import { MeetingRequestsTable } from '@/components/amms/meeting-requests-table'
+import { RequestListFilters } from '@/components/amms/request-list-filters'
 import { CreateMultiDirectorate, MultiDirectorateDetail, MultiDirectorateScheduling } from './flow03'
 import { CreateHighAuthority, HighAuthorityDetail, HighAuthorityScheduling, HighAuthorityInbox } from './flow04'
 import { CreateMultiHighAuthority, MultiHighAuthorityDetail, MultiHighAuthorityScheduling, MultiHighAuthorityInbox } from './flow05'
@@ -73,9 +75,78 @@ function EmptyState({text}:{text:string}) { return <div className="empty"><Clipb
 
 function Login() { const {user,login}=useAuth(); const navigate=useNavigate(); const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [error,setError]=useState(''); const [busy,setBusy]=useState(false); if(user) return <Navigate to="/dashboard" replace/>; const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError('');try{await login(email,password);navigate('/dashboard')}catch{setError('ایمیل یا رمز عبور نادرست است.')}finally{setBusy(false)}}; return <div className="login-screen"><div className="login-aside"><div className="login-emblem">ا</div><h1>سیستم مدیریت<br/>جلسات اداری</h1><p>سامانه داخلی برای ثبت، بررسی، زمان‌بندی و مدیریت جلسات اداری ریاست‌ها.</p><div className="login-line"/><small>Administrative Meeting Management System</small></div><div className="login-card"><div className="mobile-brand"><div className="brand-mark">ا</div><strong>جلسات اداری</strong></div><span className="eyebrow">ورود به سامانه داخلی</span><h2>خوش آمدید</h2><p className="muted">برای ادامه، اطلاعات حساب خود را وارد نمایید.</p><form onSubmit={submit}><label>ایمیل کاربری<input type="email" value={email} onChange={e=>setEmail(e.target.value)} dir="ltr"/></label><label>رمز عبور<input type="password" value={password} onChange={e=>setPassword(e.target.value)} dir="ltr"/></label>{error&&<div className="form-error">{error}</div>}<button className="button primary full" disabled={busy}>{busy?'در حال ورود...':'ورود به سامانه'}<ArrowRight size={17}/></button></form><div className="login-help"><ShieldCheck size={16}/> دسترسی شما بر اساس نقش و حوزه تشکیلاتی کنترل می‌شود.</div></div></div> }
 
-function Requests() { const [data,setData]=useState<any>({data:[]}); const [status,setStatus]=useState(''); const [search,setSearch]=useState(''); const load=()=>api.get('/meeting-requests',{params:{status:status||undefined,search:search||undefined}}).then(r=>setData(apiPage(r))); useEffect(()=>{load()},[status]); return <><PageTitle eyebrow="مدیریت گردش کار" title="درخواست‌های جلسه" description="درخواست‌های ثبت‌شده در حوزه دسترسی شما." action={<div className="page-actions"><a className="button secondary" href="/meeting-requests/create">درخواست داخلی</a><a className="button primary" href="/meeting-requests/create-inter-directorate"><Plus size={18}/> جلسه بین دو ریاست</a><a className="button primary" href="/meeting-requests/create-multi-directorate"><Plus size={18}/> جلسه چندریاستی</a><a className="button primary" href="/meeting-requests/create-high-authority"><Plus size={18}/> جلسه با مقام عالی</a><a className="button primary" href="/meeting-requests/create-multi-high-authority"><Plus size={18}/> چندریاستی با مقام</a><a className="button primary" href="/meeting-requests/create-authority-initiated"><Plus size={18}/> جلسه به ابتکار مقام</a></div>}/><div className="toolbar"><div className="search"><Search size={17}/><input placeholder="جستجو بر اساس موضوع یا شماره..." value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>e.key==='Enter'&&load()}/></div><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">همه وضعیت‌ها</option>{Object.entries(statusLabels).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><select><option>همه اولویت‌ها</option><option value="NORMAL">عادی</option><option value="HIGH">بلند</option><option value="URGENT">عاجل</option></select></div><div className="panel table-panel"><table><thead><tr><th>شماره درخواست</th><th>موضوع</th><th>ریاست</th><th>اولویت</th><th>وضعیت</th><th>تاریخ ایجاد</th><th>عملیات</th></tr></thead><tbody>{(data.data||[]).map((r:any)=><tr key={r.id}><td className="mono">{r.request_number||'—'}</td><td><a className="table-link" href={`/meeting-requests/${r.id}`}>{r.subject}</a><small>{purposeLabels[r.purpose]}</small></td><td>{r.requesting_unit?.name||'—'}</td><td><span className={`priority ${r.priority?.toLowerCase()}`}>{priorityLabels[r.priority]}</span></td><td><StatusBadge value={r.status}/></td><td>{new Date(r.created_at).toLocaleDateString('fa-AF')}</td><td><a className="icon-button" href={`/meeting-requests/${r.id}`}><Eye size={17}/></a></td></tr>)}</tbody></table>{(data.data||[]).length===0&&<EmptyState text="درخواستی با این مشخصات یافت نشد."/>}</div></> }
+function Requests() {
+  const [data,setData]=useState<any>({data:[]})
+  const [status,setStatus]=useState('')
+  const [search,setSearch]=useState('')
+  const load=()=>api.get('/meeting-requests',{params:{status:status||undefined,search:search||undefined}}).then(r=>setData(apiPage(r)))
+  useEffect(()=>{load()},[status])
+  const rows=data.data||[]
+  const statusOptions=Object.entries(statusLabels).map(([value,label])=>({value,label}))
+  return <>
+    <PageTitle
+      eyebrow="مدیریت گردش کار"
+      title="درخواست‌های جلسه"
+      description="درخواست‌های ثبت‌شده در حوزه دسترسی شما."
+      action={<div className="page-actions"><a className="button secondary" href="/meeting-requests/create">درخواست داخلی</a><a className="button primary" href="/meeting-requests/create-inter-directorate"><Plus size={18}/> جلسه بین دو ریاست</a><a className="button primary" href="/meeting-requests/create-multi-directorate"><Plus size={18}/> جلسه چندریاستی</a><a className="button primary" href="/meeting-requests/create-high-authority"><Plus size={18}/> جلسه با مقام عالی</a><a className="button primary" href="/meeting-requests/create-multi-high-authority"><Plus size={18}/> چندریاستی با مقام</a><a className="button primary" href="/meeting-requests/create-authority-initiated"><Plus size={18}/> جلسه به ابتکار مقام</a></div>}
+    />
+    <RequestListFilters
+      searchValue={search}
+      searchPlaceholder="جستجو بر اساس موضوع یا شماره..."
+      onSearchChange={setSearch}
+      onSearchSubmit={load}
+      statusValue={status}
+      statusOptions={statusOptions}
+      onStatusChange={setStatus}
+      resultCount={rows.length}
+    />
+    <MeetingRequestsTable
+      rows={rows}
+      statusLabels={statusLabels}
+      priorityLabels={priorityLabels}
+      purposeLabels={purposeLabels}
+      emptyText="درخواستی با این مشخصات یافت نشد."
+    />
+  </>
+}
 
-function IncomingRequests() { const [data,setData]=useState<any>({data:[]}); const [status,setStatus]=useState(''); const load=()=>Promise.all([api.get('/incoming-meeting-requests',{params:{status:status||undefined}}),api.get('/incoming-multi-directorate-meeting-requests',{params:{status:status||undefined}})]).then(([a,b])=>{const left=apiPage(a).data||[];const right=apiPage(b).data||[];setData({data:[...left,...right].sort((x:any,y:any)=>String(y.created_at).localeCompare(String(x.created_at)))})}); useEffect(()=>{load()},[status]); return <><PageTitle eyebrow="ریاست مقصد" title="درخواست‌های وارده" description="درخواست‌هایی که پس از تأیید ریاست درخواست‌کننده به حوزهٔ شما ارسال شده‌اند."/><div className="toolbar"><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">همه وضعیت‌ها</option>{Object.entries(statusLabels).filter(([k])=>k.includes('TARGET')||k.includes('BILATERAL')||k==='SUBMITTED_TO_TARGET'||k==='UNDER_TARGET_REVIEW').map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div><div className="panel table-panel"><table><thead><tr><th>شماره درخواست</th><th>ریاست درخواست‌کننده</th><th>موضوع</th><th>اولویت</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>{(data.data||[]).map((r:any)=><tr key={r.id}><td className="mono">{r.request_number||'—'}</td><td>{r.units?.find((u:any)=>u.role==='REQUESTER')?.unit?.name||r.requesting_unit?.name||'—'}</td><td><a className="table-link" href={`/meeting-requests/${r.id}`}>{r.subject}</a></td><td><span className={`priority ${r.priority?.toLowerCase()}`}>{priorityLabels[r.priority]}</span></td><td><StatusBadge value={r.status}/></td><td><a className="button small primary" href={`/meeting-requests/${r.id}`}>بررسی <Eye size={14}/></a></td></tr>)}</tbody></table>{!(data.data||[]).length&&<EmptyState text="درخواست وارده‌ای در حوزهٔ صلاحیت شما وجود ندارد."/>}</div></> }
+function IncomingRequests() {
+  const [data,setData]=useState<any>({data:[]})
+  const [status,setStatus]=useState('')
+  const load=()=>Promise.all([
+    api.get('/incoming-meeting-requests',{params:{status:status||undefined}}),
+    api.get('/incoming-multi-directorate-meeting-requests',{params:{status:status||undefined}})
+  ]).then(([a,b])=>{
+    const left=apiPage(a).data||[]
+    const right=apiPage(b).data||[]
+    setData({data:[...left,...right].sort((x:any,y:any)=>String(y.created_at).localeCompare(String(x.created_at)))})
+  })
+  useEffect(()=>{load()},[status])
+  const rows=data.data||[]
+  const statusOptions=Object.entries(statusLabels)
+    .filter(([key])=>key.includes('TARGET')||key.includes('BILATERAL')||key==='SUBMITTED_TO_TARGET'||key==='UNDER_TARGET_REVIEW')
+    .map(([value,label])=>({value,label}))
+  return <>
+    <PageTitle
+      eyebrow="ریاست مقصد"
+      title="درخواست‌های وارده"
+      description="درخواست‌هایی که پس از تأیید ریاست درخواست‌کننده به حوزهٔ شما ارسال شده‌اند."
+    />
+    <RequestListFilters
+      statusValue={status}
+      statusOptions={statusOptions}
+      onStatusChange={setStatus}
+      resultCount={rows.length}
+    />
+    <MeetingRequestsTable
+      rows={rows}
+      mode="incoming"
+      statusLabels={statusLabels}
+      priorityLabels={priorityLabels}
+      emptyText="درخواست وارده‌ای با این مشخصات یافت نشد."
+    />
+  </>
+}
 
 function CreateInterDirectorateRequest() { const navigate=useNavigate(); const [units,setUnits]=useState<any[]>([]);const [employees,setEmployees]=useState<any[]>([]);const [form,setForm]=useState<any>({requesting_unit_id:'',target_unit_id:'',subject:'',purpose:'COORDINATION',description:'',priority:'NORMAL',preferred_date:'',preferred_start_time:'',estimated_duration_minutes:60,proposed_location:'',participant_ids:[]});const [error,setError]=useState('');useEffect(()=>{api.get('/organizational-units').then(r=>setUnits(apiData(r)));api.get('/employees').then(r=>setEmployees(apiData(r)))},[]);const save=async(submit:boolean)=>{try{const item=apiData(await api.post('/meeting-requests/inter-directorate',form));if(submit) await api.post(`/meeting-requests/${item.id}/submit-inter-directorate`);navigate(`/meeting-requests/${item.id}`)}catch(e:any){setError(e.response?.data?.message||'ثبت درخواست بین‌ریاستی ممکن نیست.')}};const allowedEmployees=employees.filter(e=>{const selected=[String(form.requesting_unit_id),String(form.target_unit_id)];return selected.includes(String(e.organizational_unit_id))||selected.length===0});return <><PageTitle eyebrow="درخواست جدید" title="جلسه بین دو ریاست" description="جلسهٔ رسمی میان دو ریاست فعال در یک سازمان." action={<a className="button secondary" href="/meeting-requests">انصراف</a>}/><div className="form-layout"><section className="panel form-card"><div className="section-title"><span>طرف‌های جلسه</span><small>ریاست درخواست‌کننده و ریاست مقصد باید متفاوت باشند.</small></div><div className="form-grid"><label>ریاست درخواست‌کننده<select value={form.requesting_unit_id} onChange={e=>setForm({...form,requesting_unit_id:e.target.value,participant_ids:[]})}><option value="">انتخاب ریاست</option>{units.filter(u=>u.unit_type==='DIRECTORATE').map(u=><option value={u.id} key={u.id}>{u.name}</option>)}</select></label><label>ریاست مقصد<select value={form.target_unit_id} onChange={e=>setForm({...form,target_unit_id:e.target.value,participant_ids:[]})}><option value="">انتخاب ریاست مقصد</option>{units.filter(u=>u.unit_type==='DIRECTORATE'&&String(u.id)!==String(form.requesting_unit_id)).map(u=><option value={u.id} key={u.id}>{u.name}</option>)}</select></label></div><div className="section-title separated"><span>اطلاعات اصلی</span></div><div className="form-grid"><label>موضوع جلسه<input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})} placeholder="عنوان رسمی جلسه"/></label><label>هدف جلسه<select value={form.purpose} onChange={e=>setForm({...form,purpose:e.target.value})}>{Object.entries(purposeLabels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select></label><label>اولویت<select value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})}>{Object.entries(priorityLabels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select></label></div><label>شرح و توضیحات<textarea rows={4} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><div className="section-title separated"><span>پیشنهاد اولیهٔ زمان‌بندی</span></div><div className="form-grid three"><label>تاریخ<input type="date" value={form.preferred_date} onChange={e=>setForm({...form,preferred_date:e.target.value})}/></label><label>زمان آغاز<input type="time" value={form.preferred_start_time} onChange={e=>setForm({...form,preferred_start_time:e.target.value})}/></label><label>مدت (دقیقه)<input type="number" value={form.estimated_duration_minutes} onChange={e=>setForm({...form,estimated_duration_minutes:Number(e.target.value)})}/></label></div><label>محل پیشنهادی<input value={form.proposed_location} onChange={e=>setForm({...form,proposed_location:e.target.value})}/></label><div className="section-title separated"><span>اشتراک‌کنندگان پیشنهادی</span><small>درخواست‌کننده فقط پیشنهاد می‌دهد؛ هر ریاست فهرست نهایی خودش را تأیید می‌کند.</small></div><div className="participant-picker">{allowedEmployees.map(e=><label className="check-row" key={e.id}><input type="checkbox" checked={form.participant_ids.includes(e.id)} onChange={ev=>setForm({...form,participant_ids:ev.target.checked?[...form.participant_ids,e.id]:form.participant_ids.filter((id:number)=>id!==e.id)})}/><span>{e.full_name}</span><small>{e.unit?.name}</small></label>)}</div>{error&&<div className="form-error">{error}</div>}<div className="form-actions"><button className="button secondary" onClick={()=>save(false)}>ذخیرهٔ پیش‌نویس</button><button className="button primary" onClick={()=>save(true)}>ارسال برای تأیید داخلی <ArrowRight size={17}/></button></div></section><aside className="panel side-note"><Building2 size={22}/><h3>FLOW-02</h3><p>این درخواست تا زمانی که ریاست درخواست‌کننده تأیید نکند به ریاست مقصد نمایش داده نمی‌شود.</p><div className="note-line"><CheckCircle2 size={16}/> تأیید ریاست درخواست‌کننده</div><div className="note-line"><CheckCircle2 size={16}/> تأیید ریاست مقصد</div><div className="note-line"><CheckCircle2 size={16}/> زمان‌بندی مذاکره‌ای</div></aside></div></> }
 
