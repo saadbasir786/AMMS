@@ -39,6 +39,10 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      - name: Normalize Radix props
+        working-directory: frontend
+        run: sed -i 's/<DropdownMenuContent align="end" className="w-56" dir="rtl">/<DropdownMenuContent align="end" className="w-56">/' src/components/layout/application-shell.tsx
+
       - name: Apply shell codemod
         working-directory: frontend
         run: python3 scripts/migrate_application_shell.py
