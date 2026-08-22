@@ -1,43 +1,126 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { ArrowRight, CheckCircle2, Clock3, FileText, LockKeyhole, Plus, Send, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock3, FileText, LockKeyhole, Plus, ShieldCheck } from 'lucide-react'
+
+export { ActionItemsWorkspace, ActionItemDetailWorkspace } from './flow12_legacy'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { DetailSummaryCard } from '@/components/amms/detail-summary-card'
+import { PageHeader } from '@/components/amms/page-header'
 
 const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use(config => { const token = localStorage.getItem('amms_token'); if (token) config.headers.Authorization = `Bearer ${token}`; return config })
 const dataOf = (response: any) => response.data?.data ?? response.data
-const labels: Record<string,string> = {UNCLASSIFIED:'طبقه‌بندی‌نشده',NO_ACTION_REQUIRED:'بدون نیاز به اقدام',ACTIVE:'در حال اجرا',CLOSED:'بسته‌شده',OPEN:'باز',IN_PROGRESS:'در حال اجرا',BLOCKED:'مسدود',PENDING_VERIFICATION:'منتظر تأیید',COMPLETED:'تکمیل‌شده',CANCELLED:'لغوشده'}
-const label = (value: string) => labels[value] || value
+const labels: Record<string,string> = {UNCLASSIFIED:'طبقه‌بندی‌نشده',NO_ACTION_REQUIRED:'بدون نیاز به اقدام',ACTION_REQUIRED:'نیازمند اقدام',ACTIVE:'در حال اجرا',CLOSED:'بسته‌شده',OPEN:'باز',IN_PROGRESS:'در حال اجرا',BLOCKED:'مسدود',PENDING_VERIFICATION:'منتظر تأیید',COMPLETED:'تکمیل‌شده',CANCELLED:'لغوشده'}
+const label = (value?: string) => value ? (labels[value] || value) : '—'
 const apiError = (error: any) => error?.response?.data?.message || 'عملیات انجام نشد. لطفاً صلاحیت و وضعیت اقدام را بررسی نمایید.'
-function Badge({ value }: { value: string }) { return <span className={`status ${String(value).toLowerCase()}`}>{label(value)}</span> }
-function Title({ eyebrow, title, description, action }: { eyebrow: string; title: string; description?: string; action?: React.ReactNode }) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div> }
-function ErrorBox({ text }: { text: string }) { return text ? <div className="form-error">{text}</div> : null }
-function Summary({ summary }: { summary: any }) { const items = [['کل تصمیمات', summary?.total_decisions || 0], ['نیازمند اقدام', summary?.action_required || 0], ['بدون نیاز به اقدام', summary?.no_action_required || 0], ['اقدامات باز', summary?.open || 0], ['در حال اجرا', summary?.in_progress || 0], ['مسدود', summary?.blocked || 0], ['منتظر تأیید', summary?.pending_verification || 0], ['تکمیل‌شده', summary?.completed || 0], ['تأخیری', summary?.overdue || 0]]; return <div className="stats-grid">{items.map(([name,value]) => <div className="stat-card" key={String(name)}><div className="stat-icon"><Clock3 size={19}/></div><div><span>{name}</span><strong>{value}</strong></div></div>)}</div> }
+
+function StatusBadge({ value }: { value?: string }) {
+  const tone = value === 'COMPLETED' || value === 'CLOSED' || value === 'NO_ACTION_REQUIRED' ? 'secondary' : value === 'BLOCKED' || value === 'CANCELLED' ? 'destructive' : 'outline'
+  return <Badge variant={tone}>{label(value)}</Badge>
+}
 
 export function MeetingFollowUpWorkspace() {
   const id = window.location.pathname.split('/')[2]
-  const [data, setData] = useState<any>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [classification, setClassification] = useState('ACTION_REQUIRED'); const [reason, setReason] = useState(''); const [selected, setSelected] = useState<any>(null); const [form, setForm] = useState<any>({ title: '', description: '', responsible_unit_id: '', assigned_employee_id: '', due_date: '' })
-  const load = async () => { try { setError(''); setData(dataOf(await api.get(`/meetings/${id}/follow-up`))) } catch (e) { setError(apiError(e)) } }
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [selected, setSelected] = useState<any>(null)
+  const [dialogMode, setDialogMode] = useState<'classify'|'action'|null>(null)
+  const [classification, setClassification] = useState('ACTION_REQUIRED')
+  const [reason, setReason] = useState('')
+  const [form, setForm] = useState<any>({ title: '', description: '', responsible_unit_id: '', assigned_employee_id: '', due_date: '' })
+
+  const load = async () => {
+    try { setError(''); setData(dataOf(await api.get(`/meetings/${id}/follow-up`))) }
+    catch (e) { setError(apiError(e)) }
+  }
   useEffect(() => { load() }, [id])
+
+  const initialize = async () => {
+    try { setBusy(true); setError(''); await api.post(`/meetings/${id}/follow-up/initialize`); await load() }
+    catch (e) { setError(apiError(e)) }
+    finally { setBusy(false) }
+  }
+  const closeDialog = () => { setSelected(null); setDialogMode(null); setReason('') }
+  const classify = async () => {
+    if (!selected) return
+    if (classification === 'NO_ACTION_REQUIRED' && !reason.trim()) return setError('دلیل «بدون نیاز به اقدام» الزامی است.')
+    try {
+      setBusy(true); setError('')
+      await api.post(`/decisions/${selected.id}/follow-up/classify`, { classification, reason: reason || undefined })
+      closeDialog(); await load()
+    } catch (e) { setError(apiError(e)) } finally { setBusy(false) }
+  }
+  const createItem = async () => {
+    if (!selected) return
+    try {
+      setBusy(true); setError('')
+      await api.post(`/decisions/${selected.id}/action-items`, { ...form, responsible_unit_id: Number(form.responsible_unit_id), assigned_employee_id: form.assigned_employee_id ? Number(form.assigned_employee_id) : undefined })
+      setForm({ title: '', description: '', responsible_unit_id: '', assigned_employee_id: '', due_date: '' })
+      closeDialog(); await load()
+    } catch (e) { setError(apiError(e)) } finally { setBusy(false) }
+  }
+  const openClassify = (followup: any) => { setSelected(followup); setDialogMode('classify'); setClassification('ACTION_REQUIRED'); setReason('') }
+  const openAction = (followup: any) => {
+    setSelected(followup); setDialogMode('action')
+    setForm({ title: '', description: '', responsible_unit_id: followup.decision?.responsible_unit_id || '', assigned_employee_id: followup.decision?.responsible_employee_id || '', due_date: followup.decision?.target_date || '' })
+  }
+
   if (!data) return <div className="screen-center"><div className="spinner"/></div>
-  const initialize = async () => { try { setBusy(true); await api.post(`/meetings/${id}/follow-up/initialize`); await load() } catch (e) { setError(apiError(e)) } finally { setBusy(false) } }
-  const classify = async () => { if (classification === 'NO_ACTION_REQUIRED' && !reason.trim()) return setError('دلیل «بدون نیاز به اقدام» الزامی است.'); try { setBusy(true); await api.post(`/decisions/${selected.id}/follow-up/classify`, { classification, reason: reason || undefined }); setReason(''); setSelected(null); await load() } catch (e) { setError(apiError(e)) } finally { setBusy(false) } }
-  const createItem = async () => { try { setBusy(true); await api.post(`/decisions/${selected.id}/action-items`, { ...form, responsible_unit_id: Number(form.responsible_unit_id), assigned_employee_id: form.assigned_employee_id ? Number(form.assigned_employee_id) : undefined }); setForm({ title: '', description: '', responsible_unit_id: '', assigned_employee_id: '', due_date: '' }); setSelected(null); await load() } catch (e) { setError(apiError(e)) } finally { setBusy(false) } }
-  return <><Title eyebrow={`${data.meeting?.meeting_number} · FLOW-12`} title="فضای پیگیری تصمیمات" description="پیگیری عملیاتی تصمیمات مندرج در صورت‌جلسهٔ نهایی‌شده، بدون تغییر در سند رسمی." action={<div className="page-actions"><Badge value={data.meeting?.status}/><a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a></div>}/><div className="panel"><div className="info-grid"><div><span>صورت‌جلسه</span><strong>{data.minutes?.status === 'FINALIZED' ? 'نهایی‌شده' : data.minutes?.status}</strong></div><div><span>نسخهٔ نهایی</span><strong>{data.minutes?.version_number || '—'}</strong></div><div><span>تاریخ نهایی‌سازی</span><strong>{data.minutes?.finalized_at ? new Date(data.minutes.finalized_at).toLocaleString('fa-AF') : '—'}</strong></div><div><span>تعداد تصمیمات</span><strong>{data.decision_count}</strong></div></div></div><Summary summary={data.summary}/>{error && <ErrorBox text={error}/>} {!data.followup_initialized && <div className="panel empty"><FileText size={25}/><span>برای تصمیمات این صورت‌جلسه هنوز پیگیری ایجاد نشده است.</span><button className="button primary" disabled={busy} onClick={initialize}><CheckCircle2 size={16}/> ایجاد پیگیری تصمیمات</button></div>}<div className="detail-grid"><section className="detail-main">{(data.followups || []).map((f: any) => <div className="panel" key={f.id}><div className="panel-head"><div><span className="eyebrow">{f.decision_number}</span><h2>{f.decision?.decision_text}</h2></div><Badge value={f.status}/></div><div className="info-grid"><div><span>ریاست مستند</span><strong>{f.decision?.responsible_unit_id || '—'}</strong></div><div><span>کارمند مستند</span><strong>{f.decision?.responsible_employee_id || '—'}</strong></div><div><span>تاریخ هدف مستند</span><strong>{f.decision?.target_date || '—'}</strong></div><div><span>اقدامات</span><strong>{f.action_item_count}</strong></div></div>{f.status === 'NO_ACTION_REQUIRED' && <div className="approved-strip"><ShieldCheck size={17}/><span>{f.no_action_reason}</span></div>}{f.action_item_count > 0 && <div className="proposal-list">{(f.action_items || []).map((item: any) => <a className="proposal-row" href={`/action-items/${item.id}`} key={item.id}><div><strong>{item.action_number} · {item.title}</strong><span>{item.responsible_unit?.name || '—'} · {item.due_date || 'بدون مهلت'}</span></div><Badge value={item.status}/></a>)}</div>}<div className="form-actions">{f.status === 'UNCLASSIFIED' && <button className="button primary" onClick={() => { setSelected(f); setClassification('ACTION_REQUIRED') }}>طبقه‌بندی تصمیم</button>}{f.status !== 'NO_ACTION_REQUIRED' && <button className="button secondary" onClick={() => { setSelected(f); setForm({ title: '', description: '', responsible_unit_id: f.decision?.responsible_unit_id || '', assigned_employee_id: f.decision?.responsible_employee_id || '', due_date: f.decision?.target_date || '' }) }}><Plus size={15}/> ایجاد اقدام</button>}</div></div>)}{data.followup_initialized && !(data.followups || []).length && <div className="panel empty">تصمیمی در نسخهٔ نهایی یافت نشد.</div>}</section><aside className="detail-side"><div className="panel side-note"><LockKeyhole size={21}/><h3>مرز سند رسمی</h3><p>اقدام‌ها در حوزهٔ عملیاتی جداگانه ثبت می‌شوند. وضعیت جلسه، صورت‌جلسه و متن تصمیم هیچ‌گاه با پیشرفت اقدام تغییر نمی‌کند.</p><a className="button secondary full" href={`/action-items`}>فضای اقدامات من <ArrowRight size={16}/></a></div></aside></div>{selected && <div className="modal-backdrop"><div className="modal-card"><div className="panel-head"><h2>{form.title ? 'ایجاد اقدام عملیاتی' : 'طبقه‌بندی تصمیم'}</h2><button className="icon-button" onClick={() => setSelected(null)}>×</button></div>{form.title || form.responsible_unit_id ? <><label>عنوان اقدام<input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}/></label><label>شرح اقدام<textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}/></label><div className="form-grid"><label>واحد مسئول<input type="number" value={form.responsible_unit_id} onChange={e => setForm({ ...form, responsible_unit_id: e.target.value })}/></label><label>کارمند مسئول<input type="number" value={form.assigned_employee_id} onChange={e => setForm({ ...form, assigned_employee_id: e.target.value })}/></label></div><label>مهلت<input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}/></label><div className="form-actions"><button className="button primary" disabled={busy} onClick={createItem}>ثبت اقدام</button><button className="button secondary" onClick={() => setSelected(null)}>انصراف</button></div></> : <><label>طبقه‌بندی<select value={classification} onChange={e => setClassification(e.target.value)}><option value="ACTION_REQUIRED">نیازمند اقدام</option><option value="NO_ACTION_REQUIRED">بدون نیاز به اقدام</option></select></label>{classification === 'NO_ACTION_REQUIRED' && <label>دلیل الزامی<textarea rows={4} value={reason} onChange={e => setReason(e.target.value)}/></label>}<div className="form-actions"><button className="button primary" disabled={busy} onClick={classify}>ثبت طبقه‌بندی</button><button className="button secondary" onClick={() => setSelected(null)}>انصراف</button></div></>}</div></div>}</>
-}
+  const metrics = [
+    ['کل تصمیمات', data.summary?.total_decisions || 0], ['نیازمند اقدام', data.summary?.action_required || 0], ['بدون نیاز به اقدام', data.summary?.no_action_required || 0],
+    ['باز', data.summary?.open || 0], ['در حال اجرا', data.summary?.in_progress || 0], ['مسدود', data.summary?.blocked || 0],
+    ['منتظر تأیید', data.summary?.pending_verification || 0], ['تکمیل‌شده', data.summary?.completed || 0], ['تأخیری', data.summary?.overdue || 0],
+  ]
 
-export function ActionItemsWorkspace() {
-  const [items, setItems] = useState<any[]>([]); const [status, setStatus] = useState(''); const [overdue, setOverdue] = useState(false); const [error, setError] = useState('')
-  const load = async () => { try { const res = await api.get('/action-items', { params: { status: status || undefined, overdue: overdue || undefined } }); const payload = res.data?.data ?? res.data; setItems(Array.isArray(payload) ? payload : payload?.data || []) } catch (e) { setError(apiError(e)) } }
-  useEffect(() => { load() }, [status, overdue])
-  return <><Title eyebrow="FLOW-12" title="اقدامات من" description="اقدام‌های عملیاتی در حوزهٔ صلاحیت شما." action={<a className="button secondary" href="/meetings">جلسات</a>}/>{error && <ErrorBox text={error}/>}<div className="toolbar"><select value={status} onChange={e => setStatus(e.target.value)}><option value="">همه وضعیت‌ها</option>{Object.entries(labels).filter(([key]) => ['OPEN','IN_PROGRESS','BLOCKED','PENDING_VERIFICATION','COMPLETED','CANCELLED'].includes(key)).map(([key,value]) => <option key={key} value={key}>{value}</option>)}</select><label className="check-row"><input type="checkbox" checked={overdue} onChange={e => setOverdue(e.target.checked)}/> فقط تأخیری</label></div><div className="panel table-panel"><table><thead><tr><th>شماره اقدام</th><th>تصمیم</th><th>عنوان</th><th>مسئول</th><th>مهلت</th><th>پیشرفت</th><th>وضعیت</th></tr></thead><tbody>{items.map(item => <tr key={item.id}><td className="mono"><a className="table-link" href={`/action-items/${item.id}`}>{item.action_number}</a></td><td>{item.decision_number}</td><td>{item.title}</td><td>{item.responsible_unit?.name || '—'}</td><td className={item.is_overdue ? 'danger-text' : ''}>{item.due_date || '—'}{item.is_overdue && <small> · {item.days_overdue} روز تأخیر</small>}</td><td>{item.progress_percent}%</td><td><Badge value={item.status}/></td></tr>)}</tbody></table>{!items.length && <div className="empty"><Clock3 size={23}/><span>اقدامی در حوزهٔ شما یافت نشد.</span></div>}</div></>
-}
+  return <div className="space-y-6" dir="rtl">
+    <PageHeader eyebrow={`${data.meeting?.meeting_number || 'جلسه'} · FLOW-12`} title="فضای پیگیری تصمیمات" description="پیگیری عملیاتی تصمیمات مندرج در صورت‌جلسهٔ نهایی‌شده، بدون تغییر در سند رسمی." action={<div className="flex flex-wrap items-center gap-2"><StatusBadge value={data.meeting?.status}/><Button variant="outline" asChild><a href={`/meetings/${id}`}>بازگشت به جلسه <ArrowRight className="size-4"/></a></Button></div>}/>
 
-export function ActionItemDetailWorkspace() {
-  const id = window.location.pathname.split('/')[2]; const [item, setItem] = useState<any>(null); const [error, setError] = useState(''); const [progress, setProgress] = useState(0); const [note, setNote] = useState(''); const [reason, setReason] = useState(''); const [extensionDate, setExtensionDate] = useState(''); const [extensionReason, setExtensionReason] = useState(''); const [busy, setBusy] = useState(false)
-  const load = async () => { try { setItem(dataOf(await api.get(`/action-items/${id}`))) } catch (e) { setError(apiError(e)) } }
-  useEffect(() => { load() }, [id])
-  if (!item) return <div className="screen-center"><div className="spinner"/></div>
-  const action = async (method: 'post', url: string, body?: any) => { try { setBusy(true); setError(''); await api[method](`/action-items/${id}/${url}`, body); await load() } catch (e) { setError(apiError(e)) } finally { setBusy(false) } }
-  const submitCompletion = () => { if (!note.trim()) return setError('یادداشت تکمیل الزامی است.'); action('post', 'completion/submit', { completion_note: note }) }
-  return <><Title eyebrow={`${item.action_number} · FLOW-12`} title={item.title} description={item.decision_number ? `منبع تصمیم رسمی ${item.decision_number}` : undefined} action={<div className="page-actions"><Badge value={item.status}/><a className="button secondary" href="/action-items">بازگشت</a></div>}/>{error && <ErrorBox text={error}/>}<div className="detail-grid"><section className="detail-main"><div className="panel"><div className="info-grid"><div><span>جلسه</span><strong>{item.meeting_number || '—'}</strong></div><div><span>واحد مسئول</span><strong>{item.responsible_unit?.name || '—'}</strong></div><div><span>کارمند مسئول</span><strong>{item.assigned_employee?.name || '—'}</strong></div><div><span>مهلت</span><strong className={item.is_overdue ? 'danger-text' : ''}>{item.due_date || '—'}{item.is_overdue ? ` · ${item.days_overdue} روز تأخیر` : ''}</strong></div><div><span>پیشرفت</span><strong>{item.progress_percent}%</strong></div></div><div className="description-block"><span>متن تصمیم رسمی</span><p>{item.decision_text || '—'}</p></div><div className="description-block"><span>شرح اقدام</span><p>{item.description || '—'}</p></div></div><div className="panel"><div className="panel-head"><div><span className="eyebrow">عملیات اجرایی</span><h2>ثبت پیشرفت و نتیجه</h2></div><UserRound size={20}/></div><div className="form-grid"><label>درصد پیشرفت<input type="number" min="0" max="100" value={progress} onChange={e => setProgress(Number(e.target.value))}/></label><label>یادداشت<textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="یادداشت پیشرفت یا تکمیل"/></label></div><div className="form-actions">{item.status === 'OPEN' && <button className="button primary" disabled={busy} onClick={() => action('post','start')}><CheckCircle2 size={15}/> شروع کار</button>}{['IN_PROGRESS','BLOCKED'].includes(item.status) && <button className="button secondary" disabled={busy} onClick={() => action('post','progress', { progress_percent: progress, note: note || undefined })}>ثبت پیشرفت</button>}{item.status === 'IN_PROGRESS' && <button className="button warning" disabled={busy} onClick={() => { if (!reason.trim()) return setError('دلیل مانع الزامی است.'); action('post','block',{ reason }) }}>اعلام مانع</button>}{item.status === 'BLOCKED' && <button className="button success" disabled={busy} onClick={() => { if (!reason.trim()) return setError('یادداشت رفع مانع الزامی است.'); action('post','unblock',{ note: reason }) }}>رفع مانع</button>}{['IN_PROGRESS','BLOCKED'].includes(item.status) && item.progress_percent === 100 && <button className="button primary" disabled={busy} onClick={submitCompletion}><Send size={15}/> ارسال برای تأیید</button>}{item.status === 'PENDING_VERIFICATION' && <><button className="button success" disabled={busy} onClick={() => action('post','completion/verify')}>تأیید تکمیل</button><button className="button warning" disabled={busy} onClick={() => { if (!reason.trim()) return setError('دلیل برگشت الزامی است.'); action('post','completion/return',{ reason }) }}>برگشت برای اصلاح</button></>}{['OPEN','IN_PROGRESS','BLOCKED'].includes(item.status) && <button className="button danger" disabled={busy} onClick={() => { if (!reason.trim()) return setError('دلیل لغو الزامی است.'); action('post','cancel',{ reason }) }}>لغو اقدام</button>}</div><label className="field-label">دلیل مانع / برگشت / لغو<textarea rows={3} value={reason} onChange={e => setReason(e.target.value)}/></label></div><div className="panel"><div className="panel-head"><div><span className="eyebrow">تمدید مهلت</span><h2>درخواست تمدید کنترل‌شده</h2></div><Clock3 size={20}/></div><div className="form-grid"><label>تاریخ جدید<input type="date" value={extensionDate} onChange={e => setExtensionDate(e.target.value)}/></label><label>دلیل تمدید<textarea rows={2} value={extensionReason} onChange={e => setExtensionReason(e.target.value)}/></label></div><button className="button secondary" disabled={busy} onClick={() => { if (!extensionDate || !extensionReason.trim()) return setError('تاریخ و دلیل تمدید الزامی است.'); action('post','extensions',{ requested_due_date: extensionDate, reason: extensionReason }) }}>درخواست تمدید</button></div></section><aside className="detail-side"><div className="panel"><span className="eyebrow">تاریخچهٔ غیرقابل حذف</span>{(item.updates || []).map((u: any) => <div className="timeline-item" key={u.id}><div className="timeline-dot"/><div><strong>{label(u.update_type)}</strong><span>{u.progress_percent !== null ? `${u.progress_percent}% · ` : ''}{u.created_at ? new Date(u.created_at).toLocaleString('fa-AF') : ''}</span>{u.note && <p>{u.note}</p>}</div></div>)}</div><div className="panel"><span className="eyebrow">شواهد</span>{(item.evidence || []).map((e: any) => <a className="proposal-row" key={e.id} href={e.download_url}><strong>{e.original_filename}</strong><span>{e.mime_type} · {e.file_size} بایت</span></a>)}{!(item.evidence || []).length && <p className="muted">هنوز شاهدی بارگذاری نشده است.</p>}</div></aside></div></>
+    {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+    <DetailSummaryCard title="مبنای پیگیری تصمیمات" items={[
+      { label: 'صورت‌جلسه', value: data.minutes?.status === 'FINALIZED' ? 'نهایی‌شده' : label(data.minutes?.status) },
+      { label: 'نسخهٔ نهایی', value: data.minutes?.version_number || '—' },
+      { label: 'تاریخ نهایی‌سازی', value: data.minutes?.finalized_at ? new Date(data.minutes.finalized_at).toLocaleString('fa-AF') : '—' },
+      { label: 'تعداد تصمیمات', value: data.decision_count ?? 0 },
+    ]}/>
+
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {metrics.map(([name,value]) => <Card key={String(name)}><CardContent className="flex items-center gap-3 p-4"><div className="rounded-lg border bg-muted p-2"><Clock3 className="size-4"/></div><div><p className="text-xs text-muted-foreground">{name}</p><p className="text-xl font-semibold">{value}</p></div></CardContent></Card>)}
+    </div>
+
+    {!data.followup_initialized && <Card className="border-dashed"><CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between"><div className="flex gap-3"><FileText className="mt-1 size-5 text-muted-foreground"/><div><p className="font-medium">پیگیری تصمیمات هنوز ایجاد نشده است.</p><p className="text-sm text-muted-foreground">ایجاد پیگیری، تصمیمات نسخهٔ نهایی را وارد حوزهٔ عملیاتی FLOW-12 می‌کند.</p></div></div><Button disabled={busy} onClick={initialize}><CheckCircle2 className="size-4"/>{busy ? 'در حال ایجاد…' : 'ایجاد پیگیری تصمیمات'}</Button></CardContent></Card>}
+
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="space-y-4">
+        {(data.followups || []).map((f: any) => <Card key={f.id}><CardHeader className="gap-3 border-b"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-medium text-muted-foreground">{f.decision_number}</p><CardTitle className="mt-1 text-base leading-7">{f.decision?.decision_text}</CardTitle></div><StatusBadge value={f.status}/></div></CardHeader><CardContent className="space-y-5 p-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div><p className="text-xs text-muted-foreground">ریاست مستند</p><p className="mt-1 font-medium">{f.decision?.responsible_unit_id || '—'}</p></div>
+            <div><p className="text-xs text-muted-foreground">کارمند مستند</p><p className="mt-1 font-medium">{f.decision?.responsible_employee_id || '—'}</p></div>
+            <div><p className="text-xs text-muted-foreground">تاریخ هدف مستند</p><p className="mt-1 font-medium">{f.decision?.target_date || '—'}</p></div>
+            <div><p className="text-xs text-muted-foreground">تعداد اقدامات</p><p className="mt-1 font-medium">{f.action_item_count}</p></div>
+          </div>
+          {f.status === 'NO_ACTION_REQUIRED' && <Alert><ShieldCheck className="size-4"/><AlertDescription>{f.no_action_reason}</AlertDescription></Alert>}
+          {f.action_item_count > 0 && <div className="divide-y rounded-lg border">{(f.action_items || []).map((item:any) => <a className="flex items-center justify-between gap-4 p-3 hover:bg-muted/50" href={`/action-items/${item.id}`} key={item.id}><div><p className="font-medium">{item.action_number} · {item.title}</p><p className="text-xs text-muted-foreground">{item.responsible_unit?.name || '—'} · {item.due_date || 'بدون مهلت'}</p></div><StatusBadge value={item.status}/></a>)}</div>}
+          <div className="flex flex-wrap gap-2">{f.status === 'UNCLASSIFIED' && <Button onClick={() => openClassify(f)}>طبقه‌بندی تصمیم</Button>}{f.status !== 'NO_ACTION_REQUIRED' && <Button variant="outline" onClick={() => openAction(f)}><Plus className="size-4"/> ایجاد اقدام</Button>}</div>
+        </CardContent></Card>)}
+        {data.followup_initialized && !(data.followups || []).length && <Card className="border-dashed"><CardContent className="p-8 text-center text-sm text-muted-foreground">تصمیمی در نسخهٔ نهایی یافت نشد.</CardContent></Card>}
+      </div>
+      <Card className="h-fit"><CardHeader><LockKeyhole className="size-5 text-muted-foreground"/><CardTitle className="text-base">مرز سند رسمی</CardTitle></CardHeader><CardContent className="space-y-4 text-sm text-muted-foreground"><p>اقدام‌ها در حوزهٔ عملیاتی جداگانه ثبت می‌شوند. وضعیت جلسه، صورت‌جلسه و متن تصمیم با پیشرفت اقدام تغییر نمی‌کند.</p><Button variant="outline" className="w-full" asChild><a href="/action-items">فضای اقدامات من <ArrowRight className="size-4"/></a></Button></CardContent></Card>
+    </div>
+
+    <Dialog open={Boolean(selected && dialogMode)} onOpenChange={(open) => { if (!open) closeDialog() }}>
+      <DialogContent dir="rtl" className="sm:max-w-xl">
+        <DialogHeader><DialogTitle>{dialogMode === 'action' ? 'ایجاد اقدام عملیاتی' : 'طبقه‌بندی تصمیم'}</DialogTitle><DialogDescription>{selected?.decision_number ? `تصمیم ${selected.decision_number}` : 'تصمیم انتخاب‌شده'}</DialogDescription></DialogHeader>
+        {dialogMode === 'action' ? <div className="space-y-4"><label className="grid gap-2 text-sm font-medium">عنوان اقدام<Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}/></label><label className="grid gap-2 text-sm font-medium">شرح اقدام<Textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}/></label><div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium">واحد مسئول<Input type="number" value={form.responsible_unit_id} onChange={e => setForm({ ...form, responsible_unit_id: e.target.value })}/></label><label className="grid gap-2 text-sm font-medium">کارمند مسئول<Input type="number" value={form.assigned_employee_id} onChange={e => setForm({ ...form, assigned_employee_id: e.target.value })}/></label></div><label className="grid gap-2 text-sm font-medium">مهلت<Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}/></label><DialogFooter><Button variant="outline" disabled={busy} onClick={closeDialog}>انصراف</Button><Button disabled={busy} onClick={createItem}>{busy ? 'در حال ثبت…' : 'ثبت اقدام'}</Button></DialogFooter></div> : <div className="space-y-4"><label className="grid gap-2 text-sm font-medium">طبقه‌بندی<select className="h-10 rounded-md border bg-background px-3 text-sm" value={classification} onChange={e => setClassification(e.target.value)}><option value="ACTION_REQUIRED">نیازمند اقدام</option><option value="NO_ACTION_REQUIRED">بدون نیاز به اقدام</option></select></label>{classification === 'NO_ACTION_REQUIRED' && <label className="grid gap-2 text-sm font-medium">دلیل الزامی<Textarea rows={4} value={reason} onChange={e => setReason(e.target.value)}/></label>}<DialogFooter><Button variant="outline" disabled={busy} onClick={closeDialog}>انصراف</Button><Button disabled={busy} onClick={classify}>{busy ? 'در حال ثبت…' : 'ثبت طبقه‌بندی'}</Button></DialogFooter></div>}
+      </DialogContent>
+    </Dialog>
+  </div>
 }
