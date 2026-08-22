@@ -1,0 +1,344 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import axios from 'axios'
+import { ArrowRight, Building2, CalendarDays, CheckCircle2, Clock3, Paperclip, Users } from 'lucide-react'
+
+type Any = any
+
+const api = axios.create({ baseURL: '/api' })
+api.interceptors.request.use(config => {
+  const token = sessionStorage.getItem('amms_token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+const unwrap = (res: Any) => res.data?.data ?? res.data
+const apiError = (e: Any) => e.response?.data?.message || e.response?.data?.error?.message || 'عملیات انجام نشد.'
+const purposeLabels: Record<string, string> = { DECISION: 'تصمیم‌گیری', COORDINATION: 'هماهنگی', CONSULTATION: 'مشورت', REPORTING: 'گزارش‌دهی', APPROVAL: 'تأیید', FOLLOW_UP: 'پیگیری', OTHER: 'سایر' }
+const priorityLabels: Record<string, string> = { NORMAL: 'عادی', HIGH: 'بلند', URGENT: 'عاجل' }
+const statusLabels: Record<string, string> = { DRAFT: 'پیش‌نویس', PENDING_REQUESTER_APPROVAL: 'منتظر تأیید ریاست درخواست‌کننده', REQUESTER_APPROVED: 'تأیید ریاست درخواست‌کننده', SUBMITTED_TO_TARGETS: 'ارسال‌شده به ریاست‌های مقصد', UNDER_MULTI_TARGET_REVIEW: 'در حال بررسی ریاست‌های مقصد', TARGET_ACTION_REQUIRED: 'نیازمند اصلاح از سوی ریاست‌های مقصد', MULTILATERAL_APPROVED: 'تأیید چندجانبه', SCHEDULING: 'در حال زمان‌بندی', SCHEDULE_CONFIRMED: 'زمان‌بندی نهایی', CONVERTED_TO_MEETING: 'تبدیل به جلسه', RETURNED_TO_REQUESTER: 'برگشت به درخواست‌کننده', REJECTED_INTERNAL: 'رد داخلی', REJECTED_BY_TARGET: 'رد توسط ریاست مقصد' }
+const reviewLabels: Record<string, string> = { PENDING_REVIEW: 'منتظر بررسی', UNDER_REVIEW: 'در حال بررسی', APPROVED: 'تأیید شده', RETURNED_FOR_CLARIFICATION: 'برگشت جهت وضاحت', REJECTED: 'رد شده' }
+const reviewClasses: Record<string, string> = { APPROVED: 'approved', RETURNED_FOR_CLARIFICATION: 'returned', REJECTED: 'rejected', UNDER_REVIEW: 'pending', PENDING_REVIEW: 'pending' }
+
+function MultiBadge({ value }: { value: string }) {
+  return <span className={`status ${reviewClasses[value] || value?.toLowerCase()}`}>{statusLabels[value] || reviewLabels[value] || value}</span>
+}
+
+function MultiPageTitle({ eyebrow, title, description, action }: Any) {
+  return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <div className="empty"><Clock3 size={24} /><span>{text}</span></div>
+}
+
+function useMultiUser() {
+  const [user, setUser] = useState<Any>(null)
+  useEffect(() => { api.get('/me').then(r => setUser(unwrap(r))).catch(() => {}) }, [])
+  return user
+}
+
+function scoped(user: Any, role: string, unitId: number) {
+  return user?.roles?.some((r: Any) => r.role === role && Number(r.unit?.id || r.organizational_unit_id) === Number(unitId))
+}
+
+function activeUnitIds(user: Any, roles: string[]): number[] {
+  return (user?.roles || []).filter((r: Any) => roles.includes(r.role)).map((r: Any) => Number(r.unit?.id || r.organizational_unit_id)).filter(Boolean)
+}
+
+function employeeWithinUnit(employee: Any, unitId: number) {
+  const target = Number(unitId)
+  if (!target) return false
+  const scopeIds = Array.isArray(employee?.unit_scope_ids) ? employee.unit_scope_ids.map(Number) : []
+  return scopeIds.includes(target) || Number(employee?.unit?.id || employee?.organizational_unit_id) === target
+}
+
+function addMinutes(time: string, minutes: number) {
+  if (!time || !minutes) return '—'
+  const [h, m] = String(time).slice(0, 5).split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return '—'
+  const total = h * 60 + m + Number(minutes)
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+export function CreateMultiDirectorate() {
+  const navigate = useNavigate()
+  const [units, setUnits] = useState<Any[]>([])
+  const [employees, setEmployees] = useState<Any[]>([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [form, setForm] = useState<Any>({ requesting_unit_id: '', target_unit_ids: [], subject: 'جلسه هماهنگی پلان تطبیق سیستم اداری', purpose: 'COORDINATION', description: '', priority: 'NORMAL', preferred_date: '', preferred_start_time: '', estimated_duration_minutes: 60, proposed_location: '', participant_ids: [] })
+
+  useEffect(() => {
+    api.get('/organizational-units').then(r => setUnits(unwrap(r) || []))
+    api.get('/employees').then(r => setEmployees(unwrap(r) || []))
+  }, [])
+
+  const targetToggle = (id: number) => setForm((f: Any) => ({ ...f, target_unit_ids: f.target_unit_ids.includes(id) ? f.target_unit_ids.filter((x: number) => x !== id) : [...f.target_unit_ids, id], participant_ids: [] }))
+  const selectedUnitIds = [Number(form.requesting_unit_id), ...form.target_unit_ids.map(Number)].filter(Boolean)
+  const allowedEmployees = employees.filter(employee => selectedUnitIds.some((id: number) => employeeWithinUnit(employee, id)))
+
+  const save = async (submit: boolean) => {
+    setBusy(true)
+    setError('')
+    try {
+      const item = unwrap(await api.post('/meeting-requests/multi-directorate', form))
+      if (submit) await api.post(`/meeting-requests/${item.id}/submit-multi`)
+      navigate(`/meeting-requests/${item.id}`)
+    } catch (e) {
+      setError(apiError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>
+    <MultiPageTitle eyebrow="درخواست جدید" title="جلسه چندریاستی" description="یک جلسهٔ رسمی میان حداقل سه ریاست فعال در یک سازمان." action={<a className="button secondary" href="/meeting-requests">انصراف</a>} />
+    <div className="form-layout">
+      <section className="panel form-card">
+        <div className="section-title"><span>ریاست‌های مشارکت‌کننده</span><small>یک ریاست درخواست‌کننده و حداقل دو ریاست مقصد انتخاب کنید.</small></div>
+        <div className="form-grid">
+          <label>ریاست درخواست‌کننده<select value={form.requesting_unit_id} onChange={e => setForm({ ...form, requesting_unit_id: Number(e.target.value), target_unit_ids: [], participant_ids: [] })}><option value="">انتخاب ریاست</option>{units.filter(u => u.unit_type === 'DIRECTORATE' && u.status === 'ACTIVE').map(u => <option value={u.id} key={u.id}>{u.name}</option>)}</select></label>
+          <div><span className="field-label">ریاست‌های مقصد</span><div className="unit-picker">{units.filter(u => u.unit_type === 'DIRECTORATE' && u.status === 'ACTIVE' && Number(u.id) !== Number(form.requesting_unit_id)).map(u => <label className="check-row" key={u.id}><input type="checkbox" checked={form.target_unit_ids.includes(u.id)} onChange={() => targetToggle(u.id)} /><span>{u.name}</span></label>)}</div><small className="form-hint">حداقل دو ریاست مقصد لازم است.</small></div>
+        </div>
+        <div className="section-title separated"><span>اطلاعات اصلی</span></div>
+        <div className="form-grid">
+          <label>موضوع جلسه<input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} /></label>
+          <label>هدف جلسه<select value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })}>{Object.entries(purposeLabels).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label>
+          <label>اولویت<select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>{Object.entries(priorityLabels).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label>
+        </div>
+        <label>شرح و توضیحات<textarea rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></label>
+        <div className="section-title separated"><span>زمان و مکان پیشنهادی</span></div>
+        <div className="form-grid three">
+          <label>تاریخ<input type="date" value={form.preferred_date} onChange={e => setForm({ ...form, preferred_date: e.target.value })} /></label>
+          <label>زمان آغاز<input type="time" value={form.preferred_start_time} onChange={e => setForm({ ...form, preferred_start_time: e.target.value })} /></label>
+          <label>مدت (دقیقه)<input type="number" value={form.estimated_duration_minutes} onChange={e => setForm({ ...form, estimated_duration_minutes: Number(e.target.value) })} /></label>
+        </div>
+        <label>محل پیشنهادی<input value={form.proposed_location} onChange={e => setForm({ ...form, proposed_location: e.target.value })} /></label>
+        <div className="section-title separated"><span>اشتراک‌کنندگان پیشنهادی</span><small>کارمندان ریاست‌های رسمی و زیرواحدهای آن‌ها قابل انتخاب‌اند؛ تأیید نهایی با مالک هر ریاست است.</small></div>
+        <div className="participant-picker">{allowedEmployees.map(e => <label className="check-row" key={e.id}><input type="checkbox" checked={form.participant_ids.includes(e.id)} onChange={ev => setForm({ ...form, participant_ids: ev.target.checked ? [...form.participant_ids, e.id] : form.participant_ids.filter((id: number) => id !== e.id) })} /><span>{e.full_name}</span><small>{e.unit?.name}</small></label>)}</div>
+        {error && <div className="form-error">{error}</div>}
+        <div className="form-actions"><button className="button secondary" disabled={busy} onClick={() => save(false)}>ذخیرهٔ پیش‌نویس</button><button className="button primary" disabled={busy} onClick={() => save(true)}>ارسال برای تأیید داخلی <ArrowRight size={17} /></button></div>
+      </section>
+      <aside className="panel side-note"><Building2 size={22} /><h3>FLOW-03</h3><p>هر ریاست مقصد بررسی و تأیید مستقل دارد. هیچ ریاستی نمی‌تواند به جای ریاست دیگر اقدام کند.</p><div className="note-line"><CheckCircle2 size={16} /> حداقل سه ریاست</div><div className="note-line"><CheckCircle2 size={16} /> تأیید همهٔ ریاست‌های مقصد</div><div className="note-line"><CheckCircle2 size={16} /> زمان‌بندی مشترک همهٔ واحدها</div></aside>
+    </div>
+  </>
+}
+
+export function MultiDirectorateDetail() {
+  const { id } = useParams()
+  const user = useMultiUser()
+  const [r, setR] = useState<Any>(null)
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [editForm, setEditForm] = useState<Any>({ description: '', preferred_date: '', preferred_start_time: '', proposed_location: '' })
+  const [file, setFile] = useState<File | null>(null)
+
+  const load = () => api.get(`/meeting-requests/${id}`).then(x => setR(unwrap(x))).catch(e => setError(apiError(e)))
+  useEffect(() => { load() }, [id])
+  useEffect(() => {
+    if (r) setEditForm({ description: r.description || '', preferred_date: r.preferred_date?.slice(0, 10) || '', preferred_start_time: r.preferred_start_time?.slice(0, 5) || '', proposed_location: r.proposed_location || '' })
+  }, [r?.id])
+
+  if (!r) return error ? <div className="panel form-error">{error}</div> : <div className="screen-center"><div className="spinner" /></div>
+
+  const requester = r.units?.find((u: Any) => u.role === 'REQUESTER')
+  const targets = r.units?.filter((u: Any) => u.role === 'TARGET') || []
+  const requesterId = Number(requester?.organizational_unit_id)
+  const execIds = activeUnitIds(user, ['EXECUTIVE_MANAGEMENT'])
+  const directorIds = activeUnitIds(user, ['DIRECTOR'])
+  const canRequesterManage = execIds.includes(requesterId)
+
+  const call = async (url: string, body?: Any) => {
+    setError('')
+    setNotice('')
+    try {
+      await api.post(`/meeting-requests/${id}/${url}`, body)
+      await load()
+    } catch (e) {
+      setError(apiError(e))
+    }
+  }
+
+  const saveCorrection = async () => {
+    setError('')
+    setNotice('')
+    try {
+      const updated = unwrap(await api.put(`/meeting-requests/${id}/multi`, editForm))
+      if (file) {
+        const fd = new FormData()
+        fd.append('attachment', file)
+        await api.post(`/meeting-requests/${id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      }
+      if (updated.status === 'RETURNED_TO_REQUESTER' || updated.status === 'TARGET_ACTION_REQUIRED') {
+        await api.post(`/meeting-requests/${id}/resubmit-multi`)
+        setNotice(updated.status === 'RETURNED_TO_REQUESTER' ? 'درخواست دوباره برای تأیید رئیس ریاست درخواست‌کننده ارسال شد.' : 'اصلاحات غیرمادی فقط به ریاست‌های برگشت‌دهنده ارسال شد.')
+      } else if (updated.status === 'PENDING_REQUESTER_APPROVAL') {
+        setNotice('تغییر اساسی ثبت شد؛ تأییدهای قبلی باطل و درخواست وارد مرحلهٔ تأیید مجدد ریاست درخواست‌کننده شد.')
+      }
+      setFile(null)
+      await load()
+    } catch (e) {
+      setError(apiError(e))
+    }
+  }
+
+  return <>
+    <MultiPageTitle eyebrow={`${r.request_number || 'پیش‌نویس'} · جلسه چندریاستی`} title={r.subject} description={`${requester?.unit?.name || '—'} + ${targets.map((u: Any) => u.unit?.name).join(' + ')}`} action={<div className="page-actions"><MultiBadge value={r.status} /><a className="button secondary" href="/meeting-requests">بازگشت</a></div>} />
+    {notice && <div className="approved-strip"><CheckCircle2 size={17} /><span>{notice}</span></div>}
+    <div className="detail-grid">
+      <section className="detail-main">
+        <div className="panel">
+          <div className="detail-header"><div><span className="eyebrow">ماتریس پاسخ ریاست‌ها</span><h2>{r.subject}</h2></div><Building2 size={22} /></div>
+          <div className="unit-matrix">
+            <div className="unit-card requester"><div><strong>{requester?.unit?.name}</strong><span>درخواست‌کننده</span></div><span className="status approved">تأیید داخلی</span></div>
+            {targets.map((row: Any) => {
+              const review = (r.unit_reviews || []).find((x: Any) => Number(x.organizational_unit_id) === Number(row.organizational_unit_id))
+              const canStart = scoped(user, 'EXECUTIVE_MANAGEMENT', row.organizational_unit_id)
+              const canApprove = scoped(user, 'DIRECTOR', row.organizational_unit_id)
+              return <div className="unit-card" key={row.id}>
+                <div><strong>{row.unit?.name}</strong><span>{reviewLabels[review?.review_status] || 'منتظر بررسی'}</span>{review?.comment && <small>دلیل: {review.comment}</small>}</div>
+                <div className="unit-actions"><MultiBadge value={review?.review_status || 'PENDING_REVIEW'} />
+                  {canStart && review?.review_status === 'PENDING_REVIEW' && ['SUBMITTED_TO_TARGETS', 'UNDER_MULTI_TARGET_REVIEW'].includes(r.status) && <button className="button small primary" onClick={() => call(`multi/target-units/${row.organizational_unit_id}/review`)}>آغاز بررسی</button>}
+                  {canApprove && review?.review_status === 'UNDER_REVIEW' && <><textarea className="unit-comment" placeholder="دلیل برگشت یا رد" value={reason} onChange={e => setReason(e.target.value)} /><button className="button small success" onClick={() => call(`multi/target-units/${row.organizational_unit_id}/approve`)}>تأیید</button><button className="button small warning" onClick={() => call(`multi/target-units/${row.organizational_unit_id}/return`, { reason })}>برگشت</button><button className="button small danger" onClick={() => call(`multi/target-units/${row.organizational_unit_id}/reject`, { reason })}>رد</button></>}
+                </div>
+              </div>
+            })}
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          {r.description && <div className="description-block"><span>شرح</span><p>{r.description}</p></div>}
+        </div>
+
+        <div className="panel"><div className="panel-head"><div><span className="eyebrow">اشتراک‌کنندگان</span><h2>پیشنهادهای اولیه</h2></div><Users size={20} /></div><div className="people-list">{(r.nominations || []).filter((n: Any) => n.participant_stage === 'PROPOSED').map((n: Any) => <div className="person-row" key={n.id}><div className="avatar tiny">{n.employee?.full_name?.slice(0, 1)}</div><div><strong>{n.employee?.full_name}</strong><span>{n.unit?.name || n.employee?.unit?.name}</span></div><span className="tag">پیشنهاد اولیه</span></div>)}</div></div>
+        <div className="panel timeline"><div className="panel-head"><div><span className="eyebrow">تاریخچهٔ غیرقابل حذف</span><h3>خط زمانی چندریاستی</h3></div><Clock3 size={19} /></div>{(r.actions || []).map((a: Any) => <div className="timeline-item" key={a.id}><div className="timeline-dot" /><div><strong>{a.action}</strong><span>{a.actor?.name} · {new Date(a.created_at).toLocaleString('fa-AF')}</span>{a.comment && <p>{a.comment}</p>}</div></div>)}</div>
+      </section>
+
+      <aside className="detail-side">
+        <div className="panel action-panel">
+          <span className="eyebrow">عملیات مجاز</span><h3>گردش کار</h3>
+          {r.status === 'DRAFT' && canRequesterManage && <button className="button primary full" onClick={() => call('submit-multi')}>ارسال برای تأیید داخلی</button>}
+          {r.status === 'PENDING_REQUESTER_APPROVAL' && directorIds.includes(requesterId) && <><button className="button success full" onClick={() => call('multi/requester-approve')}>تأیید ریاست درخواست‌کننده</button><textarea placeholder="دلیل برگشت یا رد" value={reason} onChange={e => setReason(e.target.value)} /><button className="button warning full" onClick={() => call('multi/requester-return', { reason })}>برگشت جهت اصلاح</button><button className="button danger full" onClick={() => call('multi/requester-reject', { reason })}>رد داخلی</button></>}
+          {['RETURNED_TO_REQUESTER', 'TARGET_ACTION_REQUIRED'].includes(r.status) && canRequesterManage && <div className="correction-box"><span className="eyebrow">اصلاح و ضمیمه</span><small>{r.status === 'TARGET_ACTION_REQUIRED' ? 'تغییر اساسی، همهٔ تأییدهای مقصد را باطل می‌کند؛ اصلاح غیرمادی فقط به ریاست‌های برگشت‌دهنده برمی‌گردد.' : 'پس از اصلاح، درخواست دوباره به رئیس ریاست درخواست‌کننده می‌رود.'}</small><textarea placeholder="شرح اصلاح‌شده" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} /><div className="form-grid"><label>تاریخ<input type="date" value={editForm.preferred_date} onChange={e => setEditForm({ ...editForm, preferred_date: e.target.value })} /></label><label>محل<input value={editForm.proposed_location} onChange={e => setEditForm({ ...editForm, proposed_location: e.target.value })} /></label></div><div className="file-input-row"><label><Paperclip size={15} /> PDF یا سند مجاز<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onChange={e => setFile(e.target.files?.[0] || null)} /></label>{file && <span>{file.name}</span>}</div><button className="button primary full" onClick={saveCorrection}>{r.status === 'RETURNED_TO_REQUESTER' ? 'ذخیره و ارسال برای تأیید داخلی' : 'ذخیره و ادامهٔ گردش کار'}</button></div>}
+          {r.status === 'MULTILATERAL_APPROVED' && canRequesterManage && <button className="button primary full" onClick={() => call('start-multi-scheduling')}>آغاز زمان‌بندی چندریاستی</button>}
+          {['SCHEDULING', 'SCHEDULE_CONFIRMED'].includes(r.status) && execIds.some((unitId: number) => r.units?.some((u: Any) => Number(u.organizational_unit_id) === unitId)) && <a className="button primary full" href={`/meeting-requests/${r.id}/multi-scheduling`}>ورود به فضای زمان‌بندی</a>}
+          {r.meeting && <a className="button secondary full" href={`/meetings/${r.meeting.id}`}>مشاهدهٔ جلسهٔ ایجادشده</a>}
+        </div>
+        <div className="panel"><div className="panel-head"><div><span className="eyebrow">راهنمای وضعیت</span><h3>قاعدهٔ نهایی</h3></div><CheckCircle2 size={19} /></div><p className="muted">تا زمانی که همهٔ ریاست‌های مقصد تأیید نکنند، درخواست به زمان‌بندی منتقل نمی‌شود.</p></div>
+      </aside>
+    </div>
+  </>
+}
+
+export function MultiDirectorateScheduling() {
+  const { id } = useParams()
+  const user = useMultiUser()
+  const [r, setR] = useState<Any>(null)
+  const [employees, setEmployees] = useState<Any[]>([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [proposal, setProposal] = useState<Any>({ proposed_by_unit_id: '', meeting_date: '', start_time: '10:00', end_time: '11:00', location: '', comment: '' })
+  const [nomination, setNomination] = useState<Any>({ organizational_unit_id: '', employee_id: '' })
+  const [final, setFinal] = useState<Any>({ chairperson_employee_id: '', agenda: '' })
+
+  const load = () => api.get(`/meeting-requests/${id}`).then(x => setR(unwrap(x))).catch(e => setError(apiError(e)))
+  useEffect(() => { load(); api.get('/employees').then(x => setEmployees(unwrap(x) || [])) }, [id])
+
+  if (!r) return error ? <div className="panel form-error">{error}</div> : <div className="screen-center"><div className="spinner" /></div>
+
+  const units = r.units || []
+  const requester = units.find((u: Any) => u.role === 'REQUESTER')
+  const requesterId = Number(requester?.organizational_unit_id)
+  const userExecUnitIds = activeUnitIds(user, ['EXECUTIVE_MANAGEMENT'])
+  const ownedUnits = units.filter((u: Any) => userExecUnitIds.includes(Number(u.organizational_unit_id)))
+  const canLead = userExecUnitIds.includes(requesterId)
+  const finalNominations = (r.nominations || []).filter((n: Any) => n.participant_stage === 'FINAL')
+  const activeProposal = (r.schedule_proposals || []).find((p: Any) => ['PROPOSED', 'COUNTER_PROPOSED', 'ACCEPTED'].includes(p.status))
+  const accepted = (activeProposal?.acceptances || []).map((a: Any) => Number(a.organizational_unit_id))
+  const confirmed = (r.participant_confirmations || []).map((c: Any) => Number(c.organizational_unit_id))
+  const allAccepted = activeProposal?.status === 'ACCEPTED' && accepted.length === units.length
+  const allParticipantsConfirmed = confirmed.length === units.length
+  const confirmedEnd = useMemo(() => addMinutes(r.scheduled_start_time, Number(r.scheduled_duration_minutes || 0)), [r.scheduled_start_time, r.scheduled_duration_minutes])
+  const allowedChairs = employees.filter(employee => units.some((u: Any) => employeeWithinUnit(employee, Number(u.organizational_unit_id))))
+  const nominationEmployees = employees.filter(employee => employeeWithinUnit(employee, Number(nomination.organizational_unit_id)))
+
+  const call = async (url: string, body?: Any) => {
+    setBusy(true)
+    setError('')
+    try {
+      await api.post(`/meeting-requests/${id}/${url}`, body)
+      await load()
+    } catch (e) {
+      setError(apiError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const propose = () => call('multi/schedule-proposals', proposal)
+  const accept = (p: Any, unitId: number) => call(`multi/schedule-proposals/${p.id}/accept`, { unit_id: unitId })
+  const nominate = () => call(`multi/units/${nomination.organizational_unit_id}/participants`, nomination)
+  const confirmUnit = (unitId: number) => call(`multi/units/${unitId}/participants/confirm`)
+
+  const finalize = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await api.post(`/meeting-requests/${id}/finalize-multi`, final)
+      location.href = `/meeting-requests/${id}`
+    } catch (e) {
+      setError(apiError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>
+    <MultiPageTitle eyebrow="FLOW-03 · فضای زمان‌بندی" title={r.status === 'SCHEDULE_CONFIRMED' ? 'بازبینی برنامه و ایجاد جلسه رسمی' : 'مذاکرهٔ چندریاستی'} description={`${r.request_number} · ${r.subject}`} action={<a className="button secondary" href={`/meeting-requests/${id}`}>بازگشت</a>} />
+    {error && <div className="form-error">{error}</div>}
+    <div className="form-layout">
+      <section className="detail-main">
+        <div className="panel">
+          <div className="panel-head"><div><span className="eyebrow">تاریخچهٔ پیشنهادها</span><h2>پیشنهادهای زمان‌بندی</h2></div><CalendarDays size={20} /></div>
+          {(r.schedule_proposals || []).map((p: Any) => <div className={`proposal-row ${p.status === 'ACCEPTED' ? 'current' : ''}`} key={p.id}>
+            <div><strong>{p.proposed_by_unit?.name || 'ریاست'}</strong><span>{new Date(p.meeting_date).toLocaleDateString('fa-AF')} · {String(p.start_time).slice(0, 5)} تا {String(p.end_time).slice(0, 5)} · {p.location}</span><small>{p.status === 'SUPERSEDED' ? 'منسوخ' : p.status === 'COUNTER_PROPOSED' ? 'پیشنهاد متقابل' : p.status === 'ACCEPTED' ? 'پذیرفته‌شده توسط همهٔ ریاست‌ها' : 'پیشنهاد فعال'}</small></div>
+            <div className="proposal-actions"><div className="acceptance-tags">{units.map((u: Any) => <span key={u.id} className={(p.acceptances || []).some((a: Any) => Number(a.organizational_unit_id) === Number(u.organizational_unit_id)) ? 'tag success' : 'tag'}>{u.unit?.name}: {(p.acceptances || []).some((a: Any) => Number(a.organizational_unit_id) === Number(u.organizational_unit_id)) ? 'تأیید' : 'منتظر'}</span>)}</div>{r.status === 'SCHEDULING' && p.status !== 'SUPERSEDED' && ownedUnits.filter((u: Any) => !(p.acceptances || []).some((a: Any) => Number(a.organizational_unit_id) === Number(u.organizational_unit_id))).map((u: Any) => <button disabled={busy} className="button small secondary" key={u.id} onClick={() => accept(p, Number(u.organizational_unit_id))}>پذیرش از سوی {u.unit?.name}</button>)}</div>
+          </div>)}
+          {!(r.schedule_proposals || []).length && <EmptyState text="هنوز پیشنهاد زمانی ثبت نشده است." />}
+        </div>
+
+        {r.status === 'SCHEDULING' && ownedUnits.length > 0 && <div className="panel form-card">
+          <div className="section-title"><span>ثبت پیشنهاد یا پیشنهاد متقابل</span><small>پیشنهادهای قبلی حذف نمی‌شوند؛ proposal جدید نسخهٔ قبلی را منسوخ می‌کند.</small></div>
+          <div className="form-grid"><label>ریاست پیشنهاددهنده<select value={proposal.proposed_by_unit_id} onChange={e => setProposal({ ...proposal, proposed_by_unit_id: Number(e.target.value) })}><option value="">انتخاب ریاست</option>{ownedUnits.map((u: Any) => <option key={u.id} value={u.organizational_unit_id}>{u.unit?.name}</option>)}</select></label><label>محل<input value={proposal.location} onChange={e => setProposal({ ...proposal, location: e.target.value })} /></label></div>
+          <div className="form-grid three"><label>تاریخ<input type="date" value={proposal.meeting_date} onChange={e => setProposal({ ...proposal, meeting_date: e.target.value })} /></label><label>از ساعت<input type="time" value={proposal.start_time} onChange={e => setProposal({ ...proposal, start_time: e.target.value })} /></label><label>تا ساعت<input type="time" value={proposal.end_time} onChange={e => setProposal({ ...proposal, end_time: e.target.value })} /></label></div>
+          <label>یادداشت<textarea value={proposal.comment} onChange={e => setProposal({ ...proposal, comment: e.target.value })} /></label><button disabled={busy} className="button primary" onClick={propose}>ثبت پیشنهاد</button>
+        </div>}
+
+        {r.status === 'SCHEDULING' && <div className="panel form-card">
+          <div className="section-title"><span>فهرست‌های نهایی اشتراک‌کنندگان</span><small>هر ریاست فقط فهرست خودش را مدیریت می‌کند؛ کارمندان زیرواحدهای همان ریاست نیز قابل انتخاب‌اند.</small></div>
+          {ownedUnits.some((u: Any) => !confirmed.includes(Number(u.organizational_unit_id))) && <>
+            <div className="form-grid"><label>ریاست مالک فهرست<select value={nomination.organizational_unit_id} onChange={e => setNomination({ ...nomination, organizational_unit_id: Number(e.target.value), employee_id: '' })}><option value="">انتخاب ریاست</option>{ownedUnits.filter((u: Any) => !confirmed.includes(Number(u.organizational_unit_id))).map((u: Any) => <option key={u.id} value={u.organizational_unit_id}>{u.unit?.name}</option>)}</select></label><label>کارمند<select value={nomination.employee_id} onChange={e => setNomination({ ...nomination, employee_id: Number(e.target.value) })}><option value="">انتخاب کارمند</option>{nominationEmployees.map(e => <option key={e.id} value={e.id}>{e.full_name} · {e.unit?.name}</option>)}</select></label></div>
+            <button disabled={busy || !nomination.organizational_unit_id || !nomination.employee_id} className="button secondary" onClick={nominate}>ثبت نامزد</button>
+          </>}
+          <div className="unit-matrix participant-matrix">{units.map((u: Any) => <div className="unit-card" key={u.id}><div><strong>{u.unit?.name}</strong><span>{confirmed.includes(Number(u.organizational_unit_id)) ? 'فهرست تأیید و قفل شده' : 'در انتظار تأیید'}</span></div><div className="people-list">{finalNominations.filter((n: Any) => Number(n.nominated_by_unit_id) === Number(u.organizational_unit_id)).map((n: Any) => <div className="person-row" key={n.id}><div className="avatar tiny">{n.employee?.full_name?.slice(0, 1)}</div><div><strong>{n.employee?.full_name}</strong><span>{n.nomination_status === 'CONFIRMED' ? 'تأیید نهایی' : 'نامزدشده'}</span></div></div>)}</div>{ownedUnits.some((x: Any) => Number(x.organizational_unit_id) === Number(u.organizational_unit_id)) && !confirmed.includes(Number(u.organizational_unit_id)) && <button disabled={busy} className="button small success" onClick={() => confirmUnit(Number(u.organizational_unit_id))}>تأیید و قفل فهرست {u.unit?.name}</button>}</div>)}</div>
+        </div>}
+
+        {r.status === 'SCHEDULE_CONFIRMED' && <div className="panel form-card flow01-review-card">
+          <div className="approved-strip"><CheckCircle2 size={18} /><span>برنامه مشترک تأیید شده است. تاریخ، زمان و محل دیگر قابل تغییر نیست.</span></div>
+          <div className="section-title"><span>خلاصهٔ برنامه تأییدشده</span><small>این snapshot مستقیماً برای ایجاد Meeting استفاده می‌شود.</small></div>
+          <div className="schedule-summary-grid"><div><span>تاریخ</span><strong>{r.scheduled_date ? new Date(r.scheduled_date).toLocaleDateString('fa-AF') : '—'}</strong></div><div><span>زمان آغاز</span><strong>{r.scheduled_start_time?.slice(0, 5) || '—'}</strong></div><div><span>مدت</span><strong>{r.scheduled_duration_minutes ? `${r.scheduled_duration_minutes} دقیقه` : '—'}</strong></div><div><span>زمان ختم</span><strong>{confirmedEnd}</strong></div><div><span>محل</span><strong>{r.scheduled_location || '—'}</strong></div></div>
+          <div className="section-title separated"><span>ایجاد جلسه رسمی</span><small>فقط رئیس جلسه و آجندا در این مرحله تکمیل می‌شود.</small></div>
+          <label>رئیس جلسه<select value={final.chairperson_employee_id} onChange={e => setFinal({ ...final, chairperson_employee_id: Number(e.target.value) })}><option value="">انتخاب رئیس جلسه</option>{allowedChairs.map(e => <option key={e.id} value={e.id}>{e.full_name} · {e.unit?.name}</option>)}</select></label>
+          <label>آجندای رسمی<textarea rows={5} value={final.agenda} onChange={e => setFinal({ ...final, agenda: e.target.value })} /></label>
+          {canLead ? <button disabled={busy || !final.chairperson_employee_id} className="button primary full" onClick={finalize}>{busy ? 'در حال ایجاد...' : 'ایجاد جلسهٔ رسمی'}</button> : <div className="action-hint">ایجاد Meeting فقط توسط مدیریت اجرائیهٔ ریاست درخواست‌کننده انجام می‌شود.</div>}
+        </div>}
+      </section>
+
+      <aside className="detail-side">
+        <div className="panel"><span className="eyebrow">وضعیت پذیرش برنامه</span><h3>همهٔ ریاست‌ها باید یک proposal واحد را بپذیرند.</h3>{units.map((u: Any) => <div className="compare" key={u.id}><span>{u.unit?.name}</span><strong>{accepted.includes(Number(u.organizational_unit_id)) ? 'تأیید کرده' : 'منتظر'}</strong></div>)}</div>
+        {r.status === 'SCHEDULING' && allAccepted && allParticipantsConfirmed && canLead && <div className="panel action-panel"><span className="eyebrow">پیش‌شرط نهایی‌سازی</span><h3>همهٔ پذیرش‌ها و فهرست‌ها تکمیل شده‌اند.</h3><button disabled={busy} className="button primary full" onClick={() => call('confirm-multi-schedule')}>ثبت snapshot نهایی زمان‌بندی</button></div>}
+        <div className="panel side-note"><span className="eyebrow">پیشنهاد اولیه · فقط مرجع</span><div className="compare"><span>تاریخ پیشنهادی</span><strong>{r.preferred_date ? new Date(r.preferred_date).toLocaleDateString('fa-AF') : '—'}</strong></div><div className="compare"><span>زمان پیشنهادی</span><strong>{r.preferred_start_time?.slice(0, 5) || '—'}</strong></div><div className="compare"><span>محل پیشنهادی</span><strong>{r.proposed_location || '—'}</strong></div></div>
+      </aside>
+    </div>
+  </>
+}
