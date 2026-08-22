@@ -44,3 +44,5 @@ jobs:
           git rm .github/workflows/ui-detail-workflow-migration.yml frontend/scripts/migrate_detail_workflow.py
           git commit -m "refactor: standardize detail workflow UX"
           git push origin HEAD:refactor/detail-workflow
+
+# Trigger after shared detail primitives are ready.
