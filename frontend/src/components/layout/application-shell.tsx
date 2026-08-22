@@ -303,7 +303,7 @@ function Header({
               <ChevronDown className="hidden size-3.5 text-muted-foreground md:block" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56" dir="rtl">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="space-y-0.5 px-2 py-2">
               <span className="block text-xs font-semibold text-foreground">{displayName(user)}</span>
               <span className="block text-[10px] font-normal text-muted-foreground">{displayRole(user)}</span>
