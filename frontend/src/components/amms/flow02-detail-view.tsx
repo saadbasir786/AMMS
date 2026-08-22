@@ -172,7 +172,6 @@ export function Flow02DetailView({
       description="این اقدام در تاریخچهٔ درخواست ثبت می‌شود و وضعیت گردش کار را تغییر می‌دهد."
       confirmLabel={confirmAction?.label || 'تأیید'}
       variant={confirmAction?.destructive ? 'destructive' : 'default'}
-      pending={!!busyAction}
       onConfirm={async () => {
         if (!confirmAction) return
         const current = confirmAction
