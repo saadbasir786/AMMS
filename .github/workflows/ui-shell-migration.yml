@@ -6,12 +6,16 @@ on:
       - refactor/application-shell
     paths:
       - .github/workflows/ui-shell-migration.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   migrate:
+    if: github.head_ref == 'refactor/application-shell' || github.ref == 'refs/heads/refactor/application-shell'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
