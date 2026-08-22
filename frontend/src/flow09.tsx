@@ -1,75 +1,91 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { AlertCircle, CheckCircle2, Clock3, Eye, KeyRound, Monitor, Plus, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react'
+import { KeyRound, Monitor } from 'lucide-react'
+
+export { TerminalRegistry, MeetingTerminalWorkspace } from './flow09_legacy'
+import { PageHeader } from '@/components/amms/page-header'
+import { DetailSummaryCard } from '@/components/amms/detail-summary-card'
+import { ConfirmDialog } from '@/components/amms/confirm-dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+
+type Any = any
 
 const api = axios.create({ baseURL: '/api' })
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('amms_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
-const bodyData = (response: any) => response.data?.data ?? response.data
-const errorMessage = (error: any, fallback: string) => error.response?.data?.message || fallback
+api.interceptors.request.use(config => { const token = localStorage.getItem('amms_token'); if (token) config.headers.Authorization = `Bearer ${token}`; return config })
+const bodyData = (response: Any) => response.data?.data ?? response.data
 const statusLabels: Record<string, string> = { ACTIVE: 'فعال', INACTIVE: 'غیرفعال', MAINTENANCE: 'در حال نگهداری', REVOKED: 'لغوشده', ASSIGNED: 'تخصیص‌یافته', STALE: 'قدیمی', REVOKED_ASSIGNMENT: 'لغوشده', EXPIRED: 'منقضی' }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label>{label}{children}</label>
-}
-function Badge({ value }: { value: string }) { return <span className={`status ${value?.toLowerCase()}`}>{statusLabels[value] || value}</span> }
-function ErrorBox({ text }: { text: string }) { return text ? <div className="form-error"><AlertCircle size={15} /> {text}</div> : null }
-
-export function TerminalRegistry() {
-  const [terminals, setTerminals] = useState<any[]>([])
-  const [organizations, setOrganizations] = useState<any[]>([])
-  const [showForm, setShowForm] = useState(false)
+export function TerminalDetail() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [terminal, setTerminal] = useState<Any>(null)
   const [credential, setCredential] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState<any>({ organization_id: '', code: '', name: '', serial_number: '', manufacturer: 'DERMALOG', model: 'SVT3000 SE', platform: 'Android', os_version: '7.1.2', app_version: '', status: 'ACTIVE' })
-  const navigate = useNavigate()
-  const load = () => api.get('/terminals').then(response => setTerminals(bodyData(response) || [])).catch(error => setError(errorMessage(error, 'دریافت فهرست ترمینال‌ها ممکن نیست.')))
-  useEffect(() => { load(); api.get('/admin/organizations').then(response => setOrganizations(bodyData(response) || [])) }, [])
-  const create = async (event: React.FormEvent) => {
-    event.preventDefault(); setError('')
-    try { await api.post('/terminals', { ...form, organization_id: Number(form.organization_id) }); setShowForm(false); setForm({ ...form, code: '', name: '', serial_number: '' }); load() }
-    catch (error: any) { setError(errorMessage(error, 'ثبت ترمینال انجام نشد.')) }
-  }
-  const issue = async (terminal: any) => {
-    setError(''); setCredential(null)
-    try { const response = await api.post(`/terminals/${terminal.id}/credentials`); setCredential(bodyData(response)?.credential?.token || null); load() }
-    catch (error: any) {
-      if (error.response?.data?.code === 'TERMINAL_CREDENTIAL_ALREADY_ACTIVE') {
-        try { const response = await api.post(`/terminals/${terminal.id}/credentials/rotate`); setCredential(bodyData(response)?.credential?.token || null); load() }
-        catch (rotateError: any) { setError(errorMessage(rotateError, 'تعویض اعتبارنامه انجام نشد.')) }
-      } else setError(errorMessage(error, 'صدور اعتبارنامه انجام نشد.'))
-    }
-  }
-  return <div dir="rtl">
-    <div className="page-title"><div><span className="eyebrow">مدیریت زیرساخت</span><h1>ثبت ترمینال‌ها</h1><p>مدیریت دستگاه‌های فیزیکی مجاز برای جلسات رسمی؛ این بخش شامل biometric یا attendance نیست.</p></div><button className="button primary" onClick={() => setShowForm(!showForm)}><Plus size={17} /> ثبت ترمینال</button></div>
-    {credential && <div className="panel accent-panel"><div className="panel-head"><div><span className="eyebrow">نمایش یک‌باره</span><h2><KeyRound size={19} /> اعتبارنامهٔ جدید</h2></div><ShieldCheck size={21} /></div><p>این کلید فقط یک‌بار نمایش داده می‌شود. آن را در دستگاه امن ذخیره کنید؛ سرور فقط hash آن را نگه می‌دارد.</p><code dir="ltr" className="credential-value">{credential}</code><button className="button secondary" onClick={() => setCredential(null)}>بستن</button></div>}
-    {showForm && <form className="panel form-card" onSubmit={create}><div className="section-title"><span>اطلاعات ترمینال</span><small>ترمینال User یا Employee نیست و credential مستقل دارد.</small></div><div className="form-grid three"><Field label="سازمان"><select required value={form.organization_id} onChange={e => setForm({ ...form, organization_id: e.target.value })}><option value="">انتخاب سازمان</option>{organizations.map(org => <option key={org.id} value={org.id}>{org.name || org.short_name}</option>)}</select></Field><Field label="کد دستگاه"><input required value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} dir="ltr" placeholder="SVT3000-01" /></Field><Field label="نام"><input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field><Field label="سریال"><input value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} dir="ltr" /></Field><Field label="سازنده"><input value={form.manufacturer} onChange={e => setForm({ ...form, manufacturer: e.target.value })} /></Field><Field label="مدل"><input value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} /></Field><Field label="Platform"><input value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} /></Field><Field label="نسخهٔ سیستم‌عامل"><input value={form.os_version} onChange={e => setForm({ ...form, os_version: e.target.value })} dir="ltr" /></Field><Field label="وضعیت"><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="ACTIVE">فعال</option><option value="INACTIVE">غیرفعال</option><option value="MAINTENANCE">در حال نگهداری</option></select></Field></div><ErrorBox text={error} /><div className="form-actions"><button type="button" className="button secondary" onClick={() => setShowForm(false)}>انصراف</button><button className="button primary" type="submit">ثبت ترمینال</button></div></form>}
-    <ErrorBox text={error && !showForm ? error : ''} />
-    <div className="panel table-panel"><div className="panel-head"><div><span className="eyebrow">Terminal Registry</span><h2>دستگاه‌های ثبت‌شده</h2></div><Monitor size={21} /></div><table><thead><tr><th>کد</th><th>نام و مدل</th><th>سریال</th><th>وضعیت</th><th>آخرین ارتباط</th><th>جلسهٔ فعال</th><th>عملیات</th></tr></thead><tbody>{terminals.map(terminal => <tr key={terminal.id}><td className="mono">{terminal.code}</td><td><strong>{terminal.name}</strong><small>{terminal.manufacturer || '—'} · {terminal.model || '—'}</small></td><td className="mono">{terminal.serial_number || '—'}</td><td><Badge value={terminal.status} /></td><td>{terminal.last_seen_at ? new Date(terminal.last_seen_at).toLocaleString('fa-AF') : '—'}</td><td>{terminal.current_session_id ? <span className="status active">فعال</span> : '—'}</td><td><div className="page-actions"><button className="icon-button" title="جزئیات" onClick={() => navigate(`/admin/terminals/${terminal.id}`)}><Eye size={16} /></button><button className="icon-button" title="صدور یا تعویض credential" onClick={() => issue(terminal)}><KeyRound size={16} /></button></div></td></tr>)}</tbody></table>{terminals.length === 0 && <div className="empty"><Monitor size={25} /><span>ترمینالی ثبت نشده است.</span></div>}</div>
-  </div>
-}
+  const [busy, setBusy] = useState(false)
+  const [revokeOpen, setRevokeOpen] = useState(false)
+  const [reason, setReason] = useState('')
 
-export function TerminalDetail() {
-  const { id } = useParams(); const navigate = useNavigate(); const [terminal, setTerminal] = useState<any>(null); const [credential, setCredential] = useState<string | null>(null); const [error, setError] = useState('')
-  const load = () => api.get(`/terminals/${id}`).then(response => setTerminal(bodyData(response))).catch(error => setError(errorMessage(error, 'دریافت جزئیات ممکن نیست.')))
+  const load = async () => {
+    try { const response = await api.get(`/terminals/${id}`); setTerminal(bodyData(response)); setError('') }
+    catch (e: Any) { setError(e?.response?.data?.message || 'دریافت جزئیات ترمینال ممکن نیست.') }
+  }
   useEffect(() => { load() }, [id])
-  const issue = async () => { try { const response = await api.post(`/terminals/${id}/credentials/rotate`); setCredential(bodyData(response)?.credential?.token || null); load() } catch (error: any) { setError(errorMessage(error, 'تعویض اعتبارنامه انجام نشد.')) } }
-  const revoke = async () => { const reason = window.prompt('دلیل لغو ترمینال را وارد کنید:'); if (!reason) return; try { await api.post(`/terminals/${id}/revoke`, { reason }); load() } catch (error: any) { setError(errorMessage(error, 'لغو ترمینال انجام نشد.')) } }
-  if (!terminal) return <div dir="rtl"><div className="panel"><p>{error || 'در حال دریافت اطلاعات...'}</p></div></div>
-  return <div dir="rtl"><div className="page-title"><div><span className="eyebrow">Terminal Detail · {terminal.code}</span><h1>{terminal.name}</h1><p>{terminal.manufacturer || '—'} · {terminal.model || '—'} · {terminal.serial_number || 'بدون سریال'}</p></div><div className="page-actions"><button className="button secondary" onClick={() => navigate('/admin/terminals')}>بازگشت</button><button className="button primary" onClick={issue}><KeyRound size={16} /> تعویض اعتبارنامه</button><button className="button danger" onClick={revoke}><Trash2 size={16} /> لغو ترمینال</button></div></div>{credential && <div className="panel accent-panel"><span className="eyebrow">کلید یک‌باره</span><code dir="ltr" className="credential-value">{credential}</code><p>کلید خام در دیتابیس ذخیره نشده است.</p></div>}<ErrorBox text={error} /><div className="detail-grid"><section className="detail-main"><div className="panel"><div className="panel-head"><div><span className="eyebrow">مشخصات registry</span><h2>اطلاعات دستگاه</h2></div><Monitor size={20} /></div><div className="info-grid"><div><span>UUID</span><strong className="mono">{terminal.uuid}</strong></div><div><span>وضعیت</span><strong><Badge value={terminal.status} /></strong></div><div><span>Platform</span><strong>{terminal.platform || '—'}</strong></div><div><span>سیستم‌عامل</span><strong>{terminal.os_version || '—'}</strong></div><div><span>آخرین ارتباط</span><strong>{terminal.last_seen_at ? new Date(terminal.last_seen_at).toLocaleString('fa-AF') : '—'}</strong></div><div><span>جلسهٔ فعلی</span><strong>{terminal.current_session_id || 'ندارد'}</strong></div></div></div><div className="panel"><div className="panel-head"><div><span className="eyebrow">تاریخچهٔ تخصیص</span><h2>Meeting assignments</h2></div><Clock3 size={20} /></div>{(terminal.assignments || []).map((assignment: any) => <div className="proposal-row" key={assignment.id}><div><strong>{assignment.meeting?.title || `Meeting #${assignment.meeting_id}`}</strong><span>{new Date(assignment.valid_from).toLocaleString('fa-AF')} تا {new Date(assignment.valid_until).toLocaleString('fa-AF')}</span></div><Badge value={assignment.status} /></div>)}{!(terminal.assignments || []).length && <div className="empty">تخصیصی ثبت نشده است.</div>}</div></section></div></div>
-}
 
-export function MeetingTerminalWorkspace() {
-  const { id } = useParams(); const [data, setData] = useState<any>(null); const [error, setError] = useState(''); const [form, setForm] = useState<any>({ terminal_id: '', valid_from: '', valid_until: '' })
-  const load = () => api.get(`/meetings/${id}/terminals`).then(response => setData(bodyData(response))).catch(error => setError(errorMessage(error, 'دریافت فضای تخصیص ترمینال ممکن نیست.')))
-  useEffect(() => { load() }, [id])
-  const assign = async (event: React.FormEvent) => { event.preventDefault(); setError(''); try { await api.post(`/meetings/${id}/terminal-assignments`, { ...form, terminal_id: Number(form.terminal_id) }); setForm({ terminal_id: '', valid_from: '', valid_until: '' }); load() } catch (error: any) { setError(errorMessage(error, 'تخصیص ترمینال انجام نشد.')) } }
-  const action = async (assignment: any, type: 'refresh' | 'revoke') => { try { if (type === 'refresh') await api.post(`/meetings/${id}/terminal-assignments/${assignment.id}/refresh`); else { const reason = window.prompt('دلیل لغو تخصیص را وارد کنید:'); if (!reason) return; await api.post(`/meetings/${id}/terminal-assignments/${assignment.id}/revoke`, { reason }) } load() } catch (error: any) { setError(errorMessage(error, 'عملیات تخصیص انجام نشد.')) } }
-  if (!data) return <div dir="rtl"><div className="panel"><p>{error || 'در حال دریافت فضای ترمینال...'}</p></div></div>
-  const meeting = data.meeting?.data || data.meeting; const assignments = data.assignments?.data || data.assignments || []
-  return <div dir="rtl"><div className="page-title"><div><span className="eyebrow">Meeting Terminal Workspace</span><h1>ترمینال‌های جلسه</h1><p>{meeting?.title || `جلسهٔ شمارهٔ ${id}`} · وضعیت: <Badge value={meeting?.status || 'SCHEDULED'} /></p></div></div><div className="stats-grid"><div className="stat-card blue"><div><span>نسخهٔ زمان‌بندی فعلی</span><strong>{meeting?.current_schedule_version_id || '—'}</strong></div></div><div className="stat-card green"><div><span>نسخهٔ اشتراک‌کنندگان فعلی</span><strong>{meeting?.current_participant_version_id || '—'}</strong></div></div><div className="stat-card amber"><div><span>تعداد تخصیص‌ها</span><strong>{assignments.length}</strong></div></div></div><ErrorBox text={error} /><form className="panel form-card" onSubmit={assign}><div className="section-title"><span>تخصیص ترمینال</span><small>پنجره باید زمان رسمی جلسه را کامل پوشش دهد؛ refresh stale خودکار نیست.</small></div><div className="form-grid three"><Field label="ترمینال"><select required value={form.terminal_id} onChange={e => setForm({ ...form, terminal_id: e.target.value })}><option value="">انتخاب دستگاه ACTIVE</option>{(data.available_terminals?.data || data.available_terminals || []).map((terminal: any) => <option key={terminal.id} value={terminal.id}>{terminal.code} · {terminal.name}</option>)}</select></Field><Field label="شروع مجوز"><input required type="datetime-local" value={form.valid_from} onChange={e => setForm({ ...form, valid_from: e.target.value })} /></Field><Field label="پایان مجوز"><input required type="datetime-local" value={form.valid_until} onChange={e => setForm({ ...form, valid_until: e.target.value })} /></Field></div><div className="form-actions"><button className="button primary" type="submit"><Plus size={16} /> ثبت تخصیص</button></div></form><div className="panel table-panel"><div className="panel-head"><div><span className="eyebrow">Baseline binding</span><h2>تخصیص‌های موجود</h2></div><RefreshCw size={20} /></div><table><thead><tr><th>ترمینال</th><th>نسخه هنگام تخصیص</th><th>پنجرهٔ مجاز</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>{assignments.map((assignment: any) => <tr key={assignment.id}><td><strong>{assignment.terminal?.code || assignment.terminal_id}</strong><small>{assignment.terminal?.name || ''}</small></td><td>Schedule {assignment.baseline_schedule_version_id} · Participants {assignment.baseline_participant_version_id}</td><td>{new Date(assignment.valid_from).toLocaleString('fa-AF')}<br />{new Date(assignment.valid_until).toLocaleString('fa-AF')}</td><td><Badge value={assignment.status} />{assignment.is_stale && <small className="form-error">{assignment.schedule_changed ? 'زمان‌بندی تغییر کرده است. ' : ''}{assignment.participants_changed ? 'اشتراک‌کنندگان تغییر کرده‌اند.' : ''}</small>}</td><td><div className="page-actions">{assignment.is_stale && <button className="button small primary" onClick={() => action(assignment, 'refresh')}><RefreshCw size={14} /> بروزرسانی تخصیص</button>}{!['REVOKED', 'EXPIRED'].includes(assignment.status) && <button className="button small danger" onClick={() => action(assignment, 'revoke')}><Trash2 size={14} /> لغو</button>}</div></td></tr>)}</tbody></table>{assignments.length === 0 && <div className="empty"><Monitor size={24} /><span>برای این جلسه ترمینالی تخصیص نیافته است.</span></div>}</div></div>
+  const rotate = async () => {
+    setBusy(true); setError(''); setCredential(null)
+    try { const response = await api.post(`/terminals/${id}/credentials/rotate`); setCredential(bodyData(response)?.credential?.token || null); await load() }
+    catch (e: Any) { setError(e?.response?.data?.message || 'تعویض اعتبارنامه انجام نشد.') }
+    finally { setBusy(false) }
+  }
+  const revoke = async () => {
+    if (!reason.trim()) return
+    setBusy(true); setError('')
+    try { await api.post(`/terminals/${id}/revoke`, { reason }); await load(); setReason(''); setRevokeOpen(false) }
+    catch (e: Any) { setError(e?.response?.data?.message || 'لغو ترمینال انجام نشد.') }
+    finally { setBusy(false) }
+  }
+
+  if (!terminal) return error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : <div className="screen-center"><div className="spinner" /></div>
+
+  const assignments = terminal.assignments || []
+  return <>
+    <PageHeader eyebrow={`FLOW-09 · Terminal Detail · ${terminal.code}`} title={terminal.name} description={`${terminal.manufacturer || '—'} · ${terminal.model || '—'} · ${terminal.serial_number || 'بدون سریال'}`} action={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate('/admin/terminals')}>بازگشت</Button><Button disabled={busy || terminal.status === 'REVOKED'} onClick={rotate}><KeyRound className="size-4" /> تعویض اعتبارنامه</Button></div>} />
+
+    {error ? <Alert variant="destructive" className="mb-6"><AlertDescription>{error}</AlertDescription></Alert> : null}
+    {credential ? <Alert className="mb-6"><KeyRound className="size-4" /><AlertDescription><strong className="block">اعتبارنامهٔ جدید فقط یک‌بار نمایش داده می‌شود.</strong><code dir="ltr" className="mt-3 block overflow-x-auto rounded-lg border bg-background p-3 text-xs">{credential}</code></AlertDescription></Alert> : null}
+
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="space-y-6">
+        <DetailSummaryCard eyebrow="مشخصات Registry" title="اطلاعات دستگاه" icon={<Monitor className="size-5" />} items={[
+          { label: 'UUID', value: <span className="font-mono text-xs">{terminal.uuid}</span> },
+          { label: 'وضعیت', value: <Badge variant={terminal.status === 'ACTIVE' ? 'default' : 'secondary'}>{statusLabels[terminal.status] || terminal.status}</Badge> },
+          { label: 'Platform', value: terminal.platform || '—' },
+          { label: 'سیستم‌عامل', value: terminal.os_version || '—' },
+          { label: 'آخرین ارتباط', value: terminal.last_seen_at ? new Date(terminal.last_seen_at).toLocaleString('fa-AF') : '—' },
+          { label: 'جلسهٔ فعلی', value: terminal.current_session_id || 'ندارد' },
+          { label: 'سریال', value: terminal.serial_number || '—' },
+          { label: 'تعداد تخصیص‌ها', value: String(assignments.length) },
+        ]} description="FLOW-09 فقط foundation ثبت و تخصیص ترمینال است؛ این صفحه هیچ ادعایی دربارهٔ biometric یا attendance ندارد." />
+
+        <Card>
+          <CardHeader className="border-b"><CardTitle className="text-base">تاریخچهٔ تخصیص به جلسات</CardTitle></CardHeader>
+          <CardContent className="space-y-3 pt-5">{assignments.length ? assignments.map((assignment: Any) => <div key={assignment.id} className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><strong className="block text-sm">{assignment.meeting?.title || `Meeting #${assignment.meeting_id}`}</strong><span className="text-xs text-muted-foreground">{new Date(assignment.valid_from).toLocaleString('fa-AF')} تا {new Date(assignment.valid_until).toLocaleString('fa-AF')}</span></div><Badge variant="outline">{statusLabels[assignment.status] || assignment.status}</Badge></div>) : <p className="text-sm text-muted-foreground">تخصیصی ثبت نشده است.</p>}</CardContent>
+        </Card>
+      </section>
+
+      <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+        <Card>
+          <CardHeader className="border-b"><CardTitle className="text-base">کنترل امنیتی ترمینال</CardTitle></CardHeader>
+          <CardContent className="space-y-3 pt-5"><p className="text-sm text-muted-foreground">تعویض credential کلید قبلی را از چرخه خارج می‌کند. لغو ترمینال یک اقدام حساس و ثبت‌شونده است.</p><Button className="w-full" variant="outline" disabled={busy || terminal.status === 'REVOKED'} onClick={rotate}>تعویض credential</Button><Textarea value={reason} onChange={event => setReason(event.target.value)} placeholder="دلیل لغو ترمینال" disabled={terminal.status === 'REVOKED'} /><Button className="w-full" variant="destructive" disabled={busy || terminal.status === 'REVOKED' || !reason.trim()} onClick={() => setRevokeOpen(true)}>لغو ترمینال</Button></CardContent>
+        </Card>
+      </aside>
+    </div>
+
+    <ConfirmDialog open={revokeOpen} onOpenChange={setRevokeOpen} title="لغو ترمینال انجام شود؟" description="پس از لغو، این دستگاه دیگر نباید برای تخصیص فعال استفاده شود. دلیل واردشده همراه درخواست ارسال می‌شود." confirmLabel="لغو ترمینال" variant="destructive" onConfirm={revoke} />
+  </>
 }
