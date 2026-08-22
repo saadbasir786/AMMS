@@ -5,6 +5,8 @@ import axios from 'axios'
 import { LayoutDashboard, FilePlus2, ClipboardCheck, CalendarDays, Bell, Network, Users, ShieldCheck, LogOut, Menu, X, ChevronLeft, Search, Plus, CheckCircle2, Clock3, AlertCircle, ArrowRight, Building2, UserRound, Eye, Paperclip, Save, Monitor, Fingerprint, BarChart3, Download } from 'lucide-react'
 import './styles.css'
 import { ApplicationShell } from '@/components/layout/application-shell'
+import { DashboardOverview } from '@/components/amms/dashboard-overview'
+import { PageHeader } from '@/components/amms/page-header'
 import { CreateMultiDirectorate, MultiDirectorateDetail, MultiDirectorateScheduling } from './flow03'
 import { CreateHighAuthority, HighAuthorityDetail, HighAuthorityScheduling, HighAuthorityInbox } from './flow04'
 import { CreateMultiHighAuthority, MultiHighAuthorityDetail, MultiHighAuthorityScheduling, MultiHighAuthorityInbox } from './flow05'
@@ -52,9 +54,20 @@ function Shell({children}:{children:React.ReactNode}) {
   const navigate=useNavigate()
   return <ApplicationShell user={user} navItems={navItems} currentPath={location.pathname} onNavigate={(target)=>navigate(target)} onLogout={logout}>{children}</ApplicationShell>
 }
-function PageTitle({eyebrow,title,description,action}:{eyebrow?:string;title:string;description?:string;action?:React.ReactNode}) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description&&<p>{description}</p>}</div>{action}</div> }
-function StatCard({label,value,icon:Icon,tone='blue',hint}:{label:string;value:string|number;icon:any;tone?:string;hint?:string}) { return <div className={`stat-card ${tone}`}><div className="stat-icon"><Icon size={20}/></div><div><span>{label}</span><strong>{value}</strong>{hint&&<small>{hint}</small>}</div></div> }
-function Dashboard() { const {user}=useAuth(); const isSystemAdmin=user?.roles?.some((r:any)=>r.role==='SYSTEM_ADMIN'); const [data,setData]=useState<any>({}); const [requests,setRequests]=useState<any[]>([]); useEffect(()=>{api.get('/dashboard').then(r=>setData(apiData(r)));api.get('/meeting-requests').then(r=>setRequests(apiPage(r).data||[]))},[]); return <><PageTitle eyebrow="نمای کلی سیستم" title="داشبورد مدیریتی" description="وضعیت درخواست‌ها و جلسات حوزه صلاحیت شما در یک نگاه." action={!isSystemAdmin&&<button className="button primary" onClick={()=>location.href='/meeting-requests/create'}><Plus size={18}/> درخواست جدید</button>}/><div className="stats-grid"><StatCard label="درخواست‌های من" value={data.my_requests||0} icon={FilePlus2}/><StatCard label="منتظر تأیید" value={data.pending_approval||0} icon={Clock3} tone="amber"/><StatCard label="برگشتی جهت اصلاح" value={data.returned||0} icon={AlertCircle} tone="red"/><StatCard label="جلسات آینده" value={data.upcoming_meetings||0} icon={CalendarDays} tone="green"/></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><div><span className="eyebrow">فعالیت اخیر</span><h2>درخواست‌های اخیر</h2></div><a href="/meeting-requests">مشاهده همه <ArrowRight size={15}/></a></div><div className="mini-list">{requests.slice(0,5).map((r:any)=><a className="mini-row" key={r.id} href={`/meeting-requests/${r.id}`}><div><strong>{r.subject}</strong><span>{r.request_number||'پیش‌نویس'} · {r.requesting_unit?.name}</span></div><StatusBadge value={r.status}/></a>)}{requests.length===0&&<EmptyState text="هنوز درخواستی ثبت نشده است."/>}</div></section><section className="panel accent-panel"><div className="panel-head"><div><span className="eyebrow">راهنمای جریان کاری</span><h2>FLOW-01</h2></div><CheckCircle2 size={22}/></div><p>درخواست داخلی ریاست پس از ثبت توسط مدیریت اجرائیه، برای بررسی رئیس ریاست ارسال شده و سپس در فضای جداگانه زمان‌بندی می‌گردد.</p><div className="flow-steps"><span>ثبت درخواست</span><i>←</i><span>تأیید ریاست</span><i>←</i><span>زمان‌بندی</span><i>←</i><span>ایجاد جلسه</span></div></section></div></> }
+function PageTitle({eyebrow,title,description,action}:{eyebrow?:string;title:string;description?:string;action?:React.ReactNode}) {
+  return <PageHeader eyebrow={eyebrow} title={title} description={description} action={action}/>
+}
+function Dashboard() {
+  const {user}=useAuth()
+  const isSystemAdmin=user?.roles?.some((r:any)=>r.role==='SYSTEM_ADMIN')
+  const [data,setData]=useState<any>({})
+  const [requests,setRequests]=useState<any[]>([])
+  useEffect(()=>{
+    api.get('/dashboard').then(r=>setData(apiData(r)))
+    api.get('/meeting-requests').then(r=>setRequests(apiPage(r).data||[]))
+  },[])
+  return <DashboardOverview data={data} requests={requests} canCreateRequest={!isSystemAdmin} statusLabels={statusLabels}/>
+}
 function StatusBadge({value}:{value:string}) { return <span className={`status ${value?.toLowerCase()}`}>{statusLabels[value]||value}</span> }
 function EmptyState({text}:{text:string}) { return <div className="empty"><ClipboardCheck size={24}/><span>{text}</span></div> }
 
