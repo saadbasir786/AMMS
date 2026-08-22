@@ -1,17 +1,16 @@
 name: AMMS UI Bootstrap
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/ui-system
-    paths:
-      - .github/workflows/ui-bootstrap.yml
+      - main
 
 permissions:
   contents: write
 
 jobs:
   bootstrap:
+    if: github.head_ref == 'refactor/ui-system'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
