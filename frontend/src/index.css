@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/*
+ * AMMS design-system entry point.
+ * Legacy screen styles remain in styles.css during the incremental migration.
+ * shadcn/ui initialization will extend this file with its semantic tokens.
+ */
