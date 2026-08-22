@@ -85,7 +85,7 @@ export function MeetingFollowUpWorkspace() {
 
     {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
 
-    <DetailSummaryCard items={[
+    <DetailSummaryCard title="مبنای پیگیری تصمیمات" items={[
       { label: 'صورت‌جلسه', value: data.minutes?.status === 'FINALIZED' ? 'نهایی‌شده' : label(data.minutes?.status) },
       { label: 'نسخهٔ نهایی', value: data.minutes?.version_number || '—' },
       { label: 'تاریخ نهایی‌سازی', value: data.minutes?.finalized_at ? new Date(data.minutes.finalized_at).toLocaleString('fa-AF') : '—' },
