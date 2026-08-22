@@ -1,66 +1,76 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Download, FileText, LockKeyhole, Plus, Save, Send, Users } from 'lucide-react'
+import { CalendarDays, FileText, LockKeyhole, Users } from 'lucide-react'
 
+export { MeetingMinutesWorkspace } from './flow11_legacy'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/amms/confirm-dialog'
+import { DetailSummaryCard } from '@/components/amms/detail-summary-card'
+import { PageHeader } from '@/components/amms/page-header'
+
+type Any = any
 const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use(config => { const token = localStorage.getItem('amms_token'); if (token) config.headers.Authorization = `Bearer ${token}`; return config })
-const dataOf = (response: any) => response.data?.data ?? response.data
-const statusLabels: Record<string, string> = { SCHEDULED: 'زمان‌بندی‌شده', IN_PROGRESS: 'در حال برگزاری', HELD: 'پایان‌یافته', COMPLETED: 'تکمیل‌شده', DRAFT: 'پیش‌نویس', UNDER_REVIEW: 'در حال بررسی', RETURNED_FOR_CORRECTION: 'برگشت برای اصلاح', READY_TO_FINALIZE: 'آمادهٔ نهایی‌سازی', FINALIZED: 'نهایی‌شده', PENDING: 'در انتظار', ACKNOWLEDGED: 'تأییدشده', APPROVED: 'تأیید مقام عالی', CORRECTION_REQUESTED: 'درخواست اصلاح' }
-const label = (value: string) => statusLabels[value] || value
-const apiError = (error: any) => error?.response?.data?.message || 'عملیات انجام نشد. لطفاً صلاحیت و وضعیت جلسه را بررسی نمایید.'
-
-function Title({ eyebrow, title, description, action }: { eyebrow: string; title: string; description?: string; action?: React.ReactNode }) {
-  return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>
-}
-function Badge({ value }: { value: string }) { return <span className={`status ${String(value).toLowerCase()}`}>{label(value)}</span> }
-function ErrorBox({ text }: { text: string }) { return text ? <div className="form-error">{text}</div> : null }
+const dataOf = (response: Any) => response.data?.data ?? response.data
+const statusLabels: Record<string, string> = { SCHEDULED: 'زمان‌بندی‌شده', IN_PROGRESS: 'در حال برگزاری', HELD: 'پایان‌یافته', COMPLETED: 'تکمیل‌شده' }
+const apiError = (error: Any) => error?.response?.data?.message || 'عملیات انجام نشد. لطفاً صلاحیت و وضعیت جلسه را بررسی نمایید.'
 
 export function MeetingExecutionWorkspace() {
   const id = window.location.pathname.split('/')[2]
-  const [state, setState] = useState<any>(null)
-  const [meeting, setMeeting] = useState<any>(null)
+  const [state, setState] = useState<Any>(null)
+  const [meeting, setMeeting] = useState<Any>(null)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
-  const load = async () => { try { const [execution, detail] = await Promise.all([api.get(`/meetings/${id}/execution`), api.get(`/meetings/${id}`)]); setState(dataOf(execution)); setMeeting(dataOf(detail)) } catch (e) { setError(apiError(e)) } }
-  useEffect(() => { load() }, [id])
-  if (!state || !meeting) return <div className="screen-center"><div className="spinner"/></div>
-  const session = state.execution_session
-  const start = async () => { try { setError(''); await api.post(`/meetings/${id}/execution/start`, { start_notes: notes || undefined }); setNotes(''); await load() } catch (e) { setError(apiError(e)) } }
-  const end = async () => { try { setError(''); await api.post(`/meetings/${id}/execution/end`, { end_notes: notes || undefined }); setNotes(''); await load() } catch (e) { setError(apiError(e)) } }
-  return <>
-    <Title eyebrow={`${meeting.meeting_number} · FLOW-11`} title="فضای اجرای جلسه" description="ثبت شروع و پایان جلسه با مبنای رسمی زمان‌بندی و اشتراک‌کنندگان." action={<div className="page-actions"><Badge value={state.status}/><a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a></div>} />
-    <div className="detail-grid"><section className="detail-main">
-      <div className="panel"><div className="detail-header"><div><span className="eyebrow">اجرای رسمی</span><h2>{meeting.title}</h2></div><CalendarDays size={22}/></div><div className="info-grid"><div><span>شماره جلسه</span><strong className="mono">{meeting.meeting_number}</strong></div><div><span>وضعیت</span><strong><Badge value={state.status}/></strong></div><div><span>نسخهٔ زمان‌بندی</span><strong>{state.schedule_version_id || '—'}</strong></div><div><span>نسخهٔ اشتراک‌کنندگان</span><strong>{state.participant_version_id || '—'}</strong></div><div><span>زمان رسمی</span><strong>{meeting.meeting_date} · {meeting.start_time} تا {meeting.end_time}</strong></div><div><span>مکان</span><strong>{meeting.location || '—'}</strong></div></div></div>
-      <div className="panel"><div className="panel-head"><div><span className="eyebrow">نشست اجرایی</span><h2>ثبت زمان واقعی</h2></div><Clock3 size={20}/></div>{session ? <div className="info-grid"><div><span>شروع واقعی</span><strong>{session.started_at ? new Date(session.started_at).toLocaleString('fa-AF') : '—'}</strong></div><div><span>پایان واقعی</span><strong>{session.ended_at ? new Date(session.ended_at).toLocaleString('fa-AF') : 'در جریان'}</strong></div><div><span>وضعیت نشست</span><strong><Badge value={session.status}/></strong></div></div> : <div className="empty"><Clock3 size={24}/><span>جلسه هنوز شروع نشده است.</span></div>}<label className="field-label">یادداشت اجرایی<textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="یادداشت اختیاری برای شروع یا پایان جلسه"/></label>{error && <ErrorBox text={error}/>}<div className="form-actions">{state.status === 'SCHEDULED' && <button className="button primary" onClick={start}><CheckCircle2 size={17}/> شروع جلسه</button>}{state.status === 'IN_PROGRESS' && <button className="button warning" onClick={end}><LockKeyhole size={17}/> پایان جلسه</button>}{['HELD', 'COMPLETED'].includes(state.status) && <a className="button primary" href={`/meetings/${id}/minutes`}><FileText size={17}/> ورود به صورت‌جلسه</a>}</div></div>
-      <div className="panel"><div className="panel-head"><div><span className="eyebrow">مرزهای مصئونیت</span><h2>قواعد پس از شروع</h2></div><LockKeyhole size={20}/></div><div className="flow-steps"><span>ثبت مبنای زمان‌بندی</span><i>←</i><span>قفل FLOW-07</span><i>←</i><span>قفل FLOW-08</span><i>←</i><span>حضور تا پایان</span></div><p className="muted">پس از پایان جلسه، حضور جدید از مسیر بایومتریک یا ثبت دستی پذیرفته نمی‌شود و سابقهٔ حضور قبلی حفظ می‌گردد.</p></div>
-    </section><aside className="detail-side"><div className="panel"><span className="eyebrow">Attendance</span><h3>خلاصهٔ حضور</h3><a className="button secondary full" href={`/meetings/${id}/attendance`}><Users size={16}/> مشاهدهٔ حضور</a></div><div className="panel side-note"><FileText size={22}/><h3>صورت‌جلسهٔ رسمی</h3><p>در وضعیت در حال برگزاری می‌توانید پیش‌نویس بسازید؛ ارسال برای بررسی فقط پس از پایان جلسه ممکن است.</p><a className="button primary full" href={`/meetings/${id}/minutes`}>فضای صورت‌جلسه <ArrowRight size={16}/></a></div></aside></div>
-  </>
-}
+  const [busy, setBusy] = useState(false)
+  const [confirmEnd, setConfirmEnd] = useState(false)
 
-export function MeetingMinutesWorkspace() {
-  const id = window.location.pathname.split('/')[2]
-  const [minutes, setMinutes] = useState<any>(null)
-  const [meeting, setMeeting] = useState<any>(null)
-  const [form, setForm] = useState<any>({ summary: '', general_notes: '', items: [{ agenda_title: '', discussion_summary: '' }], decisions: [{ decision_text: '', responsible_unit_id: '', responsible_employee_id: '', target_date: '', notes: '' }] })
-  const [correction, setCorrection] = useState('')
-  const [error, setError] = useState('')
-  const load = async () => { try { const [m, detail] = await Promise.all([api.get(`/meetings/${id}/minutes`), api.get(`/meetings/${id}`)]); setMinutes(dataOf(m)); setMeeting(dataOf(detail)) } catch (e) { setError(apiError(e)) } }
+  const load = async () => {
+    try {
+      const [execution, detail] = await Promise.all([api.get(`/meetings/${id}/execution`), api.get(`/meetings/${id}`)])
+      setState(dataOf(execution)); setMeeting(dataOf(detail)); setError('')
+    } catch (e) { setError(apiError(e)) }
+  }
   useEffect(() => { load() }, [id])
-  useEffect(() => { const version = minutes?.current_version; if (version && !form.summary) setForm({ summary: version.summary || '', general_notes: version.general_notes || '', items: version.items?.length ? version.items.map((x: any) => ({ agenda_title: x.agenda_title, discussion_summary: x.discussion_summary })) : [{ agenda_title: '', discussion_summary: '' }], decisions: version.decisions?.length ? version.decisions.map((x: any) => ({ decision_text: x.decision_text, responsible_unit_id: x.responsible_unit_id || '', responsible_employee_id: x.responsible_employee_id || '', target_date: x.target_date || '', notes: x.notes || '' })) : [{ decision_text: '', responsible_unit_id: '', responsible_employee_id: '', target_date: '', notes: '' }] }) }, [minutes])
-  if (!meeting) return <div className="screen-center"><div className="spinner"/></div>
-  const version = minutes?.current_version
-  const editable = !minutes || ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(minutes.status)
-  const saveDraft = async () => { try { setError(''); if (!minutes) await api.post(`/meetings/${id}/minutes/draft`); await api.put(`/meetings/${id}/minutes/draft`, { ...form, items: form.items.filter((x: any) => x.agenda_title && x.discussion_summary), decisions: form.decisions.filter((x: any) => x.decision_text) }); await load() } catch (e) { setError(apiError(e)) } }
-  const submit = async () => { try { setError(''); await api.post(`/meetings/${id}/minutes/submit`); await load() } catch (e) { setError(apiError(e)) } }
-  const acknowledge = async (unitId: number) => { try { setError(''); await api.post(`/meetings/${id}/minutes/reviews/${unitId}/acknowledge`); await load() } catch (e) { setError(apiError(e)) } }
-  const requestCorrection = async (review: any) => { if (!correction.trim()) return setError('دلیل اصلاح الزامی است.'); try { setError(''); await api.post(`/meetings/${id}/minutes/reviews/correction`, { reviewer_type: review.reviewer_type, organizational_unit_id: review.organizational_unit_id, reason: correction }); setCorrection(''); await load() } catch (e) { setError(apiError(e)) } }
-  const approveAuthority = async () => { try { setError(''); await api.post(`/meetings/${id}/minutes/authority-approve`); await load() } catch (e) { setError(apiError(e)) } }
-  const finalize = async () => { try { setError(''); await api.post(`/meetings/${id}/minutes/finalize`); await load() } catch (e) { setError(apiError(e)) } }
-  const addItem = () => setForm((f: any) => ({ ...f, items: [...f.items, { agenda_title: '', discussion_summary: '' }] }))
-  const addDecision = () => setForm((f: any) => ({ ...f, decisions: [...f.decisions, { decision_text: '', responsible_unit_id: '', responsible_employee_id: '', target_date: '', notes: '' }] }))
-  return <>
-    <Title eyebrow={`${meeting.meeting_number} · Minutes`} title="صورت‌جلسهٔ رسمی" description="ثبت تاریخی رویدادهای واقعی جلسه، مباحث، تصمیمات و بررسی‌های نسخه‌محور." action={<div className="page-actions">{minutes && <Badge value={minutes.status}/>}<a className="button secondary" href={`/meetings/${id}`}>بازگشت به جلسه</a>{minutes?.status === 'FINALIZED' && <a className="button primary" href={`/api/meetings/${id}/minutes/final.pdf`} target="_blank" rel="noreferrer"><Download size={16}/> دانلود PDF رسمی</a>}</div>} />
-    {!minutes && <div className="panel empty"><FileText size={24}/><span>برای این جلسه هنوز صورت‌جلسه‌ای ایجاد نشده است.</span><button className="button primary" onClick={async () => { try { await api.post(`/meetings/${id}/minutes/draft`); await load() } catch (e) { setError(apiError(e)) } }}>ایجاد پیش‌نویس</button></div>}
-    {minutes && <div className="detail-grid"><section className="detail-main"><div className="panel"><div className="panel-head"><div><span className="eyebrow">نسخهٔ جاری</span><h2>محتوای صورت‌جلسه</h2></div><FileText size={20}/></div>{editable ? <><label className="field-label">خلاصهٔ عمومی<textarea rows={4} value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })}/></label><label className="field-label">یادداشت عمومی<textarea rows={3} value={form.general_notes} onChange={e => setForm({ ...form, general_notes: e.target.value })}/></label><div className="section-title separated"><span>اجندا و مباحث</span><button className="button small secondary" onClick={addItem}><Plus size={14}/> افزودن</button></div>{form.items.map((item: any, index: number) => <div className="panel nested" key={index}><div className="form-grid"><label>عنوان اجندا<input value={item.agenda_title} onChange={e => { const items = [...form.items]; items[index] = { ...items[index], agenda_title: e.target.value }; setForm({ ...form, items }) }}/></label><label>خلاصهٔ بحث<textarea rows={2} value={item.discussion_summary} onChange={e => { const items = [...form.items]; items[index] = { ...items[index], discussion_summary: e.target.value }; setForm({ ...form, items }) }}/></label></div></div>)}<div className="section-title separated"><span>تصمیمات</span><button className="button small secondary" onClick={addDecision}><Plus size={14}/> افزودن</button></div>{form.decisions.map((decision: any, index: number) => <div className="panel nested" key={index}><label className="field-label">متن تصمیم<textarea rows={2} value={decision.decision_text} onChange={e => { const decisions = [...form.decisions]; decisions[index] = { ...decisions[index], decision_text: e.target.value }; setForm({ ...form, decisions }) }}/></label><label className="field-label">تاریخ هدف<input type="date" value={decision.target_date} onChange={e => { const decisions = [...form.decisions]; decisions[index] = { ...decisions[index], target_date: e.target.value }; setForm({ ...form, decisions }) }}/></label></div>)}<div className="form-actions"><button className="button secondary" onClick={saveDraft}><Save size={16}/> ذخیرهٔ پیش‌نویس</button>{minutes.status === 'DRAFT' && <button className="button primary" onClick={submit}><Send size={16}/> ارسال برای بررسی</button>}{minutes.status === 'RETURNED_FOR_CORRECTION' && <button className="button primary" onClick={submit}><Send size={16}/> ارسال نسخهٔ اصلاح‌شده</button>}</div></> : <><div className="description-block"><span>خلاصهٔ عمومی</span><p>{version?.summary}</p><p>{version?.general_notes}</p></div><div className="section-title separated"><span>اجندا و مباحث</span></div>{(version?.items || []).map((item: any) => <div className="proposal-row" key={item.id}><strong>{item.sequence_number}. {item.agenda_title}</strong><span>{item.discussion_summary}</span></div>)}<div className="section-title separated"><span>تصمیمات</span></div>{(version?.decisions || []).map((decision: any) => <div className="proposal-row" key={decision.id}><strong>{decision.decision_number}</strong><span>{decision.decision_text}</span></div>)}</>}</div>{error && <ErrorBox text={error}/>}<div className="panel"><div className="panel-head"><div><span className="eyebrow">حضور رسمی</span><h2>حاضر / غایب</h2></div><Users size={20}/></div><div className="people-list">{(version?.attendance || []).map((person: any) => <div className="person-row" key={person.employee_id}><div className="avatar tiny">{person.display_name?.slice(0, 1)}</div><div><strong>{person.display_name}</strong><span>{person.organizational_unit_id} · {person.participant_role}</span></div><Badge value={person.attendance_status}/></div>)}</div></div></section><aside className="detail-side"><div className="panel"><div className="panel-head"><div><span className="eyebrow">ماتریس بررسی</span><h3>تأییدهای نسخهٔ جاری</h3></div><CheckCircle2 size={19}/></div>{(version?.reviews || []).map((review: any) => <div className="proposal-row" key={review.id}><div><strong>{review.reviewer_type === 'HIGH_AUTHORITY' ? 'مقام عالی' : `ریاست ${review.organizational_unit_id}`}</strong><span><Badge value={review.status}/></span></div>{review.reviewer_type === 'UNIT' && review.status === 'PENDING' && <button className="button small success" onClick={() => acknowledge(review.organizational_unit_id)}>تأیید</button>}{['PENDING', 'ACKNOWLEDGED'].includes(review.status) && <button className="button small warning" onClick={() => requestCorrection(review)}>برگشت</button>}{review.reviewer_type === 'HIGH_AUTHORITY' && review.status === 'PENDING' && <button className="button small primary" onClick={approveAuthority}>تأیید مقام عالی</button>}</div>)}{!version?.reviews?.length && <p className="muted">بررسی‌ها پس از ارسال نسخه ایجاد می‌شوند.</p>}<label className="field-label">دلیل درخواست اصلاح<textarea rows={3} value={correction} onChange={e => setCorrection(e.target.value)} placeholder="دلیل اجباری برای برگشت نسخه"/></label></div><div className="panel action-panel"><span className="eyebrow">نهایی‌سازی</span>{minutes.status === 'READY_TO_FINALIZE' && <button className="button primary full" onClick={finalize}><CheckCircle2 size={16}/> نهایی‌سازی صورت‌جلسه و تکمیل جلسه</button>}{minutes.status === 'FINALIZED' && <><div className="approved-strip"><CheckCircle2 size={18}/><span>صورت‌جلسه نهایی شده و دیگر قابل ویرایش نیست.</span></div><a className="button primary full" href={`/api/meetings/${id}/minutes/final.pdf`} target="_blank" rel="noreferrer"><Download size={16}/> مشاهدهٔ PDF رسمی</a></>}{minutes.status !== 'READY_TO_FINALIZE' && minutes.status !== 'FINALIZED' && <p className="muted">پس از تکمیل همهٔ بررسی‌های لازم، دکمهٔ نهایی‌سازی فعال می‌شود.</p>}</div><div className="panel"><div className="panel-head"><div><span className="eyebrow">تاریخچهٔ نسخه‌ها</span><h3>نسخه‌های غیرقابل تغییر</h3></div><Clock3 size={19}/></div>{(minutes.versions || []).map((item: any) => <div className="timeline-item" key={item.id}><div className="timeline-dot"/><div><strong>نسخهٔ {item.version_number}</strong><span>{item.submitted_at ? 'ارسال‌شده برای بررسی' : 'پیش‌نویس'}</span></div></div>)}</div></aside></div>}
-  </>
+
+  const run = async (kind: 'start' | 'end') => {
+    setBusy(true); setError('')
+    try {
+      await api.post(`/meetings/${id}/execution/${kind}`, kind === 'start' ? { start_notes: notes || undefined } : { end_notes: notes || undefined })
+      setNotes(''); await load()
+    } catch (e) { setError(apiError(e)); throw e }
+    finally { setBusy(false) }
+  }
+
+  if (!state || !meeting) return <div className="screen-center">{error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : <div className="spinner" />}</div>
+  const session = state.execution_session
+
+  return <div className="space-y-6">
+    <PageHeader eyebrow={`${meeting.meeting_number} · FLOW-11`} title="فضای اجرای جلسه" description="ثبت شروع و پایان واقعی جلسه با تکیه بر نسخه‌های رسمی زمان‌بندی و اشتراک‌کنندگان." action={<div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{statusLabels[state.status] || state.status}</Badge><Button asChild variant="outline"><a href={`/meetings/${id}`}>بازگشت به جلسه</a></Button></div>} />
+    {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="space-y-6">
+        <DetailSummaryCard eyebrow="اجرای رسمی" title={meeting.title} icon={<CalendarDays className="size-5" />} items={[
+          { label: 'شماره جلسه', value: meeting.meeting_number || '—' },
+          { label: 'وضعیت', value: <Badge variant="outline">{statusLabels[state.status] || state.status}</Badge> },
+          { label: 'نسخه زمان‌بندی', value: state.schedule_version_id || '—' },
+          { label: 'نسخه اشتراک‌کنندگان', value: state.participant_version_id || '—' },
+          { label: 'زمان رسمی', value: `${meeting.meeting_date || '—'} · ${meeting.start_time || '—'} تا ${meeting.end_time || '—'}` },
+          { label: 'مکان', value: meeting.location || '—' },
+        ]} />
+        <Card><CardHeader className="flex flex-row items-start justify-between border-b"><div><p className="text-xs text-muted-foreground">Execution session</p><CardTitle className="text-base">زمان واقعی اجرا</CardTitle></div><LockKeyhole className="size-5 text-muted-foreground" /></CardHeader><CardContent className="space-y-5 pt-5">
+          <div className="grid gap-4 sm:grid-cols-3"><div className="rounded-xl border p-3"><span className="text-xs text-muted-foreground">شروع واقعی</span><strong className="mt-1 block text-sm">{session?.started_at ? new Date(session.started_at).toLocaleString('fa-AF') : '—'}</strong></div><div className="rounded-xl border p-3"><span className="text-xs text-muted-foreground">پایان واقعی</span><strong className="mt-1 block text-sm">{session?.ended_at ? new Date(session.ended_at).toLocaleString('fa-AF') : session ? 'در جریان' : '—'}</strong></div><div className="rounded-xl border p-3"><span className="text-xs text-muted-foreground">وضعیت نشست</span><strong className="mt-1 block text-sm">{session?.status || 'شروع نشده'}</strong></div></div>
+          <div className="space-y-2"><label className="text-sm font-medium">یادداشت اجرایی</label><Textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="یادداشت اختیاری برای شروع یا پایان جلسه" /></div>
+          <div className="flex flex-wrap gap-2">{state.status === 'SCHEDULED' ? <Button disabled={busy} onClick={() => run('start')}>{busy ? 'در حال اجرا…' : 'شروع جلسه'}</Button> : null}{state.status === 'IN_PROGRESS' ? <Button variant="outline" disabled={busy} onClick={() => setConfirmEnd(true)}>پایان جلسه</Button> : null}{['HELD', 'COMPLETED'].includes(state.status) ? <Button asChild><a href={`/meetings/${id}/minutes`}><FileText className="size-4" />ورود به صورت‌جلسه</a></Button> : null}</div>
+        </CardContent></Card>
+        <Card><CardHeader className="border-b"><CardTitle className="text-base">مرزهای مصئونیت پس از شروع</CardTitle></CardHeader><CardContent className="pt-5 text-sm leading-7 text-muted-foreground">شروع اجرا، نسخه‌های رسمی زمان‌بندی و اشتراک‌کنندگان را به‌عنوان مبنای جلسه حفظ می‌کند. پس از پایان جلسه، ثبت حضور جدید مطابق قواعد Backend پذیرفته نمی‌شود و سابقهٔ قبلی حفظ می‌گردد.</CardContent></Card>
+      </section>
+      <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start"><Card><CardHeader className="border-b"><CardTitle className="text-base">حضور جلسه</CardTitle></CardHeader><CardContent className="pt-5"><Button asChild variant="outline" className="w-full"><a href={`/meetings/${id}/attendance`}><Users className="size-4" />مشاهدهٔ حضور</a></Button></CardContent></Card><Card><CardHeader className="border-b"><CardTitle className="text-base">صورت‌جلسهٔ رسمی</CardTitle></CardHeader><CardContent className="space-y-3 pt-5"><p className="text-sm leading-6 text-muted-foreground">ویرایش، review، acknowledgement و finalization صورت‌جلسه در این slice بدون تغییر و در implementation قبلی باقی مانده است.</p><Button asChild className="w-full"><a href={`/meetings/${id}/minutes`}><FileText className="size-4" />فضای صورت‌جلسه</a></Button></CardContent></Card></aside>
+    </div>
+    <ConfirmDialog open={confirmEnd} onOpenChange={setConfirmEnd} title="پایان جلسه تأیید شود؟" description="با پایان اجرای جلسه، محدودیت‌های پس از اجرا مطابق قواعد موجود Backend اعمال می‌شوند." confirmLabel="پایان جلسه" variant="destructive" onConfirm={() => run('end')} />
+  </div>
 }
