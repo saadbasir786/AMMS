@@ -38,7 +38,7 @@ jobs:
 
       - name: Initialize shadcn with RTL
         working-directory: frontend
-        run: pnpm dlx shadcn@latest init -t vite -b radix --rtl --yes --pointer
+        run: pnpm dlx shadcn@latest init -t vite -b radix -p nova --rtl --yes --pointer --force
 
       - name: Add AMMS UI primitives
         working-directory: frontend
