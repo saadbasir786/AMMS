@@ -15,3 +15,7 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
 
 2. **Autonomous Rule Evolution Directive (AI Self-Evolution)**:
    - As new patterns, UX decisions, or architectural standards are introduced, the AI assistant must autonomously update the rule documents under `.agents/rules/` without requiring manual reminders from the user.
+
+3. **Mandatory Per-Feature Git Commit & Push Policy**:
+   - Once a feature or capability is completed and verified, and upon user approval, a clean, dedicated Git commit must be recorded and pushed to the remote repository BEFORE starting the next feature.
+   - Never pile up multiple unrelated refactored features in an uncommitted state.

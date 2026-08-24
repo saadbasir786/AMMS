@@ -101,3 +101,11 @@ All user-facing text must be clear, professional, respectful, and free of develo
 1. **Autonomous Updates**: As new patterns, domain features, or architectural decisions are established, the AI assistant is mandated to proactively update this document or add specialized rule files under `.agents/rules/` without requiring manual reminders from the user.
 2. **Pre-Implementation Check**: The assistant must review this rule document before implementing any code changes to guarantee 100% compliance across all views.
 3. **Walkthrough Audit**: Any newly added or updated rules must be documented in the session walkthrough report.
+
+---
+
+## 7. Mandatory Per-Feature Git Commit & Push Lifecycle
+
+1. **Commit Timing**: Whenever a feature, workspace, or domain capability is completed and approved by the user, a dedicated, descriptive Git commit MUST be created and pushed to the remote repository **before starting the next feature**.
+2. **Commit Atomicity**: Each commit must strictly encapsulate changes belonging to that specific feature and its associated route/types/cleanup, keeping the Git history clean, logical, and bisectable.
+3. **Zero Accumulation**: Never leave completed features uncommitted across multiple consecutive tasks.
