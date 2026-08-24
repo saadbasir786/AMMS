@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
@@ -7,6 +7,8 @@ import {
   LogOut,
   Menu,
   ShieldCheck,
+  Calendar,
+  Building2
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -28,7 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
+import { cn, formatPersianDate } from '@/lib/utils'
 
 export type ApplicationShellRole = {
   role: string
@@ -94,6 +96,10 @@ function displayRole(user: ApplicationShellUser | null) {
   return role ? roleLabels[role] || role : 'کاربر سیستم'
 }
 
+function displayUnit(user: ApplicationShellUser | null) {
+  return user?.employee?.unit?.name || 'حوزه عمومی سازمان'
+}
+
 function initials(user: ApplicationShellUser | null) {
   return displayName(user).trim().slice(0, 1) || 'ک'
 }
@@ -125,11 +131,11 @@ function Navigation({
             aria-current={active ? 'page' : undefined}
             onClick={() => onNavigate(item.to)}
             className={cn(
-              'group flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-start text-[13px] font-medium transition-colors',
+              'group flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-start text-[13px] font-medium transition-all',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
               active
-                ? 'bg-primary/10 text-primary shadow-[inset_-3px_0_0_var(--amms-ui-primary)]'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-primary/10 text-primary font-bold shadow-[inset_-3px_0_0_var(--amms-ui-primary)]'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
             )}
           >
             <span
@@ -159,12 +165,12 @@ function Navigation({
 function Brand() {
   return (
     <div className="flex h-[76px] items-center gap-3 px-5">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground shadow-sm">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#174a7e] to-[#2563eb] text-lg font-extrabold text-white shadow-md shadow-[#174a7e]/20">
         ا
       </div>
       <div className="min-w-0">
-        <strong className="block truncate text-sm font-bold text-foreground">جلسات اداری</strong>
-        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">AMMS · سیستم مدیریت جلسات</span>
+        <strong className="block truncate text-sm font-bold text-foreground">سیستم مدیریت جلسات</strong>
+        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground font-mono">AMMS</span>
       </div>
     </div>
   )
@@ -172,14 +178,18 @@ function Brand() {
 
 function UserCard({ user }: { user: ApplicationShellUser | null }) {
   return (
-    <div className="mx-3 rounded-xl border border-border/70 bg-muted/45 p-3">
+    <div className="mx-3 rounded-xl border border-border/70 bg-muted/40 p-3">
       <div className="flex items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
           {initials(user)}
         </div>
         <div className="min-w-0">
           <strong className="block truncate text-xs font-semibold text-foreground">{displayName(user)}</strong>
-          <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{displayRole(user)}</span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="truncate text-[10px] text-muted-foreground">{displayRole(user)}</span>
+            <span className="text-[10px] text-muted-foreground">•</span>
+            <span className="truncate text-[10px] text-muted-foreground">{displayUnit(user)}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -197,18 +207,22 @@ function Sidebar({
     <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-e border-border bg-card lg:flex">
       <Brand />
       <Separator />
-      <div className="py-4">
+      <div className="py-3">
         <UserCard user={user} />
       </div>
       <Navigation user={user} items={navItems} currentPath={currentPath} onNavigate={onNavigate} />
       <div className="mt-auto border-t border-border p-3">
-        <div className="mb-2 flex items-center gap-2 rounded-lg px-2 py-2 text-[10px] text-muted-foreground">
-          <ShieldCheck className="size-4 text-primary" />
-          <span>محیط داخلی مصئون</span>
+        <div className="mb-2 flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+          <span>سیستم داخلی و مصئون سازمانی</span>
         </div>
-        <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={() => void onLogout()}>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-xs text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-destructive transition-colors"
+          onClick={() => void onLogout()}
+        >
           <LogOut className="size-4" />
-          خروج از سیستم
+          خروج از حساب کاربری
         </Button>
       </div>
     </aside>
@@ -236,15 +250,19 @@ function MobileNavigation({
         </SheetHeader>
         <Brand />
         <Separator />
-        <div className="py-4">
+        <div className="py-3">
           <UserCard user={user} />
         </div>
         <Navigation user={user} items={navItems} currentPath={currentPath} onNavigate={onNavigate} mobile />
         <div className="border-t border-border p-3">
           <SheetClose asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={() => void onLogout()}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-xs text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-destructive"
+              onClick={() => void onLogout()}
+            >
               <LogOut className="size-4" />
-              خروج از سیستم
+              خروج از حساب کاربری
             </Button>
           </SheetClose>
         </div>
@@ -264,6 +282,8 @@ function Header({
     .filter((item) => canSeeItem(user, item) && itemIsActive(currentPath, item.to))
     .sort((a, b) => b.to.length - a.to.length)[0]
 
+  const todayPersian = formatPersianDate(new Date())
+
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/85 md:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -275,24 +295,45 @@ function Header({
           onLogout={onLogout}
         />
         <div className="hidden min-w-0 items-center gap-2 text-xs text-muted-foreground sm:flex">
-          <span className="shrink-0">اداره نمونه</span>
-          <ChevronLeft className="size-3.5 shrink-0" />
-          <span className="truncate font-medium text-foreground">{currentItem?.label || 'مدیریت جلسات'}</span>
+          <span className="shrink-0 flex items-center gap-1.5">
+            <Building2 className="size-3.5 text-primary" />
+            {displayUnit(user)}
+          </span>
+          <ChevronLeft className="size-3.5 shrink-0 text-slate-400" />
+          <span className="truncate font-semibold text-foreground">
+            {currentItem?.label || 'داشبورد'}
+          </span>
         </div>
         <div className="min-w-0 sm:hidden">
-          <span className="block truncate text-sm font-semibold text-foreground">{currentItem?.label || 'مدیریت جلسات'}</span>
+          <span className="block truncate text-sm font-semibold text-foreground">
+            {currentItem?.label || 'داشبورد'}
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" className="relative" aria-label="اعلان‌ها" onClick={() => onNavigate('/notifications')}>
-          <Bell className="size-[18px]" />
-          <span className="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-destructive ring-2 ring-background" />
+      <div className="flex items-center gap-2.5">
+        {/* Date Display */}
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/50 text-[11px] text-muted-foreground">
+          <Calendar className="size-3.5 text-primary" />
+          <span>{todayPersian}</span>
+        </div>
+
+        {/* Notifications */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative size-9 rounded-xl hover:bg-muted"
+          aria-label="اعلان‌ها"
+          onClick={() => onNavigate('/notifications')}
+        >
+          <Bell className="size-[18px] text-muted-foreground" />
+          <span className="absolute end-2 top-2 size-2 rounded-full bg-rose-500 ring-2 ring-background" />
         </Button>
 
+        {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-10 gap-2 px-2" aria-label="منوی کاربر">
+            <Button variant="ghost" className="h-10 gap-2 px-2 rounded-xl hover:bg-muted" aria-label="منوی کاربر">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
                 {initials(user)}
               </div>
@@ -303,15 +344,18 @@ function Header({
               <ChevronDown className="hidden size-3.5 text-muted-foreground md:block" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="space-y-0.5 px-2 py-2">
-              <span className="block text-xs font-semibold text-foreground">{displayName(user)}</span>
-              <span className="block text-[10px] font-normal text-muted-foreground">{displayRole(user)}</span>
+          <DropdownMenuContent align="end" className="w-56 p-1.5">
+            <DropdownMenuLabel className="space-y-0.5 px-2.5 py-2">
+              <span className="block text-xs font-bold text-foreground">{displayName(user)}</span>
+              <span className="block text-[10px] font-normal text-muted-foreground">{displayRole(user)} • {displayUnit(user)}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => void onLogout()}>
+            <DropdownMenuItem
+              className="text-xs gap-2 py-2 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive rounded-lg"
+              onSelect={() => void onLogout()}
+            >
               <LogOut className="size-4" />
-              خروج از سیستم
+              خروج از حساب کاربری
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -329,11 +373,11 @@ export function ApplicationShell({
   onLogout,
 }: ApplicationShellProps) {
   return (
-    <div className="min-h-dvh bg-background text-foreground lg:grid lg:grid-cols-[280px_minmax(0,1fr)]" dir="rtl">
+    <div className="min-h-dvh bg-background text-foreground lg:grid lg:grid-cols-[280px_minmax(0,1fr)] font-sans" dir="rtl">
       <Sidebar user={user} navItems={navItems} currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout} />
-      <div className="min-w-0">
+      <div className="min-w-0 flex flex-col">
         <Header user={user} navItems={navItems} currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout} />
-        <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6 xl:p-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6 xl:p-8 flex-1">{children}</main>
       </div>
     </div>
   )
