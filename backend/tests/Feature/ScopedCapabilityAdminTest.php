@@ -30,7 +30,7 @@ class ScopedCapabilityAdminTest extends TestCase
             'organizational_unit_id' => $tech->id,
         ]);
 
-        $grant->assertOk()
+        $grant->assertCreated()
             ->assertJsonPath('data.capability', SpecialCapability::BIOMETRIC_ENROLLMENT)
             ->assertJsonPath('data.organizational_unit_id', $tech->id)
             ->assertJsonPath('data.active', true);
@@ -61,7 +61,7 @@ class ScopedCapabilityAdminTest extends TestCase
         $tech = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $payload = ['capability' => SpecialCapability::BIOMETRIC_ENROLLMENT, 'organizational_unit_id' => $tech->id];
 
-        $this->actingAs($admin, 'sanctum')->postJson("/api/admin/users/{$target->id}/capabilities", $payload)->assertOk();
+        $this->actingAs($admin, 'sanctum')->postJson("/api/admin/users/{$target->id}/capabilities", $payload)->assertCreated();
         $this->actingAs($admin, 'sanctum')->postJson("/api/admin/users/{$target->id}/capabilities", $payload)->assertOk();
 
         $this->assertSame(1, AmmsCapabilityScope::query()
