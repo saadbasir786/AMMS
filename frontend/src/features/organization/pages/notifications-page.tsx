@@ -46,7 +46,7 @@ export function NotificationsPage() {
     <div className="space-y-6" dir="rtl">
       {/* Header */}
       <PageHeader
-        title="مرکز اعلان‌ها و رویدادهای زنده سامانه"
+        title="مرکز اعلان‌ها و رویدادهای زنده سیستم"
         description="پیگیری لحظه‌ای گردش کار جلسات، دعوت‌نامه‌ها، تغییرات زمان‌بندی و مصوبات منتسب به شما"
         action={
           <div className="flex items-center gap-2">

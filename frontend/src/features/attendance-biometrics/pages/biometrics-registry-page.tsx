@@ -192,7 +192,7 @@ export function BiometricsRegistryPage() {
       <Alert className="rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-900/30 border-border/70">
         <ShieldCheck className="size-4 text-primary" />
         <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-          در سامانه تحت وب AMMS، به منظور حفظ حریم خصوصی و امنیت سایبری، صرفاً وضعیت ثبت و متادیتای آماری نسخه‌ها نمایش داده می‌شود. تطبیق و اسکن اثر انگشت منحصراً درون سخت‌افزار ترمینال‌های تاییدشده انجام می‌پذیرد.
+          در سیستم تحت وب AMMS، به منظور حفظ حریم خصوصی و امنیت سایبری، صرفاً وضعیت ثبت و متادیتای آماری نسخه‌ها نمایش داده می‌شود. تطبیق و اسکن اثر انگشت منحصراً درون سخت‌افزار ترمینال‌های تاییدشده انجام می‌پذیرد.
         </AlertDescription>
       </Alert>
     </div>

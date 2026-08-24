@@ -135,7 +135,7 @@ export function MeetingDetailPage() {
           <section className="space-y-6">
             <MeetingDetailSummary meeting={meeting} />
 
-            <MeetingParticipantsCard participants={meeting.participants} />
+            <MeetingParticipantsCard meeting={meeting} participants={meeting.participants} />
           </section>
 
           {/* Sidebar Column */}

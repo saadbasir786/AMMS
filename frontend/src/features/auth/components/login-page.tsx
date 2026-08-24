@@ -66,7 +66,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <CalendarCheck className="size-8" />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              سامانه مدیریت جلسات
+              سیستم مدیریت جلسات
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 font-normal leading-relaxed">
               جهت ورود به حساب کاربری، اطلاعات سازمانی خود را وارد نمایید
@@ -146,7 +146,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </>
               ) : (
                 <>
-                  <span>ورود به سامانه</span>
+                  <span>ورود به سیستم</span>
                   <ArrowRight className="size-4 rotate-180" />
                 </>
               )}

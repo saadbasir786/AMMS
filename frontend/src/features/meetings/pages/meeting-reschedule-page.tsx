@@ -482,7 +482,7 @@ export function MeetingReschedulePage() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="نسخه جدید زمان‌بندی جلسه اعمال شود؟"
-        description="با تأیید شما، پیشنهاد جاری تبدیل به نسخه معتبر جلسه شده و تقویم سامانه به‌روزرسانی می‌شود."
+        description="با تأیید شما، پیشنهاد جاری تبدیل به نسخه معتبر جلسه شده و تقویم سیستم به‌روزرسانی می‌شود."
         confirmLabel="تأیید و صدور نسخه جدید"
         onConfirm={handleConfirmNewVersion}
       />

@@ -68,7 +68,7 @@ export function QuickActionsCard({ canCreateRequest }: QuickActionsCardProps) {
         <CardContent className="p-4 sm:p-5">
           <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/40 text-muted-foreground text-xs">
             <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-            <span>شما به عنوان کاربر مشاهده‌گر در سامانه فعال هستید.</span>
+            <span>شما به عنوان کاربر مشاهده‌گر در سیستم فعال هستید.</span>
           </div>
         </CardContent>
       </Card>

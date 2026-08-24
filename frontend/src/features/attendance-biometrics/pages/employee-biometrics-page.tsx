@@ -195,7 +195,7 @@ export function EmployeeBiometricsPage() {
                       <th className="py-3.5 px-4 font-bold">شماره نسخه</th>
                       <th className="py-3.5 px-4 font-bold">وضعیت نسخه</th>
                       <th className="py-3.5 px-4 font-bold">امتیاز کیفیت اسکن</th>
-                      <th className="py-3.5 px-4 font-bold">تاریخ ثبت در سامانه</th>
+                      <th className="py-3.5 px-4 font-bold">تاریخ ثبت در سیستم</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">

@@ -160,14 +160,14 @@ export function MeetingExecutionPage() {
               onGoToMinutes={() => navigate(`/meetings/${id}/minutes`)}
             />
 
+            <MeetingParticipantsCard meeting={meeting} participants={meeting.participants} />
+
             <MeetingDetailSummary meeting={meeting} />
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
             <MeetingActionsCard meeting={meeting} />
-
-            <MeetingParticipantsCard participants={meeting.participants} />
           </aside>
         </div>
       )}

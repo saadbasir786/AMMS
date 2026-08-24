@@ -56,7 +56,7 @@ All user-facing text must be clear, professional, respectful, and free of develo
 3. **Standard Administrative Terminology**:
    - Use clear Persian terms: `تأیید ریاست`, `برگشت جهت اصلاح`, `رد درخواست`, `تنظیم برنامه واقعی جلسه`, `آجندا و دستور کار جلسه`, `صورت‌جلسه رسمی`.
 4. **Strict Elimination of Generic Header Branding (`PageHeader` Eyebrows)**:
-   - Never use static generic system prefixes like `سامانه مدیریت جلسات`, `سامانه جلسات`, or technical codes in `PageHeader` (`eyebrow` prop).
+   - Never use static generic system prefixes like `سیستم مدیریت جلسات`, `سیستم جلسات`, or technical codes in `PageHeader` (`eyebrow` prop).
    - Omit the `eyebrow` prop entirely on primary listing/dashboard pages.
    - On detail/workspace pages, only provide the specific entity identifier if helpful (e.g. `REQ-2026-001` or `MEET-2026-004`), strictly without generic suffix/prefix branding.
 

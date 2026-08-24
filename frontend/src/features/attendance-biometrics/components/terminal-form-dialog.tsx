@@ -76,7 +76,7 @@ export function TerminalFormDialog({
       <DialogContent dir="rtl" className="rounded-2xl sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm sm:text-base font-bold">
-            ثبت ترمینال فیزیکی جدید در سامانه
+            ثبت ترمینال فیزیکی جدید در سیستم
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             دستگاه فیزیکی مجاز جهت اسکن و تطبیق اثر انگشت در جلسات رسمی
