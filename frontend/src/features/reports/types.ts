@@ -7,11 +7,13 @@ export type ReportType =
   | 'EXCEPTION_LIFECYCLE_REGISTER'
   | 'HIGH_AUTHORITY_MEETING_REGISTER'
 
-export type ReportTypeOption = {
+export type ReportTypeConfig = {
   id: ReportType
-  label: string
+  title: string
+  subtitle: string
   endpoint: string
-  description?: string
+  icon: string
+  category: 'meetings' | 'requests' | 'followup' | 'attendance' | 'governance'
 }
 
 export type MetricCard = {
@@ -19,6 +21,8 @@ export type MetricCard = {
   label: string
   value: number | string | null
   unit?: string
+  change_rate?: number
+  trend?: 'up' | 'down' | 'neutral'
 }
 
 export type ChartSeries = {
@@ -26,11 +30,14 @@ export type ChartSeries = {
   title?: string
   labels: string[]
   series: number[]
+  unit?: string
 }
 
 export type DashboardReportData = {
   scope?: {
     organization_wide?: boolean
+    involved_unit_id?: number
+    user_id?: number
     [key: string]: any
   }
   attribution_mode?: string
@@ -58,5 +65,8 @@ export type ReportsFilterParams = {
   to: string
   search?: string
   meeting_status?: string
+  involved_unit_id?: number
+  sort?: string
+  page?: number
   per_page?: number
 }

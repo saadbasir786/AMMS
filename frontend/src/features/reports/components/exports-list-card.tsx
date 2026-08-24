@@ -1,5 +1,14 @@
 import React from 'react'
-import { Download, FileText, FileSpreadsheet, RefreshCw, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import {
+  Download,
+  FileText,
+  FileSpreadsheet,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  FileArchive
+} from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,8 +30,9 @@ export function ExportsListCard({
     <Card className="border border-border/70 shadow-xs" dir="rtl">
       <CardHeader className="p-4 sm:p-5 border-b border-border/60 flex flex-row items-center justify-between">
         <div className="space-y-0.5">
-          <h3 className="text-xs sm:text-sm font-bold text-foreground">
-            فهرست فایل‌های خروجی و صادرات سازمانی
+          <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+            <FileArchive className="size-4 text-primary" />
+            <span>مرکز بایگانی و دانلود فایل‌های صادراتی</span>
           </h3>
           <p className="text-[11px] text-muted-foreground">
             فایل‌های تولیدشده امن و منحصراً برای حساب کاربری شما قابل دریافت است
@@ -43,8 +53,8 @@ export function ExportsListCard({
 
       <CardContent className="p-4 sm:p-5 space-y-3">
         {exports.length === 0 ? (
-          <div className="text-center py-8 text-xs text-muted-foreground">
-            هنوز فایلی برای صادرات تولید نشده است. برای تولید فایل به بخش «مرکز گزارش‌ها» مراجعه نمایید.
+          <div className="text-center py-10 text-xs text-muted-foreground">
+            هنوز فایلی برای صادرات تولید نشده است. برای تولید فایل به بخش «دفاتر ثبت و گزارش‌های تفصیلی» مراجعه و بر روی خروجی PDF یا Excel کلیک نمایید.
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -72,22 +82,32 @@ export function ExportsListCard({
                         {item.report_type}
                       </strong>
                       <span className="text-[10px] text-muted-foreground block font-mono">
-                        درخواست‌شده در: {item.requested_at ? formatSolarDateTime(item.requested_at) : '—'}
+                        تاریخ درخواست: {item.requested_at ? formatSolarDateTime(item.requested_at) : '—'}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] font-mono">
+                    <Badge variant="outline" className="text-[10px] font-mono font-bold">
                       {item.format}
                     </Badge>
 
-                    <Badge
-                      variant={item.status === 'COMPLETED' ? 'default' : 'secondary'}
-                      className="text-[10px]"
-                    >
-                      {item.status === 'COMPLETED' ? 'آماده دریافت' : item.status}
-                    </Badge>
+                    {item.status === 'COMPLETED' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <CheckCircle2 className="size-3" />
+                        <span>آماده دریافت</span>
+                      </span>
+                    ) : item.status === 'PROCESSING' || item.status === 'PENDING' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                        <Clock className="size-3 animate-spin" />
+                        <span>در حال تولید فایل...</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                        <AlertCircle className="size-3" />
+                        <span>ناموفق</span>
+                      </span>
+                    )}
 
                     {item.status === 'COMPLETED' && (
                       <Button

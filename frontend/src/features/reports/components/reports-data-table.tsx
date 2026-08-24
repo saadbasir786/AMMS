@@ -1,8 +1,19 @@
 import React from 'react'
-import { FileText, FileSpreadsheet, Search, Download, Table as TableIcon } from 'lucide-react'
+import {
+  FileText,
+  FileSpreadsheet,
+  Search,
+  Download,
+  Table as TableIcon,
+  Layers,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { StatusBadge } from '@/components/amms/status-badge'
+import { formatSolarDate, formatSolarDateTime } from '@/lib/calendar-utils'
 
 const FIELD_LABELS: Record<string, string> = {
   id: 'شناسه',
@@ -21,15 +32,22 @@ const FIELD_LABELS: Record<string, string> = {
   preferred_date: 'تاریخ پیشنهادی',
   organization_id: 'شناسه سازمان',
   employee_id: 'شناسه کارمند',
+  employee_name: 'نام کارمند',
   attendance_method: 'روش حضور',
-  decision_text: 'متن تصمیم',
+  decision_text: 'متن تصمیم و مصوبه',
   action_item_id: 'شناسه اقدام',
   deadline: 'مهلت اقدام',
   progress_percent: 'درصد پیشرفت',
-  case_type: 'نوع پرونده',
+  case_type: 'نوع رویداد استثنایی',
+  requesting_unit: 'ریاست درخواست‌کننده',
+  target_unit: 'ریاست مخاطب',
 }
 
+const STATUS_FIELDS = ['status', 'meeting_status', 'request_status', 'action_item_status']
+const DATE_FIELDS = ['meeting_date', 'preferred_date', 'deadline', 'created_at', 'updated_at', 'recorded_at_server']
+
 type ReportsDataTableProps = {
+  reportTitle?: string
   rows: any[]
   meta: any
   loading: boolean
@@ -39,6 +57,7 @@ type ReportsDataTableProps = {
 }
 
 export function ReportsDataTable({
+  reportTitle,
   rows,
   meta,
   loading,
@@ -50,7 +69,7 @@ export function ReportsDataTable({
     return (
       <div className="p-12 text-center rounded-2xl border border-border/70 bg-card shadow-xs">
         <div className="inline-block size-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs text-muted-foreground">در حال پردازش و دریافت داده‌های ثبتی...</p>
+        <p className="text-xs text-muted-foreground">در حال دریافت و پردازش رکوردهای دفتر ثبت رسمی...</p>
       </div>
     )
   }
@@ -63,10 +82,10 @@ export function ReportsDataTable({
       >
         <Search className="size-9 mx-auto text-muted-foreground/40 mb-2.5" />
         <h4 className="text-xs sm:text-sm font-bold text-foreground mb-1">
-          داده‌ای در بازه زمانی انتخابی یافت نشد
+          رکوردی در این بازه زمانی یافت نشد
         </h4>
         <p className="text-[11px] text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          بازه زمانی یا فیلترهای جستجو را تغییر دهید تا نتایج جدید محاسبه گردد.
+          بازه زمانی یا عبارت جستجو را در نوار فیلتر بالا تغییر دهید تا نتایج بازتولید شوند.
         </p>
       </div>
     )
@@ -80,10 +99,10 @@ export function ReportsDataTable({
         <div className="space-y-0.5">
           <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
             <TableIcon className="size-4 text-primary" />
-            <span>نتایج رسمی دفتر ثبت و گزارش تفصیلی</span>
+            <span>{reportTitle || 'نتایج رسمی دفتر ثبت و گزارش تفصیلی'}</span>
           </h3>
           <p className="text-[11px] text-muted-foreground">
-            تعداد {meta.total ?? rows.length} ردیف داده در محدوده دسترسی سازمانی شما
+            تعداد {meta.total ?? rows.length} ردیف رسمی معتبر در محدوده دسترسی سازمانی شما
           </p>
         </div>
 
@@ -96,7 +115,7 @@ export function ReportsDataTable({
             className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 text-rose-700 dark:text-rose-300 border-rose-200"
           >
             <FileText className="size-3.5" />
-            <span>خروجی PDF رسمی</span>
+            <span>صادرات PDF</span>
           </Button>
 
           <Button
@@ -107,7 +126,7 @@ export function ReportsDataTable({
             className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-200"
           >
             <FileSpreadsheet className="size-3.5" />
-            <span>خروجی Excel (XLSX)</span>
+            <span>صادرات Excel</span>
           </Button>
         </div>
       </CardHeader>
@@ -124,20 +143,33 @@ export function ReportsDataTable({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50 font-sans">
+            <tbody className="divide-y divide-border/50">
               {rows.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                <tr
+                  key={idx}
+                  className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors"
+                >
                   {columns.map((col) => {
                     const val = row[col]
-                    let rendered = String(val ?? '—')
+                    let content: React.ReactNode = String(val ?? '—')
 
-                    if (typeof val === 'object' && val !== null) {
-                      rendered = val.name || val.title || val.full_name || JSON.stringify(val)
+                    if (STATUS_FIELDS.includes(col) && typeof val === 'string') {
+                      content = <StatusBadge status={val} />
+                    } else if (DATE_FIELDS.includes(col) && typeof val === 'string' && val.includes('-')) {
+                      content = (
+                        <span className="font-mono text-[11px]">
+                          {val.includes('T') ? formatSolarDateTime(val) : formatSolarDate(val)}
+                        </span>
+                      )
+                    } else if (typeof val === 'object' && val !== null) {
+                      content = val.name || val.title || val.full_name || JSON.stringify(val)
+                    } else if (typeof val === 'number' && col.includes('percent')) {
+                      content = <span className="font-bold font-mono">{val}٪</span>
                     }
 
                     return (
                       <td key={col} className="py-3 px-4 max-w-xs truncate text-foreground">
-                        {rendered}
+                        {content}
                       </td>
                     )
                   })}

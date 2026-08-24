@@ -8,18 +8,60 @@ import {
   TrendingUp,
   AlertTriangle,
   FileCheck2,
-  Activity
+  Activity,
+  Layers,
+  Percent,
+  CalendarClock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MetricCard } from '../types'
 
-const METRIC_ICON_MAP: Record<string, any> = {
-  MEETINGS_TOTAL: CalendarDays,
-  MEETINGS_COMPLETED: CheckCircle2,
-  ATTENDANCE_RATE: CalendarCheck,
-  ACTION_ITEMS_COMPLETED: FileCheck2,
-  POSTPONED_MEETINGS: AlertTriangle,
-  DECISIONS_TOTAL: Activity,
+const METRIC_CONFIG: Record<
+  string,
+  { label: string; icon: any; color: string; bg: string }
+> = {
+  MEETINGS_TOTAL: {
+    label: 'کل جلسات رسمی',
+    icon: CalendarDays,
+    color: 'text-primary',
+    bg: 'bg-primary/10',
+  },
+  MEETINGS_COMPLETED: {
+    label: 'جلسات برگزار و تکمیل‌شده',
+    icon: CheckCircle2,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-500/10',
+  },
+  ATTENDANCE_RATE: {
+    label: 'نرخ میانگین حضور رسمی',
+    icon: CalendarCheck,
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-500/10',
+  },
+  ACTION_ITEMS_COMPLETED: {
+    label: 'مصوبات و اقدامات تکمیل‌شده',
+    icon: FileCheck2,
+    color: 'text-teal-600 dark:text-teal-400',
+    bg: 'bg-teal-500/10',
+  },
+  POSTPONED_MEETINGS: {
+    label: 'جلسات معوق یا تغییریافته',
+    icon: CalendarClock,
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-500/10',
+  },
+  DECISIONS_TOTAL: {
+    label: 'کل تصمیمات و مصوبات ثبت‌شده',
+    icon: Activity,
+    color: 'text-sky-600 dark:text-sky-400',
+    bg: 'bg-sky-500/10',
+  },
+  REQUESTS_TOTAL: {
+    label: 'کل درخواست‌های ورودی',
+    icon: Layers,
+    color: 'text-violet-600 dark:text-violet-400',
+    bg: 'bg-violet-500/10',
+  },
 }
 
 type ReportsKpiGridProps = {
@@ -32,7 +74,13 @@ export function ReportsKpiGrid({ cards }: ReportsKpiGridProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5" dir="rtl">
       {cards.map((card) => {
-        const Icon = METRIC_ICON_MAP[card.metric_id] || TrendingUp
+        const config = METRIC_CONFIG[card.metric_id] || {
+          label: card.label || card.metric_id,
+          icon: TrendingUp,
+          color: 'text-primary',
+          bg: 'bg-primary/10',
+        }
+        const Icon = config.icon
         const isPercent = card.unit === '%'
         const formattedValue =
           card.value === null || card.value === undefined
@@ -42,24 +90,31 @@ export function ReportsKpiGrid({ cards }: ReportsKpiGridProps) {
         return (
           <div
             key={card.metric_id}
-            className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between space-y-2 hover:border-primary/40 transition-colors"
+            className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between space-y-3 hover:border-primary/40 transition-all group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-muted-foreground truncate max-w-[80%]">
-                {card.label}
+              <span className="text-[11px] font-bold text-muted-foreground truncate max-w-[78%]">
+                {card.label || config.label}
               </span>
-              <div className="size-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Icon className="size-3.5" />
+              <div
+                className={cn(
+                  'size-8 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105',
+                  config.bg,
+                  config.color
+                )}
+              >
+                <Icon className="size-4" />
               </div>
             </div>
 
             <div className="space-y-0.5">
-              <strong className="text-lg sm:text-xl font-extrabold text-foreground font-mono block">
+              <strong className="text-xl sm:text-2xl font-extrabold text-foreground font-mono block">
                 {formattedValue}
               </strong>
-              <span className="text-[10px] text-muted-foreground/60 font-mono block truncate">
-                {card.metric_id}
-              </span>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 font-mono">
+                <span className="truncate">{card.metric_id}</span>
+                {isPercent && <span className="text-emerald-600 font-bold">شاخص درصدی</span>}
+              </div>
             </div>
           </div>
         )
