@@ -47,7 +47,7 @@ class AdminController extends Controller
         $data = $request->validated();
         if (blank($data['password'] ?? null)) unset($data['password']); else $data['password'] = Hash::make($data['password']);
         $user->update($data);
-        return (new UserResource($user->fresh(['employee.unit','roleScopes.role','roleScopes.unit','capabilityScopes.unit'])))->additional(['success'=>true,'message'=>'کاربر اصلاح شد.']);
+        return (new UserResource($user->fresh(['employee.unit','roleScopes.role','roleScopes.unit','capabilityScopes.unit'])))->additional(['success'=>true,'message'=>'اطلاعات کاربر اصلاح شد.']);
     }
 
     public function assignRole(AssignRoleRequest $request, UserModel $user)
@@ -68,7 +68,11 @@ class AdminController extends Controller
         $this->authorize('update', $user);
         $unit = OrganizationalUnit::query()->findOrFail($request->integer('organizational_unit_id'));
         $scope = $manager->grant($user, $request->string('capability')->toString(), $unit, $request->user());
-        return (new CapabilityScopeResource($scope))->additional(['success'=>true,'message'=>'صلاحیت ویژه کاربر در محدوده تعیین‌شده ثبت شد.']);
+        $response = (new CapabilityScopeResource($scope))
+            ->additional(['success'=>true,'message'=>'صلاحیت ویژه کاربر در محدوده تعیین‌شده ثبت شد.'])
+            ->response();
+
+        return $response->setStatusCode($scope->wasRecentlyCreated ? 201 : 200);
     }
 
     public function revokeCapability(Request $request, UserModel $user, AmmsCapabilityScope $capabilityScope, ScopedCapabilityManager $manager)
