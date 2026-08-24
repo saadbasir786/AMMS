@@ -1,1 +1,0 @@
-MariaDB FLOW-08 concurrency checks passed: duplicate confirmation serialized to one applied transition and one rejected duplicate; final participant version=2; active case cleared; one-active-case uniqueness held.
