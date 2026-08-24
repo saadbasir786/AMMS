@@ -7,17 +7,17 @@ use App\Actions\Terminals\ActivateTerminalMeetingSession;
 use App\Actions\Terminals\IssueTerminalCredential;
 use App\Actions\Terminals\RegisterTerminal;
 use App\Actions\Biometrics\StartBiometricEnrollment;
-use App\Models\AmmsRoleScope;
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
 use App\Models\User;
+use App\Services\ScopedCapabilityManager;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
+use App\Support\SpecialCapability;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class Flow10ATerminalBoundaryTest extends TestCase
@@ -33,17 +33,22 @@ class Flow10ATerminalBoundaryTest extends TestCase
     public function test_active_meeting_session_blocks_biometric_enrollment(): void
     {
         [$meeting, $employee, $coordinator] = $this->meetingFixture();
-        $terminal = app(RegisterTerminal::class)->execute(User::query()->where('email', 'system.admin@example.test')->firstOrFail(), [
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $terminal = app(RegisterTerminal::class)->execute($admin, [
             'organization_id' => $meeting->units()->with('unit')->firstOrFail()->unit->organization_id,
             'code' => 'FLOW10A-BUSY-'.uniqid(), 'name' => 'ترمینال مصروف FLOW-10A', 'manufacturer' => 'FAKE', 'model' => 'SIMULATOR', 'platform' => 'TEST', 'status' => 'ACTIVE',
         ]);
-        app(IssueTerminalCredential::class)->execute(User::query()->where('email', 'system.admin@example.test')->firstOrFail(), $terminal);
+        app(IssueTerminalCredential::class)->execute($admin, $terminal);
         $assignment = app(AssignTerminalToMeeting::class)->execute($coordinator, $meeting, $terminal, now()->subMinutes(2)->toIso8601String(), now()->addDays(30)->toIso8601String());
         app(ActivateTerminalMeetingSession::class)->execute($terminal, $assignment);
 
-        $role = Role::findByName('BIOMETRIC_ENROLLMENT_OFFICER', 'sanctum');
-        $coordinator->assignRole($role);
-        AmmsRoleScope::create(['user_id' => $coordinator->id, 'role_id' => $role->id, 'organizational_unit_id' => $employee->organizational_unit_id]);
+        app(ScopedCapabilityManager::class)->grant(
+            $coordinator,
+            SpecialCapability::BIOMETRIC_ENROLLMENT,
+            $this->unit('TECH'),
+            $admin
+        );
+
         $this->actingAs($coordinator, 'sanctum')
             ->postJson('/api/biometric/enrollment-sessions', ['employee_id' => $employee->id, 'terminal_id' => $terminal->id])
             ->assertStatus(422)->assertJsonPath('code', 'TERMINAL_BUSY');
@@ -60,12 +65,11 @@ class Flow10ATerminalBoundaryTest extends TestCase
         $credentialA = app(\App\Actions\Terminals\IssueTerminalCredential::class)->execute($admin, $terminalA);
 
         // Submission revalidates the enrollment operator's CURRENT authority. The isolation fixture
-        // therefore needs legitimate scopes for both employees; the wrong-terminal assertion must
-        // fail because of terminal isolation, not because the test actor was never authorized.
-        $role = Role::findByName('BIOMETRIC_ENROLLMENT_OFFICER', 'sanctum');
-        $actor->assignRole($role);
-        foreach ([$this->unit('TECH')->id, $this->unit('FIN')->id] as $unitId) {
-            AmmsRoleScope::firstOrCreate(['user_id' => $actor->id, 'role_id' => $role->id, 'organizational_unit_id' => $unitId]);
+        // therefore needs legitimate delegated capability scopes for both employees; the
+        // wrong-terminal assertion must fail because of terminal isolation, not authorization.
+        $manager = app(ScopedCapabilityManager::class);
+        foreach ([$this->unit('TECH'), $this->unit('FIN')] as $unit) {
+            $manager->grant($actor, SpecialCapability::BIOMETRIC_ENROLLMENT, $unit, $admin);
         }
 
         $enrollmentA = app(StartBiometricEnrollment::class)->execute($actor, $employeeA, $terminalA);
