@@ -8,7 +8,7 @@
 
 The current AMMS product scope is frozen. The direct independent audit and consolidation cycle is complete, and the validated audit changes have been merged into `main`.
 
-FLOW-14 is explicitly **APPROVED / FROZEN** by the user as part of this release-baseline decision. Its existing verification artifacts remain historical evidence and are not rewritten to make earlier `PENDING EXPLICIT USER APPROVAL` statements appear retroactive.
+FLOW-14 is explicitly **APPROVED / FROZEN** by the user as part of this release-baseline decision. Earlier verification artifacts may contain historical `PENDING EXPLICIT USER APPROVAL` wording; those records are not rewritten retroactively.
 
 FLOW-01 through FLOW-14 are therefore treated as the current frozen software baseline, subject only to bug fixes, security fixes, regression fixes, deployment hardening, documentation corrections, and operational maintenance.
 
@@ -73,9 +73,11 @@ Not allowed without a new explicit product decision:
 
 ## 6. Evidence preservation
 
-Verification reports, negative matrices, canonical fixtures, HTTP transcripts, concurrency artifacts, and historical release-status statements are evidence. They must not be rewritten merely to make historical states look current.
+Verification reports, negative matrices, canonical fixtures, HTTP transcripts, concurrency artifacts, screenshots, logs, and historical release-status statements are historical evidence, but they do not need to remain in the live `docs/` tree.
 
-This file is the authoritative release-level statement that supersedes earlier `PENDING EXPLICIT USER APPROVAL` wording for FLOW-14 while preserving those earlier reports as historical verification evidence.
+Historical evidence is preserved through Git history, pull requests, CI runs/artifacts, test fixtures, and the commits that originally introduced or verified the behavior. It must not be rewritten merely to make an earlier state look current.
+
+This file is the authoritative current release-level statement and supersedes earlier `PENDING EXPLICIT USER APPROVAL` wording for FLOW-14 without altering the historical record.
 
 ## 7. Current next phase
 

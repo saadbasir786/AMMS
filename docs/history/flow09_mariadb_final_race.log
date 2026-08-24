@@ -1,1 +1,0 @@
-MariaDB FLOW-09 race checks passed: concurrent activation produced exactly one ACTIVE session and one TERMINAL_SESSION_ALREADY_ACTIVE; overlapping assignment produced one success and one TERMINAL_ASSIGNMENT_CONFLICT; revocation committed with terminal, assignment, session, and current pointer invalidated.
