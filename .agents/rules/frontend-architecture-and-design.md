@@ -98,9 +98,10 @@ All user-facing text must be clear, professional, respectful, and free of develo
 ## 6. Autonomous Rule Evolution Directive (AI Mandate)
 
 **Mandatory Directive for AI Pair-Programming Assistant:**
-1. **Autonomous Updates**: As new patterns, domain features, or architectural decisions are established, the AI assistant is mandated to proactively update this document or add specialized rule files under `.agents/rules/` without requiring manual reminders from the user.
-2. **Pre-Implementation Check**: The assistant must review this rule document before implementing any code changes to guarantee 100% compliance across all views.
-3. **Walkthrough Audit**: Any newly added or updated rules must be documented in the session walkthrough report.
+1. **Autonomous Implementation-Rule Updates**: As new reusable UI, UX, or non-domain architectural patterns are established, the AI assistant should proactively update this document or add specialized rule files under `.agents/rules/` without requiring manual reminders.
+2. **Authorization & Domain Boundary**: Roles, permissions, organizational scope, delegated capabilities, workflow authority, approval paths, and lifecycle states are excluded from autonomous evolution. They are governed by `.agents/rules/roles-permissions-and-scope.md` and require an explicit user/domain decision before they may be changed.
+3. **Pre-Implementation Check**: The assistant must review this rule document and any applicable specialized rule files before implementing code changes.
+4. **Walkthrough Audit**: Any newly added or updated rules must be documented in the session walkthrough report.
 
 ---
 

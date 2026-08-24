@@ -5,14 +5,16 @@ namespace App\Policies;
 use App\Models\BiometricEnrollmentSession;
 use App\Models\Employee;
 use App\Models\EmployeeBiometricTemplate;
-use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Support\SpecialCapability;
 
 class BiometricPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isActive() && $user->hasPermissionTo('biometric.status.view', 'sanctum');
+        return $user->isActive()
+            && $user->hasPermissionTo('biometric.status.view', 'sanctum')
+            && $user->scopedCapabilityUnitIds(SpecialCapability::BIOMETRIC_ENROLLMENT) !== [];
     }
 
     public function view(User $user, Employee $employee): bool
@@ -38,30 +40,16 @@ class BiometricPolicy
     public function cancel(User $user, BiometricEnrollmentSession $session): bool
     {
         return $session->started_by_user_id === $user->id
-            && $user->isActive()
-            && $user->hasPermissionTo('biometric.enrollment.cancel', 'sanctum');
+            && $this->employeeScoped($user, $session->employee, 'biometric.enrollment.cancel');
     }
 
     private function employeeScoped(User $user, Employee $employee, string $permission): bool
     {
-        if (!$user->isActive() || !$user->hasPermissionTo($permission, 'sanctum')) return false;
-
-        $scopeUnitIds = $user->roleScopes()
-            ->whereHas('role', fn ($role) => $role->where('name', 'BIOMETRIC_ENROLLMENT_OFFICER')->where('guard_name', 'sanctum'))
-            ->whereNotNull('organizational_unit_id')
-            ->pluck('organizational_unit_id')
-            ->map(fn ($id): int => (int) $id)
-            ->unique()
-            ->flip();
-
-        $currentUnitId = (int) $employee->organizational_unit_id;
-        $visited = [];
-        while ($currentUnitId > 0 && !isset($visited[$currentUnitId])) {
-            if ($scopeUnitIds->has($currentUnitId)) return true;
-            $visited[$currentUnitId] = true;
-            $currentUnitId = (int) (OrganizationalUnit::query()->whereKey($currentUnitId)->value('parent_id') ?? 0);
-        }
-
-        return false;
+        return $user->isActive()
+            && $user->hasPermissionTo($permission, 'sanctum')
+            && $user->hasScopedCapability(
+                SpecialCapability::BIOMETRIC_ENROLLMENT,
+                (int) $employee->organizational_unit_id
+            );
     }
 }

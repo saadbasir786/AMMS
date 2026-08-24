@@ -22,6 +22,7 @@ class User extends Authenticatable
     public function employee(): BelongsTo { return $this->belongsTo(Employee::class); }
     public function legacyRoles(): HasMany { return $this->hasMany(UserRole::class); }
     public function roleScopes(): HasMany { return $this->hasMany(AmmsRoleScope::class); }
+    public function capabilityScopes(): HasMany { return $this->hasMany(AmmsCapabilityScope::class); }
     public function notifications(): HasMany { return $this->hasMany(AmmsNotification::class); }
 
     public function hasScopedRole(string $role, ?int $unitId = null): bool
@@ -37,6 +38,44 @@ class User extends Authenticatable
     {
         if (!$this->hasRole($role, 'sanctum')) return [];
         return $this->roleScopes()->whereHas('role', fn ($q) => $q->where('name', $role)->where('guard_name', 'sanctum'))->pluck('organizational_unit_id')->filter()->values()->all();
+    }
+
+    public function hasScopedCapability(string $capability, int $unitId): bool
+    {
+        if (!$this->isActive()) return false;
+
+        $scopeUnitIds = $this->capabilityScopes()
+            ->active()
+            ->where('capability', $capability)
+            ->pluck('organizational_unit_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->flip();
+
+        if ($scopeUnitIds->isEmpty()) return false;
+
+        $currentUnitId = $unitId;
+        $visited = [];
+        while ($currentUnitId > 0 && !isset($visited[$currentUnitId])) {
+            if ($scopeUnitIds->has($currentUnitId)) return true;
+            $visited[$currentUnitId] = true;
+            $currentUnitId = (int) (OrganizationalUnit::query()->whereKey($currentUnitId)->value('parent_id') ?? 0);
+        }
+
+        return false;
+    }
+
+    public function scopedCapabilityUnitIds(string $capability): array
+    {
+        if (!$this->isActive()) return [];
+        return $this->capabilityScopes()
+            ->active()
+            ->where('capability', $capability)
+            ->pluck('organizational_unit_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function isActive(): bool
