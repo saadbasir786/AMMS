@@ -2,4 +2,4 @@
 namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-class UserResource extends JsonResource { public function toArray(Request $request): array { return ['id'=>$this->id,'name'=>$this->name,'email'=>$this->email,'status'=>$this->status ?: 'ACTIVE','employee_id'=>$this->employee_id,'employee'=>new EmployeeResource($this->whenLoaded('employee')),'roles'=>UserRoleResource::collection($this->whenLoaded('roleScopes'))]; } }
+class UserResource extends JsonResource { public function toArray(Request $request): array { return ['id'=>$this->id,'name'=>$this->name,'email'=>$this->email,'status'=>$this->status ?: 'ACTIVE','employee_id'=>$this->employee_id,'employee'=>new EmployeeResource($this->whenLoaded('employee')),'roles'=>UserRoleResource::collection($this->whenLoaded('roleScopes')),'capabilities'=>CapabilityScopeResource::collection($this->whenLoaded('capabilityScopes'))]; } }

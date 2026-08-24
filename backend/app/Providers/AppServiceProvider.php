@@ -31,11 +31,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Gate::define('biometric.view', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->view($user, $employee));
-        Gate::define('biometric.enroll', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->enroll($user, $employee));
-        Gate::define('biometric.reenroll', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->reenroll($user, $employee));
-        Gate::define('biometric.revoke', fn ($user, EmployeeBiometricTemplate $template): bool => app(BiometricPolicy::class)->revoke($user, $template));
-        Gate::define('biometric.cancel', fn ($user, BiometricEnrollmentSession $session): bool => app(BiometricPolicy::class)->cancel($user, $session));
+        // These authorization ability names intentionally do not match Spatie permission names.
+        // Spatie registers a Gate::before permission check; reusing permission names here would
+        // allow the permission alone to bypass the additional organizational capability scope.
+        Gate::define('biometric-scoped.view', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->view($user, $employee));
+        Gate::define('biometric-scoped.enroll', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->enroll($user, $employee));
+        Gate::define('biometric-scoped.reenroll', fn ($user, Employee $employee): bool => app(BiometricPolicy::class)->reenroll($user, $employee));
+        Gate::define('biometric-scoped.revoke', fn ($user, EmployeeBiometricTemplate $template): bool => app(BiometricPolicy::class)->revoke($user, $template));
+        Gate::define('biometric-scoped.cancel', fn ($user, BiometricEnrollmentSession $session): bool => app(BiometricPolicy::class)->cancel($user, $session));
         Gate::policy(Meeting::class, FlowAwareMeetingPolicy::class);
         Gate::policy(MeetingRequest::class, FlowAwareMeetingRequestPolicy::class);
         Gate::policy(MeetingDecisionFollowUp::class, MeetingDecisionFollowUpPolicy::class);

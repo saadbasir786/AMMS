@@ -15,13 +15,12 @@ use App\Models\BiometricEnrollmentSession;
 use App\Models\Employee;
 use App\Models\EmployeeBiometricTemplate;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class BiometricController extends Controller
 {
     public function employee(Employee $employee): JsonResponse
     {
-        $this->authorize('biometric.view', $employee);
+        $this->authorize('biometric-scoped.view', $employee);
         $templates = $employee->biometricTemplates()->with(['sourceTerminal', 'enrolledBy'])->latest('id')->get();
         $required = (int) config('biometric.minimum_active_fingers', 2);
         $active = $templates->where('status', EmployeeBiometricTemplate::ACTIVE)->unique('finger_position')->count();
@@ -38,26 +37,26 @@ class BiometricController extends Controller
     public function start(StartBiometricEnrollmentRequest $request, StartBiometricEnrollment $action): BiometricEnrollmentSessionResource
     {
         $employee = Employee::query()->findOrFail($request->integer('employee_id'));
-        $this->authorize('biometric.enroll', $employee);
+        $this->authorize('biometric-scoped.enroll', $employee);
         $terminal = $request->filled('terminal_id') ? \App\Models\Terminal::query()->findOrFail($request->integer('terminal_id')) : null;
         return new BiometricEnrollmentSessionResource($action->execute($request->user(), $employee, $terminal, $request->integer('required_finger_count') ?: null));
     }
 
     public function complete(BiometricEnrollmentSession $enrollment, CompleteBiometricEnrollment $action): BiometricEnrollmentSessionResource
     {
-        $this->authorize('biometric.enroll', $enrollment->employee);
+        $this->authorize('biometric-scoped.enroll', $enrollment->employee);
         return new BiometricEnrollmentSessionResource($action->execute(request()->user(), $enrollment));
     }
 
     public function cancel(BiometricReasonRequest $request, BiometricEnrollmentSession $enrollment, CancelBiometricEnrollment $action): BiometricEnrollmentSessionResource
     {
-        $this->authorize('biometric.cancel', $enrollment);
+        $this->authorize('biometric-scoped.cancel', $enrollment);
         return new BiometricEnrollmentSessionResource($action->execute($request->user(), $enrollment, $request->string('reason')->toString()));
     }
 
     public function revoke(BiometricReasonRequest $request, EmployeeBiometricTemplate $template, RevokeFingerprintTemplate $action): BiometricTemplateResource
     {
-        $this->authorize('biometric.revoke', $template);
+        $this->authorize('biometric-scoped.revoke', $template);
         return new BiometricTemplateResource($action->execute($request->user(), $template, $request->string('reason')->toString()));
     }
 }
