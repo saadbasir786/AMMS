@@ -1,0 +1,5 @@
+export { DashboardPage } from './pages/dashboard-page'
+export { DashboardKpis } from './components/dashboard-kpis'
+export { QuickActionsCard } from './components/quick-actions-card'
+export { RecentRequestsCard } from './components/recent-requests-card'
+export { WorkflowGuideCard } from './components/workflow-guide-card'
