@@ -10,6 +10,7 @@ import { SchedulingStageBar } from '../components/scheduling-stage-bar'
 import { ScheduleFormCard } from '../components/schedule-form-card'
 import { ScheduleReviewCard } from '../components/schedule-review-card'
 import { RequestReferenceCard } from '../components/request-reference-card'
+import { ScheduleProposalsCard } from '../components/schedule-proposals-card'
 import type { SchedulingFormValues } from '../types'
 import type { EmployeeItem, OrganizationalUnit } from '@/features/meeting-requests'
 
@@ -69,14 +70,21 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         .map((p: any) => p.employee_id || p.employee?.id)
         .filter(Boolean)
 
+      // Check if there is an accepted proposal
+      const acceptedProposal = (reqData.schedule_proposals || []).find(
+        (p: any) => p.status === 'ACCEPTED'
+      )
+
       setForm((prev) => ({
         ...prev,
         meeting_date:
+          acceptedProposal?.meeting_date?.slice(0, 10) ||
           reqData.scheduled_date?.slice(0, 10) ||
           reqData.preferred_date?.slice(0, 10) ||
           prev.meeting_date ||
           '',
         start_time:
+          acceptedProposal?.start_time?.slice(0, 5) ||
           reqData.scheduled_start_time?.slice(0, 5) ||
           reqData.preferred_start_time?.slice(0, 5) ||
           prev.start_time ||
@@ -87,6 +95,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
           prev.duration_minutes ||
           60,
         location:
+          acceptedProposal?.location ||
           reqData.scheduled_location ||
           reqData.proposed_location ||
           prev.location ||
@@ -169,18 +178,60 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
     return (request?.participants || []).filter((p: any) => p.participant_type === 'FINAL')
   }, [request?.participants])
 
+  // Schedule Proposals Handlers
+  const handleProposeSchedule = async (data: any) => {
+    if (!id) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (request?.flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY') {
+        await api.post(`/meeting-requests/${id}/authority-schedule/proposals`, data)
+      } else {
+        await api.post(`/meeting-requests/${id}/schedule-proposals`, data)
+      }
+      await loadData()
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'ثبت پیشنهاد زمان جدید با خطا مواجه شد.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleAcceptProposal = async (proposalId: number) => {
+    if (!id) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (request?.flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY') {
+        await api.post(`/meeting-requests/${id}/authority-schedule/proposals/${proposalId}/acknowledge`)
+      } else {
+        await api.post(`/meeting-requests/${id}/schedule-proposals/${proposalId}/accept`)
+      }
+      await loadData()
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'پذیرش پیشنهاد زمان‌بندی با خطا مواجه شد.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   // Confirm schedule handler
   const handleConfirmSchedule = async () => {
     if (!id) return
     setBusy(true)
     setError(null)
     try {
-      await api.post(`/meeting-requests/${id}/confirm-schedule`, {
+      let endpoint = `/meeting-requests/${id}/confirm-schedule`
+      if (request?.flow_type === 'INTER_DIRECTORATE') {
+        endpoint = `/meeting-requests/${id}/confirm-inter-directorate-schedule`
+      }
+
+      await api.post(endpoint, {
         meeting_date: form.meeting_date,
         start_time: form.start_time,
         duration_minutes: Number(form.duration_minutes),
         location: form.location,
-        chairperson_employee_id: Number(form.chairperson_employee_id),
+        chairperson_employee_id: Number(form.chairperson_employee_id) || undefined,
         participant_ids: form.participant_ids,
       })
       await loadData()
@@ -200,12 +251,21 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
     setBusy(true)
     setError(null)
     try {
-      await api.post(`/meeting-requests/${id}/finalize`, {
-        meeting_date: request.scheduled_date?.slice(0, 10),
-        start_time: request.scheduled_start_time?.slice(0, 5),
+      let endpoint = `/meeting-requests/${id}/finalize`
+      if (request?.flow_type === 'INTER_DIRECTORATE') {
+        endpoint = `/meeting-requests/${id}/finalize-inter-directorate`
+      } else if (request?.flow_type === 'MULTI_DIRECTORATE') {
+        endpoint = `/meeting-requests/${id}/finalize-multi`
+      } else if (request?.flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY') {
+        endpoint = `/meeting-requests/${id}/finalize-high-authority`
+      }
+
+      await api.post(endpoint, {
+        meeting_date: request.scheduled_date?.slice(0, 10) || form.meeting_date,
+        start_time: request.scheduled_start_time?.slice(0, 5) || form.start_time,
         end_time: endTime,
-        location: request.scheduled_location,
-        chairperson_employee_id: Number(request.scheduled_chairperson_employee_id),
+        location: request.scheduled_location || form.location,
+        chairperson_employee_id: Number(request.scheduled_chairperson_employee_id || form.chairperson_employee_id),
         agenda: form.agenda,
       })
       navigate(`/meeting-requests/${id}`)
@@ -220,17 +280,24 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
   }
 
   const isConfirmed = request?.status === 'SCHEDULE_CONFIRMED'
+  const hasProposals = (request?.schedule_proposals || []).length > 0 || request?.flow_type !== 'STANDARD'
+
+  const requestUnits = request?.units?.map((u: any) => ({
+    id: u.organizational_unit_id || u.unit?.id,
+    name: u.unit?.name || 'ریاست',
+    organizational_unit_id: u.organizational_unit_id,
+  })) || []
 
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
       <PageHeader
         eyebrow={request?.request_number || undefined}
-        title={isConfirmed ? 'بازبینی و صدور جلسه رسمی' : 'تنظیم برنامه واقعی جلسه'}
+        title={isConfirmed ? 'بازبینی و صدور جلسه رسمی' : 'تنظیم و نهایی‌سازی زمان‌بندی جلسه'}
         description={
           request
             ? `${request.request_number || 'پیش‌نویس'} • ${request.subject}`
-            : 'مدیریت زمان، مکان و اشتراک‌کنندگان جلسه'
+            : 'مدیریت زمان، مکان، مذاکره پیشنهادها و اشتراک‌کنندگان جلسه'
         }
         action={
           <div className="flex items-center gap-2">
@@ -282,6 +349,19 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           {/* Main Column */}
           <section className="space-y-6">
+            {/* Multi-party Proposals Negotiation */}
+            {hasProposals && !isConfirmed && (
+              <ScheduleProposalsCard
+                proposals={request.schedule_proposals || []}
+                canPropose={['SCHEDULING', 'BILATERAL_APPROVED', 'MULTILATERAL_APPROVED', 'AUTHORITY_SCHEDULING'].includes(request.status)}
+                canAccept={['SCHEDULING', 'AUTHORITY_SCHEDULING'].includes(request.status)}
+                units={requestUnits}
+                busy={busy}
+                onPropose={handleProposeSchedule}
+                onAccept={handleAcceptProposal}
+              />
+            )}
+
             {!isConfirmed ? (
               <ScheduleFormCard
                 form={form}
