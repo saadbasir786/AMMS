@@ -3,6 +3,7 @@ export { CreateRequestPage } from './pages/create-request-page'
 export { IncomingRequestsPage } from './pages/incoming-requests-page'
 export { RequestDetailPage } from './pages/request-detail-page'
 export { EditRequestPage } from './pages/edit-request-page'
+export { ApprovalsPage } from './pages/approvals-page'
 
 export { MeetingRequestForm } from './components/meeting-request-form'
 export { RequestsTable } from './components/requests-table'

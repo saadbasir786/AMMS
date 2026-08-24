@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 
 import {
@@ -21,6 +21,7 @@ type ConfirmDialogProps = {
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'default' | 'destructive'
+  children?: React.ReactNode
   onConfirm: () => void | Promise<void>
 }
 
@@ -32,6 +33,7 @@ export function ConfirmDialog({
   confirmLabel = 'تأیید',
   cancelLabel = 'انصراف',
   variant = 'default',
+  children,
   onConfirm,
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState(false)
@@ -59,6 +61,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children && <div className="py-2">{children}</div>}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction

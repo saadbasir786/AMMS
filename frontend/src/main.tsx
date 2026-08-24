@@ -27,6 +27,7 @@ import {
   CreateRequestPage,
   RequestDetailPage,
   EditRequestPage,
+  ApprovalsPage,
 } from '@/features/meeting-requests'
 import { SchedulingPage } from '@/features/scheduling'
 import {
@@ -306,73 +307,6 @@ function RequestDetail() {
   )
 }
 
-function Approvals() {
-  const [data, setData] = useState<any>({ data: [] })
-  useEffect(() => {
-    const load = async () => {
-      const [generic, authority] = await Promise.all([
-        api.get('/approvals'),
-        api.get('/meeting-requests', { params: { status: 'PENDING_REQUESTER_APPROVAL' } }),
-      ])
-      const rows = [...(apiPage(generic).data || []), ...(apiPage(authority).data || [])]
-      const unique = Array.from(new Map(rows.map((r: any) => [r.id, r])).values())
-      setData({ data: unique })
-    }
-    load()
-  }, [])
-
-  return (
-    <div className="space-y-6" dir="rtl">
-      <PageHeader
-        title="درخواست‌های منتظر تأیید"
-        description="فقط درخواست‌های ریاست‌های تحت صلاحیت شما نمایش داده می‌شود"
-      />
-      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-xs">
-        <table className="w-full text-xs text-right border-collapse">
-          <thead>
-            <tr className="border-b border-border/60 bg-slate-50/70 dark:bg-slate-900/40 text-muted-foreground">
-              <th className="py-3 px-4 font-bold">شماره</th>
-              <th className="py-3 px-4 font-bold">موضوع</th>
-              <th className="py-3 px-4 font-bold">درخواست‌کننده</th>
-              <th className="py-3 px-4 font-bold">اولویت</th>
-              <th className="py-3 px-4 font-bold">تاریخ</th>
-              <th className="py-3 px-4 font-bold text-center">عملیات</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/50">
-            {(data.data || []).map((r: any) => (
-              <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                <td className="py-3 px-4 font-mono font-bold">{r.request_number}</td>
-                <td className="py-3 px-4 font-semibold text-foreground">
-                  <a className="hover:text-primary transition-colors" href={`/meeting-requests/${r.id}`}>
-                    {r.subject}
-                  </a>
-                </td>
-                <td className="py-3 px-4 text-muted-foreground">{r.creator?.name}</td>
-                <td className="py-3 px-4 font-semibold">{priorityLabels[r.priority] || r.priority}</td>
-                <td className="py-3 px-4 font-mono text-muted-foreground">
-                  {new Date(r.created_at).toLocaleDateString('fa-AF')}
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <a className="inline-flex items-center gap-1 text-primary hover:underline font-bold text-xs" href={`/meeting-requests/${r.id}`}>
-                    <span>بررسی</span>
-                    <Eye className="size-3.5" />
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!(data.data || []).length && (
-          <div className="text-center py-10 text-xs text-muted-foreground">
-            درخواست منتظر تأییدی وجود ندارد.
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function Scheduling() {
   const { user } = useAuth()
   return <SchedulingPage currentUser={user} />
@@ -424,7 +358,7 @@ function App() {
                   <Route path="/meeting-requests/:id/multi-high-scheduling" element={<Scheduling />} />
                   <Route path="/meeting-requests/:id/authority-initiated-scheduling" element={<Scheduling />} />
 
-                  <Route path="/approvals" element={<Approvals />} />
+                  <Route path="/approvals" element={<ApprovalsPage priorityLabels={priorityLabels} purposeLabels={purposeLabels} />} />
                   <Route path="/meetings" element={<Meetings />} />
                   <Route path="/meetings/:id/reschedule" element={<MeetingReschedulePage />} />
                   <Route path="/meetings/:id/participants/change" element={<MeetingParticipantChangePage />} />
