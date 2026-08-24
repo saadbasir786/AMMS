@@ -126,3 +126,165 @@ export type MeetingMinutes = {
   current_version_id?: number
   current_version?: MinutesVersion | null
 }
+
+// Reschedule Types
+export type ScheduleVersion = {
+  id: number
+  version_number: number
+  meeting_date: string
+  start_time: string
+  end_time: string
+  location: string
+  created_at?: string
+}
+
+export type RescheduleAcknowledgement = {
+  id: number
+  organizational_unit_id: number
+  acknowledged_at?: string
+}
+
+export type RescheduleAlternative = {
+  id: number
+  organizational_unit_id: number
+  reason: string
+  status: 'OPEN' | 'RESOLVED'
+  unit?: {
+    id: number
+    name: string
+  }
+}
+
+export type RescheduleProposal = {
+  id: number
+  status: 'ACTIVE' | 'SUPERSEDED'
+  meeting_date: string
+  start_time: string
+  end_time: string
+  location: string
+  comment?: string
+  acknowledgements?: RescheduleAcknowledgement[]
+}
+
+export type RescheduleCase = {
+  id: number
+  status: string
+  governance_mode: string
+  reason: string
+  baseline_schedule_version_id: number
+  proposals?: RescheduleProposal[]
+  alternative_requests?: RescheduleAlternative[]
+}
+
+export type MeetingRescheduleData = {
+  meeting: MeetingItem & {
+    request?: any
+    authority_context?: any
+    units?: any[]
+    current_schedule_version_id?: number
+  }
+  current_schedule_version?: ScheduleVersion | null
+  schedule_versions?: ScheduleVersion[]
+  active_reschedule_case?: RescheduleCase | null
+}
+
+// Participant Change Types
+export type ParticipantChangeItem = {
+  id: number
+  operation: 'ADD' | 'REMOVE' | 'REPLACE'
+  old_employee_id?: number | null
+  new_employee_id?: number | null
+  participant_role?: string
+  oldEmployee?: {
+    id: number
+    full_name: string
+  }
+  newEmployee?: {
+    id: number
+    full_name: string
+  }
+}
+
+export type ParticipantChangeCase = {
+  id: number
+  status: 'DRAFT' | 'RETURNED_FOR_CORRECTION' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'REJECTED'
+  reason: string
+  owner_type: 'UNIT' | 'AUTHORITY'
+  owner_unit_id?: number
+  baseline_participant_version_id: number
+  baseline_schedule_version_id: number
+  ownerUnit?: {
+    id: number
+    name: string
+  }
+  items?: ParticipantChangeItem[]
+}
+
+export type ParticipantVersion = {
+  id: number
+  version_number: number
+  created_at?: string
+}
+
+export type MeetingParticipantChangeData = {
+  meeting: MeetingItem & {
+    current_schedule_version_id?: number
+    current_participant_version_id?: number
+    authority_context?: any
+    units?: any[]
+  }
+  current_participant_version?: ParticipantVersion | null
+  participant_versions?: ParticipantVersion[]
+  current_participants?: any[]
+  employee_options?: any[]
+  active_participant_change_case?: ParticipantChangeCase | null
+}
+
+// Meeting Exceptions Types
+export type ExceptionCaseType =
+  | 'POSTPONEMENT'
+  | 'CANCELLATION'
+  | 'REOPENING'
+  | 'RESUMPTION'
+
+export type ExceptionReview = {
+  id: number
+  reviewer_type: string
+  review_requirement: string
+  organizational_unit_id?: number
+  authority_employee_id?: number
+  status: 'PENDING' | 'ACKNOWLEDGED' | 'APPROVED' | 'CORRECTION_REQUESTED'
+}
+
+export type ExceptionVersion = {
+  id: number
+  version_number: number
+  reason: string
+  submitted_at?: string | null
+}
+
+export type ExceptionCase = {
+  id: number
+  case_type: ExceptionCaseType
+  status: string
+  governance_mode: string
+  created_at: string
+  baseline?: {
+    meeting_status: string
+  }
+  current_version?: ExceptionVersion | null
+  reviews?: ExceptionReview[]
+}
+
+export type MeetingExceptionData = {
+  meeting: {
+    id: number
+    meeting_number: string
+    title: string
+    status: string
+    current_schedule_version_id?: number
+    request_status?: string
+  }
+  data?: ExceptionCase[]
+}
+
