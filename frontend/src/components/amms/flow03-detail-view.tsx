@@ -140,7 +140,10 @@ export function Flow03DetailView({
 
     <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">عملیات FLOW-03</p><CardTitle className="text-base">گردش کار</CardTitle></CardHeader>
+        <CardHeader className="border-b">
+          <CardTitle className="text-sm font-bold text-foreground">اقدامات قابل انجام</CardTitle>
+          <p className="text-xs text-muted-foreground">عملیات مجاز متناسب با وضعیت فعلی درخواست</p>
+        </CardHeader>
         <CardContent className="space-y-3 pt-5">
           {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
           {request.status === 'DRAFT' && canRequesterManage ? <Button className="w-full" disabled={!!busyAction} onClick={() => run('submit-multi')}>ارسال برای تأیید داخلی</Button> : null}

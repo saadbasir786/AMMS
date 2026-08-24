@@ -103,7 +103,10 @@ export function Flow04DetailView({
 
     <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">عملیات FLOW-04</p><CardTitle className="text-base">گردش کار مقام عالی</CardTitle></CardHeader>
+        <CardHeader className="border-b">
+          <CardTitle className="text-sm font-bold text-foreground">اقدامات قابل انجام</CardTitle>
+          <p className="text-xs text-muted-foreground">عملیات مجاز متناسب با وضعیت فعلی درخواست</p>
+        </CardHeader>
         <CardContent className="space-y-3 pt-5">
           {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
           {request.status === 'DRAFT' && isCreator ? <Button className="w-full" disabled={!!busyAction} onClick={() => run('submit-high-authority')}>ارسال برای تأیید داخلی</Button> : null}
@@ -132,11 +135,11 @@ export function Flow04DetailView({
       </Card>
 
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">تصمیم ثبت‌شده</p><CardTitle className="text-base">Attribution رسمی</CardTitle></CardHeader>
+        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">تصمیم ثبت‌شده</p><CardTitle className="text-base">هدایت و تصمیم رسمی</CardTitle></CardHeader>
         <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">{ctx?.authority_decision_comment || 'هنوز تصمیمی ثبت نشده است.'}</CardContent>
       </Card>
 
-      <WorkflowTimeline title="خط زمانی FLOW-04" items={timelineItems} />
+      <WorkflowTimeline title="خط زمانی گردش کار" items={timelineItems} />
     </aside>
 
     <ConfirmDialog

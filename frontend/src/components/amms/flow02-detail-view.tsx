@@ -154,7 +154,10 @@ export function Flow02DetailView({
 
     <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">اقدامات FLOW-02</p><CardTitle className="text-base">عملیات مجاز</CardTitle></CardHeader>
+        <CardHeader className="border-b">
+          <CardTitle className="text-sm font-bold text-foreground">اقدامات قابل انجام</CardTitle>
+          <p className="text-xs text-muted-foreground">عملیات مجاز متناسب با وضعیت فعلی درخواست</p>
+        </CardHeader>
         <CardContent className="space-y-3 pt-5">
           {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
           {renderActionButtons()}

@@ -134,12 +134,15 @@ export function Flow05DetailView({
 
     <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">عملیات FLOW-05</p><CardTitle className="text-base">گردش کار</CardTitle></CardHeader>
+        <CardHeader className="border-b">
+          <CardTitle className="text-sm font-bold text-foreground">اقدامات قابل انجام</CardTitle>
+          <p className="text-xs text-muted-foreground">عملیات مجاز متناسب با وضعیت فعلی درخواست</p>
+        </CardHeader>
         <CardContent className="space-y-3 pt-5">
           {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
           {request.status === 'DRAFT' && isRequester ? <Button className="w-full" disabled={!!busyAction} onClick={() => run('submit')}>ارسال برای تأیید داخلی</Button> : null}
           {request.status === 'PENDING_REQUESTER_APPROVAL' && isDirector ? <>
-            <Button className="w-full" disabled={!!busyAction} onClick={() => run('requester-approve')}>تأیید requester</Button>
+            <Button className="w-full" disabled={!!busyAction} onClick={() => run('requester-approve')}>تأیید ریاست درخواست‌کننده</Button>
             <Textarea placeholder="دلیل برگشت یا رد" value={reason} onChange={event => setReason(event.target.value)} />
             <Button variant="outline" className="w-full" disabled={!!busyAction} onClick={() => setConfirmAction({ path: 'requester-return', label: 'برگشت', body: { reason } })}>برگشت</Button>
             <Button variant="destructive" className="w-full" disabled={!!busyAction} onClick={() => setConfirmAction({ path: 'requester-reject', label: 'رد داخلی', destructive: true, body: { reason } })}>رد داخلی</Button>
@@ -184,7 +187,7 @@ export function Flow05DetailView({
         <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">تمام تصمیم‌ها همچنان با scope همان ریاست، دفتر مقام و holder مقام عالی محدود می‌شوند.</CardContent>
       </Card>
 
-      <WorkflowTimeline title="خط زمانی FLOW-05" items={timelineItems} />
+      <WorkflowTimeline title="خط زمانی گردش کار" items={timelineItems} />
     </aside>
 
     <ConfirmDialog

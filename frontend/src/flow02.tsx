@@ -78,7 +78,7 @@ export function Flow02DetailV2({ r, reload }: { r: Any; reload: () => void }) {
 
   return <>
     <PageHeader
-      eyebrow={`${r.request_number || 'پیش‌نویس'} · FLOW-02`}
+      eyebrow={`${r.request_number || 'پیش‌نویس'} · جلسه بین دو ریاست`}
       title={r.subject}
       description={`${requester?.unit?.name || '—'} ↔ ${target?.unit?.name || '—'}`}
       action={<div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{statusLabels[r.status] || r.status}</Badge><Button asChild variant="outline"><a href="/meeting-requests">بازگشت</a></Button></div>}
