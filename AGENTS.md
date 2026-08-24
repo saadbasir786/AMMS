@@ -19,12 +19,15 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
      - Organizational roles must represent real administrative responsibilities.
      - Temporary/special system duties must be modeled as explicit, revocable, auditable scoped capabilities rather than invented organizational roles.
      - `SYSTEM_ADMIN` is technical administration only and is never a meeting-workflow business superuser.
-     - Backend authorization is authoritative; frontend visibility must mirror role, permission, capability, and unit-scope boundaries.
-     - `BIOMETRIC_ENROLLMENT_OFFICER` is retired; biometric enrollment uses the scoped `BIOMETRIC_ENROLLMENT` delegated capability.
+     - Backend authorization is authoritative; frontend visibility must mirror role, permission, capability, ownership, lifecycle, and unit-scope boundaries.
+     - The canonical Role × Flow authority matrix covers FLOW-01 through FLOW-14; FLOW-10B remains deferred.
+     - `MEETING_COORDINATOR` and `BIOMETRIC_ENROLLMENT_OFFICER` are retired/non-canonical and must not be reintroduced from historical migrations or fixtures.
+     - Biometric enrollment uses the scoped `BIOMETRIC_ENROLLMENT` delegated capability.
+     - Historical migrations do not override current Policies/Resolvers or the authorization charter.
 
 3. **Autonomous Rule Evolution Directive (AI Self-Evolution)**
    - AI assistants may autonomously evolve implementation conventions such as UI consistency, reusable component patterns, and non-domain architecture guidance.
-   - AI assistants must **not** autonomously change roles, permissions, organizational-scope semantics, delegated capabilities, business-flow authority, approval paths, or lifecycle states. These require an explicit user/domain decision and the authorization charter takes precedence over general autonomous-evolution guidance.
+   - AI assistants must **not** autonomously change roles, permissions, organizational-scope semantics, delegated capabilities, business-flow authority, approval paths, ownership rules, or lifecycle states. These require an explicit user/domain decision and the authorization charter takes precedence over general autonomous-evolution guidance.
 
 4. **Mandatory Per-Feature Git Commit & Push Policy**
    - Once a feature or capability is completed and verified, and upon user approval, a clean, dedicated Git commit must be recorded and pushed to the remote repository BEFORE starting the next feature.
