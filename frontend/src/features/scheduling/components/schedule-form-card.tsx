@@ -177,7 +177,7 @@ export function ScheduleFormCard({
           <ParticipantPicker
             employees={eligibleEmployees}
             selectedIds={form.participant_ids}
-            onChange={(ids) => onChange('participant_ids', ids)}
+            onChange={(ids: number[]) => onChange('participant_ids', ids)}
             placeholder="جستجو و انتخاب اشتراک‌کنندگان نهایی..."
           />
         </div>
