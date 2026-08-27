@@ -28,6 +28,36 @@ export type ActionItemUpdate = {
   }
 }
 
+export type ActionItemExtensionRequest = {
+  id: number
+  action_item_id: number
+  current_due_date?: string | null
+  requested_due_date: string
+  reason: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | string
+  requested_by_user_id?: number | null
+  requested_at?: string | null
+  reviewed_by_user_id?: number | null
+  reviewed_at?: string | null
+  review_reason?: string | null
+}
+
+export type ActionItemAssignmentHistory = {
+  id: number
+  action_item_id: number
+  from_unit_id?: number | null
+  to_unit_id?: number | null
+  from_employee_id?: number | null
+  to_employee_id?: number | null
+  reason?: string | null
+  changed_by_user_id?: number | null
+  changed_at: string
+  from_unit?: { id: number; name: string } | null
+  to_unit?: { id: number; name: string } | null
+  from_employee?: { id: number; full_name: string } | null
+  to_employee?: { id: number; full_name: string } | null
+}
+
 export type ActionItemEvidence = {
   id: number
   original_filename: string
@@ -64,6 +94,8 @@ export type ActionItem = {
   }
   updates?: ActionItemUpdate[]
   evidence?: ActionItemEvidence[]
+  extensions?: ActionItemExtensionRequest[]
+  assignment_history?: ActionItemAssignmentHistory[]
   created_at: string
   updated_at: string
 }
@@ -72,6 +104,29 @@ export type ActionItemFilters = {
   search: string
   status: string
   overdueOnly: boolean
+}
+
+export type ActionItemPageMeta = {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
+export type ActionItemCapabilities = {
+  view: boolean
+  start: boolean
+  progress: boolean
+  block: boolean
+  submit_completion: boolean
+  verify_completion: boolean
+  assignment: boolean
+  change_unit: boolean
+  extension_request: boolean
+  extension_review: boolean
+  cancel: boolean
+  evidence_view: boolean
+  evidence_upload: boolean
 }
 
 export type FollowUpDecision = {

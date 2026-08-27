@@ -18,6 +18,10 @@ class MeetingActionItemUpdateResource extends JsonResource
             'progress_percent' => $this->progress_percent,
             'note' => $this->note,
             'created_by_user_id' => $this->created_by_user_id,
+            'actor' => $this->whenLoaded('createdBy', fn () => [
+                'id' => $this->createdBy->id,
+                'name' => $this->createdBy->name,
+            ]),
             'created_at' => $this->created_at,
             'evidence' => MeetingActionItemEvidenceResource::collection($this->whenLoaded('evidence')),
         ];

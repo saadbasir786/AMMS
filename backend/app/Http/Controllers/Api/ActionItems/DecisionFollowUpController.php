@@ -43,6 +43,7 @@ use App\Models\MeetingMinuteVersionDecision;
 use App\Models\User;
 use App\Policies\MeetingPolicy;
 use App\Support\DecisionFollowUpGovernanceResolver;
+use App\Support\ActionItemCapabilities;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -109,18 +110,65 @@ class DecisionFollowUpController extends Controller
         $query = MeetingActionItem::query()->with(['followup.meeting', 'followup.version', 'followup.decision', 'responsibleUnit', 'assignedEmployee']);
         $query->where(function ($q) use ($actor): void {
             $q->where('assigned_employee_id', $actor->employee_id ?: 0);
-            if ($actor->employee_id) $q->orWhere('responsible_unit_id', $actor->employee->organizational_unit_id);
+            $managedUnitIds = collect(['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])
+                ->flatMap(fn (string $role): array => $actor->scopedRoleUnitIds($role))
+                ->map(static fn ($id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+            if ($managedUnitIds) $q->orWhereIn('responsible_unit_id', $managedUnitIds);
+
+            $executiveUnitIds = $actor->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT');
+            if ($executiveUnitIds) {
+                $q->orWhereHas('followup.meeting', fn ($meeting) => $meeting->whereIn('organizing_unit_id', $executiveUnitIds));
+            }
+
+            $authorityOfficeUnitIds = $actor->scopedRoleUnitIds('EXECUTIVE_SECRETARY');
+            if ($authorityOfficeUnitIds) {
+                $q->orWhereHas('followup.meeting.authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $authorityOfficeUnitIds));
+            }
         });
         if ($request->filled('status')) $query->where('status', $request->string('status')->toString());
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($q) use ($search): void {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('followup', fn ($followup) => $followup->where('decision_number', 'like', "%{$search}%"));
+            });
+        }
         if ($request->boolean('overdue')) $query->whereNotIn('status', [MeetingActionItem::COMPLETED, MeetingActionItem::CANCELLED])->whereDate('due_date', '<', now()->toDateString());
-        return response()->json(['data' => MeetingActionItemResource::collection($query->latest('id')->paginate((int) min(100, max(1, $request->integer('per_page', 25)))))]);
+        $paginator = $query->latest('id')->paginate((int) min(100, max(1, $request->integer('per_page', 25))));
+        return MeetingActionItemResource::collection($paginator)->response();
     }
 
     public function show(MeetingActionItem $actionItem): MeetingActionItemResource
     {
-        $actionItem->load(['followup.meeting', 'followup.version', 'followup.decision', 'responsibleUnit', 'assignedEmployee']);
+        $actionItem->load([
+            'followup.meeting',
+            'followup.version',
+            'followup.decision',
+            'responsibleUnit',
+            'assignedEmployee',
+            'updates.createdBy',
+            'updates.evidence',
+            'extensionRequests',
+            'assignmentHistory.fromUnit',
+            'assignmentHistory.toUnit',
+            'assignmentHistory.fromEmployee',
+            'assignmentHistory.toEmployee',
+            'evidence',
+        ]);
         $this->authorize('view', $actionItem);
         return new MeetingActionItemResource($actionItem);
+    }
+
+    public function actionCapabilities(MeetingActionItem $actionItem, ActionItemCapabilities $capabilities): JsonResponse
+    {
+        $actionItem->loadMissing('followup.meeting');
+        $this->authorize('view', $actionItem);
+
+        return response()->json(['data' => $capabilities->resolve($actionItem, request()->user())]);
     }
 
     public function start(MeetingActionItem $actionItem, StartMeetingActionItem $action): MeetingActionItemResource

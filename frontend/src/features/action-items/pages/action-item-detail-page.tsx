@@ -10,12 +10,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiData } from '@/lib/api-client'
+import { fetchActionItemCapabilities } from '../lib/action-item-capabilities'
 import { ActionItemSummaryCard } from '../components/action-item-summary-card'
 import { ActionItemProgressForm } from '../components/action-item-progress-form'
 import { ActionItemExtensionCard } from '../components/action-item-extension-card'
 import { ActionItemEvidenceCard } from '../components/action-item-evidence-card'
 import { ActionItemTimelineCard } from '../components/action-item-timeline-card'
-import type { ActionItem } from '../types'
+import { ActionItemExtensionHistoryCard } from '../components/action-item-extension-history-card'
+import { ActionItemAssignmentHistoryCard } from '../components/action-item-assignment-history-card'
+import type { ActionItem, ActionItemCapabilities } from '../types'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'outline' | 'destructive' | 'secondary' }> = {
   OPEN: { label: 'باز', variant: 'outline' },
@@ -31,6 +34,7 @@ export function ActionItemDetailPage() {
   const navigate = useNavigate()
 
   const [item, setItem] = useState<ActionItem | null>(null)
+  const [capabilities, setCapabilities] = useState<ActionItemCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,8 +44,12 @@ export function ActionItemDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/action-items/${id}`)
-      setItem(apiData(res))
+      const [itemResponse, itemCapabilities] = await Promise.all([
+        api.get(`/action-items/${id}`),
+        fetchActionItemCapabilities(id),
+      ])
+      setItem(apiData(itemResponse))
+      setCapabilities(itemCapabilities)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -76,6 +84,19 @@ export function ActionItemDetailPage() {
       requested_due_date: dueDate,
       reason,
     })
+  }
+
+  const handleUploadEvidence = async (file: File) => {
+    if (!id) return
+    setBusy(true)
+    try {
+      const formData = new FormData()
+      formData.append('evidence', file)
+      await api.post(`/action-items/${id}/evidence`, formData)
+      await loadData()
+    } finally {
+      setBusy(false)
+    }
   }
 
   const statusInfo = item?.status
@@ -149,7 +170,7 @@ export function ActionItemDetailPage() {
       )}
 
       {/* Content */}
-      {!loading && item && (
+      {!loading && item && capabilities && (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           {/* Main Column */}
           <section className="space-y-6">
@@ -157,15 +178,13 @@ export function ActionItemDetailPage() {
 
             <ActionItemProgressForm
               item={item}
+              capabilities={capabilities}
               busy={busy}
               onAction={handleAction}
             />
 
             {!['COMPLETED', 'CANCELLED'].includes(item.status) && (
-              <ActionItemExtensionCard
-                busy={busy}
-                onExtend={handleExtend}
-              />
+              capabilities.extension_request && <ActionItemExtensionCard busy={busy} onExtend={handleExtend} />
             )}
           </section>
 
@@ -173,7 +192,15 @@ export function ActionItemDetailPage() {
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
             <ActionItemTimelineCard updates={item.updates} />
 
-            <ActionItemEvidenceCard evidence={item.evidence} />
+            <ActionItemEvidenceCard
+              evidence={item.evidence}
+              canUpload={capabilities.evidence_upload}
+              busy={busy}
+              onUpload={handleUploadEvidence}
+            />
+
+            <ActionItemExtensionHistoryCard extensions={item.extensions} />
+            <ActionItemAssignmentHistoryCard history={item.assignment_history} />
           </aside>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Play,
   CheckCircle2,
@@ -15,16 +15,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
-import type { ActionItem } from '../types'
+import type { ActionItem, ActionItemCapabilities } from '../types'
 
 type ActionItemProgressFormProps = {
   item: ActionItem
+  capabilities: ActionItemCapabilities
   busy: boolean
   onAction: (endpoint: string, body?: any) => Promise<void>
 }
 
 export function ActionItemProgressForm({
   item,
+  capabilities,
   busy,
   onAction,
 }: ActionItemProgressFormProps) {
@@ -33,6 +35,10 @@ export function ActionItemProgressForm({
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
+
+  useEffect(() => {
+    setProgress(item.progress_percent || 0)
+  }, [item.progress_percent])
 
   const isCompleted = item.status === 'COMPLETED'
   const isCancelled = item.status === 'CANCELLED'
@@ -176,7 +182,7 @@ export function ActionItemProgressForm({
             {/* Action Buttons Matrix */}
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
               {/* Start */}
-              {item.status === 'OPEN' && (
+              {item.status === 'OPEN' && capabilities.start && (
                 <Button
                   disabled={busy}
                   onClick={handleStart}
@@ -188,7 +194,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Progress */}
-              {['IN_PROGRESS', 'BLOCKED'].includes(item.status) && (
+              {['IN_PROGRESS', 'BLOCKED'].includes(item.status) && capabilities.progress && (
                 <Button
                   variant="outline"
                   disabled={busy}
@@ -201,7 +207,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Block */}
-              {item.status === 'IN_PROGRESS' && (
+              {item.status === 'IN_PROGRESS' && capabilities.block && (
                 <Button
                   variant="outline"
                   disabled={busy}
@@ -214,7 +220,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Unblock */}
-              {item.status === 'BLOCKED' && (
+              {item.status === 'BLOCKED' && capabilities.progress && (
                 <Button
                   variant="outline"
                   disabled={busy}
@@ -227,7 +233,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Submit Completion (when 100%) */}
-              {['IN_PROGRESS', 'BLOCKED'].includes(item.status) && Number(progress) === 100 && (
+              {['IN_PROGRESS', 'BLOCKED'].includes(item.status) && capabilities.submit_completion && Number(progress) === 100 && (
                 <Button
                   disabled={busy}
                   onClick={handleSubmitCompletion}
@@ -239,7 +245,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Verification & Return */}
-              {item.status === 'PENDING_VERIFICATION' && (
+              {item.status === 'PENDING_VERIFICATION' && capabilities.verify_completion && (
                 <>
                   <Button
                     disabled={busy}
@@ -263,7 +269,7 @@ export function ActionItemProgressForm({
               )}
 
               {/* Cancel */}
-              {['OPEN', 'IN_PROGRESS', 'BLOCKED'].includes(item.status) && (
+              {['OPEN', 'IN_PROGRESS', 'BLOCKED'].includes(item.status) && capabilities.cancel && (
                 <Button
                   variant="ghost"
                   disabled={busy}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ListTodo,
@@ -7,20 +7,24 @@ import {
   AlertTriangle,
   RotateCw,
   AlertCircle,
-  CalendarDays
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { api } from '@/lib/api-client'
+import { api, apiPage } from '@/lib/api-client'
 import { ActionItemsFilterBar } from '../components/action-items-filter-bar'
 import { ActionItemsTable } from '../components/action-items-table'
-import type { ActionItem, ActionItemFilters } from '../types'
+import type { ActionItem, ActionItemFilters, ActionItemPageMeta } from '../types'
 
 export function ActionItemsPage() {
   const [items, setItems] = useState<ActionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pageMeta, setPageMeta] = useState<ActionItemPageMeta | null>(null)
+  const [page, setPage] = useState(1)
 
   const [filters, setFilters] = useState<ActionItemFilters>({
     search: '',
@@ -34,12 +38,16 @@ export function ActionItemsPage() {
     try {
       const res = await api.get('/action-items', {
         params: {
+          search: filters.search.trim() || undefined,
           status: filters.status || undefined,
           overdue: filters.overdueOnly || undefined,
+          page,
+          per_page: 25,
         },
       })
-      const payload = res.data?.data ?? res.data
-      setItems(Array.isArray(payload) ? payload : payload?.data || [])
+      const payload = apiPage(res)
+      setItems(payload?.data || [])
+      setPageMeta(payload?.meta || null)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -48,37 +56,19 @@ export function ActionItemsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters.status, filters.overdueOnly])
+  }, [filters.search, filters.status, filters.overdueOnly, page])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
-  // Filtered items by search query
-  const filteredItems = useMemo(() => {
-    if (!filters.search.trim()) return items
-    const query = filters.search.toLowerCase().trim()
-    return items.filter((item) => {
-      const matchesNumber = item.action_number?.toLowerCase().includes(query)
-      const matchesTitle = item.title?.toLowerCase().includes(query)
-      const matchesDecision = item.decision_number?.toLowerCase().includes(query)
-      const matchesUnit = item.responsible_unit?.name?.toLowerCase().includes(query)
-      const matchesAssignee =
-        item.assigned_employee?.full_name?.toLowerCase().includes(query) ||
-        item.assigned_employee?.name?.toLowerCase().includes(query)
-
-      return (
-        matchesNumber ||
-        matchesTitle ||
-        matchesDecision ||
-        matchesUnit ||
-        matchesAssignee
-      )
-    })
-  }, [items, filters.search])
+  const updateFilters = (nextFilters: ActionItemFilters) => {
+    setFilters(nextFilters)
+    setPage(1)
+  }
 
   // KPI counters
-  const total = items.length
+  const total = pageMeta?.total ?? items.length
   const inProgressCount = items.filter((i) => ['OPEN', 'IN_PROGRESS'].includes(i.status)).length
   const pendingVerificationCount = items.filter((i) => i.status === 'PENDING_VERIFICATION').length
   const completedCount = items.filter((i) => i.status === 'COMPLETED').length
@@ -162,8 +152,8 @@ export function ActionItemsPage() {
       {/* Filter Bar */}
       <ActionItemsFilterBar
         filters={filters}
-        onChange={setFilters}
-        onReset={() => setFilters({ search: '', status: '', overdueOnly: false })}
+        onChange={updateFilters}
+        onReset={() => updateFilters({ search: '', status: '', overdueOnly: false })}
       />
 
       {/* Error Alert */}
@@ -199,7 +189,37 @@ export function ActionItemsPage() {
 
       {/* Table */}
       {!loading && !error && (
-        <ActionItemsTable items={filteredItems} loading={loading} />
+        <ActionItemsTable items={items} loading={loading} />
+      )}
+
+      {!loading && !error && pageMeta && pageMeta.last_page > 1 && (
+        <div className="flex items-center justify-between gap-3" dir="rtl">
+          <span className="text-xs text-muted-foreground">
+            صفحه {pageMeta.current_page} از {pageMeta.last_page} · {pageMeta.total} اقدام
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              className="h-8 rounded-lg gap-1 text-xs"
+            >
+              <ChevronRight className="size-3.5" />
+              قبلی
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pageMeta.last_page}
+              onClick={() => setPage((current) => Math.min(pageMeta.last_page, current + 1))}
+              className="h-8 rounded-lg gap-1 text-xs"
+            >
+              بعدی
+              <ChevronLeft className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -22,6 +22,10 @@ class MeetingActionItemAssignmentHistoryResource extends JsonResource
             'reason' => $this->reason,
             'changed_by_user_id' => $this->changed_by_user_id,
             'changed_at' => $this->changed_at,
+            'from_unit' => $this->whenLoaded('fromUnit', fn () => $this->fromUnit ? ['id' => $this->fromUnit->id, 'name' => $this->fromUnit->name] : null),
+            'to_unit' => $this->whenLoaded('toUnit', fn () => $this->toUnit ? ['id' => $this->toUnit->id, 'name' => $this->toUnit->name] : null),
+            'from_employee' => $this->whenLoaded('fromEmployee', fn () => $this->fromEmployee ? ['id' => $this->fromEmployee->id, 'full_name' => $this->fromEmployee->full_name] : null),
+            'to_employee' => $this->whenLoaded('toEmployee', fn () => $this->toEmployee ? ['id' => $this->toEmployee->id, 'full_name' => $this->toEmployee->full_name] : null),
         ];
     }
 }

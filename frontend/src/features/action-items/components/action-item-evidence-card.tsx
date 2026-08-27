@@ -1,15 +1,37 @@
-import React from 'react'
-import { FileText, Download, Paperclip } from 'lucide-react'
+import React, { useRef, useState } from 'react'
+import { FileText, Download, Paperclip, Upload, Loader2 } from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import type { ActionItemEvidence } from '../types'
 
 type ActionItemEvidenceCardProps = {
   evidence?: ActionItemEvidence[]
+  canUpload?: boolean
+  busy?: boolean
+  onUpload?: (file: File) => Promise<void>
 }
 
 export function ActionItemEvidenceCard({
   evidence = [],
+  canUpload = false,
+  busy = false,
+  onUpload,
 }: ActionItemEvidenceCardProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !onUpload) return
+    setError(null)
+    try {
+      await onUpload(file)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'بارگذاری سند با خطا مواجه شد.')
+    }
+  }
+
   return (
     <Card className="border border-border/70 shadow-xs" dir="rtl">
       <CardHeader className="p-4 sm:p-5 border-b border-border/60">
@@ -17,7 +39,7 @@ export function ActionItemEvidenceCard({
           <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Paperclip className="size-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-xs sm:text-sm font-bold text-foreground">
               مستندات و شواهد اجرایی
             </h3>
@@ -25,10 +47,27 @@ export function ActionItemEvidenceCard({
               فایل‌ها و مدارک ثبت‌شده جهت اثبات انجام کار
             </p>
           </div>
+          {canUpload && onUpload && (
+            <>
+              <input ref={inputRef} type="file" className="hidden" onChange={handleFileChange} disabled={busy} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => inputRef.current?.click()}
+                disabled={busy}
+                className="h-8 shrink-0 rounded-lg text-[11px] gap-1.5"
+              >
+                {busy ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" />}
+                <span>{busy ? 'در حال بارگذاری' : 'بارگذاری سند'}</span>
+              </Button>
+            </>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5">
+        {error && <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[11px] text-rose-700">{error}</p>}
         {evidence.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-3">
             هنوز مدرک یا سندی برای این اقدام بارگذاری نشده است.

@@ -51,6 +51,24 @@ const CLASSIFICATION_LABELS: Record<string, { label: string; color: string }> = 
   },
 }
 
+const MEETING_STATUS_LABELS: Record<string, string> = {
+  SCHEDULED: 'برنامه‌ریزی‌شده',
+  IN_PROGRESS: 'در حال برگزاری',
+  HELD: 'برگزارشده',
+  COMPLETED: 'تکمیل‌شده',
+  POSTPONED: 'به تعویق‌افتاده',
+  CANCELLED: 'لغوشده',
+}
+
+const ACTION_ITEM_STATUS_LABELS: Record<string, string> = {
+  OPEN: 'باز',
+  IN_PROGRESS: 'در حال اجرا',
+  BLOCKED: 'دارای مانع',
+  PENDING_VERIFICATION: 'منتظر تأیید',
+  COMPLETED: 'تکمیل‌شده',
+  CANCELLED: 'لغوشده',
+}
+
 export function MeetingFollowUpPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -197,7 +215,7 @@ export function MeetingFollowUpPage() {
           <div className="flex flex-wrap items-center gap-2">
             {data?.meeting?.status && (
               <Badge variant="outline" className="text-xs px-2.5 py-1">
-                {data.meeting.status}
+                {MEETING_STATUS_LABELS[data.meeting.status] || data.meeting.status}
               </Badge>
             )}
             <Button
@@ -436,7 +454,7 @@ export function MeetingFollowUpPage() {
                                     {ai.progress_percent || 0}٪
                                   </span>
                                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                                    {ai.status}
+                                    {ACTION_ITEM_STATUS_LABELS[ai.status] || ai.status}
                                   </Badge>
                                 </div>
                               </Link>

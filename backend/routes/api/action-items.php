@@ -14,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Action Items Lifecycle Management
     Route::get('/action-items', [DecisionFollowUpController::class, 'index']);
     Route::get('/action-items/{actionItem}', [DecisionFollowUpController::class, 'show']);
+    Route::get('/action-items/{actionItem}/action-capabilities', [DecisionFollowUpController::class, 'actionCapabilities']);
     Route::post('/action-items/{actionItem}/start', [DecisionFollowUpController::class, 'start']);
     Route::post('/action-items/{actionItem}/progress', [DecisionFollowUpController::class, 'progress']);
     Route::post('/action-items/{actionItem}/block', [DecisionFollowUpController::class, 'block']);

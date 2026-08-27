@@ -97,6 +97,48 @@ class DecisionFollowUpTest extends TestCase
         $this->assertSame('FINALIZED', $meeting->fresh()->minutes->status);
     }
 
+    public function test_action_item_detail_projects_history_and_capabilities(): void
+    {
+        [$meeting, $owner, $decision] = $this->finalizedFixture();
+        $employeeUser = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/follow-up/initialize')->assertCreated();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/follow-up/classify', ['classification' => 'ACTION_REQUIRED'])->assertOk();
+        $itemId = $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/action-items', [
+            'title' => 'اقدام برای بررسی جزئیات',
+            'responsible_unit_id' => $meeting->organizing_unit_id,
+            'assigned_employee_id' => $employeeUser->employee_id,
+        ])->assertCreated()->json('data.id');
+
+        $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$itemId.'/start')->assertOk();
+        $this->actingAs($owner, 'sanctum')->getJson('/api/action-items/'.$itemId)
+            ->assertOk()
+            ->assertJsonPath('data.updates.0.update_type', 'PROGRESS')
+            ->assertJsonPath('data.updates.0.actor.id', $employeeUser->id)
+            ->assertJsonPath('data.extensions', [])
+            ->assertJsonPath('data.assignment_history', []);
+
+        $this->actingAs($employeeUser, 'sanctum')->getJson('/api/action-items/'.$itemId.'/action-capabilities')
+            ->assertOk()
+            ->assertJsonPath('data.view', true)
+            ->assertJsonPath('data.progress', true)
+            ->assertJsonPath('data.verify_completion', false)
+            ->assertJsonPath('data.cancel', false);
+    }
+
+    public function test_action_item_index_supports_search_and_pagination_metadata(): void
+    {
+        [$meeting, $owner, $decision] = $this->finalizedFixture();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/follow-up/initialize')->assertCreated();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/follow-up/classify', ['classification' => 'ACTION_REQUIRED'])->assertOk();
+        $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/action-items', ['title' => 'اقدام قابل جست‌وجو', 'responsible_unit_id' => $meeting->organizing_unit_id])->assertCreated();
+
+        $this->actingAs($owner, 'sanctum')->getJson('/api/action-items?search=جست‌وجو&per_page=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.current_page', 1);
+    }
+
     public function test_assignment_and_extension_are_controlled_and_source_decision_is_unchanged(): void
     {
         [$meeting, $owner, $decision] = $this->finalizedFixture();

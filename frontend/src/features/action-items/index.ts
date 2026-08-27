@@ -9,5 +9,8 @@ export { ActionItemProgressForm } from './components/action-item-progress-form'
 export { ActionItemExtensionCard } from './components/action-item-extension-card'
 export { ActionItemEvidenceCard } from './components/action-item-evidence-card'
 export { ActionItemTimelineCard } from './components/action-item-timeline-card'
+export { ActionItemExtensionHistoryCard } from './components/action-item-extension-history-card'
+export { ActionItemAssignmentHistoryCard } from './components/action-item-assignment-history-card'
+export { fetchActionItemCapabilities } from './lib/action-item-capabilities'
 
 export type * from './types'
