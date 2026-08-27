@@ -44,6 +44,7 @@ type MinutesReviewsCardProps = {
   onApproveAuthority: () => Promise<void>
   onFinalize: () => Promise<void>
   canReview?: boolean
+  canApproveAuthority?: boolean
   canFinalize?: boolean
   canDocument?: boolean
 }
@@ -57,6 +58,7 @@ export function MinutesReviewsCard({
   onApproveAuthority,
   onFinalize,
   canReview = false,
+  canApproveAuthority = false,
   canFinalize = false,
   canDocument = false,
 }: MinutesReviewsCardProps) {
@@ -69,7 +71,7 @@ export function MinutesReviewsCard({
   const version = minutes.current_version
   const reviews = version?.reviews || []
   const isFinalized = minutes.status === 'FINALIZED'
-  const isReadyToFinalize = minutes.status === 'READY_TO_FINALIZE' || minutes.status === 'UNDER_REVIEW'
+  const isReadyToFinalize = minutes.status === 'READY_TO_FINALIZE'
 
   const handleCorrectionSubmit = async () => {
     if (!selectedReview || !correctionReason.trim()) return
@@ -98,6 +100,8 @@ export function MinutesReviewsCard({
         ) : (
           <div className="space-y-2.5">
             {reviews.map((rev) => {
+              const isAuthorityReview = rev.reviewer_type === 'HIGH_AUTHORITY'
+              const canActOnReview = isAuthorityReview ? canApproveAuthority : canReview
               const cfg = REVIEW_STATUS_CONFIG[rev.status] || {
                 label: rev.status,
                 color: 'text-slate-600 bg-slate-100 border-slate-200',
@@ -112,7 +116,7 @@ export function MinutesReviewsCard({
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Building2 className="size-3.5 text-primary shrink-0" />
                       <strong className="text-xs font-bold text-foreground truncate">
-                        {rev.unit?.name || 'واحد سازمانی'}
+                        {isAuthorityReview ? 'مقام عالی' : rev.unit?.name || 'واحد سازمانی'}
                       </strong>
                     </div>
 
@@ -132,16 +136,20 @@ export function MinutesReviewsCard({
                     </p>
                   )}
 
-                  {rev.status === 'PENDING' && !isFinalized && canReview && (
+                  {rev.status === 'PENDING' && !isFinalized && canActOnReview && (
                     <div className="flex items-center gap-2 pt-1">
                       <Button
                         size="sm"
                         disabled={busy}
-                        onClick={() => onAcknowledge(rev.organizational_unit_id)}
+                        onClick={() =>
+                          isAuthorityReview
+                            ? onApproveAuthority()
+                            : onAcknowledge(rev.organizational_unit_id)
+                        }
                         className="h-7.5 text-[11px] font-semibold rounded-lg gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
                         <CheckCircle2 className="size-3" />
-                        <span>تأیید صورت‌جلسه</span>
+                        <span>{isAuthorityReview ? 'تأیید مقام عالی' : 'تأیید صورت‌جلسه'}</span>
                       </Button>
 
                       <Button
@@ -204,7 +212,7 @@ export function MinutesReviewsCard({
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
           >
             <ShieldCheck className="size-4" />
-            <span>تصویب و نهایی‌سازی صورت‌جلسه</span>
+            <span>نهایی‌سازی و صدور رسمی صورت‌جلسه</span>
           </Button>
         )}
 
@@ -229,8 +237,8 @@ export function MinutesReviewsCard({
       <ConfirmDialog
         open={confirmFinalizeOpen}
         onOpenChange={setConfirmFinalizeOpen}
-        title="تصویب و نهایی‌سازی رسمی صورت‌جلسه"
-        description="آیا از تصویب نهایی صورت‌جلسه اطمینان دارید؟ با تصویب نهایی، متن قفل شده و سند رسمی صادر می‌گردد."
+        title="نهایی‌سازی و صدور رسمی صورت‌جلسه"
+        description="آیا از نهایی‌سازی صورت‌جلسه اطمینان دارید؟ پس از تأیید ریاست‌های لازم، متن قفل شده و سند رسمی صادر می‌گردد."
         confirmLabel="تأیید و صدور نهایی"
         variant="default"
         onConfirm={onFinalize}

@@ -317,6 +317,7 @@ export function MeetingMinutesPage() {
               onApproveAuthority={handleApproveAuthority}
               onFinalize={handleFinalize}
               canReview={meeting.action_capabilities?.minutes.review === true}
+              canApproveAuthority={meeting.action_capabilities?.minutes.approve_authority === true}
               canFinalize={meeting.action_capabilities?.minutes.finalize === true}
               canDocument={meeting.action_capabilities?.minutes.document === true}
             />
