@@ -30,8 +30,7 @@ import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData } from '@/lib/api-client'
 import { AssignTerminalCard } from '../components/assign-terminal-card'
 import type { MeetingTerminalsData, TerminalAssignment } from '../types'
-import { fetchMeetingActionCapabilities } from '@/features/meetings/lib/meeting-capabilities'
-import type { MeetingActionCapabilities } from '@/features/meetings/types'
+import { fetchMeetingActionCapabilities, type MeetingActionCapabilities } from '@/features/meetings'
 
 export function MeetingTerminalsPage() {
   const { id } = useParams<{ id: string }>()

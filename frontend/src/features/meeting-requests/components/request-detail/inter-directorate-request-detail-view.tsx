@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react"
 import { Building2, CalendarDays, Paperclip, Users } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { DetailSummaryCard } from '@/components/amms/detail-summary-card'
 import { WorkflowTimeline } from '@/components/amms/workflow-timeline'
 
-export function Flow02DetailView({
+export function InterDirectorateRequestDetailView({
   request,
   requester,
   target,

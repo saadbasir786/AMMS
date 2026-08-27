@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { formatSolarDate } from '@/lib/calendar-utils'
-import type { EmployeeItem } from '@/features/meeting-requests'
+import type { EmployeeItem } from '@/shared/types'
 
 type ScheduleReviewCardProps = {
   request: any

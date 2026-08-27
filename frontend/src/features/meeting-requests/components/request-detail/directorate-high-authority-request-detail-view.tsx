@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react"
 import { Building2, ShieldCheck } from 'lucide-react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -12,7 +12,7 @@ import { WorkflowTimeline } from '@/components/amms/workflow-timeline'
 
 type Any = any
 
-export function Flow04DetailView({
+export function DirectorateHighAuthorityRequestDetailView({
   request,
   purposeLabels,
   priorityLabels,

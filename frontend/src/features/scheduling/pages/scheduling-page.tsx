@@ -12,7 +12,7 @@ import { ScheduleReviewCard } from '../components/schedule-review-card'
 import { RequestReferenceCard } from '../components/request-reference-card'
 import { ScheduleProposalsCard } from '../components/schedule-proposals-card'
 import type { SchedulingFormValues } from '../types'
-import type { EmployeeItem, OrganizationalUnit } from '@/features/meeting-requests'
+import type { EmployeeItem, OrganizationalUnit } from '@/shared/types'
 
 type SchedulingPageProps = {
   currentUser?: any

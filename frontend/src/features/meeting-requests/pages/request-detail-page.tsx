@@ -19,11 +19,11 @@ import { RequestParticipantsCard } from '../components/request-participants-card
 import { RequestActionsCard } from '../components/request-actions-card'
 import { RequestTimelineCard } from '../components/request-timeline-card'
 import { fetchMeetingRequestActionCapabilities, type MeetingRequestActionCapabilities } from '../lib/request-capabilities'
-import { Flow02DetailView } from '@/components/amms/flow02-detail-view'
-import { Flow03DetailView } from '@/components/amms/flow03-detail-view'
-import { Flow04DetailView } from '@/components/amms/flow04-detail-view'
-import { Flow05DetailView } from '@/components/amms/flow05-detail-view'
-import { Flow06DetailView } from '@/components/amms/flow06-detail-view'
+import { InterDirectorateRequestDetailView } from '../components/request-detail/inter-directorate-request-detail-view'
+import { MultiDirectorateRequestDetailView } from '../components/request-detail/multi-directorate-request-detail-view'
+import { DirectorateHighAuthorityRequestDetailView } from '../components/request-detail/directorate-high-authority-request-detail-view'
+import { MultiDirectorateHighAuthorityRequestDetailView } from '../components/request-detail/multi-directorate-high-authority-request-detail-view'
+import { HighAuthorityInitiatedRequestDetailView } from '../components/request-detail/high-authority-initiated-request-detail-view'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'outline' | 'destructive' | 'secondary' }> = {
   DRAFT: { label: 'پیش‌نویس', variant: 'outline' },
@@ -159,7 +159,7 @@ export function RequestDetailPage({
     const tgtUnitId = Number(target?.organizational_unit_id)
 
     return (
-      <Flow02DetailView
+      <InterDirectorateRequestDetailView
         request={request}
         requester={requester}
         target={target}
@@ -191,7 +191,7 @@ export function RequestDetailPage({
     const canEnterScheduling = ['SCHEDULING', 'SCHEDULE_CONFIRMED'].includes(request.status)
 
     return (
-      <Flow03DetailView
+      <MultiDirectorateRequestDetailView
         request={request}
         requester={requester}
         targets={targets}
@@ -224,7 +224,7 @@ export function RequestDetailPage({
     const canOpenScheduling = isCreator || isAuthorityOffice || isSecretary
 
     return (
-      <Flow04DetailView
+      <DirectorateHighAuthorityRequestDetailView
         request={request}
         purposeLabels={purposeLabels}
         priorityLabels={priorityLabels}
@@ -262,7 +262,7 @@ export function RequestDetailPage({
     })
 
     return (
-      <Flow05DetailView
+      <MultiDirectorateHighAuthorityRequestDetailView
         request={request}
         requesterUnit={requesterUnit}
         peers={peers}
@@ -300,7 +300,7 @@ export function RequestDetailPage({
     })
 
     return (
-      <Flow06DetailView
+      <HighAuthorityInitiatedRequestDetailView
         request={request}
         units={units}
         unitCapabilities={unitCapabilities}

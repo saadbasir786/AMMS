@@ -12,9 +12,10 @@ import { DashboardKpis, type DashboardKpiData } from '../components/dashboard-kp
 import { QuickActionsCard } from '../components/quick-actions-card'
 import { RecentRequestsCard, type DashboardRequestItem } from '../components/recent-requests-card'
 import { WorkflowGuideCard } from '../components/workflow-guide-card'
+import type { DashboardUser } from '../types'
 
 type DashboardPageProps = {
-  user: any
+  user: DashboardUser | null
   statusLabels: Record<string, string>
 }
 

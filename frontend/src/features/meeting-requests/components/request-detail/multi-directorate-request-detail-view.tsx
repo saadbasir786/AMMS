@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react"
 import { Building2, CheckCircle2, Users } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ type TargetCapability = {
   canDecide: boolean
 }
 
-export function Flow03DetailView({
+export function MultiDirectorateRequestDetailView({
   request,
   requester,
   targets,

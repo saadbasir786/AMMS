@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react"
 import { Building2, ShieldCheck, Users } from 'lucide-react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -18,7 +18,7 @@ type PeerCapability = {
   canDecide: boolean
 }
 
-export function Flow05DetailView({
+export function MultiDirectorateHighAuthorityRequestDetailView({
   request,
   requesterUnit,
   peers,
@@ -184,7 +184,7 @@ export function Flow05DetailView({
 
       <Card>
         <CardHeader className="border-b"><p className="text-xs text-muted-foreground">وضعیت فعلی</p><CardTitle className="text-base">{statusLabels[request.status] || request.status}</CardTitle></CardHeader>
-        <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">تمام تصمیم‌ها همچنان با scope همان ریاست، دفتر مقام و holder مقام عالی محدود می‌شوند.</CardContent>
+        <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">تمام تصمیم‌ها همچنان به محدودهٔ همان ریاست، دفتر مقام و صلاحیت مقام عالی محدود می‌شوند.</CardContent>
       </Card>
 
       <WorkflowTimeline title="خط زمانی گردش کار" items={timelineItems} />

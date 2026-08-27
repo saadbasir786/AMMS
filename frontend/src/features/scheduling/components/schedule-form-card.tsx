@@ -16,10 +16,10 @@ import { Button } from '@/components/ui/button'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { TimePicker } from '@/components/ui/time-picker'
-import { ParticipantPicker } from '@/features/meeting-requests'
+import { ParticipantPicker } from '@/shared/components'
 import { cn } from '@/lib/utils'
 import type { SchedulingFormValues } from '../types'
-import type { EmployeeItem } from '@/features/meeting-requests'
+import type { EmployeeItem } from '@/shared/types'
 
 type ScheduleFormCardProps = {
   form: SchedulingFormValues

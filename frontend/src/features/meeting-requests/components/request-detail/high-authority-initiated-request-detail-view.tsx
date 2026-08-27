@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react"
 import { ShieldCheck, Users } from 'lucide-react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -18,7 +18,7 @@ type UnitCapability = {
   canAcknowledge: boolean
 }
 
-export function Flow06DetailView({
+export function HighAuthorityInitiatedRequestDetailView({
   request,
   units,
   unitCapabilities,
@@ -87,7 +87,7 @@ export function Flow06DetailView({
   return <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
     <section className="space-y-6">
       <DetailSummaryCard
-        eyebrow="دستور رسمی FLOW-06"
+        eyebrow="دستور رسمی مقام عالی"
         title={request.subject}
         icon={<ShieldCheck className="size-5" />}
         items={summaryItems}
@@ -96,7 +96,7 @@ export function Flow06DetailView({
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4 border-b">
-          <div className="space-y-1"><p className="text-xs text-muted-foreground">هماهنگی ریاست‌ها</p><CardTitle className="text-base">Response matrix نسخهٔ جاری</CardTitle></div>
+          <div className="space-y-1"><p className="text-xs text-muted-foreground">هماهنگی ریاست‌ها</p><CardTitle className="text-base">وضعیت پاسخ‌های نسخهٔ جاری</CardTitle></div>
           <Users className="size-5 text-muted-foreground" />
         </CardHeader>
         <CardContent className="space-y-3 pt-5">
@@ -111,12 +111,12 @@ export function Flow06DetailView({
         </CardContent>
       </Card>
 
-      <WorkflowTimeline title="نسخه‌های immutable دستور" items={timelineItems} emptyText="هنوز نسخه‌ای ثبت نشده است." />
+      <WorkflowTimeline title="نسخه‌های ثبت‌شدهٔ دستور" items={timelineItems} emptyText="هنوز نسخه‌ای ثبت نشده است." />
     </section>
 
     <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">عملیات FLOW-06</p><CardTitle className="text-base">اقدامات مجاز</CardTitle></CardHeader>
+        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">عملیات مجاز متناسب با وضعیت فعلی دستور</p><CardTitle className="text-base">اقدامات قابل انجام</CardTitle></CardHeader>
         <CardContent className="space-y-3 pt-5">
           {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
           {request.status === 'PENDING_HIGH_AUTHORITY_ISSUANCE' && isAuthority ? <>
@@ -149,8 +149,8 @@ export function Flow06DetailView({
       </Card>
 
       <Card>
-        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">قاعدهٔ FLOW-06</p><CardTitle className="text-base">Authority initiated</CardTitle></CardHeader>
-        <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">این جریان requester Directorate ندارد؛ صدور، توزیع، هماهنگی ریاست‌ها و زمان‌بندی همچنان در scopeهای موجود انجام می‌شوند.</CardContent>
+        <CardHeader className="border-b"><p className="text-xs text-muted-foreground">راهنمای روند</p><CardTitle className="text-base">دستور آغازشده توسط مقام عالی</CardTitle></CardHeader>
+        <CardContent className="pt-5 text-sm leading-7 text-muted-foreground">این دستور ریاست درخواست‌کننده ندارد؛ صدور، توزیع، هماهنگی ریاست‌ها و زمان‌بندی تنها در محدوده‌های مجاز سازمانی انجام می‌شوند.</CardContent>
       </Card>
     </aside>
 

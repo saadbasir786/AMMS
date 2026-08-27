@@ -22,5 +22,6 @@ export { ParticipantChangeCaseCard } from './components/participant-change-case-
 export { ParticipantChangeFormCard } from './components/participant-change-form-card'
 export { MeetingExceptionFormCard } from './components/meeting-exception-form-card'
 export { MeetingExceptionCaseCard } from './components/meeting-exception-case-card'
+export { fetchMeetingActionCapabilities } from './lib/meeting-capabilities'
 
 export type * from './types'

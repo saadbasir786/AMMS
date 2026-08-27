@@ -27,7 +27,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { TimePicker } from '@/components/ui/time-picker'
-import { ParticipantPicker } from './participant-picker'
+import { ParticipantPicker } from '@/shared/components'
 import { cn } from '@/lib/utils'
 import type {
   CreateMeetingMode,

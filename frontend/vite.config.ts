@@ -18,4 +18,16 @@ export default defineConfig({
       '/storage': 'http://127.0.0.1:8000',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('/react/')) return 'react'
+          if (id.includes('lucide-react') || id.includes('radix-ui')) return 'ui'
+          return 'vendor'
+        },
+      },
+    },
+  },
 })
