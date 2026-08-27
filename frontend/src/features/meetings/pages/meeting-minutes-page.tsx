@@ -130,7 +130,6 @@ export function MeetingMinutesPage() {
       await loadData()
     } catch (err: any) {
       setError(err?.response?.data?.message || 'عملیات با خطا مواجه شد.')
-      throw err
     } finally {
       setBusy(false)
     }
@@ -138,17 +137,26 @@ export function MeetingMinutesPage() {
 
   const handleCreateDraft = () => runAction(() => api.post(`/meetings/${id}/minutes/draft`))
 
+  const draftPayload = () => ({
+    ...form,
+    items: form.items.filter((x) => x.agenda_title && x.discussion_summary),
+    decisions: form.decisions.filter((x) => x.decision_text),
+  })
+
   const handleSaveDraft = () =>
     runAction(async () => {
       if (!minutes) await api.post(`/meetings/${id}/minutes/draft`)
-      await api.put(`/meetings/${id}/minutes/draft`, {
-        ...form,
-        items: form.items.filter((x) => x.agenda_title && x.discussion_summary),
-        decisions: form.decisions.filter((x) => x.decision_text),
-      })
+      await api.put(`/meetings/${id}/minutes/draft`, draftPayload())
     })
 
-  const handleSubmit = () => runAction(() => api.post(`/meetings/${id}/minutes/submit`))
+  const handleSubmit = () =>
+    runAction(async () => {
+      // Persist the current form before submitting, including the first draft.
+      // This prevents MINUTES_VERSION_STALE when the user presses submit directly.
+      if (!minutes) await api.post(`/meetings/${id}/minutes/draft`)
+      await api.put(`/meetings/${id}/minutes/draft`, draftPayload())
+      await api.post(`/meetings/${id}/minutes/submit`)
+    })
 
   const handleAcknowledge = (unitId: number) =>
     runAction(() => api.post(`/meetings/${id}/minutes/reviews/${unitId}/acknowledge`))
