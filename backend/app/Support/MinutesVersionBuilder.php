@@ -51,7 +51,12 @@ class MinutesVersionBuilder
             if ($responsibleUnitId && !\App\Models\OrganizationalUnit::query()->where('id', $responsibleUnitId)->where('organization_id', $meeting->organizingUnit?->organization_id ?? $meeting->units()->with('unit')->first()?->unit?->organization_id)->exists()) {
                 abort(422, 'MINUTES_DECISION_UNIT_INVALID');
             }
-            if ($responsibleEmployeeId && !\App\Models\Employee::query()->whereKey($responsibleEmployeeId)->where('status', 'ACTIVE')->exists()) abort(422, 'MINUTES_DECISION_EMPLOYEE_INVALID');
+            if ($responsibleEmployeeId) {
+                abort_unless($responsibleUnitId, 422, 'MINUTES_DECISION_UNIT_REQUIRED_FOR_EMPLOYEE');
+                $employee = \App\Models\Employee::query()->whereKey($responsibleEmployeeId)->where('status', 'ACTIVE')->first();
+                abort_unless($employee, 422, 'MINUTES_DECISION_EMPLOYEE_INVALID');
+                abort_unless((int) $employee->organizational_unit_id === (int) $responsibleUnitId, 422, 'MINUTES_DECISION_EMPLOYEE_OUTSIDE_UNIT');
+            }
             $version->decisions()->create([
                 'uuid' => (string) Str::uuid(),
                 'sequence_number' => $index + 1,

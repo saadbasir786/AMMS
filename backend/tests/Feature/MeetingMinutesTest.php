@@ -52,6 +52,32 @@ class MeetingMinutesTest extends TestCase
             ->assertJsonPath('data.minutes.approve_authority', false);
     }
 
+    public function test_decision_responsibility_is_saved_and_employee_must_belong_to_selected_unit(): void
+    {
+        [$meeting, $actor] = $this->meetingFixture();
+        $tech = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
+        $techDirector = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
+        $financeDirector = Employee::query()->where('email', 'finance.director@example.test')->firstOrFail();
+
+        $this->actingAs($actor, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/execution/start')->assertOk();
+        $this->actingAs($actor, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/draft')->assertCreated();
+
+        $payload = $this->payload();
+        $payload['decisions'][0]['responsible_unit_id'] = $tech->id;
+        $payload['decisions'][0]['responsible_employee_id'] = $techDirector->id;
+        $this->actingAs($actor, 'sanctum')
+            ->putJson('/api/meetings/'.$meeting->id.'/minutes/draft', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.current_version.decisions.0.responsible_unit_id', $tech->id)
+            ->assertJsonPath('data.current_version.decisions.0.responsible_employee_id', $techDirector->id);
+
+        $payload['decisions'][0]['responsible_employee_id'] = $financeDirector->id;
+        $this->actingAs($actor, 'sanctum')
+            ->putJson('/api/meetings/'.$meeting->id.'/minutes/draft', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'MINUTES_DECISION_EMPLOYEE_OUTSIDE_UNIT');
+    }
+
     public function test_held_minutes_submission_creates_immutable_version_and_review_rows(): void
     {
         [$meeting, $actor] = $this->meetingFixture();

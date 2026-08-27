@@ -19,6 +19,14 @@ import { Badge } from '@/components/ui/badge'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { formatSolarDate } from '@/lib/calendar-utils'
 import type { MeetingMinutes, MinutesItem, MinutesDecision } from '../types'
+import type { Employee, OrganizationalUnit } from '@/features/organization/types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type MinutesFormCardProps = {
   minutes: MeetingMinutes | null
@@ -29,6 +37,8 @@ type MinutesFormCardProps = {
     decisions: MinutesDecision[]
   }
   onChange: (form: any) => void
+  organizationalUnits: OrganizationalUnit[]
+  employees: Employee[]
   busy: boolean
   onSaveDraft: () => Promise<void>
   onSubmit: () => Promise<void>
@@ -40,6 +50,8 @@ export function MinutesFormCard({
   minutes,
   form,
   onChange,
+  organizationalUnits,
+  employees,
   busy,
   onSaveDraft,
   onSubmit,
@@ -259,7 +271,7 @@ export function MinutesFormCard({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_14rem] gap-3 text-xs">
+                    <div className="grid grid-cols-1 gap-3 text-xs">
                       <Textarea
                         rows={2}
                         value={dec.decision_text}
@@ -267,6 +279,72 @@ export function MinutesFormCard({
                         placeholder="متن کامل مصوبه یا اقدام محوله..."
                         className="text-xs rounded-xl bg-card"
                       />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            <Building2 className="size-3 text-primary" />
+                            واحد مسئول
+                          </label>
+                          <Select
+                            value={dec.responsible_unit_id ? String(dec.responsible_unit_id) : undefined}
+                            onValueChange={(value) => {
+                              const updated = [...form.decisions]
+                              updated[idx] = {
+                                ...updated[idx],
+                                responsible_unit_id: value === 'none' ? '' : value,
+                                responsible_employee_id: '',
+                              }
+                              onChange({ ...form, decisions: updated })
+                            }}
+                          >
+                            <SelectTrigger className="h-9.5 text-xs rounded-xl bg-card">
+                              <SelectValue placeholder="انتخاب واحد مسئول" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">بدون تعیین واحد</SelectItem>
+                              {organizationalUnits.map((unit) => (
+                                <SelectItem key={unit.id} value={String(unit.id)}>
+                                  {unit.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            <UserCheck className="size-3 text-primary" />
+                            کارمند مسئول
+                          </label>
+                          <Select
+                            value={dec.responsible_employee_id ? String(dec.responsible_employee_id) : undefined}
+                            onValueChange={(value) =>
+                              updateDecision(idx, 'responsible_employee_id', value === 'none' ? '' : value)
+                            }
+                            disabled={!dec.responsible_unit_id}
+                          >
+                            <SelectTrigger className="h-9.5 text-xs rounded-xl bg-card">
+                              <SelectValue placeholder="انتخاب کارمند مسئول" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">بدون تعیین کارمند مشخص</SelectItem>
+                              {employees
+                                .filter(
+                                  (employee) =>
+                                    Number(employee.organizational_unit_id || employee.unit?.id) ===
+                                    Number(dec.responsible_unit_id)
+                                )
+                                .map((employee) => (
+                                  <SelectItem key={employee.id} value={String(employee.id)}>
+                                    {employee.full_name}
+                                    {employee.position?.title ? ` — ${employee.position.title}` : ''}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-muted-foreground block">
@@ -365,6 +443,20 @@ export function MinutesFormCard({
                     <p className="text-xs text-foreground leading-relaxed">
                       {dec.decision_text}
                     </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                      <span>
+                        <strong className="text-foreground">واحد مسئول:</strong>{' '}
+                        {organizationalUnits.find((unit) => Number(unit.id) === Number(dec.responsible_unit_id))?.name || '—'}
+                      </span>
+                      <span>
+                        <strong className="text-foreground">کارمند مسئول:</strong>{' '}
+                        {employees.find((employee) => Number(employee.id) === Number(dec.responsible_employee_id))?.full_name || '—'}
+                      </span>
+                      <span>
+                        <strong className="text-foreground">مهلت:</strong>{' '}
+                        {dec.target_date ? `${formatSolarDate(dec.target_date)} هـ.ش` : '—'}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

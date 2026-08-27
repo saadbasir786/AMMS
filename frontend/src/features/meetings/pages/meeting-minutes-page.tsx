@@ -23,6 +23,7 @@ import type {
   MinutesDecision,
   MinutesReview
 } from '../types'
+import type { Employee, OrganizationalUnit } from '@/features/organization/types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -39,6 +40,8 @@ export function MeetingMinutesPage() {
 
   const [minutes, setMinutes] = useState<MeetingMinutes | null>(null)
   const [meeting, setMeeting] = useState<MeetingItem | null>(null)
+  const [organizationalUnits, setOrganizationalUnits] = useState<OrganizationalUnit[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,15 +71,19 @@ export function MeetingMinutesPage() {
     setLoading(true)
     setError(null)
     try {
-      const [minRes, meetRes, capabilities] = await Promise.all([
+      const [minRes, meetRes, capabilities, unitsRes, employeesRes] = await Promise.all([
         api.get(`/meetings/${id}/minutes`),
         api.get(`/meetings/${id}`),
         fetchMeetingActionCapabilities(id),
+        api.get('/organizational-units').catch(() => ({ data: [] })),
+        api.get('/employees').catch(() => ({ data: [] })),
       ])
       const minData = apiData(minRes)
       const meetData = apiData(meetRes)
       setMinutes(minData)
       setMeeting({ ...meetData, action_capabilities: capabilities })
+      setOrganizationalUnits(apiData(unitsRes) || [])
+      setEmployees(apiData(employeesRes) || [])
 
       const version = minData?.current_version
       if (version) {
@@ -319,6 +326,8 @@ export function MeetingMinutesPage() {
               minutes={minutes}
               form={form}
               onChange={setForm}
+              organizationalUnits={organizationalUnits}
+              employees={employees}
               busy={busy}
               onSaveDraft={handleSaveDraft}
               onSubmit={handleSubmit}
