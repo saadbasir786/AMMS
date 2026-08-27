@@ -23,7 +23,7 @@ class MeetingTerminalController extends Controller
 {
     public function workspace(Meeting $meeting, TerminalAssignmentGovernanceResolver $governance, MeetingOrganizationResolver $organizations): JsonResponse
     {
-        $this->authorize('flow09View', $meeting);
+        $this->authorize('terminalAssignmentView', $meeting);
         $meeting->load([
             'request', 'units.unit', 'authorityContext', 'currentScheduleVersion', 'currentParticipantVersion',
             'terminalAssignments.terminal', 'terminalAssignments.meeting', 'terminalAssignments.sessions',
@@ -44,7 +44,7 @@ class MeetingTerminalController extends Controller
 
     public function assign(StoreMeetingTerminalAssignmentRequest $request, Meeting $meeting, AssignTerminalToMeeting $action): JsonResponse
     {
-        $this->authorize('flow09Assign', $meeting);
+        $this->authorize('terminalAssignmentAssign', $meeting);
         $terminal = Terminal::query()->findOrFail($request->validated()['terminal_id']);
         $assignment = $action->execute($request->user(), $meeting, $terminal, $request->validated()['valid_from'], $request->validated()['valid_until']);
         return (new MeetingTerminalAssignmentResource($assignment))->additional(['success' => true, 'message' => 'ترمینال به جلسه تخصیص داده شد.'])->response()->setStatusCode(201);
@@ -52,13 +52,13 @@ class MeetingTerminalController extends Controller
 
     public function refresh(Request $request, Meeting $meeting, MeetingTerminalAssignment $assignment, RefreshMeetingTerminalAssignment $action): MeetingTerminalAssignmentResource
     {
-        $this->authorize('flow09Refresh', [$meeting, $assignment]);
+        $this->authorize('terminalAssignmentRefresh', [$meeting, $assignment]);
         return new MeetingTerminalAssignmentResource($action->execute($request->user(), $meeting, $assignment));
     }
 
     public function revoke(TerminalRevokeRequest $request, Meeting $meeting, MeetingTerminalAssignment $assignment, RevokeMeetingTerminalAssignment $action): MeetingTerminalAssignmentResource
     {
-        $this->authorize('flow09Revoke', [$meeting, $assignment]);
+        $this->authorize('terminalAssignmentRevoke', [$meeting, $assignment]);
         return new MeetingTerminalAssignmentResource($action->execute($request->user(), $meeting, $assignment, $request->validated()['reason']));
     }
 }

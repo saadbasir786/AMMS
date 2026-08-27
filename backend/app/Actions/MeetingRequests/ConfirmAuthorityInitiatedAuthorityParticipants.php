@@ -22,8 +22,8 @@ class ConfirmAuthorityInitiatedAuthorityParticipants
             abort_unless($request->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $officeId)->where('employee_id', $holder->id)->exists(), 422, 'HIGH_AUTHORITY_PARTICIPANT_REQUIRED');
             $request->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $officeId)->update(['nomination_status' => 'CONFIRMED']);
             $request->authorityParticipantConfirmations()->updateOrCreate(['side' => 'AUTHORITY'], ['confirmed_by' => $actor->id, 'confirmed_at' => now()]);
-            $this->record06($request, $actor, 'AUTHORITY_PARTICIPANTS_CONFIRMED', $request->status, $request->status, null, ['authority_employee_id' => $holder->id]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_PARTICIPANTS_CONFIRMED', $request->status, $request->status, null, ['authority_employee_id' => $holder->id]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

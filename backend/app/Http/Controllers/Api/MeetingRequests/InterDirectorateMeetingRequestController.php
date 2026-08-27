@@ -54,109 +54,109 @@ class InterDirectorateMeetingRequestController extends Controller
 
     public function submit(Request $request, MeetingRequest $meetingRequest, SubmitInterDirectorateRequest $action)
     {
-        $this->authorize('flow02RequesterEdit', $meetingRequest);
+        $this->authorize('interDirectorateRequesterEdit', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست برای تأیید ریاست درخواست‌کننده ارسال شد.');
     }
 
     public function requesterApprove(Request $request, MeetingRequest $meetingRequest, ApproveRequesterSideRequest $action)
     {
-        $this->authorize('flow02RequesterApprove', $meetingRequest);
+        $this->authorize('interDirectorateRequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست تأیید و به ریاست مقصد ارسال شد.');
     }
 
     public function requesterReturn(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, ReturnRequesterSideRequest $action)
     {
-        $this->authorize('flow02RequesterApprove', $meetingRequest);
+        $this->authorize('interDirectorateRequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست جهت اصلاح برگشت داده شد.');
     }
 
     public function requesterReject(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, RejectRequesterSideRequest $action)
     {
-        $this->authorize('flow02RequesterApprove', $meetingRequest);
+        $this->authorize('interDirectorateRequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست داخلی رد شد.');
     }
 
     public function resubmitRequester(Request $request, MeetingRequest $meetingRequest, ResubmitRequesterSideRequest $action)
     {
-        $this->authorize('flow02RequesterEdit', $meetingRequest);
+        $this->authorize('interDirectorateRequesterEdit', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست اصلاح‌شده دوباره برای تأیید ریاست درخواست‌کننده ارسال شد.');
     }
 
     public function targetReview(Request $request, MeetingRequest $meetingRequest, StartTargetReview $action)
     {
-        $this->authorize('flow02TargetReview', $meetingRequest);
+        $this->authorize('interDirectorateTargetReview', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'بررسی ریاست مقصد آغاز شد.');
     }
 
     public function targetApprove(Request $request, MeetingRequest $meetingRequest, ApproveTargetSideRequest $action)
     {
-        $this->authorize('flow02TargetApprove', $meetingRequest);
+        $this->authorize('interDirectorateTargetApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست توسط ریاست مقصد تأیید شد.');
     }
 
     public function targetReturn(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, ReturnTargetSideRequest $action)
     {
-        $this->authorize('flow02TargetReturn', $meetingRequest);
+        $this->authorize('interDirectorateTargetReturn', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست جهت وضاحت برگشت داده شد.');
     }
 
     public function targetReject(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, RejectTargetSideRequest $action)
     {
-        $this->authorize('flow02TargetReject', $meetingRequest);
+        $this->authorize('interDirectorateTargetReject', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست توسط ریاست مقصد رد شد.');
     }
 
     public function resubmitTarget(Request $request, MeetingRequest $meetingRequest, ResubmitToTarget $action)
     {
-        $this->authorize('flow02RequesterEdit', $meetingRequest);
+        $this->authorize('interDirectorateRequesterEdit', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست اصلاح‌شده دوباره به ریاست مقصد ارسال شد.');
     }
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartInterDirectorateScheduling $action)
     {
-        $this->authorize('flow02LeadCoordinate', $meetingRequest);
+        $this->authorize('interDirectorateLeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'مذاکرهٔ زمان‌بندی آغاز شد.');
     }
 
     public function proposeSchedule(InterDirectorateScheduleProposalRequest $request, MeetingRequest $meetingRequest, ProposeMeetingSchedule $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('interDirectorateCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()), 'پیشنهاد زمان‌بندی ثبت شد.');
     }
 
     public function acceptSchedule(Request $request, MeetingRequest $meetingRequest, MeetingScheduleProposal $proposal, AcceptMeetingScheduleProposal $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('interDirectorateCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $proposal), 'پیشنهاد زمان‌بندی پذیرفته شد.');
     }
 
     public function nominate(InterDirectorateParticipantRequest $request, MeetingRequest $meetingRequest, NominateMeetingParticipant $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('interDirectorateCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()), 'اشتراک‌کننده ثبت شد.');
     }
 
     public function confirmRequesterParticipants(Request $request, MeetingRequest $meetingRequest, ConfirmRequesterParticipants $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('interDirectorateCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'اشتراک‌کنندگان ریاست درخواست‌کننده تأیید شدند.');
     }
 
     public function confirmTargetParticipants(Request $request, MeetingRequest $meetingRequest, ConfirmTargetParticipants $action)
     {
-        $this->authorize('flow02Coordinate', $meetingRequest);
+        $this->authorize('interDirectorateCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'اشتراک‌کنندگان ریاست مقصد تأیید شدند.');
     }
 
     public function confirmSchedule(Request $request, MeetingRequest $meetingRequest, ConfirmInterDirectorateSchedule $action)
     {
-        $this->authorize('flow02LeadCoordinate', $meetingRequest);
+        $this->authorize('interDirectorateLeadCoordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest), 'زمان‌بندی نهایی تأیید شد.');
     }
 
     public function finalize(FinalizeInterDirectorateMeetingRequest $request, MeetingRequest $meetingRequest, ConvertInterDirectorateRequestToMeeting $action)
     {
-        $this->authorize('flow02LeadCoordinate', $meetingRequest);
+        $this->authorize('interDirectorateLeadCoordinate', $meetingRequest);
         return (new MeetingResource($action($request->user(), $meetingRequest, $request->validated())))->additional(['success' => true, 'message' => 'جلسهٔ بین‌ریاستی ایجاد شد.']);
     }
 

@@ -6,7 +6,7 @@ use App\Models\Meeting;
 use App\Models\User;
 use App\Support\ScheduleGovernanceResolver;
 
-class FlowAwareMeetingPolicy extends MeetingPolicy
+class MeetingGovernancePolicy extends MeetingPolicy
 {
     public function view(User $user, Meeting $meeting): bool
     {
@@ -37,7 +37,7 @@ class FlowAwareMeetingPolicy extends MeetingPolicy
         return false;
     }
 
-    public function flow07CreateCase(User $user, Meeting $meeting): bool
+    public function meetingRescheduleCreateCase(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.create')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
@@ -50,7 +50,7 @@ class FlowAwareMeetingPolicy extends MeetingPolicy
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
     }
 
-    public function flow07PeerPropose(User $user, Meeting $meeting): bool
+    public function meetingReschedulePeerPropose(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
@@ -59,7 +59,7 @@ class FlowAwareMeetingPolicy extends MeetingPolicy
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT']);
     }
 
-    public function flow07AuthorityPropose(User $user, Meeting $meeting): bool
+    public function meetingRescheduleAuthorityPropose(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
@@ -68,26 +68,26 @@ class FlowAwareMeetingPolicy extends MeetingPolicy
             && $user->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
     }
 
-    public function flow07Acknowledge(User $user, Meeting $meeting): bool
+    public function meetingRescheduleAcknowledge(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.acknowledge')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
     }
 
-    public function flow07RequestAlternative(User $user, Meeting $meeting): bool
+    public function meetingRescheduleRequestAlternative(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.request-alternative')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
     }
 
-    public function flow07ResolveAlternative(User $user, Meeting $meeting): bool
+    public function meetingRescheduleResolveAlternative(User $user, Meeting $meeting): bool
     {
-        return $this->flow07AuthorityPropose($user, $meeting) && $user->can('meeting-reschedule.request-alternative');
+        return $this->meetingRescheduleAuthorityPropose($user, $meeting) && $user->can('meeting-reschedule.request-alternative');
     }
 
-    public function flow07Confirm(User $user, Meeting $meeting): bool
+    public function meetingRescheduleConfirm(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.confirm')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);

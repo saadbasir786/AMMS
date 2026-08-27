@@ -26,7 +26,7 @@ class UpdateAuthorityInitiatedDraft
             $unitIds = array_values(array_unique(array_map('intval', $data['participating_unit_ids'] ?? $version->participating_unit_ids ?? [])));
             $units = OrganizationalUnit::whereIn('id', $unitIds)->get();
             abort_unless($units->count() === count($unitIds), 422, 'INVALID_PARTICIPATING_DIRECTORATE');
-            $this->assertFlow06UnitSet($units);
+            $this->assertAuthorityInitiatedUnitSet($units);
             abort_if($units->contains(fn (OrganizationalUnit $unit) => $unit->unit_type === 'AUTHORITY_OFFICE'), 422, 'AUTHORITY_OFFICE_NOT_A_FORMAL_DIRECTORATE');
             abort_unless((int) $units->first()->organization_id === (int) $authority->organization_id, 422, 'CROSS_ORGANIZATION_AUTHORITY_INITIATED_MEETING_NOT_ALLOWED');
 
@@ -57,8 +57,8 @@ class UpdateAuthorityInitiatedDraft
             ]);
             $request->units()->delete();
             $request->units()->createMany($units->map(fn (OrganizationalUnit $unit) => ['organizational_unit_id' => $unit->id, 'role' => 'PARTICIPATING'])->all());
-            $this->record06($request, $actor, 'AUTHORITY_INITIATED_DRAFT_UPDATED', $request->status, $request->status, null, ['directive_version' => $version->version, 'participating_unit_ids' => $unitIds]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_INITIATED_DRAFT_UPDATED', $request->status, $request->status, null, ['directive_version' => $version->version, 'participating_unit_ids' => $unitIds]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

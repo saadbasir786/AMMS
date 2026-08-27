@@ -23,9 +23,9 @@ class StartAuthorityDirectiveCoordination
             $response = $request->unitResponses()->where('meeting_request_directive_version_id', $version->id)->where('organizational_unit_id', $unitId)->firstOrFail();
             abort_unless(in_array($response->response_status, ['PENDING_ACKNOWLEDGEMENT', 'CLARIFICATION_REQUESTED'], true), 422, 'UNIT_RESPONSE_NOT_OPEN');
             $response->update(['response_status' => 'UNDER_COORDINATION', 'coordination_started_by' => $actor->id, 'coordination_started_at' => now()]);
-            if ($request->status !== MeetingRequestStatus::UNDER_DIRECTORATE_COORDINATION->value) $this->transition06($request, MeetingRequestStatus::UNDER_DIRECTORATE_COORDINATION);
-            $this->record06($request, $actor, 'DIRECTORATE_COORDINATION_STARTED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
-            return $this->response06($request);
+            if ($request->status !== MeetingRequestStatus::UNDER_DIRECTORATE_COORDINATION->value) $this->transitionAuthorityInitiated($request, MeetingRequestStatus::UNDER_DIRECTORATE_COORDINATION);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTORATE_COORDINATION_STARTED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

@@ -59,64 +59,64 @@ class AuthorityInitiatedMeetingRequestController
             'estimated_duration_minutes' => ['nullable', 'integer', 'min:1'], 'preferred_location' => ['nullable', 'string', 'max:255'],
             'participating_unit_ids' => ['sometimes', 'array', 'min:1'], 'participating_unit_ids.*' => ['integer', 'distinct'],
         ]);
-        Gate::authorize('flow06Prepare', $meetingRequest);
+        Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
     public function submit(Request $request, MeetingRequest $meetingRequest, SubmitAuthorityInitiatedDraftForIssuance $action): JsonResponse
     {
-        Gate::authorize('flow06Prepare', $meetingRequest);
+        Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function returnDraft(Request $request, MeetingRequest $meetingRequest, ReturnAuthorityInitiatedDraftForCorrection $action): JsonResponse
     {
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
-        Gate::authorize('flow06Issue', $meetingRequest);
+        Gate::authorize('authorityInitiatedIssue', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $reason));
     }
 
     public function resubmit(Request $request, MeetingRequest $meetingRequest, ResubmitAuthorityInitiatedDraft $action): JsonResponse
     {
-        Gate::authorize('flow06Prepare', $meetingRequest);
+        Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function issue(Request $request, MeetingRequest $meetingRequest, IssueHighAuthorityMeetingDirective $action): JsonResponse
     {
-        Gate::authorize('flow06Issue', $meetingRequest);
+        Gate::authorize('authorityInitiatedIssue', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function distribute(Request $request, MeetingRequest $meetingRequest, DistributeAuthorityMeetingDirective $action): JsonResponse
     {
-        Gate::authorize('flow06Distribute', $meetingRequest);
+        Gate::authorize('authorityInitiatedDistribute', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function startCoordination(Request $request, MeetingRequest $meetingRequest, int $unit, StartAuthorityDirectiveCoordination $action): JsonResponse
     {
-        Gate::authorize('flow06Coordinate', [$meetingRequest, $unit]);
+        Gate::authorize('authorityInitiatedCoordinate', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
     public function acknowledge(Request $request, MeetingRequest $meetingRequest, int $unit, AcknowledgeAuthorityMeetingDirective $action): JsonResponse
     {
-        Gate::authorize('flow06Acknowledge', [$meetingRequest, $unit]);
+        Gate::authorize('authorityInitiatedAcknowledge', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
     public function requestClarification(Request $request, MeetingRequest $meetingRequest, int $unit, RequestDirectiveClarification $action): JsonResponse
     {
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
-        Gate::authorize('flow06Clarify', [$meetingRequest, $unit]);
+        Gate::authorize('authorityInitiatedClarify', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit, $reason));
     }
 
     public function respondClarification(Request $request, MeetingRequest $meetingRequest, int $clarification, RespondToDirectiveClarification $action): JsonResponse
     {
         $responseText = $request->validate(['response' => ['required', 'string']])['response'];
-        Gate::authorize('flow06ClarificationRespond', $meetingRequest);
+        Gate::authorize('authorityInitiatedClarificationRespond', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $clarification, $responseText));
     }
 
@@ -129,79 +129,79 @@ class AuthorityInitiatedMeetingRequestController
             'preferred_start_time' => ['nullable', 'date_format:H:i'], 'estimated_duration_minutes' => ['nullable', 'integer', 'min:1'],
             'preferred_location' => ['nullable', 'string', 'max:255'], 'participating_unit_ids' => ['nullable', 'array', 'min:1'], 'participating_unit_ids.*' => ['integer', 'distinct'],
         ]);
-        Gate::authorize('flow06Prepare', $meetingRequest);
+        Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
     public function reissue(Request $request, MeetingRequest $meetingRequest, ReissueHighAuthorityMeetingDirective $action): JsonResponse
     {
-        Gate::authorize('flow06Issue', $meetingRequest);
+        Gate::authorize('authorityInitiatedIssue', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartAuthorityInitiatedScheduling $action): JsonResponse
     {
-        Gate::authorize('flow06Schedule', $meetingRequest);
+        Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function proposeSchedule(Request $request, MeetingRequest $meetingRequest, ProposeAuthorityInitiatedSchedule $action): JsonResponse
     {
         $data = $request->validate(['meeting_date' => ['required', 'date'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i'], 'location' => ['required', 'string', 'max:255'], 'comment' => ['nullable', 'string']]);
-        Gate::authorize('flow06Schedule', $meetingRequest);
+        Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
     public function acknowledgeSchedule(Request $request, MeetingRequest $meetingRequest, AcknowledgeAuthorityInitiatedSchedule $action): JsonResponse
     {
         $data = $request->validate(['proposal_id' => ['required', 'integer'], 'unit_id' => ['required', 'integer']]);
-        Gate::authorize('flow06ScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
+        Gate::authorize('authorityInitiatedScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
         return $this->ok($action($request->user(), $meetingRequest, (int) $data['unit_id'], (int) $data['proposal_id']));
     }
 
     public function scheduleAlternative(Request $request, MeetingRequest $meetingRequest, RequestAuthorityInitiatedScheduleAlternative $action): JsonResponse
     {
         $data = $request->validate(['proposal_id' => ['required', 'integer'], 'unit_id' => ['required', 'integer'], 'reason' => ['required', 'string']]);
-        Gate::authorize('flow06ScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
+        Gate::authorize('authorityInitiatedScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
         return $this->ok($action($request->user(), $meetingRequest, (int) $data['unit_id'], (int) $data['proposal_id'], $data['reason']));
     }
 
     public function confirmSchedule(Request $request, MeetingRequest $meetingRequest, ConfirmAuthorityInitiatedSchedule $action): JsonResponse
     {
-        Gate::authorize('flow06Schedule', $meetingRequest);
+        Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function unitParticipants(Request $request, MeetingRequest $meetingRequest, int $unit, ManageAuthorityInitiatedUnitParticipants $action): JsonResponse
     {
         $ids = $request->validate(['employee_ids' => ['required', 'array'], 'employee_ids.*' => ['integer', 'distinct']])['employee_ids'];
-        Gate::authorize('flow06UnitParticipantsManage', [$meetingRequest, $unit]);
+        Gate::authorize('authorityInitiatedUnitParticipantsManage', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit, $ids));
     }
 
     public function unitParticipantsConfirm(Request $request, MeetingRequest $meetingRequest, int $unit, ConfirmAuthorityInitiatedUnitParticipants $action): JsonResponse
     {
-        Gate::authorize('flow06UnitParticipantsConfirm', [$meetingRequest, $unit]);
+        Gate::authorize('authorityInitiatedUnitParticipantsConfirm', [$meetingRequest, $unit]);
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
     public function authorityParticipants(Request $request, MeetingRequest $meetingRequest, ManageAuthorityInitiatedAuthorityParticipants $action): JsonResponse
     {
         $ids = $request->validate(['employee_ids' => ['required', 'array'], 'employee_ids.*' => ['integer', 'distinct']])['employee_ids'];
-        Gate::authorize('flow06AuthorityParticipants', $meetingRequest);
+        Gate::authorize('authorityInitiatedParticipants', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $ids));
     }
 
     public function authorityParticipantsConfirm(Request $request, MeetingRequest $meetingRequest, ConfirmAuthorityInitiatedAuthorityParticipants $action): JsonResponse
     {
-        Gate::authorize('flow06AuthorityParticipants', $meetingRequest);
+        Gate::authorize('authorityInitiatedParticipants', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function finalize(Request $request, MeetingRequest $meetingRequest, ConvertAuthorityInitiatedRequestToMeeting $action): JsonResponse
     {
         $data = $request->validate(['agenda' => ['nullable', 'string']]);
-        Gate::authorize('flow06Finalize', $meetingRequest);
+        Gate::authorize('authorityInitiatedFinalize', $meetingRequest);
         return response()->json(['data' => new MeetingResource($action($request->user(), $meetingRequest, $data))]);
     }
 

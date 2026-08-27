@@ -23,7 +23,7 @@ class ReissueHighAuthorityMeetingDirective
             abort_unless($request->status === MeetingRequestStatus::PENDING_HIGH_AUTHORITY_REISSUANCE->value, 422, 'MATERIAL_DIRECTIVE_CHANGE_REQUIRES_REISSUANCE');
             $previous = $request->directiveVersions()->where('is_current', true)->firstOrFail();
             $version = $request->directiveVersions()->where('version_status', 'PENDING_REISSUANCE')->latest('version')->firstOrFail();
-            $from = $this->transition06($request, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY);
             $previous->update(['is_current' => false]);
             $version->update([
                 'version_status' => 'ISSUED', 'is_current' => true, 'issued_by' => $actor->id,
@@ -40,8 +40,8 @@ class ReissueHighAuthorityMeetingDirective
             $request->units()->delete();
             foreach ($version->participating_unit_ids as $unitId) $request->units()->create(['organizational_unit_id' => (int) $unitId, 'role' => 'PARTICIPATING']);
             $request->authorityContext()->update(['authority_employee_id' => $holder->id, 'current_directive_version_id' => $version->id, 'authority_decision_status' => 'REISSUED', 'authority_decided_by' => $actor->id, 'authority_decided_at' => now()]);
-            $this->record06($request, $actor, 'HIGH_AUTHORITY_DIRECTIVE_REISSUED', $from, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, null, ['previous_version' => $previous->version, 'directive_version' => $version->version]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'HIGH_AUTHORITY_DIRECTIVE_REISSUED', $from, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, null, ['previous_version' => $previous->version, 'directive_version' => $version->version]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

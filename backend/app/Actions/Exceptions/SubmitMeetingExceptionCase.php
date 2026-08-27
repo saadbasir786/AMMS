@@ -26,7 +26,7 @@ class SubmitMeetingExceptionCase
             abort_unless(in_array($locked->status, [MeetingExceptionCase::DRAFT, MeetingExceptionCase::RETURNED_FOR_CORRECTION], true), 409, 'MEETING_EXCEPTION_NOT_ALLOWED');
             $version = $locked->currentVersion;
             abort_unless($version && trim((string) $version->reason) !== '', 422, 'MEETING_EXCEPTION_REASON_REQUIRED');
-            if ($locked->case_type === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$version->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
+            if ($locked->case_type === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$version->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRED');
             $version->forceFill(['submitted_at' => now()])->save();
             MeetingExceptionReview::where('exception_case_version_id', $version->id)->delete();
             foreach ($this->governance->reviewRequirements($locked->meeting, $locked->case_type) as $requirement) {

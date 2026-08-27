@@ -28,11 +28,11 @@ class RequestDirectiveClarification
                 'requested_by' => $actor->id, 'requested_at' => now(), 'reason' => $reason,
             ]);
             if ($request->status !== MeetingRequestStatus::DIRECTORATE_CLARIFICATION_REQUIRED->value) {
-                $from = $this->transition06($request, MeetingRequestStatus::DIRECTORATE_CLARIFICATION_REQUIRED);
+                $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::DIRECTORATE_CLARIFICATION_REQUIRED);
             } else { $from = $request->status; }
-            $this->record06($request, $actor, 'DIRECTORATE_CLARIFICATION_REQUESTED', $from, $request->status, $reason, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTORATE_CLARIFICATION_REQUESTED', $from, $request->status, $reason, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
             $this->notifyUnit((int) $request->authorityContext->authority_office_unit_id, ['AUTHORITY_OFFICE'], 'درخواست وضاحت برای دستور مقام', 'یکی از ریاست‌های دعوت‌شده درخواست وضاحت کرده است.', $request);
-            return $this->response06($request);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

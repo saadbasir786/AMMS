@@ -19,7 +19,7 @@ class SubmitMultiHighAuthorityRequest
             $this->assertActiveActor($actor);
             abort_unless($locked->status === MeetingRequestStatus::DRAFT->value, 422, 'REQUEST_NOT_EDITABLE');
             abort_unless($actor->id === $locked->created_by && $this->canManageUnit($actor, $this->requesterUnit($locked)->id), 403, 'FORBIDDEN');
-            abort_unless($this->participatingUnits($locked)->count() >= 1, 422, 'MULTIPLE_DIRECTORATES_REQUIRED_FOR_FLOW_05');
+            abort_unless($this->participatingUnits($locked)->count() >= 1, 422, 'MULTIPLE_DIRECTORATES_REQUIRED_FOR_MULTI_HIGH_AUTHORITY');
             $this->activeAuthorityFor($locked);
             foreach ($this->formalUnits($locked) as $unit) abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_PARTICIPATING_DIRECTORATE');
             $from = $this->transition($locked, MeetingRequestStatus::PENDING_REQUESTER_APPROVAL);

@@ -27,13 +27,13 @@ class MeetingParticipantChangeController
 {
     public function workspace(Request $request, Meeting $meeting): JsonResponse
     {
-        Gate::authorize('flow08ViewHistory', $meeting);
+        Gate::authorize('participantChangeViewHistory', $meeting);
         return response()->json(['data' => $this->workspaceData($meeting, $request->user())]);
     }
 
     public function createCase(Request $request, Meeting $meeting, CreateMeetingParticipantChangeCase $action): JsonResponse
     {
-        Gate::authorize('flow08CreateCase', $meeting);
+        Gate::authorize('participantChangeCreateCase', $meeting);
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
         return response()->json(['data' => $action->execute($meeting, $request->user(), $reason)], 201);
     }
@@ -104,7 +104,7 @@ class MeetingParticipantChangeController
 
     public function history(Request $request, Meeting $meeting): JsonResponse
     {
-        Gate::authorize('flow08ViewHistory', $meeting);
+        Gate::authorize('participantChangeViewHistory', $meeting);
         $meeting->load(['participantVersions.members.employee.unit', 'participantVersions.sourceChangeCase', 'rescheduleActions.actor']);
         return response()->json(['data' => [
             'meeting_id' => $meeting->id,

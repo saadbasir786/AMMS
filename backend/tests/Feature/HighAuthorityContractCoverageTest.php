@@ -19,7 +19,7 @@ class HighAuthorityContractCoverageTest extends TestCase
         $this->seed();
     }
 
-    #[DataProvider('flow04ContractCases')]
+    #[DataProvider('highAuthorityContractCases')]
     public function test_prompt04_required_contract_case_is_present(string $kind, string $value, string $method = ''): void
     {
         if ($kind === 'table') {
@@ -43,7 +43,7 @@ class HighAuthorityContractCoverageTest extends TestCase
         ), "Missing FLOW-04 route contract: {$method} {$value}");
     }
 
-    public static function flow04ContractCases(): array
+    public static function highAuthorityContractCases(): array
     {
         return [
             '01 organization authority table' => ['table', 'organization_authorities'],

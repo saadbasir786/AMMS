@@ -22,8 +22,8 @@ class AcknowledgeAuthorityInitiatedSchedule
             $request->authorityScheduleUnitAcknowledgements()->updateOrCreate([
                 'meeting_schedule_proposal_id' => $proposal->id, 'organizational_unit_id' => $unitId,
             ], ['acknowledged_by' => $actor->id, 'acknowledged_at' => now()]);
-            $this->record06($request, $actor, 'DIRECTORATE_SCHEDULE_ACKNOWLEDGED', $request->status, $request->status, null, ['proposal_id' => $proposal->id, 'organizational_unit_id' => $unitId]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTORATE_SCHEDULE_ACKNOWLEDGED', $request->status, $request->status, null, ['proposal_id' => $proposal->id, 'organizational_unit_id' => $unitId]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

@@ -18,7 +18,7 @@ trait HighAuthorityWorkflowSupport
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
-        abort_unless($locked->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'FLOW04_REQUEST_REQUIRED');
+        abort_unless($locked->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'HIGH_AUTHORITY_REQUEST_REQUIRED');
         return $locked->load([
             'requestingUnit.organization', 'creator.employee', 'participants.employee.unit', 'attachments', 'actions.actor',
             'scheduleProposals.proposedByUnit', 'scheduleProposals.proposedByUser', 'scheduleProposals.authorityAcknowledgements',

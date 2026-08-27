@@ -19,7 +19,7 @@ class AuthenticateTerminal
         $credential = $secret !== '' ? $this->credentials->resolve($secret) : null;
 
         if (!$credential) {
-            Log::warning('FLOW09 terminal authentication failure', [
+            Log::warning('Terminal authentication failure', [
                 'ip' => $request->ip(),
                 'path' => $request->path(),
                 'has_bearer' => $secret !== '',

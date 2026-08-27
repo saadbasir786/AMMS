@@ -34,8 +34,8 @@ class ManageAuthorityInitiatedUnitParticipants
                 $request->nominations()->create(['employee_id' => $employeeId, 'organizational_unit_id' => $employee->organizational_unit_id, 'nominated_by_unit_id' => $unitId, 'nominated_by_user_id' => $actor->id, 'participant_stage' => 'FINAL', 'nomination_status' => 'NOMINATED']);
                 $request->participants()->create(['employee_id' => $employeeId, 'participant_type' => 'FINAL', 'created_by' => $actor->id]);
             }
-            $this->record06($request, $actor, 'PARTICIPANTS_UPDATED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'employee_ids' => $ids]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'PARTICIPANTS_UPDATED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'employee_ids' => $ids]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

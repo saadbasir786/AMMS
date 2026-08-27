@@ -180,13 +180,6 @@ enum MeetingRequestStatus: string
         ], true);
     }
 
-    // Backward-compatibility aliases
-    public function isFlow02(): bool { return $this->isInterDirectorate(); }
-    public function isFlow03(): bool { return $this->isMultiDirectorate(); }
-    public function isFlow04(): bool { return $this->isHighAuthority(); }
-    public function isFlow05(): bool { return $this->isMultiHighAuthority(); }
-    public function isFlow06(): bool { return $this->isAuthorityInitiated(); }
-
     public static function values(): array
     {
         return array_column(self::cases(), 'value');

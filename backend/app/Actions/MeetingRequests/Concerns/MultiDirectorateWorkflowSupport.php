@@ -17,7 +17,7 @@ trait MultiDirectorateWorkflowSupport
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
-        abort_unless($locked->flow_type === 'MULTI_DIRECTORATE', 422, 'FLOW03_REQUEST_REQUIRED');
+        abort_unless($locked->flow_type === 'MULTI_DIRECTORATE', 422, 'MULTI_DIRECTORATE_REQUEST_REQUIRED');
 
         return $locked->load([
             'units.unit',

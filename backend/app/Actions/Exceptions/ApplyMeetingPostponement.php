@@ -28,7 +28,7 @@ class ApplyMeetingPostponement
             $meeting = Meeting::query()->with(['request', 'terminalAssignments', 'attendanceRecords'])->lockForUpdate()->findOrFail($locked->meeting_id);
             $this->assertCaseReadyForApplication($locked);
             abort_unless($meeting->status === 'SCHEDULED', 409, 'MEETING_POSTPONEMENT_NOT_ALLOWED');
-            abort_unless($locked->currentVersion && !$locked->currentVersion->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
+            abort_unless($locked->currentVersion && !$locked->currentVersion->replacement_expected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRED');
             $this->assertBaseline($locked, $meeting);
             $meeting->forceFill(['status' => 'POSTPONED'])->save();
             $this->revokeTerminalAccess($meeting, $actor, 'MEETING_POSTPONED');

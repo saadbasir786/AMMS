@@ -24,7 +24,7 @@ class PrepareAuthorityDirectiveRevision
             $unitIds = array_values(array_unique(array_map('intval', $data['participating_unit_ids'] ?? $previous->participating_unit_ids ?? [])));
             $units = OrganizationalUnit::whereIn('id', $unitIds)->get();
             abort_unless($units->count() === count($unitIds), 422, 'INVALID_PARTICIPATING_DIRECTORATE');
-            $this->assertFlow06UnitSet($units);
+            $this->assertAuthorityInitiatedUnitSet($units);
             abort_if($units->contains(fn (OrganizationalUnit $unit) => $unit->unit_type === 'AUTHORITY_OFFICE'), 422, 'AUTHORITY_OFFICE_NOT_A_FORMAL_DIRECTORATE');
             abort_unless((int) $units->first()->organization_id === (int) $request->authorityContext->organizationAuthority->organization_id, 422, 'CROSS_ORGANIZATION_AUTHORITY_INITIATED_MEETING_NOT_ALLOWED');
             $version = $request->directiveVersions()->create([
@@ -41,9 +41,9 @@ class PrepareAuthorityDirectiveRevision
                 'proposed_agenda' => $data['proposed_agenda'] ?? $previous->proposed_agenda,
                 'participating_unit_ids' => $unitIds, 'prepared_by' => $actor->id, 'is_current' => false,
             ]);
-            $from = $this->transition06($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_REISSUANCE);
-            $this->record06($request, $actor, 'DIRECTIVE_REVISION_PREPARED', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_REISSUANCE->value, null, ['previous_version' => $previous->version, 'new_version' => $version->version, 'participating_unit_ids' => $unitIds]);
-            return $this->response06($request);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_REISSUANCE);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTIVE_REVISION_PREPARED', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_REISSUANCE->value, null, ['previous_version' => $previous->version, 'new_version' => $version->version, 'participating_unit_ids' => $unitIds]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

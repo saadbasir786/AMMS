@@ -15,7 +15,7 @@ class MeetingRequestAttachmentController extends Controller
     {
         abort_unless($request->user()->isActive() && $request->user()->can('meeting-request.attach'), 403, 'FORBIDDEN');
         $meetingRequest->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY'
-            ? $this->authorize('flow04RequesterEdit', $meetingRequest)
+            ? $this->authorize('highAuthorityRequesterEdit', $meetingRequest)
             : $this->authorize('update', $meetingRequest);
         $file = $request->file('attachment');
         $storedPath = $file->store('meeting-requests/'.$meetingRequest->id, 'local');

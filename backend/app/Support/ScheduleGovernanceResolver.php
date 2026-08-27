@@ -15,13 +15,13 @@ class ScheduleGovernanceResolver
             'INTERNAL_DIRECTORATE' => 'INTERNAL_SINGLE_UNIT',
             'INTER_DIRECTORATE', 'MULTI_DIRECTORATE' => 'PEER_MULTI_UNIT',
             'DIRECTORATE_WITH_HIGH_AUTHORITY', 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 'HIGH_AUTHORITY_INITIATED' => 'AUTHORITY_CONTROLLED',
-            default => throw new InvalidArgumentException("Unsupported FLOW-07 governance flow type: {$flowType}"),
+            default => throw new InvalidArgumentException("Unsupported meeting reschedule governance flow type: {$flowType}"),
         };
 
         $units = $meeting->relationLoaded('units') ? $meeting->units : $meeting->units()->get();
         $formalUnits = $units->whereIn('role', ['REQUESTING', 'PARTICIPATING'])->values();
         if ($formalUnits->isEmpty()) {
-            throw new InvalidArgumentException('FLOW07_MEETING_HAS_NO_FORMAL_UNITS');
+            throw new InvalidArgumentException('MEETING_HAS_NO_FORMAL_UNITS');
         }
 
         $requiredUnits = $flowType === 'HIGH_AUTHORITY_INITIATED'

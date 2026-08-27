@@ -24,7 +24,7 @@ class AuthenticateTerminalSession
         $routeSession = $request->route('session');
         $routeSessionUuid = is_object($routeSession) ? ($routeSession->uuid ?? null) : $routeSession;
         if (!$session || ($routeSessionUuid && $routeSessionUuid !== $session->uuid) || !$session->terminal || $session->terminal->status !== 'ACTIVE') {
-            Log::warning('FLOW09 terminal session authentication failure', ['ip' => $request->ip(), 'path' => $request->path()]);
+            Log::warning('Terminal session authentication failure', ['ip' => $request->ip(), 'path' => $request->path()]);
             return response()->json(['success' => false, 'code' => 'TERMINAL_SESSION_UNAUTHORIZED', 'message' => 'نشست ترمینال معتبر نیست.', 'errors' => new \stdClass()], 401);
         }
 

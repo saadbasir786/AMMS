@@ -17,7 +17,7 @@ trait InterDirectorateWorkflowSupport
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
-        abort_unless($locked->flow_type === 'INTER_DIRECTORATE', 422, 'FLOW02_REQUEST_REQUIRED');
+        abort_unless($locked->flow_type === 'INTER_DIRECTORATE', 422, 'INTER_DIRECTORATE_REQUEST_REQUIRED');
         return $locked->load(['units.unit', 'requestingUnit', 'creator.employee', 'participants.employee', 'nominations.employee', 'scheduleProposals.proposedByUnit']);
     }
 
@@ -97,7 +97,7 @@ trait InterDirectorateWorkflowSupport
             $belongsToTarget = $target->load('children')->isWithinScope($employee->organizational_unit_id);
             if (!$belongsToRequester && !$belongsToTarget) {
                 $third = $this->topDirectorate($employee->organizational_unit_id);
-                if ($third && $third->organization_id === $requester->organization_id && $third->id !== $requester->id && $third->id !== $target->id) abort(422, 'THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_FLOW');
+                if ($third && $third->organization_id === $requester->organization_id && $third->id !== $requester->id && $third->id !== $target->id) abort(422, 'THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_REQUEST');
                 abort(422, 'PARTICIPANT_OUTSIDE_ALLOWED_UNITS');
             }
         }

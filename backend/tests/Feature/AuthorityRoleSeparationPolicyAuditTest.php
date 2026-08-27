@@ -27,13 +27,13 @@ class AuthorityRoleSeparationPolicyAuditTest extends TestCase
         $secretary = $this->user('executive.secretary@example.test');
         $system = $this->user('system.admin@example.test');
 
-        $this->assertFalse(Gate::forUser($office)->allows('flow04Scheduler', $request));
-        $this->assertTrue(Gate::forUser($secretary)->allows('flow04Scheduler', $request));
-        $this->assertFalse(Gate::forUser($system)->allows('flow04Scheduler', $request));
+        $this->assertFalse(Gate::forUser($office)->allows('highAuthorityScheduler', $request));
+        $this->assertTrue(Gate::forUser($secretary)->allows('highAuthorityScheduler', $request));
+        $this->assertFalse(Gate::forUser($system)->allows('highAuthorityScheduler', $request));
 
-        $this->assertTrue(Gate::forUser($office)->allows('flow04AuthorityParticipants', $request));
-        $this->assertFalse(Gate::forUser($secretary)->allows('flow04AuthorityParticipants', $request));
-        $this->assertFalse(Gate::forUser($system)->allows('flow04AuthorityParticipants', $request));
+        $this->assertTrue(Gate::forUser($office)->allows('highAuthorityParticipants', $request));
+        $this->assertFalse(Gate::forUser($secretary)->allows('highAuthorityParticipants', $request));
+        $this->assertFalse(Gate::forUser($system)->allows('highAuthorityParticipants', $request));
     }
 
     public function test_flow05_schedule_participant_ownership_and_directorate_confirmation_are_separated(): void
@@ -52,17 +52,17 @@ class AuthorityRoleSeparationPolicyAuditTest extends TestCase
         $financeExec = $this->user('finance.exec@example.test');
         $financeDirector = $this->user('finance.director@example.test');
 
-        $this->assertFalse(Gate::forUser($office)->allows('flow05Schedule', $request));
-        $this->assertTrue(Gate::forUser($secretary)->allows('flow05Schedule', $request));
-        $this->assertFalse(Gate::forUser($system)->allows('flow05Schedule', $request));
+        $this->assertFalse(Gate::forUser($office)->allows('multiHighAuthoritySchedule', $request));
+        $this->assertTrue(Gate::forUser($secretary)->allows('multiHighAuthoritySchedule', $request));
+        $this->assertFalse(Gate::forUser($system)->allows('multiHighAuthoritySchedule', $request));
 
-        $this->assertTrue(Gate::forUser($office)->allows('flow05AuthorityParticipants', $request));
-        $this->assertFalse(Gate::forUser($secretary)->allows('flow05AuthorityParticipants', $request));
+        $this->assertTrue(Gate::forUser($office)->allows('multiHighAuthorityParticipants', $request));
+        $this->assertFalse(Gate::forUser($secretary)->allows('multiHighAuthorityParticipants', $request));
 
-        $this->assertTrue(Gate::forUser($financeExec)->allows('flow05UnitParticipantsManage', [$request, $finance->id]));
-        $this->assertFalse(Gate::forUser($financeExec)->allows('flow05UnitParticipantsConfirm', [$request, $finance->id]));
-        $this->assertFalse(Gate::forUser($financeDirector)->allows('flow05UnitParticipantsManage', [$request, $finance->id]));
-        $this->assertTrue(Gate::forUser($financeDirector)->allows('flow05UnitParticipantsConfirm', [$request, $finance->id]));
+        $this->assertTrue(Gate::forUser($financeExec)->allows('multiHighAuthorityUnitParticipantsManage', [$request, $finance->id]));
+        $this->assertFalse(Gate::forUser($financeExec)->allows('multiHighAuthorityUnitParticipantsConfirm', [$request, $finance->id]));
+        $this->assertFalse(Gate::forUser($financeDirector)->allows('multiHighAuthorityUnitParticipantsManage', [$request, $finance->id]));
+        $this->assertTrue(Gate::forUser($financeDirector)->allows('multiHighAuthorityUnitParticipantsConfirm', [$request, $finance->id]));
     }
 
     public function test_flow06_exact_roles_are_required_for_schedule_and_participant_ownership(): void
@@ -77,17 +77,17 @@ class AuthorityRoleSeparationPolicyAuditTest extends TestCase
         $techExec = $this->user('tech.exec@example.test');
         $techDirector = $this->user('tech.director@example.test');
 
-        $this->assertFalse(Gate::forUser($office)->allows('flow06Schedule', $request));
-        $this->assertTrue(Gate::forUser($secretary)->allows('flow06Schedule', $request));
-        $this->assertFalse(Gate::forUser($system)->allows('flow06Schedule', $request));
+        $this->assertFalse(Gate::forUser($office)->allows('authorityInitiatedSchedule', $request));
+        $this->assertTrue(Gate::forUser($secretary)->allows('authorityInitiatedSchedule', $request));
+        $this->assertFalse(Gate::forUser($system)->allows('authorityInitiatedSchedule', $request));
 
-        $this->assertTrue(Gate::forUser($office)->allows('flow06AuthorityParticipants', $request));
-        $this->assertFalse(Gate::forUser($secretary)->allows('flow06AuthorityParticipants', $request));
+        $this->assertTrue(Gate::forUser($office)->allows('authorityInitiatedParticipants', $request));
+        $this->assertFalse(Gate::forUser($secretary)->allows('authorityInitiatedParticipants', $request));
 
-        $this->assertTrue(Gate::forUser($techExec)->allows('flow06UnitParticipantsManage', [$request, $tech->id]));
-        $this->assertFalse(Gate::forUser($techExec)->allows('flow06UnitParticipantsConfirm', [$request, $tech->id]));
-        $this->assertFalse(Gate::forUser($techDirector)->allows('flow06UnitParticipantsManage', [$request, $tech->id]));
-        $this->assertTrue(Gate::forUser($techDirector)->allows('flow06UnitParticipantsConfirm', [$request, $tech->id]));
+        $this->assertTrue(Gate::forUser($techExec)->allows('authorityInitiatedUnitParticipantsManage', [$request, $tech->id]));
+        $this->assertFalse(Gate::forUser($techExec)->allows('authorityInitiatedUnitParticipantsConfirm', [$request, $tech->id]));
+        $this->assertFalse(Gate::forUser($techDirector)->allows('authorityInitiatedUnitParticipantsManage', [$request, $tech->id]));
+        $this->assertTrue(Gate::forUser($techDirector)->allows('authorityInitiatedUnitParticipantsConfirm', [$request, $tech->id]));
     }
 
     private function authorityRequest(string $flowType, ?int $requestingUnitId = -1): MeetingRequest

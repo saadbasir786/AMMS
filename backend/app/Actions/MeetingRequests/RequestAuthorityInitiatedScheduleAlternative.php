@@ -21,8 +21,8 @@ class RequestAuthorityInitiatedScheduleAlternative
             abort_unless($actor->isActive() && $actor->can('authority-schedule.acknowledge') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('DIRECTOR', $unitId)), 403, 'UNAUTHORIZED_DIRECTORATE_ACKNOWLEDGEMENT');
             $proposal = $request->scheduleProposals()->whereKey($proposalId)->where('status', 'PROPOSED')->firstOrFail();
             $proposal->update(['status' => 'ALTERNATIVE_REQUESTED']);
-            $this->record06($request, $actor, 'DIRECTORATE_SCHEDULE_ALTERNATIVE_REQUESTED', $request->status, $request->status, $reason, ['proposal_id' => $proposal->id, 'organizational_unit_id' => $unitId]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTORATE_SCHEDULE_ALTERNATIVE_REQUESTED', $request->status, $request->status, $reason, ['proposal_id' => $proposal->id, 'organizational_unit_id' => $unitId]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

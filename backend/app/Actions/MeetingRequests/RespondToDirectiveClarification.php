@@ -22,8 +22,8 @@ class RespondToDirectiveClarification
             $clarification->update(['responded_by' => $actor->id, 'responded_at' => now(), 'response' => $responseText]);
             $request->unitResponses()->where('meeting_request_directive_version_id', $clarification->meeting_request_directive_version_id)->where('organizational_unit_id', $clarification->organizational_unit_id)->update(['response_status' => 'UNDER_COORDINATION']);
             if ($request->status === 'DIRECTORATE_CLARIFICATION_REQUIRED') $request->update(['status' => 'UNDER_DIRECTORATE_COORDINATION']);
-            $this->record06($request, $actor, 'DIRECTIVE_CLARIFICATION_RESPONDED', $request->status, $request->status, $responseText, ['clarification_id' => $clarification->id]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTIVE_CLARIFICATION_RESPONDED', $request->status, $request->status, $responseText, ['clarification_id' => $clarification->id]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

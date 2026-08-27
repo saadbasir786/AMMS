@@ -37,7 +37,7 @@ class ConvertAuthorityInitiatedRequestToMeeting
             abort_unless($proposal, 422, 'AUTHORITY_SCHEDULE_REQUIRED');
             abort_unless($locked->schedule_confirmed_by && $locked->schedule_confirmed_at && $locked->scheduled_date && $locked->scheduled_start_time && $locked->scheduled_duration_minutes && $locked->scheduled_location, 422, 'AUTHORITY_SCHEDULE_NOT_CONFIRMED');
 
-            $unitIds = $this->flow06Units($locked)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values();
+            $unitIds = $this->authorityInitiatedUnits($locked)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values();
             $scheduleAckIds = $locked->authorityScheduleUnitAcknowledgements()->where('meeting_schedule_proposal_id', $proposal->id)->whereIn('organizational_unit_id', $unitIds)->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->unique()->sort()->values();
             abort_unless($scheduleAckIds->count() === $unitIds->count() && $scheduleAckIds->diff($unitIds)->isEmpty(), 422, 'AUTHORITY_SCHEDULE_NOT_ACKNOWLEDGED_BY_ALL');
             $confirmedIds = $locked->participantConfirmations()->whereIn('organizational_unit_id', $unitIds)->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->unique()->sort()->values();
@@ -70,7 +70,7 @@ class ConvertAuthorityInitiatedRequestToMeeting
                 'agenda' => $data['agenda'] ?? $locked->proposed_agenda,
                 'status' => 'SCHEDULED',
             ]);
-            $formalUnits = $this->flow06Units($locked);
+            $formalUnits = $this->authorityInitiatedUnits($locked);
             $meeting->units()->createMany($formalUnits->map(fn ($unit) => ['organizational_unit_id' => $unit->id, 'role' => 'PARTICIPATING'])->all());
             foreach ($unitNominations as $nomination) $meeting->participants()->create(['employee_id' => $nomination->employee_id, 'organizational_unit_id' => $nomination->nominated_by_unit_id, 'role' => 'PARTICIPATING']);
             foreach ($authorityNominations as $nomination) $meeting->participants()->create(['employee_id' => $nomination->employee_id, 'organizational_unit_id' => $nomination->organizational_unit_id, 'role' => $nomination->employee_id === $holder->id ? 'HIGH_AUTHORITY' : 'AUTHORITY_SUPPORT']);
@@ -79,7 +79,7 @@ class ConvertAuthorityInitiatedRequestToMeeting
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
-            $this->record06($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['meeting_id' => $meeting->id, 'unit_ids' => $unitIds->all(), 'authority_employee_id' => $holder->id, 'directive_version' => $version->version]);
+            $this->recordAuthorityInitiated($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['meeting_id' => $meeting->id, 'unit_ids' => $unitIds->all(), 'authority_employee_id' => $holder->id, 'directive_version' => $version->version]);
             return $meeting->fresh(['request.units.unit', 'request.currentDirectiveVersion', 'units.unit', 'participants.employee.unit', 'authorityContext.authorityEmployee', 'authorityContext.authorityPosition', 'authorityContext.authorityOfficeUnit', 'chairperson']);
         });
     }

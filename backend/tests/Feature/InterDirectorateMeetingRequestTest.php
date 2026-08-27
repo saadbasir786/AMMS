@@ -127,7 +127,7 @@ class InterDirectorateMeetingRequestTest extends TestCase
 
         $hr = \App\Models\OrganizationalUnit::create(['organization_id' => $tech->organization_id, 'parent_id' => null, 'name' => 'ریاست منابع بشری', 'code' => 'HR-NEG', 'unit_type' => 'DIRECTORATE', 'status' => 'ACTIVE']);
         $hrEmployee = \App\Models\Employee::create(['employee_number' => 'EMP-HR-NEG-001', 'first_name' => 'حسن', 'last_name' => 'احمدی', 'father_name' => 'کریم', 'organizational_unit_id' => $hr->id, 'status' => 'ACTIVE']);
-        $this->actingAs($techExec, 'sanctum')->postJson('/api/meeting-requests/inter-directorate', ['requesting_unit_id' => $tech->id, 'target_unit_id' => $finance->id, 'subject' => 'ریاست سوم', 'purpose' => 'COORDINATION', 'priority' => 'NORMAL', 'participant_ids' => [$hrEmployee->id]])->assertStatus(422)->assertJsonPath('code', 'THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_FLOW');
+        $this->actingAs($techExec, 'sanctum')->postJson('/api/meeting-requests/inter-directorate', ['requesting_unit_id' => $tech->id, 'target_unit_id' => $finance->id, 'subject' => 'ریاست سوم', 'purpose' => 'COORDINATION', 'priority' => 'NORMAL', 'participant_ids' => [$hrEmployee->id]])->assertStatus(422)->assertJsonPath('code', 'THIRD_DIRECTORATE_REQUIRES_MULTI_DIRECTORATE_REQUEST');
     }
 
     public function test_same_directorate_and_target_scope_are_rejected(): void

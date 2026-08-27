@@ -28,7 +28,7 @@ class CreateMeetingExceptionCase
         abort_unless($reason !== '', 422, 'MEETING_EXCEPTION_REASON_REQUIRED');
         abort_unless(in_array($caseType, [MeetingExceptionCase::POSTPONEMENT, MeetingExceptionCase::CANCELLATION, MeetingExceptionCase::REOPENING, MeetingExceptionCase::RESUMPTION], true), 422, 'MEETING_EXCEPTION_NOT_ALLOWED');
         abort_unless($this->allowedFromStatus($meeting, $caseType), 409, $this->statusError($meeting, $caseType));
-        if ($caseType === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$replacementExpected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
+        if ($caseType === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$replacementExpected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRED');
         if ($caseType === MeetingExceptionCase::RESUMPTION) abort_unless($replacementExpected, 422, 'MEETING_RESUMPTION_SCHEDULE_REQUIRED');
 
         try {

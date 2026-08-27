@@ -18,7 +18,7 @@ trait MultiHighAuthorityWorkflowSupport
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
-        abort_unless($locked->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'FLOW05_REQUEST_REQUIRED');
+        abort_unless($locked->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 422, 'MULTI_HIGH_AUTHORITY_REQUEST_REQUIRED');
         return $locked->load([
             'requestingUnit.organization', 'units.unit', 'creator.employee', 'participants.employee.unit',
             'nominations.employee.unit', 'attachments', 'actions.actor', 'unitReviews.unit',
@@ -58,7 +58,7 @@ trait MultiHighAuthorityWorkflowSupport
         $requesters = $rows->where('role', 'REQUESTER');
         $participants = $rows->where('role', 'PARTICIPATING');
         abort_unless($requesters->count() === 1, 422, 'EXACTLY_ONE_REQUESTER_REQUIRED');
-        abort_unless($participants->count() >= 1, 422, 'MULTIPLE_DIRECTORATES_REQUIRED_FOR_FLOW_05');
+        abort_unless($participants->count() >= 1, 422, 'MULTIPLE_DIRECTORATES_REQUIRED_FOR_MULTI_HIGH_AUTHORITY');
         $requester = $requesters->first()->unit;
         abort_unless($requester && $requester->status === 'ACTIVE' && $requester->unit_type === 'DIRECTORATE', 422, 'INVALID_REQUESTER_DIRECTORATE');
         $ids = $rows->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->all();

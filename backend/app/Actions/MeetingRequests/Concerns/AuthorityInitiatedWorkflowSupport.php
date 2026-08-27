@@ -19,7 +19,7 @@ trait AuthorityInitiatedWorkflowSupport
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);
-        abort_unless($locked->flow_type === 'HIGH_AUTHORITY_INITIATED', 422, 'FLOW06_REQUEST_REQUIRED');
+        abort_unless($locked->flow_type === 'HIGH_AUTHORITY_INITIATED', 422, 'AUTHORITY_INITIATED_REQUEST_REQUIRED');
         return $locked->load([
             'requestingUnit.organization', 'units.unit', 'creator.employee', 'participants.employee.unit',
             'nominations.employee.unit', 'attachments', 'actions.actor', 'scheduleProposals.proposedByUnit',
@@ -42,12 +42,12 @@ trait AuthorityInitiatedWorkflowSupport
         abort_unless($actor->isActive(), 403, 'INACTIVE_USER_NOT_ALLOWED');
     }
 
-    private function flow06Units(MeetingRequest $request): Collection
+    private function authorityInitiatedUnits(MeetingRequest $request): Collection
     {
         return $request->units->where('role', 'PARTICIPATING')->pluck('unit')->filter()->values();
     }
 
-    private function assertFlow06UnitSet(Collection $units): void
+    private function assertAuthorityInitiatedUnitSet(Collection $units): void
     {
         abort_unless($units->isNotEmpty(), 422, 'AUTHORITY_INITIATED_REQUIRES_DIRECTORATE');
         $ids = $units->pluck('id')->map(fn ($id) => (int) $id)->all();
@@ -83,7 +83,7 @@ trait AuthorityInitiatedWorkflowSupport
         return $version;
     }
 
-    private function transition06(MeetingRequest $request, MeetingRequestStatus $next, string $error = 'INVALID_STATUS_TRANSITION'): string
+    private function transitionAuthorityInitiated(MeetingRequest $request, MeetingRequestStatus $next, string $error = 'INVALID_STATUS_TRANSITION'): string
     {
         $current = MeetingRequestStatus::tryFrom($request->status);
         abort_unless($current && $current->canTransitionTo($next), 422, $error);
@@ -92,12 +92,12 @@ trait AuthorityInitiatedWorkflowSupport
         return $from;
     }
 
-    private function record06(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
+    private function recordAuthorityInitiated(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
     {
         MeetingRequestAction::create(['meeting_request_id' => $request->id, 'actor_id' => $actor->id, 'action' => $action, 'from_status' => $from, 'to_status' => $to, 'comment' => $comment, 'metadata' => $metadata ?: null]);
     }
 
-    private function response06(MeetingRequest $request): MeetingRequest
+    private function responseAuthorityInitiated(MeetingRequest $request): MeetingRequest
     {
         return $request->fresh([
             'requestingUnit.organization', 'units.unit', 'creator.employee', 'participants.employee.unit',
@@ -179,7 +179,7 @@ trait AuthorityInitiatedWorkflowSupport
     private function allCurrentAcknowledged(MeetingRequest $request): bool
     {
         $version = $this->currentVersion($request);
-        $ids = $this->flow06Units($request)->pluck('id')->map(fn ($id) => (int) $id);
+        $ids = $this->authorityInitiatedUnits($request)->pluck('id')->map(fn ($id) => (int) $id);
         return $ids->isNotEmpty()
             && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->count() === $ids->count()
             && $request->unitResponses->where('meeting_request_directive_version_id', $version->id)->whereIn('organizational_unit_id', $ids)->every(fn ($row) => $row->response_status === 'ACKNOWLEDGED');

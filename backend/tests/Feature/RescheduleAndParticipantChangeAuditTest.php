@@ -35,10 +35,10 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
         $this->grant($financeExec, ['meeting.view', 'meeting-reschedule.propose', 'meeting-reschedule.confirm']);
 
         $this->assertNotSame($tech->id, (int) $techExec->employee->organizational_unit_id, 'Fixture must prove subunit-vs-formal-unit behavior.');
-        $this->assertTrue(Gate::forUser($techExec)->allows('flow07PeerPropose', $meeting));
-        $this->assertTrue(Gate::forUser($financeExec)->allows('flow07PeerPropose', $meeting));
-        $this->assertTrue(Gate::forUser($techExec)->allows('flow07Confirm', $meeting));
-        $this->assertFalse(Gate::forUser($financeExec)->allows('flow07Confirm', $meeting), 'Only requester/lead Executive Management may confirm peer rescheduling.');
+        $this->assertTrue(Gate::forUser($techExec)->allows('meetingReschedulePeerPropose', $meeting));
+        $this->assertTrue(Gate::forUser($financeExec)->allows('meetingReschedulePeerPropose', $meeting));
+        $this->assertTrue(Gate::forUser($techExec)->allows('meetingRescheduleConfirm', $meeting));
+        $this->assertFalse(Gate::forUser($financeExec)->allows('meetingRescheduleConfirm', $meeting), 'Only requester/lead Executive Management may confirm peer rescheduling.');
     }
 
     public function test_historical_meeting_coordinator_has_no_post_creation_view_authority_after_scope_revocation(): void

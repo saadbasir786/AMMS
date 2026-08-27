@@ -21,7 +21,7 @@ class UpdateMeetingExceptionDraft
         abort_unless($this->governance->mayUpdateDraft($case, $actor), 403, 'UNAUTHORIZED_MEETING_EXCEPTION');
         $reason = trim($reason);
         abort_unless($reason !== '', 422, 'MEETING_EXCEPTION_REASON_REQUIRED');
-        if ($case->case_type === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$replacementExpected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRES_FLOW07');
+        if ($case->case_type === MeetingExceptionCase::POSTPONEMENT) abort_unless(!$replacementExpected, 422, 'POSTPONEMENT_REPLACEMENT_SCHEDULE_REQUIRED');
         if ($case->case_type === MeetingExceptionCase::RESUMPTION) abort_unless($replacementExpected, 422, 'MEETING_RESUMPTION_SCHEDULE_REQUIRED');
         abort_unless(in_array($case->status, [MeetingExceptionCase::DRAFT, MeetingExceptionCase::RETURNED_FOR_CORRECTION], true), 409, 'MEETING_EXCEPTION_NOT_ALLOWED');
 

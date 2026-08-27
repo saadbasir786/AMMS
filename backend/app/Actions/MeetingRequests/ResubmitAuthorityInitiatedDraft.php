@@ -20,10 +20,10 @@ class ResubmitAuthorityInitiatedDraft
             abort_unless($request->status === MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value, 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
             $version = $this->currentVersion($request);
             abort_unless($version->version_status === 'RETURNED_FOR_CORRECTION', 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
-            $from = $this->transition06($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE);
             $version->update(['version_status' => 'PENDING_ISSUANCE', 'prepared_by' => $actor->id]);
-            $this->record06($request, $actor, 'AUTHORITY_DRAFT_RESUBMITTED', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, null, ['directive_version' => $version->version]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_DRAFT_RESUBMITTED', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, null, ['directive_version' => $version->version]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

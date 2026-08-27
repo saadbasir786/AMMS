@@ -222,7 +222,7 @@ final class ReportExportManager
 
     private function pdfLocalizedText(string $value): string
     {
-        return strtr($value, ['FLOW-14 Reporting Fixture' => 'ریاست گزارش‌دهی فلو ۱۴', 'Performance Hall' => 'تالار مرکزی']);
+        return strtr($value, ['FLOW-14 Reporting Fixture' => 'ریاست گزارش‌دهی', 'Performance Hall' => 'تالار مرکزی']);
     }
 
     private function pdfBusinessText(string $value, string $field): string

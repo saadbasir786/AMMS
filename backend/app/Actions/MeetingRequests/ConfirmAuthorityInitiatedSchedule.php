@@ -24,7 +24,7 @@ class ConfirmAuthorityInitiatedSchedule
             abort_unless($proposal, 422, 'AUTHORITY_SCHEDULE_REQUIRED');
             abort_unless((string) $proposal->end_time > (string) $proposal->start_time, 422, 'INVALID_SCHEDULE_TIME');
 
-            $unitIds = $this->flow06Units($request)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values();
+            $unitIds = $this->authorityInitiatedUnits($request)->pluck('id')->map(fn ($id) => (int) $id)->sort()->values();
             $ackIds = $request->authorityScheduleUnitAcknowledgements()
                 ->where('meeting_schedule_proposal_id', $proposal->id)
                 ->whereIn('organizational_unit_id', $unitIds)
@@ -34,7 +34,7 @@ class ConfirmAuthorityInitiatedSchedule
             abort_unless($ackIds->count() === $unitIds->count() && $ackIds->diff($unitIds)->isEmpty(), 422, 'AUTHORITY_SCHEDULE_NOT_ACKNOWLEDGED_BY_ALL');
 
             $proposal->update(['status' => 'ACCEPTED']);
-            $from = $this->transition06($request, MeetingRequestStatus::SCHEDULE_CONFIRMED);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::SCHEDULE_CONFIRMED);
             $request->update([
                 'scheduled_date' => $proposal->meeting_date,
                 'scheduled_start_time' => $proposal->start_time,
@@ -43,8 +43,8 @@ class ConfirmAuthorityInitiatedSchedule
                 'schedule_confirmed_by' => $actor->id,
                 'schedule_confirmed_at' => now(),
             ]);
-            $this->record06($request, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 

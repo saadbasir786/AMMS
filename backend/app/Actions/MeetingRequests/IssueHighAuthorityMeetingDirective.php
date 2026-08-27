@@ -22,9 +22,9 @@ class IssueHighAuthorityMeetingDirective
             abort_unless($this->actorIsHighAuthority($actor, $holder), 403, 'UNAUTHORIZED_HIGH_AUTHORITY_ISSUANCE');
             abort_unless($request->status === MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
             $version = $this->currentVersion($request);
-            $this->assertFlow06UnitSet($this->flow06Units($request));
+            $this->assertAuthorityInitiatedUnitSet($this->authorityInitiatedUnits($request));
             abort_unless(filled($version->subject) && filled($version->purpose) && filled($version->directive) && filled($version->requested_outcome) && filled($version->estimated_duration_minutes), 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
-            $from = $this->transition06($request, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY);
             $version->update([
                 'version_status' => 'ISSUED', 'issued_by' => $actor->id, 'authority_employee_id' => $holder->id,
                 'authority_position_id' => $authority->authority_position_id, 'issued_at' => now(), 'is_current' => true,
@@ -34,8 +34,8 @@ class IssueHighAuthorityMeetingDirective
                 'authority_decision_status' => 'ISSUED', 'authority_decided_by' => $actor->id,
                 'authority_decided_at' => now(), 'current_directive_version_id' => $version->id,
             ]);
-            $this->record06($request, $actor, 'HIGH_AUTHORITY_DIRECTIVE_ISSUED', $from, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, null, ['directive_version' => $version->version, 'authority_employee_id' => $holder->id, 'authority_position_id' => $authority->authority_position_id]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'HIGH_AUTHORITY_DIRECTIVE_ISSUED', $from, MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, null, ['directive_version' => $version->version, 'authority_employee_id' => $holder->id, 'authority_position_id' => $authority->authority_position_id]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

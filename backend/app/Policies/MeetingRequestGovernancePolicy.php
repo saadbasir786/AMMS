@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Models\MeetingRequest;
 use App\Models\User;
 
-class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
+class MeetingRequestGovernancePolicy extends MeetingRequestPolicy
 {
     public function view(User $user, MeetingRequest $request): bool
     {
@@ -40,7 +40,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             if (!$user->isActive() || !$user->can('authority-directive.view')) return false;
             $context = $request->authorityContext()->first();
             if (!$context) return false;
-            if ($this->flow06HighAuthorityActor($user, $request)) return true;
+            if ($this->authorityInitiatedHighAuthorityActor($user, $request)) return true;
             if ($user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id) || $user->hasScopedRole('EXECUTIVE_SECRETARY', (int) $context->authority_office_unit_id)) return true;
             if (in_array($request->status, ['DRAFT', 'PENDING_HIGH_AUTHORITY_ISSUANCE', 'RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION', 'ISSUED_BY_HIGH_AUTHORITY'], true)) return false;
             return $request->units()->where('role', 'PARTICIPATING')->pluck('organizational_unit_id')->contains(fn ($id) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $id) || $user->hasScopedRole('DIRECTOR', (int) $id));
@@ -86,7 +86,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id) && $request->status === 'DRAFT';
     }
 
-    public function flow02RequesterEdit(User $user, MeetingRequest $request): bool
+    public function interDirectorateRequesterEdit(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'INTER_DIRECTORATE') return false;
         $unitId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
@@ -95,14 +95,14 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'RETURNED_BY_TARGET'], true);
     }
 
-    public function flow02Coordinate(User $user, MeetingRequest $request): bool
+    public function interDirectorateCoordinate(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'INTER_DIRECTORATE' || !$user->isActive() || !$user->can('meeting-schedule.propose')) return false;
         $unitIds = $request->units()->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->all();
         return collect($unitIds)->contains(fn (int $unitId) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId));
     }
 
-    public function flow02LeadCoordinate(User $user, MeetingRequest $request): bool
+    public function interDirectorateLeadCoordinate(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'INTER_DIRECTORATE' || !$user->isActive()) return false;
         if (!$user->can('meeting-schedule.propose') && !$user->can('meeting-schedule.accept') && !$user->can('meeting.create')) return false;
@@ -110,7 +110,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return $requesterId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $requesterId);
     }
 
-    public function flow03RequesterEdit(User $user, MeetingRequest $request): bool
+    public function multiDirectorateRequesterEdit(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'MULTI_DIRECTORATE') return false;
         $unitId = (int) $request->units()->where('role', 'REQUESTER')->value('organizational_unit_id');
@@ -119,7 +119,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'TARGET_ACTION_REQUIRED'], true);
     }
 
-    public function flow03LeadCoordinate(User $user, MeetingRequest $request): bool
+    public function multiDirectorateLeadCoordinate(User $user, MeetingRequest $request): bool
     {
         if ($request->flow_type !== 'MULTI_DIRECTORATE' || !$user->isActive()) return false;
         if (!$user->can('meeting-schedule.propose') && !$user->can('meeting-schedule.accept') && !$user->can('meeting.create')) return false;
@@ -127,35 +127,35 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
         return $requesterId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $requesterId);
     }
 
-    public function flow04RequesterEdit(User $user, MeetingRequest $request): bool
+    public function highAuthorityRequesterEdit(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $user->can('meeting-request.update')
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
             && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'RETURNED_BY_AUTHORITY_OFFICE', 'RETURNED_BY_HIGH_AUTHORITY'], true);
     }
 
-    public function flow04Scheduler(User $user, MeetingRequest $request): bool
+    public function highAuthorityScheduler(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
             && $user->can('authority-schedule.view') && $user->hasScopedRole('EXECUTIVE_SECRETARY', $officeId);
     }
 
-    public function flow04RequesterScheduleAcknowledge(User $user, MeetingRequest $request): bool
+    public function highAuthorityRequesterScheduleAcknowledge(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
             && $user->can('authority-schedule.acknowledge')
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id);
     }
 
-    public function flow04RequesterParticipants(User $user, MeetingRequest $request): bool
+    public function highAuthorityRequesterParticipants(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
             && $user->can('meeting-participant.confirm')
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id);
     }
 
-    public function flow04AuthorityParticipants(User $user, MeetingRequest $request): bool
+    public function highAuthorityParticipants(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
@@ -163,41 +163,41 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 
-    public function flow05RequesterEdit(User $user, MeetingRequest $request): bool
+    public function multiHighAuthorityRequesterEdit(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $user->can('meeting-request.update')
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
             && in_array($request->status, ['DRAFT', 'RETURNED_TO_REQUESTER', 'DIRECTORATE_ACTION_REQUIRED', 'RETURNED_BY_AUTHORITY_OFFICE', 'RETURNED_BY_HIGH_AUTHORITY'], true);
     }
 
-    public function flow05Coordinate(User $user, MeetingRequest $request): bool
+    public function multiHighAuthorityCoordinate(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
             && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id);
     }
 
-    public function flow05Schedule(User $user, MeetingRequest $request): bool
+    public function multiHighAuthoritySchedule(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
             && $user->can('authority-schedule.view') && $user->hasScopedRole('EXECUTIVE_SECRETARY', $officeId);
     }
 
-    public function flow05UnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
+    public function multiHighAuthorityUnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
     {
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
             && $request->units()->whereIn('role', ['REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists()
             && $user->can('meeting-participant.nominate') && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
-    public function flow05UnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
+    public function multiHighAuthorityUnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
     {
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive()
             && $request->units()->whereIn('role', ['REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists()
             && $user->can('meeting-participant.confirm') && $user->hasScopedRole('DIRECTOR', $unitId);
     }
 
-    public function flow05AuthorityParticipants(User $user, MeetingRequest $request): bool
+    public function multiHighAuthorityParticipants(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY' && $user->isActive() && $officeId > 0
@@ -205,36 +205,36 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 
-    public function flow06Prepare(User $user, MeetingRequest $request): bool
+    public function authorityInitiatedPrepare(User $user, MeetingRequest $request): bool
     {
         $context = $request->authorityContext()->first();
         if ($request->flow_type !== 'HIGH_AUTHORITY_INITIATED' || !$user->isActive() || !$context) return false;
         return $user->can('authority-initiated-meeting.prepare')
             && ($user->hasScopedRole('AUTHORITY_OFFICE', (int) $context->authority_office_unit_id)
-                || $this->flow06HighAuthorityActor($user, $request));
+                || $this->authorityInitiatedHighAuthorityActor($user, $request));
     }
 
-    public function flow06Issue(User $user, MeetingRequest $request): bool
+    public function authorityInitiatedIssue(User $user, MeetingRequest $request): bool
     {
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
-            && $user->can('authority-initiated-meeting.issue') && $this->flow06HighAuthorityActor($user, $request);
+            && $user->can('authority-initiated-meeting.issue') && $this->authorityInitiatedHighAuthorityActor($user, $request);
     }
 
-    public function flow06UnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
+    public function authorityInitiatedUnitParticipantsManage(User $user, MeetingRequest $request, int $unitId): bool
     {
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
             && $request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists()
             && $user->can('meeting-participant.nominate') && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
     }
 
-    public function flow06UnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
+    public function authorityInitiatedUnitParticipantsConfirm(User $user, MeetingRequest $request, int $unitId): bool
     {
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive()
             && $request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists()
             && $user->can('meeting-participant.confirm') && $user->hasScopedRole('DIRECTOR', $unitId);
     }
 
-    public function flow06AuthorityParticipants(User $user, MeetingRequest $request): bool
+    public function authorityInitiatedParticipants(User $user, MeetingRequest $request): bool
     {
         $officeId = (int) $request->authorityContext()->value('authority_office_unit_id');
         return $request->flow_type === 'HIGH_AUTHORITY_INITIATED' && $user->isActive() && $officeId > 0
@@ -242,7 +242,7 @@ class FlowAwareMeetingRequestPolicy extends MeetingRequestPolicy
             && ($user->can('authority-participant.manage') || $user->can('authority-participant.confirm'));
     }
 
-    private function flow06HighAuthorityActor(User $user, MeetingRequest $request): bool
+    private function authorityInitiatedHighAuthorityActor(User $user, MeetingRequest $request): bool
     {
         $context = $request->authorityContext()->first();
         if (!$context || !$user->employee_id) return false;

@@ -23,13 +23,13 @@ class AcknowledgeAuthorityMeetingDirective
             $response = $request->unitResponses()->where('meeting_request_directive_version_id', $version->id)->where('organizational_unit_id', $unitId)->firstOrFail();
             abort_unless(in_array($response->response_status, ['PENDING_ACKNOWLEDGEMENT', 'UNDER_COORDINATION'], true), 422, 'UNIT_RESPONSE_NOT_OPEN');
             $response->update(['response_status' => 'ACKNOWLEDGED', 'acknowledged_by' => $actor->id, 'acknowledged_at' => now()]);
-            $this->record06($request, $actor, 'DIRECTORATE_ACKNOWLEDGED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
+            $this->recordAuthorityInitiated($request, $actor, 'DIRECTORATE_ACKNOWLEDGED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId, 'directive_version' => $version->version]);
             $request->load(['units.unit', 'unitResponses']);
             if ($this->allCurrentAcknowledged($request)) {
-                $from = $this->transition06($request, MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED);
-                $this->record06($request, $actor, 'ALL_DIRECTORATES_ACKNOWLEDGED', $from, MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED->value, null, ['directive_version' => $version->version]);
+                $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED);
+                $this->recordAuthorityInitiated($request, $actor, 'ALL_DIRECTORATES_ACKNOWLEDGED', $from, MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED->value, null, ['directive_version' => $version->version]);
             }
-            return $this->response06($request);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

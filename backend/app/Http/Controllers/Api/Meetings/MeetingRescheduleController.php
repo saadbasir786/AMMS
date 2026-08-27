@@ -21,13 +21,13 @@ class MeetingRescheduleController
 {
     public function workspace(Request $request, Meeting $meeting): JsonResponse
     {
-        Gate::authorize('flow07ViewHistory', $meeting);
+        Gate::authorize('meetingRescheduleViewHistory', $meeting);
         return response()->json(['data' => $this->workspaceData($meeting)]);
     }
 
     public function history(Request $request, Meeting $meeting): JsonResponse
     {
-        Gate::authorize('flow07ViewHistory', $meeting);
+        Gate::authorize('meetingRescheduleViewHistory', $meeting);
         return response()->json(['data' => [
             'meeting_id' => $meeting->id,
             'current_schedule_version' => $meeting->currentScheduleVersion,
@@ -39,14 +39,14 @@ class MeetingRescheduleController
 
     public function createCase(Request $request, Meeting $meeting, CreateMeetingRescheduleCase $action): JsonResponse
     {
-        Gate::authorize('flow07CreateCase', $meeting);
+        Gate::authorize('meetingRescheduleCreateCase', $meeting);
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
         return response()->json(['data' => $action($request->user(), $meeting, $reason)], 201);
     }
 
     public function peerProposal(Request $request, Meeting $meeting, CreatePeerRescheduleProposal $action): JsonResponse
     {
-        Gate::authorize('flow07PeerPropose', $meeting);
+        Gate::authorize('meetingReschedulePeerPropose', $meeting);
         $data = $this->proposalData($request);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
         return response()->json(['data' => $action($request->user(), $meeting, $case, $data)], 201);
@@ -54,7 +54,7 @@ class MeetingRescheduleController
 
     public function authorityProposal(Request $request, Meeting $meeting, CreateAuthorityRescheduleProposal $action): JsonResponse
     {
-        Gate::authorize('flow07AuthorityPropose', $meeting);
+        Gate::authorize('meetingRescheduleAuthorityPropose', $meeting);
         $data = $this->proposalData($request);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
         return response()->json(['data' => $action($request->user(), $meeting, $case, $data)], 201);
@@ -62,14 +62,14 @@ class MeetingRescheduleController
 
     public function acknowledge(Request $request, Meeting $meeting, MeetingRescheduleProposal $proposal, AcknowledgeMeetingRescheduleProposal $action): JsonResponse
     {
-        Gate::authorize('flow07Acknowledge', $meeting);
+        Gate::authorize('meetingRescheduleAcknowledge', $meeting);
         $case = $proposal->rescheduleCase()->firstOrFail();
         return response()->json(['data' => $action($request->user(), $meeting, $case, $proposal)]);
     }
 
     public function requestAlternative(Request $request, Meeting $meeting, MeetingRescheduleProposal $proposal, RequestMeetingScheduleAlternative $action): JsonResponse
     {
-        Gate::authorize('flow07RequestAlternative', $meeting);
+        Gate::authorize('meetingRescheduleRequestAlternative', $meeting);
         $data = $request->validate([
             'reason' => ['required', 'string'], 'suggested_date' => ['nullable', 'date'],
             'suggested_start_time' => ['nullable', 'date_format:H:i'], 'suggested_end_time' => ['nullable', 'date_format:H:i'],
@@ -80,13 +80,13 @@ class MeetingRescheduleController
 
     public function resolveAlternative(Request $request, Meeting $meeting, MeetingRescheduleAlternativeRequest $alternative, ResolveMeetingScheduleAlternative $action): JsonResponse
     {
-        Gate::authorize('flow07ResolveAlternative', $meeting);
+        Gate::authorize('meetingRescheduleResolveAlternative', $meeting);
         return response()->json(['data' => $action($request->user(), $meeting, $alternative)]);
     }
 
     public function confirm(Request $request, Meeting $meeting, ConfirmMeetingReschedule $action): JsonResponse
     {
-        Gate::authorize('flow07Confirm', $meeting);
+        Gate::authorize('meetingRescheduleConfirm', $meeting);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
         return response()->json(['data' => new MeetingResource($action($request->user(), $meeting, $case))]);
     }

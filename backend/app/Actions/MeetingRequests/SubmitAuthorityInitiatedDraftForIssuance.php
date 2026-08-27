@@ -19,14 +19,14 @@ class SubmitAuthorityInitiatedDraftForIssuance
             abort_unless($request->authorityContext && $this->actorCanPrepare($actor, (int) $request->authorityContext->authority_office_unit_id), 403, 'FORBIDDEN');
             abort_unless(in_array($request->status, [MeetingRequestStatus::DRAFT->value, MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value], true), 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
             $version = $this->currentVersion($request);
-            $this->assertFlow06UnitSet($this->flow06Units($request));
+            $this->assertAuthorityInitiatedUnitSet($this->authorityInitiatedUnits($request));
             abort_unless(filled($version->subject) && filled($version->purpose) && filled($version->directive) && filled($version->requested_outcome), 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
-            $from = $this->transition06($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE);
+            $from = $this->transitionAuthorityInitiated($request, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE);
             $version->update(['version_status' => 'PENDING_ISSUANCE']);
-            $this->record06($request, $actor, 'DRAFT_SUBMITTED_FOR_AUTHORITY_ISSUANCE', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, null, ['directive_version' => $version->version]);
+            $this->recordAuthorityInitiated($request, $actor, 'DRAFT_SUBMITTED_FOR_AUTHORITY_ISSUANCE', $from, MeetingRequestStatus::PENDING_HIGH_AUTHORITY_ISSUANCE->value, null, ['directive_version' => $version->version]);
             $holder = $this->currentAuthorityHolder($request->authorityContext->organizationAuthority);
             $this->notifyUser($holder->user_id ?? null, 'مسودهٔ جلسه آماده صدور', 'یک دستور جلسه برای صدور مقام عالی آماده شده است.', $request);
-            return $this->response06($request);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

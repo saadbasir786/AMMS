@@ -32,9 +32,9 @@ class ProposeAuthorityInitiatedSchedule
                 'status' => 'PROPOSED',
                 'proposal_type' => 'AUTHORITY_OFFICIAL',
             ]);
-            $this->record06($request, $actor, 'AUTHORITY_SCHEDULE_PROPOSED', $request->status, $request->status, $data['comment'] ?? null, ['proposal_id' => $proposal->id, 'directive_version' => $this->currentVersion($request)->version]);
-            foreach ($this->flow06Units($request) as $unit) $this->notifyUnit((int) $unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'پیشنهاد رسمی زمان‌بندی', 'پیشنهاد رسمی جدید برای جلسهٔ مقام ثبت شد.', $request);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_SCHEDULE_PROPOSED', $request->status, $request->status, $data['comment'] ?? null, ['proposal_id' => $proposal->id, 'directive_version' => $this->currentVersion($request)->version]);
+            foreach ($this->authorityInitiatedUnits($request) as $unit) $this->notifyUnit((int) $unit->id, ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'], 'پیشنهاد رسمی زمان‌بندی', 'پیشنهاد رسمی جدید برای جلسهٔ مقام ثبت شد.', $request);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

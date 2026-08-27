@@ -98,6 +98,6 @@ class ParticipantGovernanceResolver
     public function mayView(Meeting $meeting, User $actor): bool
     {
         return $actor->isActive() && $actor->can('meeting-participant-change.view-history')
-            && app(\App\Policies\FlowAwareMeetingPolicy::class)->view($actor, $meeting);
+            && app(\App\Policies\MeetingGovernancePolicy::class)->view($actor, $meeting);
     }
 }

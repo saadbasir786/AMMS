@@ -23,8 +23,8 @@ class ConfirmAuthorityInitiatedUnitParticipants
             abort_unless($request->nominations()->where('participant_stage', 'FINAL')->where('nomination_status', 'NOMINATED')->where('nominated_by_unit_id', $unitId)->exists(), 422, 'UNIT_PARTICIPANTS_NOT_CONFIRMED');
             $request->nominations()->where('participant_stage', 'FINAL')->where('nominated_by_unit_id', $unitId)->update(['nomination_status' => 'CONFIRMED']);
             $request->participantConfirmations()->create(['organizational_unit_id' => $unitId, 'confirmed_by' => $actor->id, 'confirmed_at' => now()]);
-            $this->record06($request, $actor, 'UNIT_PARTICIPANTS_CONFIRMED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'UNIT_PARTICIPANTS_CONFIRMED', $request->status, $request->status, null, ['organizational_unit_id' => $unitId]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

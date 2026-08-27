@@ -35,8 +35,8 @@ class ManageAuthorityInitiatedAuthorityParticipants
                 $request->participants()->create(['employee_id' => $employeeId, 'participant_type' => 'FINAL', 'created_by' => $actor->id]);
             }
             $request->authorityParticipantConfirmations()->where('side', 'AUTHORITY')->delete();
-            $this->record06($request, $actor, 'AUTHORITY_PARTICIPANTS_UPDATED', $request->status, $request->status, null, ['employee_ids' => $ids]);
-            return $this->response06($request);
+            $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_PARTICIPANTS_UPDATED', $request->status, $request->status, null, ['employee_ids' => $ids]);
+            return $this->responseAuthorityInitiated($request);
         });
     }
 }

@@ -33,24 +33,24 @@ class MeetingPolicy
         return false;
     }
 
-    public function flow07ViewHistory(User $user, Meeting $meeting): bool
+    public function meetingRescheduleViewHistory(User $user, Meeting $meeting): bool
     {
         return $this->canView($user, $meeting) && $user->can('meeting-reschedule.view-history');
     }
 
-    public function flow07CreateCase(User $user, Meeting $meeting): bool
+    public function meetingRescheduleCreateCase(User $user, Meeting $meeting): bool
     {
         return $this->canView($user, $meeting) && $user->can('meeting-reschedule.create');
     }
 
-    public function flow07PeerPropose(User $user, Meeting $meeting): bool
+    public function meetingReschedulePeerPropose(User $user, Meeting $meeting): bool
     {
         if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
         $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
         return $governance['mode'] === 'PEER_MULTI_UNIT' && in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
     }
 
-    public function flow07AuthorityPropose(User $user, Meeting $meeting): bool
+    public function meetingRescheduleAuthorityPropose(User $user, Meeting $meeting): bool
     {
         if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
         $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
@@ -59,26 +59,26 @@ class MeetingPolicy
             && $user->hasScopedRole('EXECUTIVE_SECRETARY', $governance['authority_office_unit_id']);
     }
 
-    public function flow07Acknowledge(User $user, Meeting $meeting): bool
+    public function meetingRescheduleAcknowledge(User $user, Meeting $meeting): bool
     {
         if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.acknowledge')) return false;
         $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
         return in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
     }
 
-    public function flow07RequestAlternative(User $user, Meeting $meeting): bool
+    public function meetingRescheduleRequestAlternative(User $user, Meeting $meeting): bool
     {
         if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.request-alternative')) return false;
         $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
         return in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
     }
 
-    public function flow07ResolveAlternative(User $user, Meeting $meeting): bool
+    public function meetingRescheduleResolveAlternative(User $user, Meeting $meeting): bool
     {
-        return $this->flow07AuthorityPropose($user, $meeting) && $user->can('meeting-reschedule.request-alternative');
+        return $this->meetingRescheduleAuthorityPropose($user, $meeting) && $user->can('meeting-reschedule.request-alternative');
     }
 
-    public function flow07Confirm(User $user, Meeting $meeting): bool
+    public function meetingRescheduleConfirm(User $user, Meeting $meeting): bool
     {
         if (!$this->canView($user, $meeting) || !$user->can('meeting-reschedule.confirm')) return false;
         $governance = app(\App\Support\ScheduleGovernanceResolver::class)->resolve($meeting);
@@ -88,39 +88,39 @@ class MeetingPolicy
         return $user->id === $meeting->coordinator_id || in_array((int) ($user->employee?->organizational_unit_id ?? 0), $governance['required_unit_ids'], true);
     }
 
-    public function flow08ViewHistory(User $user, Meeting $meeting): bool
+    public function participantChangeViewHistory(User $user, Meeting $meeting): bool
     {
         return app(\App\Support\ParticipantGovernanceResolver::class)->mayView($meeting, $user);
     }
 
-    public function flow08CreateCase(User $user, Meeting $meeting): bool
+    public function participantChangeCreateCase(User $user, Meeting $meeting): bool
     {
         if (!$user->isActive() || !$user->can('meeting-participant-change.create') || !$this->view($user, $meeting)) return false;
         $owner = app(\App\Support\ParticipantGovernanceResolver::class)->actorOwner($meeting, $user);
         return $owner && app(\App\Support\ParticipantGovernanceResolver::class)->mayPrepare($meeting, $user, $owner['owner_type'], $owner['owner_unit_id']);
     }
 
-    public function flow08ManageCase(User $user, Meeting $meeting, ?string $ownerType = null, ?int $ownerUnitId = null): bool
+    public function participantChangeManageCase(User $user, Meeting $meeting, ?string $ownerType = null, ?int $ownerUnitId = null): bool
     {
         if (!$user->isActive() || !$this->view($user, $meeting)) return false;
         $owner = $ownerType ? ['owner_type' => $ownerType, 'owner_unit_id' => $ownerUnitId] : app(\App\Support\ParticipantGovernanceResolver::class)->actorOwner($meeting, $user);
         return $owner && app(\App\Support\ParticipantGovernanceResolver::class)->mayPrepare($meeting, $user, $owner['owner_type'], $owner['owner_unit_id']);
     }
 
-    public function flow08Confirm(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    public function participantChangeConfirm(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
     {
         return $this->view($user, $meeting)
             && app(\App\Support\ParticipantGovernanceResolver::class)->mayConfirm($meeting, $user, $ownerType, $ownerUnitId);
     }
 
-    public function flow08Return(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    public function participantChangeReturn(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
     {
-        return $this->flow08Confirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.return');
+        return $this->participantChangeConfirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.return');
     }
 
-    public function flow08Reject(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    public function participantChangeReject(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
     {
-        return $this->flow08Confirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.reject');
+        return $this->participantChangeConfirm($user, $meeting, $ownerType, $ownerUnitId) && $user->can('meeting-participant-change.reject');
     }
 
     private function canView(User $user, Meeting $meeting): bool
@@ -128,29 +128,29 @@ class MeetingPolicy
         return $this->view($user, $meeting);
     }
 
-    public function flow09View(User $user, Meeting $meeting): bool
+    public function terminalAssignmentView(User $user, Meeting $meeting): bool
     {
         $resolver = app(\App\Support\TerminalAssignmentGovernanceResolver::class);
         if ($user->isActive() && $user->can('meeting-terminal.view') && $user->hasScopedRole('SYSTEM_ADMIN')) return true;
         return $this->view($user, $meeting) && $resolver->mayView($meeting, $user);
     }
 
-    public function flow09Assign(User $user, Meeting $meeting): bool
+    public function terminalAssignmentAssign(User $user, Meeting $meeting): bool
     {
-        return $this->flow09View($user, $meeting) && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayAssign($meeting, $user);
+        return $this->terminalAssignmentView($user, $meeting) && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayAssign($meeting, $user);
     }
 
-    public function flow09Refresh(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
+    public function terminalAssignmentRefresh(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
     {
         return (int) $assignment->meeting_id === (int) $meeting->id
-            && $this->flow09View($user, $meeting)
+            && $this->terminalAssignmentView($user, $meeting)
             && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayRefresh($meeting, $user);
     }
 
-    public function flow09Revoke(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
+    public function terminalAssignmentRevoke(User $user, Meeting $meeting, MeetingTerminalAssignment $assignment): bool
     {
         return (int) $assignment->meeting_id === (int) $meeting->id
-            && $this->flow09View($user, $meeting)
+            && $this->terminalAssignmentView($user, $meeting)
             && app(\App\Support\TerminalAssignmentGovernanceResolver::class)->mayRevoke($meeting, $user);
     }
 
