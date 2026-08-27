@@ -18,6 +18,7 @@ import { RequestDetailSummary } from '../components/request-detail-summary'
 import { RequestParticipantsCard } from '../components/request-participants-card'
 import { RequestActionsCard } from '../components/request-actions-card'
 import { RequestTimelineCard } from '../components/request-timeline-card'
+import { fetchMeetingRequestActionCapabilities, type MeetingRequestActionCapabilities } from '../lib/request-capabilities'
 import { Flow02DetailView } from '@/components/amms/flow02-detail-view'
 import { Flow03DetailView } from '@/components/amms/flow03-detail-view'
 import { Flow04DetailView } from '@/components/amms/flow04-detail-view'
@@ -59,6 +60,7 @@ export function RequestDetailPage({
 
   const [request, setRequest] = useState<any>(null)
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null)
+  const [capabilities, setCapabilities] = useState<MeetingRequestActionCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,9 +69,10 @@ export function RequestDetailPage({
     setLoading(true)
     setError(null)
     try {
-      const [reqRes, meRes] = await Promise.allSettled([
+      const [reqRes, meRes, capabilitiesRes] = await Promise.allSettled([
         api.get(`/meeting-requests/${id}`),
         initialUser ? Promise.resolve({ data: initialUser }) : api.get('/me'),
+        fetchMeetingRequestActionCapabilities(id),
       ])
 
       if (reqRes.status === 'fulfilled') {
@@ -80,6 +83,12 @@ export function RequestDetailPage({
 
       if (meRes.status === 'fulfilled') {
         setCurrentUser(apiData(meRes.value))
+      }
+
+      if (capabilitiesRes.status === 'fulfilled') {
+        setCapabilities(capabilitiesRes.value)
+      } else {
+        throw capabilitiesRes.reason
       }
     } catch (err: any) {
       setError(
@@ -100,12 +109,6 @@ export function RequestDetailPage({
     await api.post(`/meeting-requests/${id}/${actionUrl}`, body)
     await loadData()
   }
-
-  // Permissions calculation for standard request
-  const canApprove =
-    currentUser?.roles?.some((r: any) => r.role === 'DIRECTOR') ?? false
-  const canManage =
-    currentUser?.roles?.some((r: any) => r.role === 'EXECUTIVE_MANAGEMENT') ?? false
 
   const statusInfo = request?.status
     ? STATUS_LABELS[request.status] || { label: request.status, variant: 'outline' }
@@ -365,8 +368,16 @@ export function RequestDetailPage({
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           <RequestActionsCard
             request={request}
-            canApprove={canApprove}
-            canManage={canManage}
+            capabilities={capabilities || {
+              edit: false,
+              submit: false,
+              approve: false,
+              return_for_revision: false,
+              reject: false,
+              start_scheduling: false,
+              open_scheduling: false,
+              finalize: false,
+            }}
             onAction={handleAction}
             onEdit={() => navigate(`/meeting-requests/${request.id}/edit`)}
             onScheduling={() => navigate(`/meeting-requests/${request.id}/scheduling`)}

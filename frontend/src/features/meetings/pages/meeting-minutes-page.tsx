@@ -27,6 +27,7 @@ import type {
   MinutesDecision,
   MinutesReview
 } from '../types'
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'پیش‌نویس',
@@ -71,14 +72,15 @@ export function MeetingMinutesPage() {
     setLoading(true)
     setError(null)
     try {
-      const [minRes, meetRes] = await Promise.all([
+      const [minRes, meetRes, capabilities] = await Promise.all([
         api.get(`/meetings/${id}/minutes`),
         api.get(`/meetings/${id}`),
+        fetchMeetingActionCapabilities(id),
       ])
       const minData = apiData(minRes)
       const meetData = apiData(meetRes)
       setMinutes(minData)
-      setMeeting(meetData)
+      setMeeting({ ...meetData, action_capabilities: capabilities })
 
       const version = minData?.current_version
       if (version) {
@@ -184,7 +186,7 @@ export function MeetingMinutesPage() {
               </Badge>
             )}
 
-            {minutes?.status === 'FINALIZED' && (
+            {minutes?.status === 'FINALIZED' && meeting?.action_capabilities?.minutes.document && (
               <Button
                 asChild
                 className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
@@ -246,7 +248,7 @@ export function MeetingMinutesPage() {
       )}
 
       {/* When no minutes created yet */}
-      {!loading && !minutes && meeting && (
+      {!loading && !minutes && meeting && meeting.action_capabilities?.minutes.prepare && (
         <Card className="border-dashed border-border/80 bg-card/60 rounded-2xl">
           <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8">
             <div className="space-y-1 text-center sm:text-right">
@@ -281,6 +283,8 @@ export function MeetingMinutesPage() {
               busy={busy}
               onSaveDraft={handleSaveDraft}
               onSubmit={handleSubmit}
+              canPrepare={meeting.action_capabilities?.minutes.prepare === true}
+              canSubmit={meeting.action_capabilities?.minutes.submit === true}
             />
           </section>
 
@@ -294,6 +298,9 @@ export function MeetingMinutesPage() {
               onRequestCorrection={handleRequestCorrection}
               onApproveAuthority={handleApproveAuthority}
               onFinalize={handleFinalize}
+              canReview={meeting.action_capabilities?.minutes.review === true}
+              canFinalize={meeting.action_capabilities?.minutes.finalize === true}
+              canDocument={meeting.action_capabilities?.minutes.document === true}
             />
 
             <MeetingActionsCard meeting={meeting} />

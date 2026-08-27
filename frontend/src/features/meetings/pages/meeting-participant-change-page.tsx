@@ -23,17 +23,15 @@ import { api, apiData } from '@/lib/api-client'
 import { ParticipantChangeCaseCard } from '../components/participant-change-case-card'
 import { ParticipantChangeFormCard } from '../components/participant-change-form-card'
 import type { MeetingParticipantChangeData } from '../types'
-
-const roleUnitId = (r: any) => Number(r?.organizational_unit_id ?? r?.unit?.id ?? 0)
-const scoped = (u: any, role: string, id: number) =>
-  !!id && !!u?.roles?.some((r: any) => r.role === role && roleUnitId(r) === Number(id))
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
+import type { MeetingActionCapabilities } from '../types'
 
 export function MeetingParticipantChangePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [workspace, setWorkspace] = useState<MeetingParticipantChangeData | null>(null)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [capabilities, setCapabilities] = useState<MeetingActionCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,12 +46,12 @@ export function MeetingParticipantChangePage() {
     setLoading(true)
     setError(null)
     try {
-      const [wsRes, userRes] = await Promise.all([
+      const [wsRes, actionCapabilities] = await Promise.all([
         api.get(`/meetings/${id}/participant-change`),
-        api.get('/me').catch(() => ({ data: null })),
+        fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
-      if (userRes?.data) setCurrentUser(apiData(userRes))
+      setCapabilities(actionCapabilities)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -87,29 +85,11 @@ export function MeetingParticipantChangePage() {
   const active = workspace?.active_participant_change_case
   const employeeOptions = workspace?.employee_options || []
 
-  const formalUnitIds = useMemo(() => {
-    return (meeting?.units || [])
-      .filter((u: any) => ['REQUESTING', 'PARTICIPATING'].includes(u.role))
-      .map((u: any) => Number(u.organizational_unit_id))
-      .filter(Boolean)
-  }, [meeting])
-
   const authorityId = Number(meeting?.authority_context?.authority_office_unit_id || 0)
   const ownerId = Number(active?.owner_unit_id || 0)
-  const actorExecutiveUnitId =
-    formalUnitIds.find((unitId: number) => scoped(currentUser, 'EXECUTIVE_MANAGEMENT', unitId)) || 0
-  const isAuthorityOffice = scoped(currentUser, 'AUTHORITY_OFFICE', authorityId)
-  const canCreateCase = !!actorExecutiveUnitId || isAuthorityOffice
-
-  const isAuthorityUser = scoped(currentUser, 'AUTHORITY_OFFICE', authorityId)
-  const isPreparer =
-    active?.owner_type === 'AUTHORITY'
-      ? isAuthorityUser
-      : scoped(currentUser, 'EXECUTIVE_MANAGEMENT', ownerId)
-  const isConfirmer =
-    active?.owner_type === 'AUTHORITY'
-      ? isAuthorityUser
-      : scoped(currentUser, 'DIRECTOR', ownerId)
+  const canCreateCase = capabilities?.participant_change.create === true
+  const isPreparer = capabilities?.participant_change.manage === true
+  const isConfirmer = capabilities?.participant_change.confirm === true
 
   const isStale =
     Number(active?.baseline_schedule_version_id) !== Number(meeting?.current_schedule_version_id)

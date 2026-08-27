@@ -20,6 +20,7 @@ import { ExecutionSessionCard } from '../components/execution-session-card'
 import { MeetingActionsCard } from '../components/meeting-actions-card'
 import { MeetingParticipantsCard } from '../components/meeting-participants-card'
 import type { MeetingItem, MeetingExecutionState } from '../types'
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
 export function MeetingExecutionPage() {
   const { id } = useParams<{ id: string }>()
@@ -36,12 +37,13 @@ export function MeetingExecutionPage() {
     setLoading(true)
     setError(null)
     try {
-      const [execRes, meetRes] = await Promise.all([
+      const [execRes, meetRes, capabilities] = await Promise.all([
         api.get(`/meetings/${id}/execution`),
         api.get(`/meetings/${id}`),
+        fetchMeetingActionCapabilities(id),
       ])
       setState(apiData(execRes))
-      setMeeting(apiData(meetRes))
+      setMeeting({ ...apiData(meetRes), action_capabilities: capabilities })
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -158,6 +160,8 @@ export function MeetingExecutionPage() {
               onStart={handleStart}
               onEnd={handleEnd}
               onGoToMinutes={() => navigate(`/meetings/${id}/minutes`)}
+              canStart={meeting.action_capabilities?.execution.start === true}
+              canEnd={meeting.action_capabilities?.execution.end === true}
             />
 
             <MeetingParticipantsCard meeting={meeting} participants={meeting.participants} />

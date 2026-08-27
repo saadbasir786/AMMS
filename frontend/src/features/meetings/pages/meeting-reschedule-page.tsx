@@ -25,17 +25,15 @@ import { RescheduleCaseCard } from '../components/reschedule-case-card'
 import { RescheduleProposalForm } from '../components/reschedule-proposal-form'
 import { RescheduleAcknowledgementsCard } from '../components/reschedule-acknowledgements-card'
 import type { MeetingRescheduleData } from '../types'
-
-const roleUnitId = (role: any) => Number(role?.organizational_unit_id ?? role?.unit?.id ?? 0)
-const hasScopedRole = (user: any, roleName: string, unitId: number) =>
-  !!unitId && !!user?.roles?.some((role: any) => role.role === roleName && roleUnitId(role) === Number(unitId))
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
+import type { MeetingActionCapabilities } from '../types'
 
 export function MeetingReschedulePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [workspace, setWorkspace] = useState<MeetingRescheduleData | null>(null)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [capabilities, setCapabilities] = useState<MeetingActionCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,12 +47,12 @@ export function MeetingReschedulePage() {
     setLoading(true)
     setError(null)
     try {
-      const [wsRes, userRes] = await Promise.all([
+      const [wsRes, actionCapabilities] = await Promise.all([
         api.get(`/meetings/${id}/reschedule`),
-        api.get('/me').catch(() => ({ data: null })),
+        fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
-      if (userRes?.data) setCurrentUser(apiData(userRes))
+      setCapabilities(actionCapabilities)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -91,7 +89,6 @@ export function MeetingReschedulePage() {
     ['DIRECTORATE_WITH_HIGH_AUTHORITY', 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 'HIGH_AUTHORITY_INITIATED'].includes(
       flowType || ''
     ) || !!meeting?.authority_context
-  const authorityOfficeId = Number(meeting?.authority_context?.authority_office_unit_id || 0)
 
   const requiredUnits = useMemo(() => {
     if (!meeting?.units) return []
@@ -100,30 +97,12 @@ export function MeetingReschedulePage() {
       : meeting.units.filter((u: any) => ['REQUESTING', 'PARTICIPATING'].includes(u.role))
   }, [meeting, flowType])
 
-  const formalUnitIds = requiredUnits.map((u: any) => Number(u.organizational_unit_id)).filter(Boolean)
-  const leadUnitId = Number(
-    (meeting?.units || []).find((u: any) => u.role === 'REQUESTING')?.organizational_unit_id ||
-      formalUnitIds[0] ||
-      0
-  )
-
-  const actorFormalUnitId =
-    formalUnitIds.find(
-      (unitId: number) =>
-        hasScopedRole(currentUser, 'EXECUTIVE_MANAGEMENT', unitId) ||
-        hasScopedRole(currentUser, 'DIRECTOR', unitId)
-    ) || 0
-
-  const isSecretary = authorityControlled && hasScopedRole(currentUser, 'EXECUTIVE_SECRETARY', authorityOfficeId)
-  const isPeerExecutive = !!actorFormalUnitId && hasScopedRole(currentUser, 'EXECUTIVE_MANAGEMENT', actorFormalUnitId)
-  const isFormalDirector = !!actorFormalUnitId && hasScopedRole(currentUser, 'DIRECTOR', actorFormalUnitId)
-
-  const canCreateCase = authorityControlled ? isSecretary : isPeerExecutive || isFormalDirector
-  const canPropose = authorityControlled ? isSecretary : isPeerExecutive
-  const canAcknowledge = isPeerExecutive || isFormalDirector
-  const canRequestAlternative = canAcknowledge
-  const canConfirm = authorityControlled ? isSecretary : hasScopedRole(currentUser, 'EXECUTIVE_MANAGEMENT', leadUnitId)
-  const canResolveAlternative = authorityControlled && isSecretary
+  const canCreateCase = capabilities?.reschedule.create === true
+  const canPropose = capabilities?.reschedule.propose === true
+  const canAcknowledge = capabilities?.reschedule.acknowledge === true
+  const canRequestAlternative = capabilities?.reschedule.request_alternative === true
+  const canConfirm = capabilities?.reschedule.confirm === true
+  const canResolveAlternative = capabilities?.reschedule.resolve_alternative === true
 
   const ackCount = activeProposal?.acknowledgements?.length || 0
   const openAlternatives = (activeCase?.alternative_requests || []).filter((a) => a.status === 'OPEN')

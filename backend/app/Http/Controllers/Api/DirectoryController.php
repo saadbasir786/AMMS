@@ -14,6 +14,7 @@ use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\OrganizationalUnit;
 use App\Models\OrganizationAuthority;
+use App\Support\MeetingActionCapabilities;
 use Illuminate\Http\Request;
 
 class DirectoryController extends Controller
@@ -74,6 +75,16 @@ class DirectoryController extends Controller
             $user
         )->where('meeting_date','>=',today())->orderBy('meeting_date');
         return MeetingResource::collection($query->paginate(15))->additional(['success'=>true,'message'=>'جلسات رسمی.']);
+    }
+
+    public function meetingActionCapabilities(Request $request, Meeting $meeting, MeetingActionCapabilities $capabilities)
+    {
+        $this->authorize('view', $meeting);
+
+        return response()->json([
+            'success' => true,
+            'data' => $capabilities->resolve($meeting, $request->user()),
+        ]);
     }
 
     public function meeting(Meeting $meeting)

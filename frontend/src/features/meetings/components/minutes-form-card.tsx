@@ -32,6 +32,8 @@ type MinutesFormCardProps = {
   busy: boolean
   onSaveDraft: () => Promise<void>
   onSubmit: () => Promise<void>
+  canPrepare?: boolean
+  canSubmit?: boolean
 }
 
 export function MinutesFormCard({
@@ -41,9 +43,11 @@ export function MinutesFormCard({
   busy,
   onSaveDraft,
   onSubmit,
+  canPrepare = false,
+  canSubmit = false,
 }: MinutesFormCardProps) {
   const version = minutes?.current_version
-  const editable = !minutes || ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(minutes.status)
+  const editable = canPrepare && (!minutes || ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(minutes.status))
 
   const addItem = () => {
     onChange({
@@ -283,7 +287,7 @@ export function MinutesFormCard({
 
             {/* Bottom Actions Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/50">
-              <Button
+              {canPrepare && <Button
                 variant="outline"
                 disabled={busy}
                 onClick={onSaveDraft}
@@ -291,9 +295,9 @@ export function MinutesFormCard({
               >
                 <Save className="size-3.5" />
                 <span>{busy ? 'در حال ذخیره…' : 'ذخیره پیش‌نویس صورت‌جلسه'}</span>
-              </Button>
+              </Button>}
 
-              <Button
+              {canSubmit && <Button
                 disabled={busy}
                 onClick={onSubmit}
                 className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
@@ -304,7 +308,7 @@ export function MinutesFormCard({
                     ? 'ارسال مجدد نسخه اصلاح‌شده'
                     : 'ارسال صورت‌جلسه برای بررسی و تایید'}
                 </span>
-              </Button>
+              </Button>}
             </div>
           </>
         ) : (

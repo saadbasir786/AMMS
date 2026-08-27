@@ -43,6 +43,9 @@ type MinutesReviewsCardProps = {
   onRequestCorrection: (review: MinutesReview, reason: string) => Promise<void>
   onApproveAuthority: () => Promise<void>
   onFinalize: () => Promise<void>
+  canReview?: boolean
+  canFinalize?: boolean
+  canDocument?: boolean
 }
 
 export function MinutesReviewsCard({
@@ -53,6 +56,9 @@ export function MinutesReviewsCard({
   onRequestCorrection,
   onApproveAuthority,
   onFinalize,
+  canReview = false,
+  canFinalize = false,
+  canDocument = false,
 }: MinutesReviewsCardProps) {
   const [correctionReason, setCorrectionReason] = useState('')
   const [selectedReview, setSelectedReview] = useState<MinutesReview | null>(null)
@@ -126,7 +132,7 @@ export function MinutesReviewsCard({
                     </p>
                   )}
 
-                  {rev.status === 'PENDING' && !isFinalized && (
+                  {rev.status === 'PENDING' && !isFinalized && canReview && (
                     <div className="flex items-center gap-2 pt-1">
                       <Button
                         size="sm"
@@ -191,7 +197,7 @@ export function MinutesReviewsCard({
         )}
 
         {/* Finalize Button */}
-        {!isFinalized && isReadyToFinalize && (
+        {!isFinalized && isReadyToFinalize && canFinalize && (
           <Button
             disabled={busy}
             onClick={() => setConfirmFinalizeOpen(true)}
@@ -203,7 +209,7 @@ export function MinutesReviewsCard({
         )}
 
         {/* PDF Download */}
-        {isFinalized && (
+        {isFinalized && canDocument && (
           <Button
             asChild
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"

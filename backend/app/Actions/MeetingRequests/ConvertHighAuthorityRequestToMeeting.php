@@ -75,6 +75,8 @@ class ConvertHighAuthorityRequestToMeeting
                 'authority_employee_id' => $holder->id,
                 'authority_office_unit_id' => $context->authority_office_unit_id,
             ]);
+            app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
+            app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
 
             $from = $this->updateStatus($locked, MeetingRequestStatus::CONVERTED_TO_MEETING);
             $this->record($locked, $actor, 'MEETING_CREATED', $from, $locked->status, null, ['meeting_id' => $meeting->id, 'authority_employee_id' => $holder->id, 'requesting_unit_id' => $locked->requesting_unit_id]);

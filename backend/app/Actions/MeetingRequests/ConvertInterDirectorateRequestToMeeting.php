@@ -63,7 +63,7 @@ class ConvertInterDirectorateRequestToMeeting
             ]);
             $meeting->units()->createMany([
                 ['organizational_unit_id' => $requester->id, 'role' => 'REQUESTING'],
-                ['organizational_unit_id' => $target->id, 'role' => 'TARGET'],
+                ['organizational_unit_id' => $target->id, 'role' => 'PARTICIPATING'],
             ]);
             foreach ($nominations as $nomination) {
                 $meeting->participants()->create([
@@ -72,6 +72,8 @@ class ConvertInterDirectorateRequestToMeeting
                     'role' => $nomination->nominated_by_unit_id === $requester->id ? 'REQUESTING' : 'TARGET',
                 ]);
             }
+            app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
+            app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
             $this->record($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value);

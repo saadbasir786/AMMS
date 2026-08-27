@@ -18,6 +18,7 @@ import { MeetingParticipantsCard } from '../components/meeting-participants-card
 import { MeetingActionsCard } from '../components/meeting-actions-card'
 import { MeetingTimelineCard } from '../components/meeting-timeline-card'
 import type { MeetingItem } from '../types'
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'outline' | 'destructive' | 'secondary' }> = {
   SCHEDULED: { label: 'زمان‌بندی‌شده', variant: 'secondary' },
@@ -41,8 +42,11 @@ export function MeetingDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/meetings/${id}`)
-      setMeeting(apiData(res))
+      const [res, capabilities] = await Promise.all([
+        api.get(`/meetings/${id}`),
+        fetchMeetingActionCapabilities(id),
+      ])
+      setMeeting({ ...apiData(res), action_capabilities: capabilities })
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||

@@ -20,6 +20,7 @@ use App\Http\Requests\UpdateMeetingRequestRequest;
 use App\Http\Resources\MeetingRequestResource;
 use App\Models\MeetingRequest;
 use App\Services\MeetingRequestService;
+use App\Support\MeetingRequestActionCapabilities;
 use Illuminate\Http\Request;
 
 class MeetingRequestController extends Controller
@@ -59,6 +60,16 @@ class MeetingRequestController extends Controller
     {
         $this->authorize('view', $meetingRequest);
         return (new MeetingRequestResource($meetingRequest->load(['requestingUnit','units.unit','creator.employee','coordinator','approver','participants.employee.unit','nominations.employee.unit','unitReviews.unit','participantConfirmations.unit','scheduleProposals.proposedByUnit','scheduleProposals.acceptances.unit','attachments','actions.actor','meeting.units.unit','meeting.participants.employee','meeting.chairperson','authorityContext.authorityOfficeUnit','authorityContext.authorityPosition','authorityContext.authorityEmployee','authorityContext.currentDirectiveVersion','authorityContext.organizationAuthority','authorityScheduleAcknowledgements','authorityScheduleUnitAcknowledgements.unit','authorityParticipantConfirmations','directiveVersions.preparedBy','directiveVersions.issuer','currentDirectiveVersion','unitResponses.unit','unitResponses.directiveVersion','unitResponses.coordinationStarter','unitResponses.acknowledger','directiveClarifications.unit','directiveClarifications.requester','directiveClarifications.responder'])))->additional(['success'=>true,'message'=>'جزئیات درخواست.']);
+    }
+
+    public function actionCapabilities(Request $request, MeetingRequest $meetingRequest, MeetingRequestActionCapabilities $capabilities)
+    {
+        $this->authorize('view', $meetingRequest);
+
+        return response()->json([
+            'success' => true,
+            'data' => $capabilities->resolve($meetingRequest, $request->user()),
+        ]);
     }
 
     public function update(UpdateMeetingRequestRequest $request, MeetingRequest $meetingRequest, UpdateInterDirectorateMeetingRequest $flow02Update)

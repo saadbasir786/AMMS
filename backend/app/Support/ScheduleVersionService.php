@@ -61,6 +61,26 @@ class ScheduleVersionService
         ]);
     }
 
+    public function ensureInitialVersion(Meeting $meeting, int $createdBy): MeetingScheduleVersion
+    {
+        $version = $meeting->scheduleVersions()->where('version_number', 1)->first();
+
+        if (!$version) {
+            $version = $this->createNext($meeting, [
+                'meeting_date' => $meeting->meeting_date,
+                'start_time' => $meeting->start_time,
+                'end_time' => $meeting->end_time,
+                'location' => $meeting->location,
+            ], $createdBy);
+        }
+
+        if ((int) $meeting->current_schedule_version_id !== (int) $version->id) {
+            $this->applyToMeeting($meeting, $version);
+        }
+
+        return $version;
+    }
+
     public function applyToMeeting(Meeting $meeting, MeetingScheduleVersion $version): void
     {
         $meeting->update([

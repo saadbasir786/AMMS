@@ -171,7 +171,12 @@ class MeetingRequestService
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
+            $meeting->units()->create([
+                'organizational_unit_id' => $locked->requesting_unit_id,
+                'role' => 'REQUESTING',
+            ]);
             foreach ($locked->participants->where('participant_type', 'FINAL') as $participant) $meeting->participants()->create(['employee_id' => $participant->employee_id, 'organizational_unit_id' => $participant->employee->organizational_unit_id]);
+            app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $current->value;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);

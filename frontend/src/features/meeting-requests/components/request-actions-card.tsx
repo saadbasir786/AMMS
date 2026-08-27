@@ -15,11 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
+import type { MeetingRequestActionCapabilities } from '../lib/request-capabilities'
 
 type RequestActionsCardProps = {
   request: any
-  canApprove: boolean
-  canManage: boolean
+  capabilities: MeetingRequestActionCapabilities
   onAction: (url: string, body?: any) => Promise<void>
   onEdit?: () => void
   onScheduling?: () => void
@@ -27,8 +27,7 @@ type RequestActionsCardProps = {
 
 export function RequestActionsCard({
   request,
-  canApprove,
-  canManage,
+  capabilities,
   onAction,
   onEdit,
   onScheduling,
@@ -57,12 +56,8 @@ export function RequestActionsCard({
     }
   }
 
-  const isDraft = request.status === 'DRAFT'
-  const isReturned = request.status === 'RETURNED_FOR_REVISION'
-  const isPendingApproval = request.status === 'PENDING_INTERNAL_APPROVAL'
-  const isApproved = request.status === 'APPROVED'
-  const isScheduling = ['SCHEDULING', 'SCHEDULE_CONFIRMED'].includes(request.status)
   const hasMeeting = !!request.meeting
+  const hasAction = Object.values(capabilities).some(Boolean) || hasMeeting
 
   return (
     <Card className="border border-border/70 shadow-xs" dir="rtl">
@@ -84,7 +79,7 @@ export function RequestActionsCard({
         )}
 
         {/* Draft State */}
-        {isDraft && (
+        {capabilities.submit && (
           <Button
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2"
             disabled={!!busyAction}
@@ -100,7 +95,7 @@ export function RequestActionsCard({
         )}
 
         {/* Returned for Revision */}
-        {isReturned && onEdit && (
+        {capabilities.edit && onEdit && (
           <Button
             variant="outline"
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 border-primary text-primary hover:bg-primary/5"
@@ -112,9 +107,9 @@ export function RequestActionsCard({
         )}
 
         {/* Pending Approval (Director Actions) */}
-        {isPendingApproval && canApprove && (
+        {(capabilities.approve || capabilities.return_for_revision || capabilities.reject) && (
           <div className="space-y-2.5">
-            <Button
+            {capabilities.approve && <Button
               className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               disabled={!!busyAction}
               onClick={() => run('approve')}
@@ -125,9 +120,9 @@ export function RequestActionsCard({
                 <CheckCircle2 className="size-4" />
               )}
               <span>تأیید درخواست جلسه</span>
-            </Button>
+            </Button>}
 
-            <div className="space-y-1.5 pt-1">
+            {(capabilities.return_for_revision || capabilities.reject) && <div className="space-y-1.5 pt-1">
               <label className="text-[11px] font-semibold text-muted-foreground block">
                 توضیحات یا دلیل (در صورت برگشت یا رد):
               </label>
@@ -138,10 +133,10 @@ export function RequestActionsCard({
                 onChange={(e) => setReason(e.target.value)}
                 className="text-xs rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 resize-y"
               />
-            </div>
+            </div>}
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button
+            {(capabilities.return_for_revision || capabilities.reject) && <div className="grid grid-cols-2 gap-2">
+              {capabilities.return_for_revision && <Button
                 type="button"
                 variant="outline"
                 className="h-9 text-xs font-semibold rounded-xl gap-1.5 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
@@ -156,9 +151,9 @@ export function RequestActionsCard({
               >
                 <RotateCcw className="size-3.5" />
                 <span>برگشت جهت اصلاح</span>
-              </Button>
+              </Button>}
 
-              <Button
+              {capabilities.reject && <Button
                 type="button"
                 variant="destructive"
                 className="h-9 text-xs font-semibold rounded-xl gap-1.5"
@@ -174,13 +169,13 @@ export function RequestActionsCard({
               >
                 <XCircle className="size-3.5" />
                 <span>رد درخواست</span>
-              </Button>
-            </div>
+              </Button>}
+            </div>}
           </div>
         )}
 
         {/* Approved -> Start Scheduling */}
-        {isApproved && canManage && (
+        {capabilities.start_scheduling && (
           <Button
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white"
             disabled={!!busyAction}
@@ -196,7 +191,7 @@ export function RequestActionsCard({
         )}
 
         {/* Scheduling In-Progress */}
-        {isScheduling && onScheduling && (
+        {capabilities.open_scheduling && onScheduling && (
           <Button
             variant="outline"
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 border-primary text-primary hover:bg-primary/5"
@@ -215,6 +210,12 @@ export function RequestActionsCard({
               <span>مشاهده جلسه ایجادشده</span>
             </a>
           </Button>
+        )}
+
+        {!hasAction && (
+          <p className="rounded-xl border border-border/70 bg-muted/40 px-3 py-3 text-center text-[11px] leading-5 text-muted-foreground">
+            در وضعیت فعلی، اقدامی برای شما وجود ندارد.
+          </p>
         )}
       </CardContent>
 

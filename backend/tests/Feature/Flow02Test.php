@@ -75,7 +75,12 @@ class Flow02Test extends TestCase
         $final->assertOk()->assertJsonPath('data.status', 'SCHEDULED');
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
         $this->assertSame(1, Meeting::where('meeting_request_id', $request->id)->count());
-        $this->assertSame(2, \App\Models\MeetingUnit::where('meeting_id', Meeting::where('meeting_request_id', $request->id)->value('id'))->count());
+        $meeting = Meeting::where('meeting_request_id', $request->id)->firstOrFail();
+        $this->assertDatabaseHas('meeting_units', ['meeting_id' => $meeting->id, 'organizational_unit_id' => $tech->id, 'role' => 'REQUESTING']);
+        $this->assertDatabaseHas('meeting_units', ['meeting_id' => $meeting->id, 'organizational_unit_id' => $finance->id, 'role' => 'PARTICIPATING']);
+        $this->actingAs($financeExec, 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule-cases", [
+            'reason' => 'نیاز به بررسی دوبارهٔ زمان جلسه.',
+        ])->assertCreated();
         $this->assertDatabaseHas('meeting_request_actions', ['meeting_request_id' => $request->id, 'action' => 'REQUESTER_APPROVED']);
         $this->assertDatabaseHas('meeting_request_actions', ['meeting_request_id' => $request->id, 'action' => 'TARGET_APPROVED']);
         $this->assertDatabaseHas('meeting_request_actions', ['meeting_request_id' => $request->id, 'action' => 'BILATERAL_APPROVED']);

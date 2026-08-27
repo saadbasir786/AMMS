@@ -53,6 +53,41 @@ export type MeetingItem = {
   }[]
   created_at: string
   updated_at: string
+  action_capabilities?: MeetingActionCapabilities
+}
+
+export type MeetingActionCapabilities = {
+  execution: { view: boolean; start: boolean; end: boolean }
+  minutes: {
+    view: boolean
+    prepare: boolean
+    submit: boolean
+    review: boolean
+    approve_authority: boolean
+    finalize: boolean
+    document: boolean
+  }
+  terminals: { view: boolean; assign: boolean; refresh: boolean; revoke: boolean }
+  reschedule: {
+    view: boolean
+    create: boolean
+    propose: boolean
+    acknowledge: boolean
+    request_alternative: boolean
+    confirm: boolean
+    resolve_alternative: boolean
+  }
+  participant_change: { view: boolean; create: boolean; manage: boolean; confirm: boolean }
+  exceptions: {
+    view: boolean
+    create: boolean
+    submit: boolean
+    withdraw: boolean
+    apply: boolean
+    acknowledge: boolean
+    approve: boolean
+  }
+  follow_up: { view: boolean; initialize: boolean }
 }
 
 export type MeetingFilters = {
@@ -287,4 +322,3 @@ export type MeetingExceptionData = {
   }
   data?: ExceptionCase[]
 }
-

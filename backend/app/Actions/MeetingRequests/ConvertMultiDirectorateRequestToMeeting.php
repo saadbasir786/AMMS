@@ -80,6 +80,8 @@ class ConvertMultiDirectorateRequestToMeeting
                     'role' => $nomination->nominated_by_unit_id === $this->requesterUnit($locked)->id ? 'REQUESTING' : 'PARTICIPATING',
                 ]);
             }
+            app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
+            app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
 
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);

@@ -37,7 +37,7 @@ class MinutesDocumentBuilder
             'actual_ended_at' => $version->executionSession?->ended_at?->toIso8601String(),
             'chairperson' => (string) ($meeting->chairperson?->full_name ?? trim(($meeting->chairperson?->first_name ?? '').' '.($meeting->chairperson?->last_name ?? ''))),
             'formal_units' => $meeting->units
-                ->whereIn('role', ['REQUESTER', 'PARTICIPATING'])
+                ->whereIn('role', ['REQUESTING', 'PARTICIPATING'])
                 ->map(fn ($item): string => (string) ($item->unit?->name ?? ''))
                 ->values()
                 ->all(),

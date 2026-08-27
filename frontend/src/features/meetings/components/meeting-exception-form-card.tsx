@@ -8,11 +8,13 @@ import type { ExceptionCaseType } from '../types'
 
 type MeetingExceptionFormCardProps = {
   busy: boolean
+  canCreate?: boolean
   onCreateCase: (caseType: ExceptionCaseType, reason: string) => Promise<void>
 }
 
 export function MeetingExceptionFormCard({
   busy,
+  canCreate = false,
   onCreateCase,
 }: MeetingExceptionFormCardProps) {
   const [caseType, setCaseType] = useState<ExceptionCaseType>('POSTPONEMENT')
@@ -28,6 +30,8 @@ export function MeetingExceptionFormCard({
     await onCreateCase(caseType, reason)
     setReason('')
   }
+
+  if (!canCreate) return null
 
   return (
     <Card className="border border-border/70 shadow-xs" dir="rtl">

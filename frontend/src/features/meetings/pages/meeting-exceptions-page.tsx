@@ -31,12 +31,15 @@ import { api, apiData } from '@/lib/api-client'
 import { MeetingExceptionFormCard } from '../components/meeting-exception-form-card'
 import { MeetingExceptionCaseCard } from '../components/meeting-exception-case-card'
 import type { MeetingExceptionData, ExceptionCase, ExceptionCaseType } from '../types'
+import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
+import type { MeetingActionCapabilities } from '../types'
 
 export function MeetingExceptionsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [data, setData] = useState<MeetingExceptionData | null>(null)
+  const [capabilities, setCapabilities] = useState<MeetingActionCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,8 +61,12 @@ export function MeetingExceptionsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/meetings/${id}/exceptions`)
+      const [res, actionCapabilities] = await Promise.all([
+        api.get(`/meetings/${id}/exceptions`),
+        fetchMeetingActionCapabilities(id),
+      ])
       setData(apiData(res))
+      setCapabilities(actionCapabilities)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -257,6 +264,7 @@ export function MeetingExceptionsPage() {
             {/* Create Exception Case Form */}
             <MeetingExceptionFormCard
               busy={busy}
+              canCreate={capabilities?.exceptions.create === true}
               onCreateCase={handleCreateCase}
             />
 
@@ -269,6 +277,11 @@ export function MeetingExceptionsPage() {
                   busy={busy}
                   onAction={handleAction}
                   onReviewAction={handleReviewAction}
+                  canSubmit={capabilities?.exceptions.submit === true}
+                  canWithdraw={capabilities?.exceptions.withdraw === true}
+                  canApply={capabilities?.exceptions.apply === true}
+                  canAcknowledge={capabilities?.exceptions.acknowledge === true}
+                  canApprove={capabilities?.exceptions.approve === true}
                 />
               ))}
             </div>

@@ -43,6 +43,17 @@ class Flow01Test extends TestCase
         $this->assertSame(1, Meeting::where('meeting_request_id',$request->id)->count());
         $this->assertSame('MT-'.now()->format('Y').'-00001', Meeting::where('meeting_request_id',$request->id)->firstOrFail()->meeting_number);
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
+        $meeting = Meeting::where('meeting_request_id',$request->id)->firstOrFail();
+        $this->assertNotNull($meeting->current_schedule_version_id);
+        $this->assertDatabaseHas('meeting_units', [
+            'meeting_id' => $meeting->id,
+            'organizational_unit_id' => $tech->id,
+            'role' => 'REQUESTING',
+        ]);
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule-cases", [
+            'reason' => 'نیاز به هماهنگی مجدد زمان جلسه.',
+        ])->assertCreated();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meetings/{$meeting->id}/execution/start")->assertOk();
         $this->assertSame('MR-'.now()->format('Y').'-00001', $request->fresh()->request_number);
         $this->assertGreaterThanOrEqual(5, $request->actions()->count());
         $this->assertGreaterThanOrEqual(1, $director->fresh()->notifications()->where('title','جلسه ایجاد شد')->count());
@@ -161,5 +172,48 @@ class Flow01Test extends TestCase
         $request = MeetingRequest::latest('id')->firstOrFail();
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
         $this->actingAs($financeDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertStatus(403)->assertJsonPath('code','UNAUTHORIZED_APPROVER');
+    }
+
+    public function test_request_action_capabilities_are_scoped_to_the_current_workflow_step(): void
+    {
+        $exec = User::where('email', 'tech.exec@example.test')->firstOrFail();
+        $director = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+        $employee = Employee::where('employee_number', 'EMP-TECH-003')->firstOrFail();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', [
+            'requesting_unit_id' => $tech->id,
+            'subject' => 'قابلیت‌های اقدامات قابل انجام',
+            'purpose' => 'COORDINATION',
+            'priority' => 'NORMAL',
+            'participant_ids' => [$employee->id],
+        ])->assertCreated();
+
+        $request = MeetingRequest::latest('id')->firstOrFail();
+
+        $this->actingAs($exec, 'sanctum')
+            ->getJson("/api/meeting-requests/{$request->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.edit', true)
+            ->assertJsonPath('data.submit', true)
+            ->assertJsonPath('data.approve', false);
+
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
+
+        $this->actingAs($director, 'sanctum')
+            ->getJson("/api/meeting-requests/{$request->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.approve', true)
+            ->assertJsonPath('data.return_for_revision', true)
+            ->assertJsonPath('data.reject', true)
+            ->assertJsonPath('data.start_scheduling', false);
+
+        $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk();
+
+        $this->actingAs($exec, 'sanctum')
+            ->getJson("/api/meeting-requests/{$request->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.start_scheduling', true)
+            ->assertJsonPath('data.approve', false);
     }
 }

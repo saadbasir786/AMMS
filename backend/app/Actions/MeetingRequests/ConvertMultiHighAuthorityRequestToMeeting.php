@@ -67,6 +67,8 @@ class ConvertMultiHighAuthorityRequestToMeeting
             foreach ($unitNominations as $nomination) $meeting->participants()->create(['employee_id' => $nomination->employee_id, 'organizational_unit_id' => $nomination->nominated_by_unit_id, 'role' => $nomination->nominated_by_unit_id === $this->requesterUnit($locked)->id ? 'REQUESTING' : 'PARTICIPATING']);
             foreach ($authorityNominations as $nomination) $meeting->participants()->create(['employee_id' => $nomination->employee_id, 'organizational_unit_id' => $nomination->organizational_unit_id, 'role' => $nomination->employee_id === $holder->id ? 'HIGH_AUTHORITY' : 'AUTHORITY_SUPPORT']);
             $meeting->authorityContext()->create(['organization_authority_id' => $context->organization_authority_id, 'authority_type' => $context->authority_type, 'authority_position_id' => $context->authority_position_id, 'authority_employee_id' => $holder->id, 'authority_office_unit_id' => $context->authority_office_unit_id]);
+            app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
+            app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
             $this->record($locked, $actor, 'MEETING_CREATED', $from, $locked->status, null, ['meeting_id' => $meeting->id, 'unit_ids' => $formalIds->all(), 'authority_employee_id' => $holder->id]);

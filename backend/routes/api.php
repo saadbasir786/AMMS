@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/organizational-units', [AdminController::class, 'units']);
     Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
     Route::get('/meetings', [DirectoryController::class, 'meetings']);
+    Route::get('/meetings/{meeting}/action-capabilities', [DirectoryController::class, 'meetingActionCapabilities']);
     Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
     Route::get('/meetings/{meeting}/execution', [MeetingExecutionController::class, 'show']);
     Route::post('/meetings/{meeting}/execution/start', [MeetingExecutionController::class, 'start']);
@@ -147,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/incoming-multi-directorate-meeting-requests', [MultiDirectorateMeetingRequestController::class, 'incoming']);
     Route::get('/incoming-meeting-requests', [InterDirectorateMeetingRequestController::class, 'incoming']);
     Route::post('/meeting-requests', [MeetingRequestController::class, 'store']);
+    Route::get('/meeting-requests/{meetingRequest}/action-capabilities', [MeetingRequestController::class, 'actionCapabilities']);
     Route::get('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'show']);
     Route::put('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'update']);
     Route::post('/meeting-requests/{meetingRequest}/submit', [MeetingRequestController::class, 'submit']);

@@ -37,6 +37,11 @@ type MeetingExceptionCaseCardProps = {
   busy: boolean
   onAction: (kind: string, item: ExceptionCase) => void
   onReviewAction: (reviewId: number, action: 'acknowledge' | 'approve') => Promise<void>
+  canSubmit?: boolean
+  canWithdraw?: boolean
+  canApply?: boolean
+  canAcknowledge?: boolean
+  canApprove?: boolean
 }
 
 export function MeetingExceptionCaseCard({
@@ -44,6 +49,11 @@ export function MeetingExceptionCaseCard({
   busy,
   onAction,
   onReviewAction,
+  canSubmit = false,
+  canWithdraw = false,
+  canApply = false,
+  canAcknowledge = false,
+  canApprove = false,
 }: MeetingExceptionCaseCardProps) {
   const statusCfg = STATUS_LABELS[item.status] || {
     label: item.status,
@@ -151,9 +161,9 @@ export function MeetingExceptionCaseCard({
                       {r.status === 'APPROVED' ? 'تأییدشده' : r.status === 'ACKNOWLEDGED' ? 'تأیید دریافت' : 'در انتظار'}
                     </Badge>
 
-                    {r.status === 'PENDING' && (
+                    {r.status === 'PENDING' && (canAcknowledge || canApprove) && (
                       <div className="flex gap-1.5">
-                        <Button
+                        {canAcknowledge && <Button
                           size="sm"
                           variant="outline"
                           disabled={busy}
@@ -161,15 +171,15 @@ export function MeetingExceptionCaseCard({
                           className="h-7.5 text-xs font-semibold rounded-lg"
                         >
                           تأیید دریافت
-                        </Button>
-                        <Button
+                        </Button>}
+                        {canApprove && <Button
                           size="sm"
                           disabled={busy}
                           onClick={() => onReviewAction(r.id, 'approve')}
                           className="h-7.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                           تأیید
-                        </Button>
+                        </Button>}
                       </div>
                     )}
                   </div>
@@ -181,7 +191,7 @@ export function MeetingExceptionCaseCard({
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-          {item.status === 'DRAFT' && (
+          {item.status === 'DRAFT' && canSubmit && (
             <Button
               disabled={busy}
               onClick={() => onAction('submit', item)}
@@ -192,7 +202,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {['DRAFT', 'UNDER_REVIEW', 'RETURNED_FOR_CORRECTION'].includes(item.status) && (
+          {['DRAFT', 'UNDER_REVIEW', 'RETURNED_FOR_CORRECTION'].includes(item.status) && canWithdraw && (
             <Button
               variant="outline"
               disabled={busy}
@@ -204,7 +214,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {item.status === 'READY_TO_APPLY' && item.case_type !== 'RESUMPTION' && (
+          {item.status === 'READY_TO_APPLY' && item.case_type !== 'RESUMPTION' && canApply && (
             <Button
               disabled={busy}
               onClick={() => onAction('apply', item)}
@@ -215,7 +225,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {item.status === 'READY_TO_APPLY' && item.case_type === 'RESUMPTION' && (
+          {item.status === 'READY_TO_APPLY' && item.case_type === 'RESUMPTION' && canApply && (
             <Button
               disabled={busy}
               onClick={() => onAction('resume_modal', item)}

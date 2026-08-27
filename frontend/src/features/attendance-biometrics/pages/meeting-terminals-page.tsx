@@ -30,12 +30,15 @@ import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData } from '@/lib/api-client'
 import { AssignTerminalCard } from '../components/assign-terminal-card'
 import type { MeetingTerminalsData, TerminalAssignment } from '../types'
+import { fetchMeetingActionCapabilities } from '@/features/meetings/lib/meeting-capabilities'
+import type { MeetingActionCapabilities } from '@/features/meetings/types'
 
 export function MeetingTerminalsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [data, setData] = useState<MeetingTerminalsData | null>(null)
+  const [capabilities, setCapabilities] = useState<MeetingActionCapabilities | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,8 +52,12 @@ export function MeetingTerminalsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/meetings/${id}/terminals`)
+      const [res, actionCapabilities] = await Promise.all([
+        api.get(`/meetings/${id}/terminals`),
+        fetchMeetingActionCapabilities(id),
+      ])
       setData(apiData(res))
+      setCapabilities(actionCapabilities)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -122,6 +129,9 @@ export function MeetingTerminalsPage() {
   const meeting = data?.meeting
   const assignments = data?.assignments || []
   const availableTerminals = data?.available_terminals || []
+  const canAssign = capabilities?.terminals.assign === true
+  const canRefresh = capabilities?.terminals.refresh === true
+  const canRevoke = capabilities?.terminals.revoke === true
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -230,11 +240,13 @@ export function MeetingTerminalsPage() {
       </div>
 
       {/* Assign Terminal Card */}
-      <AssignTerminalCard
-        availableTerminals={availableTerminals}
-        busy={busy}
-        onAssign={handleAssign}
-      />
+      {canAssign && (
+        <AssignTerminalCard
+          availableTerminals={availableTerminals}
+          busy={busy}
+          onAssign={handleAssign}
+        />
+      )}
 
       {/* Loading Skeleton */}
       {loading && (
@@ -328,7 +340,7 @@ export function MeetingTerminalsPage() {
                         {/* Actions */}
                         <td className="py-3.5 px-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-2">
-                            {a.is_stale && (
+                            {a.is_stale && canRefresh && (
                               <Button
                                 size="sm"
                                 disabled={busy}
@@ -340,7 +352,7 @@ export function MeetingTerminalsPage() {
                               </Button>
                             )}
 
-                            {!['REVOKED', 'EXPIRED'].includes(a.status) && (
+                            {!['REVOKED', 'EXPIRED'].includes(a.status) && canRevoke && (
                               <Button
                                 size="sm"
                                 variant="ghost"

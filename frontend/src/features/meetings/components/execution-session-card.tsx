@@ -22,6 +22,8 @@ type ExecutionSessionCardProps = {
   onStart: (notes: string) => Promise<void>
   onEnd: (notes: string) => Promise<void>
   onGoToMinutes?: () => void
+  canStart?: boolean
+  canEnd?: boolean
 }
 
 export function ExecutionSessionCard({
@@ -30,6 +32,8 @@ export function ExecutionSessionCard({
   onStart,
   onEnd,
   onGoToMinutes,
+  canStart = false,
+  canEnd = false,
 }: ExecutionSessionCardProps) {
   const [notes, setNotes] = useState('')
   const [confirmEndOpen, setConfirmEndOpen] = useState(false)
@@ -131,7 +135,7 @@ export function ExecutionSessionCard({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-          {isScheduled && (
+          {isScheduled && canStart && (
             <Button
               disabled={busy}
               onClick={handleStart}
@@ -142,7 +146,7 @@ export function ExecutionSessionCard({
             </Button>
           )}
 
-          {isInProgress && (
+          {isInProgress && canEnd && (
             <Button
               variant="destructive"
               disabled={busy}
