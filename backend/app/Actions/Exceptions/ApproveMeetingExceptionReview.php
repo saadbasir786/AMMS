@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Exceptions;
 
-use App\Actions\Exceptions\Concerns\Flow13ActionSupport;
+use App\Actions\Exceptions\Concerns\ExceptionWorkflowSupport;
 use App\Models\MeetingExceptionCase;
 use App\Models\MeetingExceptionReview;
 use App\Models\User;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class ApproveMeetingExceptionReview
 {
-    use Flow13ActionSupport;
+    use ExceptionWorkflowSupport;
 
     public function execute(MeetingExceptionReview $review, User $actor): MeetingExceptionReview
     {

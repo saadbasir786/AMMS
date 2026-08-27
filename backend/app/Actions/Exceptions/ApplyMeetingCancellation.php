@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Exceptions;
 
-use App\Actions\Exceptions\Concerns\Flow13ActionSupport;
-use App\Actions\Exceptions\Concerns\Flow13MeetingStateSupport;
+use App\Actions\Exceptions\Concerns\ExceptionWorkflowSupport;
+use App\Actions\Exceptions\Concerns\ExceptionMeetingStateSupport;
 use App\Models\Meeting;
 use App\Models\MeetingAttendanceInvalidation;
 use App\Models\MeetingExceptionCase;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class ApplyMeetingCancellation
 {
-    use Flow13ActionSupport, Flow13MeetingStateSupport;
+    use ExceptionWorkflowSupport, ExceptionMeetingStateSupport;
 
     public function __construct(private MeetingExceptionGovernanceResolver $governance) {}
 

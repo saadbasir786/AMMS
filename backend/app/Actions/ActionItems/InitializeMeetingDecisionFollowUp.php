@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\ActionItems;
 
-use App\Actions\ActionItems\Concerns\Flow12ActionSupport;
+use App\Actions\ActionItems\Concerns\ActionItemWorkflowSupport;
 use App\Models\Meeting;
 use App\Models\MeetingDecisionFollowUp;
 use App\Models\User;
@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 class InitializeMeetingDecisionFollowUp
 {
-    use Flow12ActionSupport;
+    use ActionItemWorkflowSupport;
 
     public function execute(Meeting $meeting, User $actor): Collection
     {

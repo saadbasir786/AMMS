@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\ActionItems;
 
-use App\Actions\ActionItems\Concerns\Flow12ActionSupport;
+use App\Actions\ActionItems\Concerns\ActionItemWorkflowSupport;
 use App\Models\MeetingActionItem;
 use App\Models\MeetingActionItemEvidence;
 use App\Models\User;
@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class UploadActionItemEvidence
 {
-    use Flow12ActionSupport;
+    use ActionItemWorkflowSupport;
 
     public function execute(MeetingActionItem $item, User $actor, UploadedFile $file, ?int $updateId = null): MeetingActionItemEvidence
     {

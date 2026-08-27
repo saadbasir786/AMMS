@@ -35,7 +35,6 @@ enum MeetingRequestStatus: string
     case DIRECTORATE_ACTION_REQUIRED = 'DIRECTORATE_ACTION_REQUIRED';
     case DIRECTORATES_APPROVED = 'DIRECTORATES_APPROVED';
     case REJECTED_BY_PARTICIPATING_DIRECTORATE = 'REJECTED_BY_PARTICIPATING_DIRECTORATE';
-
     case SUBMITTED_TO_AUTHORITY_OFFICE = 'SUBMITTED_TO_AUTHORITY_OFFICE';
     case UNDER_AUTHORITY_OFFICE_REVIEW = 'UNDER_AUTHORITY_OFFICE_REVIEW';
     case RETURNED_BY_AUTHORITY_OFFICE = 'RETURNED_BY_AUTHORITY_OFFICE';
@@ -54,7 +53,6 @@ enum MeetingRequestStatus: string
     case PENDING_HIGH_AUTHORITY_REISSUANCE = 'PENDING_HIGH_AUTHORITY_REISSUANCE';
     case DIRECTORATES_ACKNOWLEDGED = 'DIRECTORATES_ACKNOWLEDGED';
 
-    /** @return array<string, list<self>> */
     public static function transitions(): array
     {
         return [
@@ -64,49 +62,43 @@ enum MeetingRequestStatus: string
             self::APPROVED->value => [self::SCHEDULING],
             self::SCHEDULING->value => [self::SCHEDULE_CONFIRMED],
             self::SCHEDULE_CONFIRMED->value => [self::CONVERTED_TO_MEETING],
-            self::REJECTED->value => [],
-            self::CONVERTED_TO_MEETING->value => [],
 
             self::PENDING_REQUESTER_APPROVAL->value => [self::REQUESTER_APPROVED, self::RETURNED_TO_REQUESTER, self::REJECTED_INTERNAL],
             self::RETURNED_TO_REQUESTER->value => [self::PENDING_REQUESTER_APPROVAL],
-            self::REQUESTER_APPROVED->value => [self::SUBMITTED_TO_TARGET, self::SUBMITTED_TO_TARGETS, self::SUBMITTED_TO_PARTICIPATING_DIRECTORATES],
-            self::REJECTED_INTERNAL->value => [],
+            self::REQUESTER_APPROVED->value => [self::SUBMITTED_TO_TARGET, self::SUBMITTED_TO_TARGETS, self::SUBMITTED_TO_AUTHORITY_OFFICE, self::SUBMITTED_TO_PARTICIPATING_DIRECTORATES],
             self::SUBMITTED_TO_TARGET->value => [self::UNDER_TARGET_REVIEW],
             self::UNDER_TARGET_REVIEW->value => [self::TARGET_APPROVED, self::RETURNED_BY_TARGET, self::REJECTED_BY_TARGET],
-            self::RETURNED_BY_TARGET->value => [self::RESUBMITTED_TO_TARGET, self::PENDING_REQUESTER_APPROVAL],
+            self::RETURNED_BY_TARGET->value => [self::RESUBMITTED_TO_TARGET],
             self::RESUBMITTED_TO_TARGET->value => [self::UNDER_TARGET_REVIEW],
             self::TARGET_APPROVED->value => [self::BILATERAL_APPROVED],
-            self::REJECTED_BY_TARGET->value => [],
             self::BILATERAL_APPROVED->value => [self::SCHEDULING],
 
             self::SUBMITTED_TO_TARGETS->value => [self::UNDER_MULTI_TARGET_REVIEW],
-            self::UNDER_MULTI_TARGET_REVIEW->value => [self::TARGET_ACTION_REQUIRED, self::REJECTED_BY_TARGET, self::MULTILATERAL_APPROVED],
-            self::TARGET_ACTION_REQUIRED->value => [self::UNDER_MULTI_TARGET_REVIEW, self::PENDING_REQUESTER_APPROVAL],
+            self::UNDER_MULTI_TARGET_REVIEW->value => [self::MULTILATERAL_APPROVED, self::TARGET_ACTION_REQUIRED, self::REJECTED_BY_TARGET],
+            self::TARGET_ACTION_REQUIRED->value => [self::UNDER_MULTI_TARGET_REVIEW],
             self::MULTILATERAL_APPROVED->value => [self::SCHEDULING],
 
-            self::SUBMITTED_TO_PARTICIPATING_DIRECTORATES->value => [self::UNDER_PARTICIPATING_REVIEW],
-            self::UNDER_PARTICIPATING_REVIEW->value => [self::DIRECTORATE_ACTION_REQUIRED, self::REJECTED_BY_PARTICIPATING_DIRECTORATE, self::DIRECTORATES_APPROVED],
-            self::DIRECTORATE_ACTION_REQUIRED->value => [self::UNDER_PARTICIPATING_REVIEW, self::PENDING_REQUESTER_APPROVAL],
-            self::DIRECTORATES_APPROVED->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE],
-            self::REJECTED_BY_PARTICIPATING_DIRECTORATE->value => [],
-
             self::SUBMITTED_TO_AUTHORITY_OFFICE->value => [self::UNDER_AUTHORITY_OFFICE_REVIEW],
-            self::UNDER_AUTHORITY_OFFICE_REVIEW->value => [self::RETURNED_BY_AUTHORITY_OFFICE, self::PENDING_HIGH_AUTHORITY_DECISION],
+            self::UNDER_AUTHORITY_OFFICE_REVIEW->value => [self::PENDING_HIGH_AUTHORITY_DECISION, self::RETURNED_BY_AUTHORITY_OFFICE],
             self::RETURNED_BY_AUTHORITY_OFFICE->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE],
-            self::PENDING_HIGH_AUTHORITY_DECISION->value => [self::RETURNED_BY_HIGH_AUTHORITY, self::HIGH_AUTHORITY_APPROVED, self::REJECTED_BY_HIGH_AUTHORITY],
-            self::RETURNED_BY_HIGH_AUTHORITY->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE, self::PENDING_REQUESTER_APPROVAL],
+            self::PENDING_HIGH_AUTHORITY_DECISION->value => [self::HIGH_AUTHORITY_APPROVED, self::RETURNED_BY_HIGH_AUTHORITY, self::REJECTED_BY_HIGH_AUTHORITY],
+            self::RETURNED_BY_HIGH_AUTHORITY->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE, self::UNDER_AUTHORITY_OFFICE_REVIEW],
             self::HIGH_AUTHORITY_APPROVED->value => [self::AUTHORITY_SCHEDULING],
-            self::REJECTED_BY_HIGH_AUTHORITY->value => [],
             self::AUTHORITY_SCHEDULING->value => [self::SCHEDULE_CONFIRMED],
 
-            self::PENDING_HIGH_AUTHORITY_ISSUANCE->value => [self::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION, self::ISSUED_BY_HIGH_AUTHORITY],
+            self::SUBMITTED_TO_PARTICIPATING_DIRECTORATES->value => [self::UNDER_PARTICIPATING_REVIEW],
+            self::UNDER_PARTICIPATING_REVIEW->value => [self::DIRECTORATES_APPROVED, self::DIRECTORATE_ACTION_REQUIRED, self::REJECTED_BY_PARTICIPATING_DIRECTORATE],
+            self::DIRECTORATE_ACTION_REQUIRED->value => [self::UNDER_PARTICIPATING_REVIEW],
+            self::DIRECTORATES_APPROVED->value => [self::SUBMITTED_TO_AUTHORITY_OFFICE],
+
+            self::PENDING_HIGH_AUTHORITY_ISSUANCE->value => [self::ISSUED_BY_HIGH_AUTHORITY, self::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION],
             self::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value => [self::PENDING_HIGH_AUTHORITY_ISSUANCE],
             self::ISSUED_BY_HIGH_AUTHORITY->value => [self::DISTRIBUTED_TO_DIRECTORATES],
-            self::DISTRIBUTED_TO_DIRECTORATES->value => [self::UNDER_DIRECTORATE_COORDINATION, self::DIRECTORATE_CLARIFICATION_REQUIRED, self::DIRECTORATES_ACKNOWLEDGED],
-            self::UNDER_DIRECTORATE_COORDINATION->value => [self::DIRECTORATE_CLARIFICATION_REQUIRED, self::DIRECTORATES_ACKNOWLEDGED],
+            self::DISTRIBUTED_TO_DIRECTORATES->value => [self::UNDER_DIRECTORATE_COORDINATION],
+            self::UNDER_DIRECTORATE_COORDINATION->value => [self::DIRECTORATES_ACKNOWLEDGED, self::DIRECTORATE_CLARIFICATION_REQUIRED],
             self::DIRECTORATE_CLARIFICATION_REQUIRED->value => [self::UNDER_DIRECTORATE_COORDINATION, self::PENDING_HIGH_AUTHORITY_REISSUANCE],
             self::PENDING_HIGH_AUTHORITY_REISSUANCE->value => [self::ISSUED_BY_HIGH_AUTHORITY],
-            self::DIRECTORATES_ACKNOWLEDGED->value => [self::AUTHORITY_SCHEDULING, self::PENDING_HIGH_AUTHORITY_REISSUANCE],
+            self::DIRECTORATES_ACKNOWLEDGED->value => [self::AUTHORITY_SCHEDULING],
         ];
     }
 
@@ -125,7 +117,7 @@ enum MeetingRequestStatus: string
         return $this === self::PENDING_INTERNAL_APPROVAL;
     }
 
-    public function isFlow03(): bool
+    public function isMultiDirectorate(): bool
     {
         return in_array($this, [
             self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED,
@@ -135,7 +127,7 @@ enum MeetingRequestStatus: string
         ], true);
     }
 
-    public function isFlow05(): bool
+    public function isMultiHighAuthority(): bool
     {
         return in_array($this, [
             self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED,
@@ -150,7 +142,7 @@ enum MeetingRequestStatus: string
         ], true);
     }
 
-    public function isFlow06(): bool
+    public function isAuthorityInitiated(): bool
     {
         return in_array($this, [
             self::DRAFT, self::PENDING_HIGH_AUTHORITY_ISSUANCE, self::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION,
@@ -161,7 +153,7 @@ enum MeetingRequestStatus: string
         ], true);
     }
 
-    public function isFlow04(): bool
+    public function isHighAuthority(): bool
     {
         return in_array($this, [
             self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED,
@@ -172,7 +164,7 @@ enum MeetingRequestStatus: string
         ], true);
     }
 
-    public function isFlow02(): bool
+    public function isInterDirectorate(): bool
     {
         return in_array($this, [
             self::PENDING_REQUESTER_APPROVAL, self::RETURNED_TO_REQUESTER, self::REQUESTER_APPROVED, self::REJECTED_INTERNAL,
@@ -180,6 +172,13 @@ enum MeetingRequestStatus: string
             self::TARGET_APPROVED, self::REJECTED_BY_TARGET, self::BILATERAL_APPROVED,
         ], true);
     }
+
+    // Backward-compatibility aliases
+    public function isFlow02(): bool { return $this->isInterDirectorate(); }
+    public function isFlow03(): bool { return $this->isMultiDirectorate(); }
+    public function isFlow04(): bool { return $this->isHighAuthority(); }
+    public function isFlow05(): bool { return $this->isMultiHighAuthority(); }
+    public function isFlow06(): bool { return $this->isAuthorityInitiated(); }
 
     public static function values(): array
     {

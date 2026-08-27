@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Exceptions;
 
-use App\Actions\Exceptions\Concerns\Flow13ActionSupport;
+use App\Actions\Exceptions\Concerns\ExceptionWorkflowSupport;
 use App\Models\Meeting;
 use App\Models\MeetingExceptionCase;
 use App\Models\MeetingExceptionCaseVersion;
@@ -17,7 +17,7 @@ use InvalidArgumentException;
 
 class CreateMeetingExceptionCase
 {
-    use Flow13ActionSupport;
+    use ExceptionWorkflowSupport;
 
     public function __construct(private MeetingExceptionGovernanceResolver $governance) {}
 

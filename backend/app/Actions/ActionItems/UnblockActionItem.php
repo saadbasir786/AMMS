@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\ActionItems;
 
-use App\Actions\ActionItems\Concerns\Flow12ActionSupport;
+use App\Actions\ActionItems\Concerns\ActionItemWorkflowSupport;
 use App\Models\MeetingActionItem;
 use App\Models\MeetingActionItemUpdate;
 use App\Models\User;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class UnblockActionItem
 {
-    use Flow12ActionSupport;
+    use ActionItemWorkflowSupport;
 
     public function execute(MeetingActionItem $item, User $actor, string $note): MeetingActionItem
     {
