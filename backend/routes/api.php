@@ -1,312 +1,35 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\DirectoryController;
-use App\Http\Controllers\Api\MeetingRequestController;
-use App\Http\Controllers\Api\MeetingRequestAttachmentController;
-use App\Http\Controllers\Api\InterDirectorateMeetingRequestController;
-use App\Http\Controllers\Api\MultiDirectorateMeetingRequestController;
-use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
-use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
-use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
-use App\Http\Controllers\Api\MeetingRescheduleController;
-use App\Http\Controllers\Api\MeetingParticipantChangeController;
-use App\Http\Controllers\Api\TerminalController;
-use App\Http\Controllers\Api\MeetingTerminalController;
-use App\Http\Controllers\Api\TerminalApiController;
-use App\Http\Controllers\Api\BiometricController;
-use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\MeetingExecutionController;
-use App\Http\Controllers\Api\MeetingMinutesController;
-use App\Http\Controllers\Api\DecisionFollowUpController;
-use App\Http\Controllers\Api\MeetingExceptionController;
-use App\Http\Controllers\Api\TerminalBiometricEnrollmentController;
-use App\Http\Controllers\Api\ReportingController;
-use App\Http\Controllers\Api\ReportExportController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login']);
+/*
+|--------------------------------------------------------------------------
+| AMMS API Modular Routes
+|--------------------------------------------------------------------------
+|
+| The API routes are organized by domain/feature modules mirroring
+| the frontend architecture. Each domain route file defines its own
+| endpoints, controllers, and middleware groups.
+|
+*/
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
-    Route::get('/dashboard', [DirectoryController::class, 'dashboard']);
-    Route::get('/reporting/dashboard/executive', [ReportingController::class, 'executive']);
-    Route::get('/reporting/dashboard/directorate/{unit?}', [ReportingController::class, 'directorate']);
-    Route::get('/reporting/dashboard/personal', [ReportingController::class, 'personal']);
-    Route::get('/reporting/dashboard/authority', [ReportingController::class, 'authority']);
-    Route::get('/reporting/dashboard/technical', [ReportingController::class, 'technical']);
-    Route::get('/reporting/meetings', [ReportingController::class, 'meetings']);
-    Route::get('/reporting/meeting-requests', [ReportingController::class, 'requests']);
-    Route::get('/reporting/attendance', [ReportingController::class, 'attendance']);
-    Route::get('/reporting/decisions', [ReportingController::class, 'decisions']);
-    Route::get('/reporting/action-items', [ReportingController::class, 'actionItems']);
-    Route::get('/reporting/exceptions', [ReportingController::class, 'exceptions']);
-    Route::get('/reporting/high-authority-meetings', [ReportingController::class, 'highAuthorityMeetings']);
-    Route::post('/reporting/exports', [ReportExportController::class, 'store']);
-    Route::get('/reporting/exports', [ReportExportController::class, 'index']);
-    Route::get('/reporting/exports/{export}', [ReportExportController::class, 'show']);
-    Route::get('/reporting/exports/{export}/download', [ReportExportController::class, 'download']);
-    Route::get('/approvals', [DirectoryController::class, 'approvals']);
-    Route::get('/notifications', [DirectoryController::class, 'notifications']);
-    Route::post('/notifications/{notification}/read', [DirectoryController::class, 'markNotificationRead']);
-    Route::get('/organizational-units', [DirectoryController::class, 'units']);
-    Route::get('/employees', [DirectoryController::class, 'employees']);
-    Route::get('/admin/users', [AdminController::class, 'users']);
-    Route::post('/admin/users', [AdminController::class, 'storeUser']);
-    Route::put('/admin/users/{user}', [AdminController::class, 'updateUser']);
-    Route::post('/admin/users/{user}/roles', [AdminController::class, 'assignRole']);
-    Route::get('/admin/employees', [AdminController::class, 'employees']);
+// Authentication & Profile (Public & Protected)
+require __DIR__.'/api/auth.php';
 
-    Route::get('/employees/{employee}/biometrics', [BiometricController::class, 'employee']);
-    Route::post('/biometric/enrollment-sessions', [BiometricController::class, 'start']);
-    Route::post('/biometric/enrollment-sessions/{enrollment}/complete', [BiometricController::class, 'complete']);
-    Route::post('/biometric/enrollment-sessions/{enrollment}/cancel', [BiometricController::class, 'cancel']);
-    Route::post('/biometric/templates/{template}/revoke', [BiometricController::class, 'revoke']);
-    Route::get('/meetings/{meeting}/attendance', [AttendanceController::class, 'index']);
-    Route::post('/meetings/{meeting}/attendance/manual', [AttendanceController::class, 'manual']);
-    Route::post('/admin/employees', [AdminController::class, 'storeEmployee']);
-    Route::put('/admin/employees/{employee}', [AdminController::class, 'updateEmployee']);
-    Route::post('/admin/employees/{employee}/deactivate', [AdminController::class, 'deactivateEmployee']);
-    Route::get('/admin/organizations', [AdminController::class, 'organizations']);
-    Route::get('/admin/organizational-units', [AdminController::class, 'units']);
-    Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
-    Route::get('/meetings', [DirectoryController::class, 'meetings']);
-    Route::get('/meetings/{meeting}/action-capabilities', [DirectoryController::class, 'meetingActionCapabilities']);
-    Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
-    Route::get('/meetings/{meeting}/execution', [MeetingExecutionController::class, 'show']);
-    Route::post('/meetings/{meeting}/execution/start', [MeetingExecutionController::class, 'start']);
-    Route::post('/meetings/{meeting}/execution/end', [MeetingExecutionController::class, 'end']);
-    Route::get('/meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
-    Route::post('/meetings/{meeting}/minutes/draft', [MeetingMinutesController::class, 'create']);
-    Route::put('/meetings/{meeting}/minutes/draft', [MeetingMinutesController::class, 'update']);
-    Route::post('/meetings/{meeting}/minutes/submit', [MeetingMinutesController::class, 'submit']);
-    Route::post('/meetings/{meeting}/minutes/reviews/correction', [MeetingMinutesController::class, 'correction']);
-    Route::post('/meetings/{meeting}/minutes/reviews/{unit}/acknowledge', [MeetingMinutesController::class, 'acknowledge']);
-    Route::post('/meetings/{meeting}/minutes/authority-approve', [MeetingMinutesController::class, 'authorityApprove']);
-    Route::post('/meetings/{meeting}/minutes/finalize', [MeetingMinutesController::class, 'finalize']);
-    Route::get('/meetings/{meeting}/minutes/final.pdf', [MeetingMinutesController::class, 'finalPdf']);
-    Route::get('/meetings/{meeting}/follow-up', [DecisionFollowUpController::class, 'meeting']);
-    Route::post('/meetings/{meeting}/follow-up/initialize', [DecisionFollowUpController::class, 'initialize']);
-    Route::post('/decisions/{decision}/follow-up/classify', [DecisionFollowUpController::class, 'classify']);
-    Route::post('/decisions/{decision}/action-items', [DecisionFollowUpController::class, 'storeActionItem']);
-    Route::post('/decisions/{decision}/follow-up/close', [DecisionFollowUpController::class, 'close']);
-    Route::get('/action-items', [DecisionFollowUpController::class, 'index']);
-    Route::get('/action-items/{actionItem}', [DecisionFollowUpController::class, 'show']);
-    Route::post('/action-items/{actionItem}/start', [DecisionFollowUpController::class, 'start']);
-    Route::post('/action-items/{actionItem}/progress', [DecisionFollowUpController::class, 'progress']);
-    Route::post('/action-items/{actionItem}/block', [DecisionFollowUpController::class, 'block']);
-    Route::post('/action-items/{actionItem}/unblock', [DecisionFollowUpController::class, 'unblock']);
-    Route::post('/action-items/{actionItem}/assignment', [DecisionFollowUpController::class, 'assignment']);
-    Route::post('/action-items/{actionItem}/extensions', [DecisionFollowUpController::class, 'extension']);
-    Route::post('/action-item-extensions/{extension}/approve', [DecisionFollowUpController::class, 'approveExtension']);
-    Route::post('/action-item-extensions/{extension}/reject', [DecisionFollowUpController::class, 'rejectExtension']);
-    Route::post('/action-items/{actionItem}/completion/submit', [DecisionFollowUpController::class, 'submit']);
-    Route::post('/action-items/{actionItem}/completion/verify', [DecisionFollowUpController::class, 'verify']);
-    Route::post('/action-items/{actionItem}/completion/return', [DecisionFollowUpController::class, 'returnCompletion']);
-    Route::post('/action-items/{actionItem}/cancel', [DecisionFollowUpController::class, 'cancel']);
-    Route::post('/action-items/{actionItem}/evidence', [DecisionFollowUpController::class, 'uploadEvidence']);
-    Route::get('/action-items/{actionItem}/evidence/{evidence}', [DecisionFollowUpController::class, 'downloadEvidence'])->name('action-items.evidence.download');
-    Route::get('/meetings/{meeting}/reschedule', [MeetingRescheduleController::class, 'workspace']);
-    Route::get('/meetings/{meeting}/schedule-history', [MeetingRescheduleController::class, 'history']);
-    Route::post('/meetings/{meeting}/reschedule-cases', [MeetingRescheduleController::class, 'createCase']);
-    Route::post('/meetings/{meeting}/reschedule/proposals', [MeetingRescheduleController::class, 'peerProposal']);
-    Route::post('/meetings/{meeting}/reschedule/authority-proposals', [MeetingRescheduleController::class, 'authorityProposal']);
-    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/acknowledge', [MeetingRescheduleController::class, 'acknowledge']);
-    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/request-alternative', [MeetingRescheduleController::class, 'requestAlternative']);
-    Route::post('/meetings/{meeting}/reschedule/alternative-requests/{alternative}/resolve', [MeetingRescheduleController::class, 'resolveAlternative']);
-    Route::post('/meetings/{meeting}/reschedule/confirm', [MeetingRescheduleController::class, 'confirm']);
-    Route::get('/meetings/{meeting}/participant-change', [MeetingParticipantChangeController::class, 'workspace']);
-    Route::get('/meetings/{meeting}/participant-history', [MeetingParticipantChangeController::class, 'history']);
-    Route::get('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'index']);
-    Route::post('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'store']);
-    Route::get('/meeting-exceptions/{case}', [MeetingExceptionController::class, 'show']);
-    Route::put('/meeting-exceptions/{case}/draft', [MeetingExceptionController::class, 'updateDraft']);
-    Route::post('/meeting-exceptions/{case}/submit', [MeetingExceptionController::class, 'submit']);
-    Route::post('/meeting-exception-reviews/{review}/acknowledge', [MeetingExceptionController::class, 'acknowledge']);
-    Route::post('/meeting-exception-reviews/{review}/approve', [MeetingExceptionController::class, 'approve']);
-    Route::post('/meeting-exception-reviews/{review}/correction', [MeetingExceptionController::class, 'correction']);
-    Route::post('/meeting-exceptions/{case}/reject', [MeetingExceptionController::class, 'reject']);
-    Route::post('/meeting-exceptions/{case}/withdraw', [MeetingExceptionController::class, 'withdraw']);
-    Route::post('/meeting-exceptions/{case}/apply', [MeetingExceptionController::class, 'apply']);
-    Route::post('/meeting-exceptions/{case}/resume', [MeetingExceptionController::class, 'resume']);
-    Route::post('/meetings/{meeting}/participant-change-cases', [MeetingParticipantChangeController::class, 'createCase']);
-    Route::put('/meetings/{meeting}/participant-change/{case}', [MeetingParticipantChangeController::class, 'updateCase']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/items', [MeetingParticipantChangeController::class, 'addItem']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/remove-item', [MeetingParticipantChangeController::class, 'removeItem']);
-    Route::delete('/meetings/{meeting}/participant-change/{case}/items/{item}', [MeetingParticipantChangeController::class, 'deleteItem']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/submit', [MeetingParticipantChangeController::class, 'submit']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/return', [MeetingParticipantChangeController::class, 'returnForCorrection']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/reject', [MeetingParticipantChangeController::class, 'reject']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/refresh-baseline', [MeetingParticipantChangeController::class, 'refreshBaseline']);
-    Route::post('/meetings/{meeting}/participant-change/{case}/confirm', [MeetingParticipantChangeController::class, 'confirm']);
+// Organization & Technical Administration
+require __DIR__.'/api/organization.php';
 
-    Route::get('/meeting-requests', [MeetingRequestController::class, 'index']);
-    Route::post('/meeting-requests/inter-directorate', [InterDirectorateMeetingRequestController::class, 'store']);
-    Route::post('/meeting-requests/multi-directorate', [MultiDirectorateMeetingRequestController::class, 'store']);
-    Route::get('/incoming-multi-directorate-meeting-requests', [MultiDirectorateMeetingRequestController::class, 'incoming']);
-    Route::get('/incoming-meeting-requests', [InterDirectorateMeetingRequestController::class, 'incoming']);
-    Route::post('/meeting-requests', [MeetingRequestController::class, 'store']);
-    Route::get('/meeting-requests/{meetingRequest}/action-capabilities', [MeetingRequestController::class, 'actionCapabilities']);
-    Route::get('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'show']);
-    Route::put('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'update']);
-    Route::post('/meeting-requests/{meetingRequest}/submit', [MeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/approve', [MeetingRequestController::class, 'approve']);
-    Route::post('/meeting-requests/{meetingRequest}/return', [MeetingRequestController::class, 'returnForRevision']);
-    Route::post('/meeting-requests/{meetingRequest}/reject', [MeetingRequestController::class, 'reject']);
-    Route::post('/meeting-requests/{meetingRequest}/start-scheduling', [MeetingRequestController::class, 'startScheduling']);
-    Route::post('/meeting-requests/{meetingRequest}/confirm-schedule', [MeetingRequestController::class, 'confirmSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/finalize', [MeetingRequestController::class, 'finalize']);
-    Route::post('/meeting-requests/{meetingRequest}/submit-inter-directorate', [InterDirectorateMeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/requester-approve', [InterDirectorateMeetingRequestController::class, 'requesterApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/requester-return', [InterDirectorateMeetingRequestController::class, 'requesterReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/requester-reject', [InterDirectorateMeetingRequestController::class, 'requesterReject']);
-    Route::post('/meeting-requests/{meetingRequest}/resubmit-requester', [InterDirectorateMeetingRequestController::class, 'resubmitRequester']);
-    Route::post('/meeting-requests/{meetingRequest}/target-review', [InterDirectorateMeetingRequestController::class, 'targetReview']);
-    Route::post('/meeting-requests/{meetingRequest}/target-approve', [InterDirectorateMeetingRequestController::class, 'targetApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/target-return', [InterDirectorateMeetingRequestController::class, 'targetReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/target-reject', [InterDirectorateMeetingRequestController::class, 'targetReject']);
-    Route::post('/meeting-requests/{meetingRequest}/resubmit-to-target', [InterDirectorateMeetingRequestController::class, 'resubmitTarget']);
-    Route::post('/meeting-requests/{meetingRequest}/start-inter-directorate-scheduling', [InterDirectorateMeetingRequestController::class, 'startScheduling']);
-    Route::post('/meeting-requests/{meetingRequest}/schedule-proposals', [InterDirectorateMeetingRequestController::class, 'proposeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/schedule-proposals/{proposal}/accept', [InterDirectorateMeetingRequestController::class, 'acceptSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/participant-nominations', [InterDirectorateMeetingRequestController::class, 'nominate']);
-    Route::post('/meeting-requests/{meetingRequest}/requester-participants/confirm', [InterDirectorateMeetingRequestController::class, 'confirmRequesterParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/target-participants/confirm', [InterDirectorateMeetingRequestController::class, 'confirmTargetParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/confirm-inter-directorate-schedule', [InterDirectorateMeetingRequestController::class, 'confirmSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/finalize-inter-directorate', [InterDirectorateMeetingRequestController::class, 'finalize']);
+// Meeting Requests (Internal, Bilateral, Multi-Directorate, High Authority, Authority-Initiated)
+require __DIR__.'/api/meeting-requests.php';
 
-    Route::put('/meeting-requests/{meetingRequest}/multi', [MultiDirectorateMeetingRequestController::class, 'update']);
-    Route::post('/meeting-requests/{meetingRequest}/submit-multi', [MultiDirectorateMeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/requester-approve', [MultiDirectorateMeetingRequestController::class, 'requesterApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/requester-return', [MultiDirectorateMeetingRequestController::class, 'requesterReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/requester-reject', [MultiDirectorateMeetingRequestController::class, 'requesterReject']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/target-units/{unit}/review', [MultiDirectorateMeetingRequestController::class, 'targetReview']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/target-units/{unit}/approve', [MultiDirectorateMeetingRequestController::class, 'targetApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/target-units/{unit}/return', [MultiDirectorateMeetingRequestController::class, 'targetReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/target-units/{unit}/reject', [MultiDirectorateMeetingRequestController::class, 'targetReject']);
-    Route::post('/meeting-requests/{meetingRequest}/resubmit-multi', [MultiDirectorateMeetingRequestController::class, 'resubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/start-multi-scheduling', [MultiDirectorateMeetingRequestController::class, 'startScheduling']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/schedule-proposals', [MultiDirectorateMeetingRequestController::class, 'proposeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/schedule-proposals/{proposal}/accept', [MultiDirectorateMeetingRequestController::class, 'acceptSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/units/{unit}/participants', [MultiDirectorateMeetingRequestController::class, 'nominate']);
-    Route::post('/meeting-requests/{meetingRequest}/multi/units/{unit}/participants/confirm', [MultiDirectorateMeetingRequestController::class, 'confirmParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/confirm-multi-schedule', [MultiDirectorateMeetingRequestController::class, 'confirmSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/finalize-multi', [MultiDirectorateMeetingRequestController::class, 'finalize']);
+// Meetings Management, Execution, Minutes, Rescheduling, Participant Changes & Exceptions
+require __DIR__.'/api/meetings.php';
 
-    Route::post('/meeting-requests/multi-high-authority', [MultiHighAuthorityMeetingRequestController::class, 'store']);
-    Route::put('/meeting-requests/{meetingRequest}/multi-high', [MultiHighAuthorityMeetingRequestController::class, 'update']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/submit', [MultiHighAuthorityMeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-approve', [MultiHighAuthorityMeetingRequestController::class, 'requesterApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-return', [MultiHighAuthorityMeetingRequestController::class, 'requesterReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/requester-reject', [MultiHighAuthorityMeetingRequestController::class, 'requesterReject']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/resubmit', [MultiHighAuthorityMeetingRequestController::class, 'resubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/review', [MultiHighAuthorityMeetingRequestController::class, 'unitReview']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/approve', [MultiHighAuthorityMeetingRequestController::class, 'unitApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/return', [MultiHighAuthorityMeetingRequestController::class, 'unitReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/participating-units/{unit}/reject', [MultiHighAuthorityMeetingRequestController::class, 'unitReject']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/submit', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeSubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/review', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeReview']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/return', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/resubmit', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeResubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-office/forward', [MultiHighAuthorityMeetingRequestController::class, 'authorityOfficeForward']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/approve', [MultiHighAuthorityMeetingRequestController::class, 'authorityApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/return', [MultiHighAuthorityMeetingRequestController::class, 'authorityReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority/reject', [MultiHighAuthorityMeetingRequestController::class, 'authorityReject']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-scheduling/start', [MultiHighAuthorityMeetingRequestController::class, 'schedulingStart']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/proposals', [MultiHighAuthorityMeetingRequestController::class, 'schedulePropose']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/acknowledge', [MultiHighAuthorityMeetingRequestController::class, 'scheduleAcknowledge']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/request-alternative', [MultiHighAuthorityMeetingRequestController::class, 'scheduleAlternative']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-schedule/confirm', [MultiHighAuthorityMeetingRequestController::class, 'scheduleConfirm']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/units/{unit}/participants', [MultiHighAuthorityMeetingRequestController::class, 'unitParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/units/{unit}/participants/confirm', [MultiHighAuthorityMeetingRequestController::class, 'unitParticipantsConfirm']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/authority-participants/confirm', [MultiHighAuthorityMeetingRequestController::class, 'authorityParticipantsConfirm']);
-    Route::post('/meeting-requests/{meetingRequest}/multi-high/finalize', [MultiHighAuthorityMeetingRequestController::class, 'finalize']);
+// Attendance, Biometrics & Terminal Hardware API
+require __DIR__.'/api/attendance-biometrics.php';
 
-    Route::post('/meeting-requests/authority-initiated', [AuthorityInitiatedMeetingRequestController::class, 'store']);
-    Route::get('/incoming-authority-initiated-meeting-requests', [AuthorityInitiatedMeetingRequestController::class, 'officeInbox']);
-    Route::put('/meeting-requests/{meetingRequest}/authority-initiated', [AuthorityInitiatedMeetingRequestController::class, 'update']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/submit', [AuthorityInitiatedMeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/return', [AuthorityInitiatedMeetingRequestController::class, 'returnDraft']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/resubmit', [AuthorityInitiatedMeetingRequestController::class, 'resubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/issue', [AuthorityInitiatedMeetingRequestController::class, 'issue']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/distribute', [AuthorityInitiatedMeetingRequestController::class, 'distribute']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/coordinate', [AuthorityInitiatedMeetingRequestController::class, 'startCoordination']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/acknowledge', [AuthorityInitiatedMeetingRequestController::class, 'acknowledge']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/clarification', [AuthorityInitiatedMeetingRequestController::class, 'requestClarification']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/clarifications/{clarification}/respond', [AuthorityInitiatedMeetingRequestController::class, 'respondClarification']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/revision', [AuthorityInitiatedMeetingRequestController::class, 'prepareRevision']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/reissue', [AuthorityInitiatedMeetingRequestController::class, 'reissue']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/scheduling/start', [AuthorityInitiatedMeetingRequestController::class, 'startScheduling']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/proposals', [AuthorityInitiatedMeetingRequestController::class, 'proposeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/acknowledge', [AuthorityInitiatedMeetingRequestController::class, 'acknowledgeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/alternative', [AuthorityInitiatedMeetingRequestController::class, 'scheduleAlternative']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/schedule/confirm', [AuthorityInitiatedMeetingRequestController::class, 'confirmSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/participants', [AuthorityInitiatedMeetingRequestController::class, 'unitParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/units/{unit}/participants/confirm', [AuthorityInitiatedMeetingRequestController::class, 'unitParticipantsConfirm']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/authority-participants', [AuthorityInitiatedMeetingRequestController::class, 'authorityParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/authority-participants/confirm', [AuthorityInitiatedMeetingRequestController::class, 'authorityParticipantsConfirm']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-initiated/finalize', [AuthorityInitiatedMeetingRequestController::class, 'finalize']);
+// Action Items & Decision Follow-Up
+require __DIR__.'/api/action-items.php';
 
-    Route::post('/meeting-requests/high-authority', [HighAuthorityMeetingRequestController::class, 'store']);
-    Route::get('/incoming-high-authority-office-meeting-requests', [HighAuthorityMeetingRequestController::class, 'officeInbox']);
-    Route::get('/incoming-high-authority-decisions', [HighAuthorityMeetingRequestController::class, 'authorityInbox']);
-    Route::put('/meeting-requests/{meetingRequest}/high-authority', [HighAuthorityMeetingRequestController::class, 'update']);
-    Route::post('/meeting-requests/{meetingRequest}/submit-high-authority', [HighAuthorityMeetingRequestController::class, 'submit']);
-    Route::post('/meeting-requests/{meetingRequest}/high-authority/requester-approve', [HighAuthorityMeetingRequestController::class, 'requesterApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/high-authority/requester-return', [HighAuthorityMeetingRequestController::class, 'requesterReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/high-authority/requester-reject', [HighAuthorityMeetingRequestController::class, 'requesterReject']);
-    Route::post('/meeting-requests/{meetingRequest}/resubmit-high-authority', [HighAuthorityMeetingRequestController::class, 'resubmit']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-office/review', [HighAuthorityMeetingRequestController::class, 'officeReview']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-office/return', [HighAuthorityMeetingRequestController::class, 'officeReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-office/forward', [HighAuthorityMeetingRequestController::class, 'officeForward']);
-    Route::post('/meeting-requests/{meetingRequest}/authority/approve', [HighAuthorityMeetingRequestController::class, 'authorityApprove']);
-    Route::post('/meeting-requests/{meetingRequest}/authority/return', [HighAuthorityMeetingRequestController::class, 'authorityReturn']);
-    Route::post('/meeting-requests/{meetingRequest}/authority/reject', [HighAuthorityMeetingRequestController::class, 'authorityReject']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-scheduling/start', [HighAuthorityMeetingRequestController::class, 'startScheduling']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-schedule/proposals', [HighAuthorityMeetingRequestController::class, 'proposeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-schedule/proposals/{proposal}/acknowledge', [HighAuthorityMeetingRequestController::class, 'acknowledgeSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-schedule/request-alternative', [HighAuthorityMeetingRequestController::class, 'requestAlternative']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-schedule/proposals/{proposal}/confirm', [HighAuthorityMeetingRequestController::class, 'confirmSchedule']);
-    Route::post('/meeting-requests/{meetingRequest}/high-authority/requester-participants', [HighAuthorityMeetingRequestController::class, 'updateRequesterParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/high-authority/requester-participants/confirm', [HighAuthorityMeetingRequestController::class, 'confirmRequesterParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-participants', [HighAuthorityMeetingRequestController::class, 'updateAuthorityParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/authority-participants/confirm', [HighAuthorityMeetingRequestController::class, 'confirmAuthorityParticipants']);
-    Route::post('/meeting-requests/{meetingRequest}/finalize-high-authority', [HighAuthorityMeetingRequestController::class, 'finalize']);
-
-    Route::post('/meeting-requests/{meetingRequest}/attachments', [MeetingRequestAttachmentController::class, 'store']);
-    Route::get('/meeting-request-attachments/{attachment}/download', [MeetingRequestAttachmentController::class, 'download'])->name('api.meeting-request-attachments.download');
-    Route::delete('/meeting-request-attachments/{attachment}', [MeetingRequestAttachmentController::class, 'destroy']);
-
-    Route::get('/terminals', [TerminalController::class, 'index']);
-    Route::post('/terminals', [TerminalController::class, 'store']);
-    Route::get('/terminals/{terminal}', [TerminalController::class, 'show']);
-    Route::patch('/terminals/{terminal}', [TerminalController::class, 'update']);
-    Route::post('/terminals/{terminal}/credentials', [TerminalController::class, 'issueCredential']);
-    Route::post('/terminals/{terminal}/credentials/rotate', [TerminalController::class, 'rotateCredential']);
-    Route::post('/terminals/{terminal}/revoke', [TerminalController::class, 'revoke']);
-
-    Route::get('/meetings/{meeting}/terminals', [MeetingTerminalController::class, 'workspace']);
-    Route::get('/meetings/{meeting}/terminal-assignments', [MeetingTerminalController::class, 'workspace']);
-    Route::post('/meetings/{meeting}/terminal-assignments', [MeetingTerminalController::class, 'assign']);
-    Route::post('/meetings/{meeting}/terminal-assignments/{assignment}/refresh', [MeetingTerminalController::class, 'refresh']);
-    Route::post('/meetings/{meeting}/terminal-assignments/{assignment}/revoke', [MeetingTerminalController::class, 'revoke']);
-});
-
-Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->group(function (): void {
-    Route::get('/me', [TerminalApiController::class, 'me']);
-    Route::post('/heartbeat', [TerminalApiController::class, 'heartbeat']);
-    Route::get('/assignments/current', [TerminalApiController::class, 'currentAssignments']);
-    Route::post('/assignments/{assignment:uuid}/activate', [TerminalApiController::class, 'activate'])->middleware('throttle:10,1');
-    Route::get('/enrollment/current', [TerminalBiometricEnrollmentController::class, 'current']);
-    Route::post('/enrollment/{enrollment:uuid}/template', [TerminalBiometricEnrollmentController::class, 'submit']);
-});
-
-Route::prefix('terminal/v1')->middleware(['terminal.session.auth', 'throttle:60,1'])->group(function (): void {
-    Route::get('/sessions/{session:uuid}/manifest', [TerminalApiController::class, 'manifest']);
-    Route::get('/sessions/{session:uuid}/biometric-candidates', [TerminalApiController::class, 'biometricCandidates']);
-    Route::post('/sessions/{session:uuid}/attendance/fingerprint', [TerminalApiController::class, 'fingerprintAttendance']);
-    Route::post('/sessions/{session:uuid}/close', [TerminalApiController::class, 'close']);
-});
+// Reporting Dashboards, Registers & Export Jobs
+require __DIR__.'/api/reporting.php';
