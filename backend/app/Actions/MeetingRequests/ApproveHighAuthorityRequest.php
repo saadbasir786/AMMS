@@ -15,7 +15,7 @@ class ApproveHighAuthorityRequest
     public function __invoke(User $actor, MeetingRequest $request, ?string $comment = null): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $comment): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context, 422, 'HIGH_AUTHORITY_NOT_CONFIGURED');

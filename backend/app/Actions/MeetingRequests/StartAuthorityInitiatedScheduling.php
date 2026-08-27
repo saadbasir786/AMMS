@@ -15,7 +15,7 @@ class StartAuthorityInitiatedScheduling
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $this->assertActiveActor($actor);
             $context = $request->authorityContext;
             $officeId = (int) ($context?->authority_office_unit_id ?? 0);

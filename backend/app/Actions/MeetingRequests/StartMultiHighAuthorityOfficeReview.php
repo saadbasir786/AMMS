@@ -15,7 +15,7 @@ class StartMultiHighAuthorityOfficeReview
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context && $this->canAuthorityOffice($actor, $context->authority_office_unit_id), 403, 'UNAUTHORIZED_AUTHORITY_OFFICE_USER');

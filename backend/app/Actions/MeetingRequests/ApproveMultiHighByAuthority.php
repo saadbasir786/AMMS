@@ -15,7 +15,7 @@ class ApproveMultiHighByAuthority
     public function __invoke(User $actor, MeetingRequest $request, string $comment = ''): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $comment): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             $authority = $this->activeAuthorityFor($locked);

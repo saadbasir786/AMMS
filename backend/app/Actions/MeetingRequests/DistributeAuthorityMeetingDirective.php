@@ -15,7 +15,7 @@ class DistributeAuthorityMeetingDirective
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $officeId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
             abort_unless($officeId && $actor->can('authority-initiated-meeting.distribute') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeId)), 403, 'FORBIDDEN');
             abort_unless($request->status === MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, 422, 'DIRECTIVE_NOT_ISSUED');

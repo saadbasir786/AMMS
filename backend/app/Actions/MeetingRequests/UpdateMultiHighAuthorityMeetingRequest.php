@@ -16,7 +16,7 @@ class UpdateMultiHighAuthorityMeetingRequest
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $oldRequester = $this->requesterUnit($locked);
             abort_unless($locked->created_by === $actor->id && $actor->can('meeting-request.update') && $this->canManageUnit($actor, $oldRequester->id), 403, 'FORBIDDEN');

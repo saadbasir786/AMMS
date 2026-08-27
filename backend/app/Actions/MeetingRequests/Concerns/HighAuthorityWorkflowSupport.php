@@ -14,7 +14,7 @@ use Illuminate\Support\Collection;
 
 trait HighAuthorityWorkflowSupport
 {
-    private function lockFlow04Request(int|MeetingRequest $request): MeetingRequest
+    private function lockHighAuthorityRequest(int|MeetingRequest $request): MeetingRequest
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);

@@ -17,7 +17,7 @@ class ConfirmAuthoritySchedule
     public function __invoke(User $actor, MeetingRequest $request, MeetingScheduleProposal $proposal): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $proposal): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context && $this->canAuthorityScheduler($actor, $context->authority_office_unit_id) && $actor->can('authority-schedule.confirm'), 403, 'UNAUTHORIZED_AUTHORITY_SCHEDULER');

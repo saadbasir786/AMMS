@@ -15,7 +15,7 @@ class IssueHighAuthorityMeetingDirective
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $authority = $request->authorityContext?->organizationAuthority;
             abort_unless($authority, 422, 'HIGH_AUTHORITY_NOT_CONFIGURED');
             $holder = $this->currentAuthorityHolder($authority);

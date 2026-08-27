@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 
 trait MultiDirectorateWorkflowSupport
 {
-    private function lockFlow03Request(int|MeetingRequest $request): MeetingRequest
+    private function lockMultiDirectorateRequest(int|MeetingRequest $request): MeetingRequest
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);

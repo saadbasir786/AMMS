@@ -18,7 +18,7 @@ class RejectTargetSideRequest
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.reject-target'), 403, 'FORBIDDEN');
             abort_if(blank($reason), 422, 'REJECTION_REASON_REQUIRED');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $target = $this->unitFor($locked, 'TARGET');
             abort_unless($actor->hasScopedRole('DIRECTOR', $target->id), 403, 'UNAUTHORIZED_TARGET_APPROVER');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::UNDER_TARGET_REVIEW, 422, 'REQUEST_NOT_AVAILABLE_TO_TARGET');

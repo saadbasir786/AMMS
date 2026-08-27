@@ -15,7 +15,7 @@ class RequestMultiHighAlternativeSchedule
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $unitId = (int) ($data['organizational_unit_id'] ?? 0);
             $unit = $this->formalUnits($locked)->firstWhere('id', $unitId);

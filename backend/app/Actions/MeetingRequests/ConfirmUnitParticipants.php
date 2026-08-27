@@ -14,7 +14,7 @@ class ConfirmUnitParticipants
     public function __invoke(User $actor, MeetingRequest $request, int $unitId): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->status === 'SCHEDULING', 422, 'SCHEDULING_REQUIRED');
             $unit = $this->assertParticipatingMember($locked, $unitId);

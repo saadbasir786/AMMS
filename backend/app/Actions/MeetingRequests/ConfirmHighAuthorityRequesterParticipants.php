@@ -15,7 +15,7 @@ class ConfirmHighAuthorityRequesterParticipants
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless(in_array($locked->status, ['AUTHORITY_SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless($this->canManageRequester($actor, $locked->requesting_unit_id) || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');

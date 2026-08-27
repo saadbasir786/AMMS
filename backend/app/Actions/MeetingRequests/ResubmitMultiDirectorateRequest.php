@@ -15,7 +15,7 @@ class ResubmitMultiDirectorateRequest
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             $requester = $this->requesterUnit($locked);
             abort_unless($actor->can('meeting-request.resubmit') && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $requester->id), 403, 'FORBIDDEN');

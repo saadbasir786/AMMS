@@ -20,7 +20,7 @@ class ConvertInterDirectorateRequestToMeeting
         return DB::transaction(function () use ($actor, $request, $data): Meeting {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting.create'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SCHEDULE_CONFIRMED, 422, 'SCHEDULE_NOT_CONFIRMED');
             abort_unless($locked->requester_approved_by && $locked->target_approved_by, 422, 'BILATERAL_APPROVAL_REQUIRED');
             abort_unless($locked->lead_coordinator_unit_id && $locked->lead_coordinator_user_id, 422, 'LEAD_COORDINATOR_REQUIRED');

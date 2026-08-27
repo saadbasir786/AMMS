@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 
 trait AuthorityInitiatedWorkflowSupport
 {
-    private function lockFlow06Request(int|MeetingRequest $request): MeetingRequest
+    private function lockAuthorityInitiatedRequest(int|MeetingRequest $request): MeetingRequest
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);

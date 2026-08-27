@@ -15,7 +15,7 @@ class RejectMultiHighRequesterSide
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($this->canRequesterApprove($actor, $this->requesterUnit($locked)->id), 403, 'FORBIDDEN');
             abort_unless($locked->status === MeetingRequestStatus::PENDING_REQUESTER_APPROVAL->value, 422, 'REQUEST_NOT_READY_FOR_REQUESTER_APPROVAL');

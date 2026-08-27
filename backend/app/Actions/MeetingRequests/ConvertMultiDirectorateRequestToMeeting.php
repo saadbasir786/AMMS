@@ -20,7 +20,7 @@ class ConvertMultiDirectorateRequestToMeeting
         return DB::transaction(function () use ($actor, $request, $data): Meeting {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting.create'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             abort_unless($locked->status === MeetingRequestStatus::SCHEDULE_CONFIRMED->value, 422, 'SCHEDULE_NOT_CONFIRMED');
             abort_unless($locked->lead_coordinator_unit_id && $locked->lead_coordinator_user_id, 422, 'LEAD_COORDINATOR_REQUIRED');
             abort_unless($this->canCoordinateUnit($actor, $locked->lead_coordinator_unit_id), 403, 'FORBIDDEN');

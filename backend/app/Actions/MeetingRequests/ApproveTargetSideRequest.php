@@ -17,7 +17,7 @@ class ApproveTargetSideRequest
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.approve-target'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');
             abort_unless($actor->hasScopedRole('DIRECTOR', $target->id), 403, 'UNAUTHORIZED_TARGET_APPROVER');

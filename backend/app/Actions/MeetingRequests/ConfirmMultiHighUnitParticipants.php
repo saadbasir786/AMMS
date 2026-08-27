@@ -14,7 +14,7 @@ class ConfirmMultiHighUnitParticipants
     public function __invoke(User $actor, MeetingRequest $request, int $unitId): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $unit = $this->formalUnits($locked)->firstWhere('id', $unitId);
             abort_unless($unit, 403, 'PARTICIPATING_UNIT_NOT_PART_OF_REQUEST');

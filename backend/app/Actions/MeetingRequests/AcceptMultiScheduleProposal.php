@@ -16,7 +16,7 @@ class AcceptMultiScheduleProposal
     public function __invoke(User $actor, MeetingRequest $request, MeetingScheduleProposal $proposal, ?int $unitId = null): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $proposal, $unitId): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->status === MeetingRequestStatus::SCHEDULING->value, 422, 'SCHEDULING_REQUIRED');
 

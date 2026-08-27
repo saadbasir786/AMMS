@@ -15,7 +15,7 @@ class ReturnFromAuthorityOffice
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context && $this->canAuthorityOffice($actor, $context->authority_office_unit_id), 403, 'UNAUTHORIZED_AUTHORITY_OFFICE_USER');

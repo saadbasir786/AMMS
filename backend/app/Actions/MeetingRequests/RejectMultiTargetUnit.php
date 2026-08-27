@@ -15,7 +15,7 @@ class RejectMultiTargetUnit
     public function __invoke(User $actor, MeetingRequest $request, int $unitId, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId, $reason): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             $unit = $this->assertTargetMember($locked, $unitId);
             abort_unless($actor->can('meeting-request.reject-target') && $actor->hasScopedRole('DIRECTOR', $unit->id), 403, 'FORBIDDEN');

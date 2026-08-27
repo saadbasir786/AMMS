@@ -14,7 +14,7 @@ class RequestAuthorityInitiatedScheduleAlternative
     public function __invoke(User $actor, MeetingRequest $request, int $unitId, int $proposalId, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId, $proposalId, $reason): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             abort_unless(filled(trim($reason)), 422, 'REASON_REQUIRED');
             abort_unless($request->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless($request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists(), 403, 'DIRECTORATE_NOT_PART_OF_DIRECTIVE');

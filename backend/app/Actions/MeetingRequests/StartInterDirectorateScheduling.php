@@ -17,7 +17,7 @@ class StartInterDirectorateScheduling
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-schedule.propose'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::BILATERAL_APPROVED, 422, 'BILATERAL_APPROVAL_REQUIRED');
             abort_unless($this->canCoordinateUnit($actor, $requester->id), 403, 'REQUESTER_LEAD_REQUIRED');

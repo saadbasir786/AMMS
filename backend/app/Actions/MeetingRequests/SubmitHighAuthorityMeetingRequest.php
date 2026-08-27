@@ -15,7 +15,7 @@ class SubmitHighAuthorityMeetingRequest
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->created_by === $actor->id && $this->canManageRequester($actor, $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_unless($locked->status === MeetingRequestStatus::DRAFT->value, 422, 'REQUEST_NOT_DRAFT');

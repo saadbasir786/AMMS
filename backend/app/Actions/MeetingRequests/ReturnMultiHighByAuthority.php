@@ -15,7 +15,7 @@ class ReturnMultiHighByAuthority
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             $authority = $this->activeAuthorityFor($locked);

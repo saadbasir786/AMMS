@@ -14,7 +14,7 @@ class RespondToDirectiveClarification
     public function __invoke(User $actor, MeetingRequest $request, int $clarificationId, string $responseText): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $clarificationId, $responseText): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             abort_unless(filled(trim($responseText)), 422, 'RESPONSE_REQUIRED');
             $officeId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
             abort_unless($officeId && $actor->can('authority-directive.clarification-respond') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeId)), 403, 'FORBIDDEN');

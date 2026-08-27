@@ -16,7 +16,7 @@ class UpdateAuthorityInitiatedDraft
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $authority = $request->authorityContext?->organizationAuthority;
             abort_unless($authority && $this->actorCanPrepare($actor, (int) $request->authorityContext->authority_office_unit_id), 403, 'FORBIDDEN');
             abort_unless(in_array($request->status, [MeetingRequestStatus::DRAFT->value, MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value], true), 422, 'DRAFT_NOT_EDITABLE');

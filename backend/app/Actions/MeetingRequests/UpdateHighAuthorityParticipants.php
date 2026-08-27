@@ -15,7 +15,7 @@ class UpdateHighAuthorityParticipants
     public function __invoke(User $actor, MeetingRequest $request, array $employeeIds): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $employeeIds): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context && $this->canAuthorityOffice($actor, $context->authority_office_unit_id) && $actor->can('authority-participant.manage'), 403, 'UNAUTHORIZED_AUTHORITY_OFFICE_USER');

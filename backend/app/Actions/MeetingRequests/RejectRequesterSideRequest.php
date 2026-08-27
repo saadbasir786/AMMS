@@ -18,7 +18,7 @@ class RejectRequesterSideRequest
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.reject'), 403, 'FORBIDDEN');
             abort_if(blank($reason), 422, 'REJECTION_REASON_REQUIRED');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             abort_unless($actor->hasScopedRole('DIRECTOR', $requester->id), 403, 'UNAUTHORIZED_REQUESTER_APPROVER');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::PENDING_REQUESTER_APPROVAL, 422, 'REQUEST_NOT_PENDING_APPROVAL');

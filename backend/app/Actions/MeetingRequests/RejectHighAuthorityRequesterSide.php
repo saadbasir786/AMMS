@@ -15,7 +15,7 @@ class RejectHighAuthorityRequesterSide
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($this->canRequesterApprove($actor, $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_unless($locked->status === MeetingRequestStatus::PENDING_REQUESTER_APPROVAL->value, 422, 'REQUEST_NOT_PENDING_REQUESTER_APPROVAL');

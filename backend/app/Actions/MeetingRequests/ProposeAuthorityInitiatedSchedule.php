@@ -14,7 +14,7 @@ class ProposeAuthorityInitiatedSchedule
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $this->assertActiveActor($actor);
             $officeId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
             abort_unless($officeId && $actor->can('authority-schedule.propose') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId), 403, 'UNAUTHORIZED_AUTHORITY_SCHEDULER');

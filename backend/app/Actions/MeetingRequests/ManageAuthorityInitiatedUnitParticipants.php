@@ -16,7 +16,7 @@ class ManageAuthorityInitiatedUnitParticipants
     public function __invoke(User $actor, MeetingRequest $request, int $unitId, array $employeeIds): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId, $employeeIds): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $this->assertActiveActor($actor);
             $unit = $request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->first()?->unit;
             abort_unless($unit instanceof OrganizationalUnit, 403, 'DIRECTORATE_NOT_PART_OF_DIRECTIVE');

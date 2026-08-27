@@ -17,7 +17,7 @@ class ConvertMultiHighAuthorityRequestToMeeting
     public function __invoke(User $actor, MeetingRequest $request, array $data): Meeting
     {
         return DB::transaction(function () use ($actor, $request, $data): Meeting {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($actor->can('authority-meeting.finalize') && $context && $this->canScheduler($actor, $context->authority_office_unit_id), 403, 'FORBIDDEN');

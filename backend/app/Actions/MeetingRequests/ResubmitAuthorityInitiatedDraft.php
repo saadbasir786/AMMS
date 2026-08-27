@@ -15,7 +15,7 @@ class ResubmitAuthorityInitiatedDraft
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             abort_unless($request->authorityContext && $this->actorCanPrepare($actor, (int) $request->authorityContext->authority_office_unit_id), 403, 'FORBIDDEN');
             abort_unless($request->status === MeetingRequestStatus::RETURNED_FOR_AUTHORITY_DRAFT_CORRECTION->value, 422, 'DIRECTIVE_NOT_READY_FOR_ISSUANCE');
             $version = $this->currentVersion($request);

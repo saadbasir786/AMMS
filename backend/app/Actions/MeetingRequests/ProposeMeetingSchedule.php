@@ -19,7 +19,7 @@ class ProposeMeetingSchedule
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-schedule.propose'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SCHEDULING, 422, 'BILATERAL_APPROVAL_REQUIRED');
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');

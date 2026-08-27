@@ -15,7 +15,7 @@ class StartMultiDirectorateScheduling
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             $lead = $locked->lead_coordinator_unit_id ?: $this->requesterUnit($locked)->id;
             abort_unless($this->canCoordinateUnit($actor, $lead), 403, 'FORBIDDEN');

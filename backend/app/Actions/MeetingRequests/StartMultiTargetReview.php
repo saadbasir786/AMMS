@@ -15,7 +15,7 @@ class StartMultiTargetReview
     public function __invoke(User $actor, MeetingRequest $request, int $unitId): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             $unit = $this->assertTargetMember($locked, $unitId);
             abort_unless($this->canManageUnit($actor, $unit->id), 403, 'FORBIDDEN');

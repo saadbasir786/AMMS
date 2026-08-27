@@ -16,7 +16,7 @@ class PrepareAuthorityDirectiveRevision
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $officeId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
             abort_unless($officeId && $actor->can('authority-initiated-meeting.prepare') && $actor->hasScopedRole('AUTHORITY_OFFICE', $officeId), 403, 'FORBIDDEN');
             abort_unless(in_array($request->status, [MeetingRequestStatus::ISSUED_BY_HIGH_AUTHORITY->value, MeetingRequestStatus::DISTRIBUTED_TO_DIRECTORATES->value, MeetingRequestStatus::UNDER_DIRECTORATE_COORDINATION->value, MeetingRequestStatus::DIRECTORATE_CLARIFICATION_REQUIRED->value, MeetingRequestStatus::DIRECTORATES_ACKNOWLEDGED->value], true), 422, 'MATERIAL_DIRECTIVE_CHANGE_REQUIRES_REISSUANCE');

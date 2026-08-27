@@ -14,7 +14,7 @@ class ConfirmAuthorityInitiatedUnitParticipants
     public function __invoke(User $actor, MeetingRequest $request, int $unitId): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists(), 403, 'DIRECTORATE_NOT_PART_OF_DIRECTIVE');
             abort_unless($actor->can('meeting-participant.confirm') && $actor->hasScopedRole('DIRECTOR', $unitId), 403, 'UNAUTHORIZED_PARTICIPATING_UNIT_ACTION');

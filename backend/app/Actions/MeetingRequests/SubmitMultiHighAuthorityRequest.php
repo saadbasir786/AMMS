@@ -15,7 +15,7 @@ class SubmitMultiHighAuthorityRequest
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->status === MeetingRequestStatus::DRAFT->value, 422, 'REQUEST_NOT_EDITABLE');
             abort_unless($actor->id === $locked->created_by && $this->canManageUnit($actor, $this->requesterUnit($locked)->id), 403, 'FORBIDDEN');

@@ -14,7 +14,7 @@ class ConfirmAuthorityInitiatedAuthorityParticipants
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             $officeId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
             abort_unless($officeId && $actor->isActive() && $actor->can('authority-participant.confirm') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('AUTHORITY_OFFICE', $officeId)), 403, 'UNAUTHORIZED_AUTHORITY_PARTICIPANT_ACTION');
             abort_unless(in_array($request->status, ['AUTHORITY_SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'AUTHORITY_SCHEDULE_REQUIRED');

@@ -16,7 +16,7 @@ class AcknowledgeAuthoritySchedule
     public function __invoke(User $actor, MeetingRequest $request, MeetingScheduleProposal $proposal): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $proposal): MeetingRequest {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($locked->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless($proposal->meeting_request_id === $locked->id, 404, 'PROPOSAL_NOT_FOUND');

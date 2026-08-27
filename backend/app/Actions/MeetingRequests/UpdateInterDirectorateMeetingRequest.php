@@ -16,7 +16,7 @@ class UpdateInterDirectorateMeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
             $this->assertActiveActor($actor);
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');
 

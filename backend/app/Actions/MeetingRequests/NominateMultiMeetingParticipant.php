@@ -15,7 +15,7 @@ class NominateMultiMeetingParticipant
     public function __invoke(User $actor, MeetingRequest $request, array $data): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             abort_unless(in_array($locked->status, ['SCHEDULING', 'SCHEDULE_CONFIRMED'], true), 422, 'SCHEDULING_REQUIRED');
             $unitId = (int) $data['organizational_unit_id'];

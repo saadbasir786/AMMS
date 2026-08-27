@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 trait InterDirectorateWorkflowSupport
 {
-    private function lockFlow02Request(int|MeetingRequest $request): MeetingRequest
+    private function lockInterDirectorateRequest(int|MeetingRequest $request): MeetingRequest
     {
         $id = $request instanceof MeetingRequest ? $request->id : $request;
         $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($id);

@@ -15,7 +15,7 @@ class SendMultiHighAuthorityToParticipatingDirectorates
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->id === $locked->lead_coordinator_user_id, 403, 'FORBIDDEN');
             abort_unless($locked->status === MeetingRequestStatus::REQUESTER_APPROVED->value, 422, 'REQUESTER_APPROVAL_REQUIRED');

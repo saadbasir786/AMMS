@@ -17,7 +17,7 @@ class ResubmitRequesterSideRequest
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.resubmit'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             abort_unless($this->canManageUnit($actor, $requester->id), 403, 'FORBIDDEN');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::RETURNED_TO_REQUESTER, 422, 'REQUEST_NOT_AVAILABLE_FOR_RESUBMISSION');

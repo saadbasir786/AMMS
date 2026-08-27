@@ -19,7 +19,7 @@ class ConvertHighAuthorityRequestToMeeting
     public function __invoke(User $actor, MeetingRequest $request, array $data = []): Meeting
     {
         return DB::transaction(function () use ($actor, $request, $data): Meeting {
-            $locked = $this->lockFlow04Request($request);
+            $locked = $this->lockHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             abort_unless($context, 422, 'HIGH_AUTHORITY_NOT_CONFIGURED');

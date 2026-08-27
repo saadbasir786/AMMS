@@ -18,7 +18,7 @@ class ConvertAuthorityInitiatedRequestToMeeting
     public function __invoke(User $actor, MeetingRequest $request, array $data = []): Meeting
     {
         return DB::transaction(function () use ($actor, $request, $data): Meeting {
-            $locked = $this->lockFlow06Request($request);
+            $locked = $this->lockAuthorityInitiatedRequest($request);
             $this->assertActiveActor($actor);
             $context = $locked->authorityContext;
             $officeId = (int) ($context?->authority_office_unit_id ?? 0);

@@ -14,7 +14,7 @@ class AcknowledgeAuthorityInitiatedSchedule
     public function __invoke(User $actor, MeetingRequest $request, int $unitId, int $proposalId): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $unitId, $proposalId): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             abort_unless($request->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless($request->units()->where('role', 'PARTICIPATING')->where('organizational_unit_id', $unitId)->exists(), 403, 'DIRECTORATE_NOT_PART_OF_DIRECTIVE');
             abort_unless($actor->isActive() && $actor->can('authority-schedule.acknowledge') && ($actor->hasScopedRole('SYSTEM_ADMIN') || $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId) || $actor->hasScopedRole('DIRECTOR', $unitId)), 403, 'UNAUTHORIZED_DIRECTORATE_ACKNOWLEDGEMENT');

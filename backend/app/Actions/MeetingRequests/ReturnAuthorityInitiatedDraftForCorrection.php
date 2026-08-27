@@ -15,7 +15,7 @@ class ReturnAuthorityInitiatedDraftForCorrection
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $request = $this->lockFlow06Request($request);
+            $request = $this->lockAuthorityInitiatedRequest($request);
             abort_unless(filled(trim($reason)), 422, 'REASON_REQUIRED');
             $holder = $this->currentAuthorityHolder($request->authorityContext->organizationAuthority);
             abort_unless($this->actorIsHighAuthority($actor, $holder), 403, 'UNAUTHORIZED_HIGH_AUTHORITY_ISSUANCE');

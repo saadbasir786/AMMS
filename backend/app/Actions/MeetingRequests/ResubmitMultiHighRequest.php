@@ -15,7 +15,7 @@ class ResubmitMultiHighRequest
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless($actor->id === $locked->created_by || $actor->id === $locked->lead_coordinator_user_id, 403, 'FORBIDDEN');
             abort_unless(in_array($locked->status, [MeetingRequestStatus::RETURNED_TO_REQUESTER->value, MeetingRequestStatus::DIRECTORATE_ACTION_REQUIRED->value, MeetingRequestStatus::RETURNED_BY_AUTHORITY_OFFICE->value, MeetingRequestStatus::RETURNED_BY_HIGH_AUTHORITY->value], true), 422, 'REQUEST_NOT_READY_FOR_RESUBMIT');

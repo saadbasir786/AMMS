@@ -18,7 +18,7 @@ class AcceptMeetingScheduleProposal
         return DB::transaction(function () use ($actor, $request, $proposal): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-schedule.accept'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SCHEDULING, 422, 'SCHEDULE_NOT_CONFIRMED');
 
             $lockedProposal = MeetingScheduleProposal::query()->lockForUpdate()->findOrFail($proposal->id);

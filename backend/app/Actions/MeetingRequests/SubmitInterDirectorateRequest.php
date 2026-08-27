@@ -17,7 +17,7 @@ class SubmitInterDirectorateRequest
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.submit') || $actor->can('meeting-request.resubmit'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');
             abort_unless($this->canManageUnit($actor, $requester->id), 403, 'FORBIDDEN');

@@ -15,7 +15,7 @@ class RejectMultiRequesterSide
     public function __invoke(User $actor, MeetingRequest $request, string $reason): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request, $reason): MeetingRequest {
-            $locked = $this->lockFlow03Request($request);
+            $locked = $this->lockMultiDirectorateRequest($request);
             $this->assertActiveActor($actor);
             $requester = $this->requesterUnit($locked);
             abort_unless($actor->can('meeting-request.reject') && $actor->hasScopedRole('DIRECTOR', $requester->id), 403, 'FORBIDDEN');

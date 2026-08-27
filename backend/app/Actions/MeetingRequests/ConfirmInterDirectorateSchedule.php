@@ -17,7 +17,7 @@ class ConfirmInterDirectorateSchedule
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-schedule.accept'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SCHEDULING, 422, 'SCHEDULE_NOT_CONFIRMED');
             $requester = $this->unitFor($locked, 'REQUESTER');
             abort_unless($this->canCoordinateUnit($actor, $requester->id), 403, 'REQUESTER_LEAD_REQUIRED');

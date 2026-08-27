@@ -143,7 +143,7 @@ class AuthorityInitiatedMeetingRequestTest extends TestCase
         $request = $this->issuedAndDistributed($users, $units);
         $this->actingAs($users['financeDirector'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/acknowledge")->assertStatus(403);
         $this->actingAs($users['financeExec'], 'sanctum')->postJson("/api/meeting-requests/{$request->id}/authority-initiated/units/{$units['tech']->id}/participants", ['employee_ids' => [1]])->assertStatus(403);
-        $this->assertFalse(method_exists(\App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController::class, 'approveDirectorate'));
+        $this->assertFalse(method_exists(\App\Http\Controllers\Api\MeetingRequests\AuthorityInitiatedMeetingRequestController::class, 'approveDirectorate'));
     }
 
     public function test_flow06_office_cannot_schedule_and_secretary_cannot_own_authority_participants(): void

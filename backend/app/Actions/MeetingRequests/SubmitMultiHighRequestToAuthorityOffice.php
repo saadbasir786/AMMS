@@ -15,7 +15,7 @@ class SubmitMultiHighRequestToAuthorityOffice
     public function __invoke(User $actor, MeetingRequest $request): MeetingRequest
     {
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
-            $locked = $this->lockFlow05Request($request);
+            $locked = $this->lockMultiHighAuthorityRequest($request);
             $this->assertActiveActor($actor);
             abort_unless(
                 $actor->id === $locked->lead_coordinator_user_id

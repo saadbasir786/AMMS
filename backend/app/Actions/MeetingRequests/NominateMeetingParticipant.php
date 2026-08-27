@@ -18,7 +18,7 @@ class NominateMeetingParticipant
         return DB::transaction(function () use ($actor, $request, $data): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-participant.nominate'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             abort_unless(in_array($locked->status, ['BILATERAL_APPROVED', 'SCHEDULING'], true), 422, 'BILATERAL_APPROVAL_REQUIRED');
             $requester = $this->unitFor($locked, 'REQUESTER');
             $target = $this->unitFor($locked, 'TARGET');

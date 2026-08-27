@@ -17,7 +17,7 @@ class StartTargetReview
         return DB::transaction(function () use ($actor, $request): MeetingRequest {
             $this->assertActiveActor($actor);
             abort_unless($actor->can('meeting-request.view-incoming'), 403, 'FORBIDDEN');
-            $locked = $this->lockFlow02Request($request);
+            $locked = $this->lockInterDirectorateRequest($request);
             $target = $this->unitFor($locked, 'TARGET');
             abort_unless($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $target->id) || $actor->hasScopedRole('DIRECTOR', $target->id), 403, 'REQUEST_NOT_AVAILABLE_TO_TARGET');
             abort_unless(MeetingRequestStatus::tryFrom($locked->status) === MeetingRequestStatus::SUBMITTED_TO_TARGET, 422, 'REQUEST_NOT_AVAILABLE_TO_TARGET');
