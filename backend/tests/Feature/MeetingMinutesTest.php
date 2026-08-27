@@ -36,6 +36,22 @@ class MeetingMinutesTest extends TestCase
         $this->assertSame('IN_PROGRESS', $meeting->fresh()->status);
     }
 
+    public function test_executive_management_receives_the_minutes_workspace_capabilities(): void
+    {
+        [$meeting, $actor] = $this->meetingFixture();
+
+        $this->actingAs($actor, 'sanctum')
+            ->getJson('/api/meetings/'.$meeting->id.'/action-capabilities')
+            ->assertOk()
+            ->assertJsonPath('data.minutes.view', true)
+            ->assertJsonPath('data.minutes.prepare', true)
+            ->assertJsonPath('data.minutes.submit', true)
+            ->assertJsonPath('data.minutes.finalize', true)
+            ->assertJsonPath('data.minutes.document', false)
+            ->assertJsonPath('data.minutes.review', false)
+            ->assertJsonPath('data.minutes.approve_authority', false);
+    }
+
     public function test_held_minutes_submission_creates_immutable_version_and_review_rows(): void
     {
         [$meeting, $actor] = $this->meetingFixture();

@@ -129,7 +129,7 @@ class DirectoryController extends Controller
             $q->whereIn('organizing_unit_id', $unitIds ?: [-1]);
             if ($unitIds) {
                 $q->orWhereHas('units', fn ($units) => $units
-                    ->whereIn('role', ['REQUESTING', 'PARTICIPATING'])
+                    ->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])
                     ->whereIn('organizational_unit_id', $unitIds));
             }
             if ($user->employee_id) {

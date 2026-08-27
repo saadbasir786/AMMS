@@ -6,10 +6,6 @@ import {
   AlertCircle,
   FileText,
   Download,
-  Plus,
-  CalendarCheck,
-  Building2,
-  CheckCircle2
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
@@ -267,6 +263,20 @@ export function MeetingMinutesPage() {
               <FileText className="size-4" />
               <span>{busy ? 'در حال ایجاد…' : 'ایجاد پیش‌نویس صورت‌جلسه'}</span>
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Explicitly explain an authorization/data gap instead of leaving the workspace empty. */}
+      {!loading && !minutes && meeting && !meeting.action_capabilities?.minutes.prepare && !error && (
+        <Card className="border-border/70 bg-card/60 rounded-2xl">
+          <CardContent className="p-6 sm:p-8 text-center space-y-2">
+            <h3 className="text-sm font-bold text-foreground">
+              این جلسه هنوز برای ثبت صورت‌جلسه در اختیار شما نیست
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              دسترسی ثبت صورت‌جلسه بر اساس نقش، ریاست مربوطه و وضعیت جلسه تعیین می‌شود.
+            </p>
           </CardContent>
         </Card>
       )}

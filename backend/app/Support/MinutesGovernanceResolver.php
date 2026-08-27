@@ -50,7 +50,7 @@ class MinutesGovernanceResolver
     public function mayReviewUnit(Meeting $meeting, User $actor, int $unitId): bool
     {
         return $actor->isActive() && $actor->can('meeting.minutes.review') && $actor->hasScopedRole('DIRECTOR', $unitId)
-            && $meeting->units()->whereIn('role', ['REQUESTING', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists();
+            && $meeting->units()->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists();
     }
 
     public function mayApproveHighAuthority(Meeting $meeting, User $actor): bool

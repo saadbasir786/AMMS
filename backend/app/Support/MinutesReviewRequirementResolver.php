@@ -11,7 +11,7 @@ class MinutesReviewRequirementResolver
     public function resolve(Meeting $meeting): array
     {
         $flowType = (string) ($meeting->request?->flow_type ?? '');
-        $units = $meeting->units()->whereIn('role', ['REQUESTING', 'PARTICIPATING'])->orderBy('organizational_unit_id')->get();
+        $units = $meeting->units()->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])->orderBy('organizational_unit_id')->get();
         $unitIds = $units->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
         if ($unitIds === []) $unitIds = [(int) $meeting->organizing_unit_id];
 

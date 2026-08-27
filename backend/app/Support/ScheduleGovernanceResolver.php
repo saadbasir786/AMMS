@@ -19,7 +19,7 @@ class ScheduleGovernanceResolver
         };
 
         $units = $meeting->relationLoaded('units') ? $meeting->units : $meeting->units()->get();
-        $formalUnits = $units->whereIn('role', ['REQUESTING', 'PARTICIPATING'])->values();
+        $formalUnits = $units->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])->values();
         if ($formalUnits->isEmpty()) {
             throw new InvalidArgumentException('MEETING_HAS_NO_FORMAL_UNITS');
         }
