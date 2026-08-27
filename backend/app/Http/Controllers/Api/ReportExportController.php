@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ReportExportRequest;
+use App\Http\Requests\Reporting\ReportExportRequest;
 use App\Http\Resources\ReportExportResource;
 use App\Jobs\GenerateReportExport;
 use App\Models\Organization;

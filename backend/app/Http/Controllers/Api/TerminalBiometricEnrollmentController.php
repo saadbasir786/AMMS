@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Biometrics\SubmitFingerprintTemplate;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\SubmitFingerprintTemplateRequest;
+use App\Http\Requests\AttendanceBiometrics\SubmitFingerprintTemplateRequest;
 use App\Http\Resources\BiometricTemplateResource;
 use App\Http\Resources\BiometricEnrollmentSessionResource;
 use App\Support\BiometricFingerPosition;

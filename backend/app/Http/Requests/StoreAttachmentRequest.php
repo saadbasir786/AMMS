@@ -1,4 +1,0 @@
-<?php
-namespace App\Http\Requests;
-use Illuminate\Foundation\Http\FormRequest;
-class StoreAttachmentRequest extends FormRequest { public function authorize(): bool { return $this->user()?->isActive() === true; } public function rules(): array { return ['attachment'=>['required','file','max:10240','mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png']]; } public function messages(): array { return ['attachment.required'=>'انتخاب فایل الزامی است.','attachment.file'=>'فایل انتخاب‌شده معتبر نیست.','attachment.max'=>'حجم فایل نباید بیشتر از ۱۰ مگابایت باشد.','attachment.mimes'=>'نوع فایل انتخاب‌شده مجاز نیست.']; } }

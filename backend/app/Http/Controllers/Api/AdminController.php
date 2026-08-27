@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\AssignCapabilityRequest;
-use App\Http\Requests\AssignRoleRequest;
-use App\Http\Requests\StoreEmployeeRequest;
-use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\Organization\AssignCapabilityRequest;
+use App\Http\Requests\Organization\AssignRoleRequest;
+use App\Http\Requests\Organization\StoreEmployeeRequest;
+use App\Http\Requests\Organization\StoreUserRequest;
 use App\Http\Resources\CapabilityScopeResource;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\OrganizationalUnitResource;

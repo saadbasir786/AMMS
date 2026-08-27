@@ -22,11 +22,11 @@ use App\Actions\MeetingRequests\StartInterDirectorateScheduling;
 use App\Actions\MeetingRequests\StartTargetReview;
 use App\Actions\MeetingRequests\SubmitInterDirectorateRequest;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FinalizeInterDirectorateMeetingRequest;
-use App\Http\Requests\Flow02ParticipantRequest;
-use App\Http\Requests\Flow02ReasonRequest;
-use App\Http\Requests\Flow02ScheduleProposalRequest;
-use App\Http\Requests\StoreInterDirectorateMeetingRequest;
+use App\Http\Requests\MeetingRequests\FinalizeInterDirectorateMeetingRequest;
+use App\Http\Requests\MeetingRequests\InterDirectorateParticipantRequest;
+use App\Http\Requests\MeetingRequests\InterDirectorateReasonRequest;
+use App\Http\Requests\MeetingRequests\InterDirectorateScheduleProposalRequest;
+use App\Http\Requests\MeetingRequests\StoreInterDirectorateMeetingRequest;
 use App\Http\Resources\MeetingRequestResource;
 use App\Http\Resources\MeetingResource;
 use App\Models\MeetingRequest;
@@ -64,13 +64,13 @@ class InterDirectorateMeetingRequestController extends Controller
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست تأیید و به ریاست مقصد ارسال شد.');
     }
 
-    public function requesterReturn(Flow02ReasonRequest $request, MeetingRequest $meetingRequest, ReturnRequesterSideRequest $action)
+    public function requesterReturn(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, ReturnRequesterSideRequest $action)
     {
         $this->authorize('flow02RequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست جهت اصلاح برگشت داده شد.');
     }
 
-    public function requesterReject(Flow02ReasonRequest $request, MeetingRequest $meetingRequest, RejectRequesterSideRequest $action)
+    public function requesterReject(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, RejectRequesterSideRequest $action)
     {
         $this->authorize('flow02RequesterApprove', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست داخلی رد شد.');
@@ -94,13 +94,13 @@ class InterDirectorateMeetingRequestController extends Controller
         return $this->ok($action($request->user(), $meetingRequest), 'درخواست توسط ریاست مقصد تأیید شد.');
     }
 
-    public function targetReturn(Flow02ReasonRequest $request, MeetingRequest $meetingRequest, ReturnTargetSideRequest $action)
+    public function targetReturn(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, ReturnTargetSideRequest $action)
     {
         $this->authorize('flow02TargetReturn', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست جهت وضاحت برگشت داده شد.');
     }
 
-    public function targetReject(Flow02ReasonRequest $request, MeetingRequest $meetingRequest, RejectTargetSideRequest $action)
+    public function targetReject(InterDirectorateReasonRequest $request, MeetingRequest $meetingRequest, RejectTargetSideRequest $action)
     {
         $this->authorize('flow02TargetReject', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()['reason']), 'درخواست توسط ریاست مقصد رد شد.');
@@ -118,7 +118,7 @@ class InterDirectorateMeetingRequestController extends Controller
         return $this->ok($action($request->user(), $meetingRequest), 'مذاکرهٔ زمان‌بندی آغاز شد.');
     }
 
-    public function proposeSchedule(Flow02ScheduleProposalRequest $request, MeetingRequest $meetingRequest, ProposeMeetingSchedule $action)
+    public function proposeSchedule(InterDirectorateScheduleProposalRequest $request, MeetingRequest $meetingRequest, ProposeMeetingSchedule $action)
     {
         $this->authorize('flow02Coordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()), 'پیشنهاد زمان‌بندی ثبت شد.');
@@ -130,7 +130,7 @@ class InterDirectorateMeetingRequestController extends Controller
         return $this->ok($action($request->user(), $meetingRequest, $proposal), 'پیشنهاد زمان‌بندی پذیرفته شد.');
     }
 
-    public function nominate(Flow02ParticipantRequest $request, MeetingRequest $meetingRequest, NominateMeetingParticipant $action)
+    public function nominate(InterDirectorateParticipantRequest $request, MeetingRequest $meetingRequest, NominateMeetingParticipant $action)
     {
         $this->authorize('flow02Coordinate', $meetingRequest);
         return $this->ok($action($request->user(), $meetingRequest, $request->validated()), 'اشتراک‌کننده ثبت شد.');

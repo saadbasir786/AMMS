@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ReportingFilterRequest;
+use App\Http\Requests\Reporting\ReportingFilterRequest;
 use App\Http\Resources\ReportingActionItemResource;
 use App\Http\Resources\ReportingAttendanceResource;
 use App\Http\Resources\ReportingDecisionResource;

@@ -1,0 +1,5 @@
+<?php
+namespace App\Http\Requests\MeetingRequests;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+class UpdateMeetingRequestRequest extends FormRequest { public function authorize(): bool { return $this->user()?->isActive() === true; } public function rules(): array { return ['subject'=>['sometimes','required','string','max:255'],'purpose'=>['sometimes','required',Rule::in(['DECISION','COORDINATION','CONSULTATION','REPORTING','APPROVAL','FOLLOW_UP','OTHER'])],'description'=>['nullable','string'],'priority'=>['sometimes',Rule::in(['NORMAL','HIGH','URGENT'])],'preferred_date'=>['nullable','date'],'preferred_start_time'=>['nullable','date_format:H:i'],'estimated_duration_minutes'=>['nullable','integer','min:15','max:480'],'proposed_location'=>['nullable','string','max:255'],'participant_ids'=>['sometimes','array'],'participant_ids.*'=>['integer','exists:employees,id']]; } public function messages(): array { return ['required'=>'وارد کردن این بخش الزامی است.']; } }

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreAttachmentRequest;
+use App\Http\Requests\MeetingRequests\StoreAttachmentRequest;
 use App\Http\Resources\MeetingRequestAttachmentResource;
 use App\Models\MeetingRequest;
 use App\Models\MeetingRequestAttachment;

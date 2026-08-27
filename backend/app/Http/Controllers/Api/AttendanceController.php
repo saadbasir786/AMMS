@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Attendance\RecordManualAttendance;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\RecordManualAttendanceRequest;
+use App\Http\Requests\AttendanceBiometrics\RecordManualAttendanceRequest;
 use App\Http\Resources\MeetingAttendanceResource;
 use App\Models\Meeting;
 use App\Support\AttendanceGovernanceResolver;
