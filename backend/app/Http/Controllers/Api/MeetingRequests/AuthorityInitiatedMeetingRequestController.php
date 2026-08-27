@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\MeetingRequests;
 
 use App\Actions\MeetingRequests\AcknowledgeAuthorityInitiatedSchedule;
 use App\Actions\MeetingRequests\AcknowledgeAuthorityMeetingDirective;

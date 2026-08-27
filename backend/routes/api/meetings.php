@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Api\DirectoryController;
-use App\Http\Controllers\Api\MeetingExceptionController;
-use App\Http\Controllers\Api\MeetingExecutionController;
-use App\Http\Controllers\Api\MeetingMinutesController;
-use App\Http\Controllers\Api\MeetingParticipantChangeController;
-use App\Http\Controllers\Api\MeetingRescheduleController;
+use App\Http\Controllers\Api\Meetings\MeetingExceptionController;
+use App\Http\Controllers\Api\Meetings\MeetingExecutionController;
+use App\Http\Controllers\Api\Meetings\MeetingMinutesController;
+use App\Http\Controllers\Api\Meetings\MeetingParticipantChangeController;
+use App\Http\Controllers\Api\Meetings\MeetingRescheduleController;
+use App\Http\Controllers\Api\Organization\DirectoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

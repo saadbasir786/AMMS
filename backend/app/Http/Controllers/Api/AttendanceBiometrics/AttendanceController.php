@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\AttendanceBiometrics;
 
 use App\Actions\Attendance\RecordManualAttendance;
 use App\Http\Controllers\Controller;

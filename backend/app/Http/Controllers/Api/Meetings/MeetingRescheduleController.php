@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Meetings;
 
 use App\Actions\Meetings\AcknowledgeMeetingRescheduleProposal;
 use App\Actions\Meetings\ConfirmMeetingReschedule;

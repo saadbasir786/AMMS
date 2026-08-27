@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\AuthorityInitiatedMeetingRequestController;
-use App\Http\Controllers\Api\HighAuthorityMeetingRequestController;
-use App\Http\Controllers\Api\InterDirectorateMeetingRequestController;
-use App\Http\Controllers\Api\MeetingRequestAttachmentController;
-use App\Http\Controllers\Api\MeetingRequestController;
-use App\Http\Controllers\Api\MultiDirectorateMeetingRequestController;
-use App\Http\Controllers\Api\MultiHighAuthorityMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\AuthorityInitiatedMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\HighAuthorityMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\InterDirectorateMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\MeetingRequestAttachmentController;
+use App\Http\Controllers\Api\MeetingRequests\MeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\MultiDirectorateMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\MultiHighAuthorityMeetingRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

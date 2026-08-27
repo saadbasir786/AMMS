@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\DirectoryController;
+use App\Http\Controllers\Api\Organization\AdminController;
+use App\Http\Controllers\Api\Organization\DirectoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

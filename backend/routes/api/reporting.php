@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\ReportingController;
-use App\Http\Controllers\Api\ReportExportController;
+use App\Http\Controllers\Api\Reporting\ReportingController;
+use App\Http\Controllers\Api\Reporting\ReportExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

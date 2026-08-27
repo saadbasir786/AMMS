@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\BiometricController;
-use App\Http\Controllers\Api\MeetingTerminalController;
-use App\Http\Controllers\Api\TerminalApiController;
-use App\Http\Controllers\Api\TerminalBiometricEnrollmentController;
-use App\Http\Controllers\Api\TerminalController;
+use App\Http\Controllers\Api\AttendanceBiometrics\AttendanceController;
+use App\Http\Controllers\Api\AttendanceBiometrics\BiometricController;
+use App\Http\Controllers\Api\AttendanceBiometrics\MeetingTerminalController;
+use App\Http\Controllers\Api\AttendanceBiometrics\TerminalApiController;
+use App\Http\Controllers\Api\AttendanceBiometrics\TerminalBiometricEnrollmentController;
+use App\Http\Controllers\Api\AttendanceBiometrics\TerminalController;
 use Illuminate\Support\Facades\Route;
 
 // Operational & Management Endpoints (Sanctum Auth)

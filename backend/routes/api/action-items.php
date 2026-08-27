@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\DecisionFollowUpController;
+use App\Http\Controllers\Api\ActionItems\DecisionFollowUpController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
