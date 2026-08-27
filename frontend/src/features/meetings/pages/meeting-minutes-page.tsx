@@ -175,6 +175,32 @@ export function MeetingMinutesPage() {
 
   const handleFinalize = () => runAction(() => api.post(`/meetings/${id}/minutes/finalize`))
 
+  const handleDownloadPdf = async () => {
+    if (!id) return
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await api.get(`/meetings/${id}/minutes/final.pdf`, {
+        responseType: 'blob',
+      })
+      const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `minutes-${meeting?.meeting_number || id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'دریافت فایل PDF رسمی با خطا مواجه شد.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-6" dir="rtl">
       {/* Page Header */}
@@ -192,17 +218,12 @@ export function MeetingMinutesPage() {
 
             {minutes?.status === 'FINALIZED' && meeting?.action_capabilities?.minutes.document && (
               <Button
-                asChild
+                disabled={busy}
+                onClick={handleDownloadPdf}
                 className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
               >
-                <a
-                  href={`/api/meetings/${id}/minutes/final.pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Download className="size-4" />
-                  <span>PDF رسمی</span>
-                </a>
+                <Download className="size-4" />
+                <span>{busy ? 'در حال دریافت…' : 'PDF رسمی'}</span>
               </Button>
             )}
 
@@ -316,6 +337,7 @@ export function MeetingMinutesPage() {
               onRequestCorrection={handleRequestCorrection}
               onApproveAuthority={handleApproveAuthority}
               onFinalize={handleFinalize}
+              onDownloadPdf={handleDownloadPdf}
               canReview={meeting.action_capabilities?.minutes.review === true}
               canApproveAuthority={meeting.action_capabilities?.minutes.approve_authority === true}
               canFinalize={meeting.action_capabilities?.minutes.finalize === true}

@@ -43,6 +43,7 @@ type MinutesReviewsCardProps = {
   onRequestCorrection: (review: MinutesReview, reason: string) => Promise<void>
   onApproveAuthority: () => Promise<void>
   onFinalize: () => Promise<void>
+  onDownloadPdf: () => Promise<void>
   canReview?: boolean
   canApproveAuthority?: boolean
   canFinalize?: boolean
@@ -57,6 +58,7 @@ export function MinutesReviewsCard({
   onRequestCorrection,
   onApproveAuthority,
   onFinalize,
+  onDownloadPdf,
   canReview = false,
   canApproveAuthority = false,
   canFinalize = false,
@@ -219,17 +221,12 @@ export function MinutesReviewsCard({
         {/* PDF Download */}
         {isFinalized && canDocument && (
           <Button
-            asChild
+            onClick={onDownloadPdf}
+            disabled={busy}
             className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
           >
-            <a
-              href={`/api/meetings/${meetingId}/minutes/final.pdf`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Download className="size-4" />
-              <span>دریافت فایل PDF رسمی صورت‌جلسه</span>
-            </a>
+            <Download className="size-4" />
+            <span>{busy ? 'در حال دریافت…' : 'دریافت فایل PDF رسمی صورت‌جلسه'}</span>
           </Button>
         )}
       </CardContent>
