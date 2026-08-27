@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Actions\Flow12\VerifyActionItemCompletion;
-use App\Actions\Flow13\ApplyMeetingCancellation;
-use App\Actions\Flow13\ApproveMeetingExceptionReview;
-use App\Actions\Flow13\CreateMeetingExceptionCase;
-use App\Actions\Flow13\SubmitMeetingExceptionCase;
+use App\Actions\ActionItems\VerifyActionItemCompletion;
+use App\Actions\Exceptions\ApplyMeetingCancellation;
+use App\Actions\Exceptions\ApproveMeetingExceptionReview;
+use App\Actions\Exceptions\CreateMeetingExceptionCase;
+use App\Actions\Exceptions\SubmitMeetingExceptionCase;
 use App\Models\AmmsRoleScope;
 use App\Models\Employee;
 use App\Models\Meeting;

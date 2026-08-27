@@ -6,10 +6,10 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require_once __DIR__.'/../bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Actions\Flow13\ApproveMeetingExceptionReview;
-use App\Actions\Flow13\ApplyMeetingCancellation;
-use App\Actions\Flow13\CreateMeetingExceptionCase;
-use App\Actions\Flow13\SubmitMeetingExceptionCase;
+use App\Actions\Exceptions\ApproveMeetingExceptionReview;
+use App\Actions\Exceptions\ApplyMeetingCancellation;
+use App\Actions\Exceptions\CreateMeetingExceptionCase;
+use App\Actions\Exceptions\SubmitMeetingExceptionCase;
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingAttendanceInvalidation;
