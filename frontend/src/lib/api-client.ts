@@ -12,7 +12,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-export const apiData = (res: any) => res.data?.data ?? res.data
+export const apiData = (res: any) => {
+  const body = res?.data
+
+  // Preserve an explicit `data: null` payload (for example, a meeting with
+  // no minutes draft yet) instead of falling back to the whole response body.
+  return body && Object.prototype.hasOwnProperty.call(body, 'data')
+    ? body.data
+    : body
+}
 
 export const apiPage = (res: any) => {
   const body = res.data
