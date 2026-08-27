@@ -16,6 +16,7 @@ class MeetingMinuteReviewResource extends JsonResource
             'reviewer_type' => $this->reviewer_type,
             'organizational_unit_id' => $this->organizational_unit_id,
             'authority_employee_id' => $this->authority_employee_id,
+            'unit' => new OrganizationalUnitResource($this->whenLoaded('organizationalUnit')),
             'status' => $this->status,
             'reviewed_by_user_id' => $this->reviewed_by_user_id,
             'reason' => $this->reason,

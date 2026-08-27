@@ -26,8 +26,8 @@ class MeetingMinutesController extends Controller
     {
         $this->authorize('minutesView', $meeting);
         $minutes = $meeting->minutes()->with([
-            'currentVersion.items', 'currentVersion.decisions', 'currentVersion.attendanceSnapshots', 'currentVersion.reviews',
-            'versions.items', 'versions.decisions', 'versions.attendanceSnapshots', 'versions.reviews', 'document',
+            'currentVersion.items', 'currentVersion.decisions', 'currentVersion.attendanceSnapshots', 'currentVersion.reviews.organizationalUnit',
+            'versions.items', 'versions.decisions', 'versions.attendanceSnapshots', 'versions.reviews.organizationalUnit', 'document',
         ])->first();
         if (!$minutes) return response()->json(['success' => true, 'data' => null]);
         return new MeetingMinutesResource($minutes);
