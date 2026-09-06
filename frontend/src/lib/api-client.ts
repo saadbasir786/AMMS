@@ -26,7 +26,7 @@ export const apiPage = (res: any) => {
   const body = res.data
   const payload = body?.data ?? body
   return Array.isArray(payload)
-    ? { data: payload, meta: body?.meta || null, links: body?.links || null }
+    ? { data: payload, meta: body?.meta || null, links: body?.links || null, stats: body?.stats || null }
     : payload
 }
 

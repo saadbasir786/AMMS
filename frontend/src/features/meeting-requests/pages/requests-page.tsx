@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   RotateCw,
   FilePlus2,
@@ -15,7 +15,7 @@ import { api, apiPage } from '@/lib/api-client'
 import { CreateRequestDropdown } from '../components/create-request-dropdown'
 import { RequestsFilterBar } from '../components/requests-filter-bar'
 import { RequestsTable } from '../components/requests-table'
-import type { RequestRowItem, PaginationMeta } from '../types'
+import type { RequestRowItem, PaginationMeta, RequestStats } from '../types'
 
 type RequestsPageProps = {
   statusLabels: Record<string, string>
@@ -31,6 +31,12 @@ export function RequestsPage({
   const [data, setData] = useState<{ data: RequestRowItem[]; meta?: PaginationMeta | null }>({
     data: [],
     meta: null,
+  })
+  const [stats, setStats] = useState<RequestStats>({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    draft: 0,
   })
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
@@ -49,7 +55,13 @@ export function RequestsPage({
           page: pageNum,
         },
       })
-      setData(apiPage(res))
+      const payload = apiPage(res)
+      setData(payload)
+      if (res.data?.stats) {
+        setStats(res.data.stats)
+      } else if (payload?.stats) {
+        setStats(payload.stats)
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -76,27 +88,10 @@ export function RequestsPage({
   }
 
   const rows = data.data || []
-  const total = data.meta?.total ?? rows.length
-
-  const pendingCount = useMemo(() => {
-    return rows.filter((r) =>
-      ['PENDING_INTERNAL_APPROVAL', 'PENDING_REQUESTER_APPROVAL', 'UNDER_TARGET_REVIEW'].includes(
-        r.status || ''
-      )
-    ).length
-  }, [rows])
-
-  const approvedCount = useMemo(() => {
-    return rows.filter((r) =>
-      ['APPROVED', 'SCHEDULING', 'SCHEDULE_CONFIRMED', 'CONVERTED_TO_MEETING'].includes(
-        r.status || ''
-      )
-    ).length
-  }, [rows])
-
-  const draftCount = useMemo(() => {
-    return rows.filter((r) => ['DRAFT', 'RETURNED_FOR_REVISION'].includes(r.status || '')).length
-  }, [rows])
+  const total = stats.total || (data.meta?.total ?? rows.length)
+  const pendingCount = stats.pending
+  const approvedCount = stats.approved
+  const draftCount = stats.draft
 
   const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({
     value,

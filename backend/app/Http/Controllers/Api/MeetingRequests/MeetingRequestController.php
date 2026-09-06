@@ -35,19 +35,66 @@ class MeetingRequestController extends Controller
     {
         $this->authorize('viewAny', MeetingRequest::class);
         $user = $request->user();
-        $query = MeetingRequest::with(['requestingUnit','units.unit','creator.employee','participants.employee','nominations.employee.unit','scheduleProposals.proposedByUnit','meeting'])->latest();
         $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'), $user->scopedRoleUnitIds('DIRECTOR')));
         $officeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
-        $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
+
+        $baseQuery = MeetingRequest::query()->where(function ($q) use ($user, $unitIds, $officeIds): void {
             $q->whereIn('requesting_unit_id', $unitIds ?: [-1]);
             if ($officeIds) $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
             if ($user->employee_id) $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
             if ($unitIds) $q->orWhereHas('units', fn ($units) => $units->whereIn('role', ['REQUESTER','TARGET','PARTICIPATING'])->whereIn('organizational_unit_id', $unitIds));
         });
+
+        $stats = [
+            'total' => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->whereIn('status', [
+                'PENDING_INTERNAL_APPROVAL',
+                'PENDING_REQUESTER_APPROVAL',
+                'UNDER_TARGET_REVIEW',
+                'UNDER_MULTI_TARGET_REVIEW',
+                'SUBMITTED_TO_TARGET',
+                'SUBMITTED_TO_TARGETS',
+                'SUBMITTED_TO_AUTHORITY_OFFICE',
+                'UNDER_AUTHORITY_OFFICE_REVIEW',
+                'PENDING_HIGH_AUTHORITY_DECISION',
+            ])->count(),
+            'approved' => (clone $baseQuery)->whereIn('status', [
+                'APPROVED',
+                'TARGET_APPROVED',
+                'BILATERAL_APPROVED',
+                'MULTILATERAL_APPROVED',
+                'HIGH_AUTHORITY_APPROVED',
+                'ISSUED_BY_HIGH_AUTHORITY',
+                'SCHEDULING',
+                'SCHEDULE_CONFIRMED',
+                'CONVERTED_TO_MEETING',
+            ])->count(),
+            'draft' => (clone $baseQuery)->whereIn('status', [
+                'DRAFT',
+                'RETURNED_FOR_REVISION',
+                'REQUESTER_RETURNED',
+                'TARGET_RETURNED',
+                'TARGET_ACTION_REQUIRED',
+            ])->count(),
+        ];
+
+        $query = (clone $baseQuery)->with(['requestingUnit','units.unit','creator.employee','participants.employee','nominations.employee.unit','scheduleProposals.proposedByUnit','meeting'])->latest();
+
         if ($request->filled('status')) $query->where('status', $request->string('status'));
         if ($request->filled('priority')) $query->where('priority', $request->string('priority'));
-        if ($request->filled('search')) $query->where(fn($q) => $q->where('subject','like','%'.$request->string('search').'%')->orWhere('request_number','like','%'.$request->string('search').'%'));
-        return MeetingRequestResource::collection($query->paginate(15))->additional(['success'=>true,'message'=>'فهرست درخواست‌های جلسه.']);
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(fn($q) => $q->where('subject','like',"%{$search}%")->orWhere('request_number','like',"%{$search}%"));
+        }
+
+        $perPage = min(max($request->integer('per_page', 15), 5), 100);
+        $paginator = $query->paginate($perPage);
+
+        return MeetingRequestResource::collection($paginator)->additional([
+            'success' => true,
+            'message' => 'فهرست درخواست‌های جلسه.',
+            'stats' => $stats,
+        ]);
     }
 
     public function store(StoreMeetingRequestRequest $request)

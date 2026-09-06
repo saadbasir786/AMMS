@@ -48,3 +48,10 @@ export type PaginationMeta = {
   to?: number | null
   per_page?: number
 }
+
+export type RequestStats = {
+  total: number
+  pending: number
+  approved: number
+  draft: number
+}
