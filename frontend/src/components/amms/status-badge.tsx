@@ -11,6 +11,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
     label: 'تکمیل‌شده',
     className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
   },
+  HELD: {
+    label: 'پایان‌یافته',
+    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
+  },
   FINALIZED: {
     label: 'نهایی‌شده',
     className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',

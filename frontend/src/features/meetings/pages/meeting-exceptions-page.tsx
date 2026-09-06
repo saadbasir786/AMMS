@@ -10,6 +10,7 @@ import {
   CalendarClock
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
+import { StatusBadge } from '@/components/amms/status-badge'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
@@ -166,11 +167,7 @@ export function MeetingExceptionsPage() {
         description="تعویق، لغو، بازگشایی و تعیین زمان‌بندی جدید با حفظ کامل تاریخچه غیرقابل حذف"
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {meeting?.status && (
-              <Badge variant="outline" className="text-xs px-2.5 py-1">
-                {meeting.status}
-              </Badge>
-            )}
+            {meeting?.status && <StatusBadge status={meeting.status} />}
             <Button
               variant="outline"
               size="sm"

@@ -11,6 +11,7 @@ import {
   Clock
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
+import { StatusBadge } from '@/components/amms/status-badge'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -99,11 +100,7 @@ export function MeetingExecutionPage() {
         description="ثبت آغاز و خاتمه واقعی جلسه بر پایه نسخه‌های مصوب زمان‌بندی و اشتراک‌کنندگان"
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {meeting && (
-              <Badge variant="outline" className="text-xs px-2.5 py-1">
-                {meeting.status}
-              </Badge>
-            )}
+            {meeting && <StatusBadge status={meeting.status} />}
             <Button
               variant="outline"
               size="sm"

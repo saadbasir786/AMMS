@@ -9,6 +9,7 @@ import {
   Calendar
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
+import { StatusBadge } from '@/components/amms/status-badge'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -80,11 +81,7 @@ export function MeetingDetailPage() {
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {statusInfo && (
-              <Badge variant={statusInfo.variant} className="text-xs px-2.5 py-1">
-                {statusInfo.label}
-              </Badge>
-            )}
+            {meeting?.status && <StatusBadge status={meeting.status} />}
 
             <Button
               variant="outline"
