@@ -22,6 +22,7 @@ Canonical authorization charter for AMMS. Scope: FLOW-01 through FLOW-14. FLOW-1
 | `SYSTEM_ADMIN` | Technical administration only. May manage accounts, technical configuration, infrastructure and delegated-capability records where explicitly permitted. No meeting business authority. |
 | `EMPLOYEE` | Personal/participant visibility and explicitly assigned work only. |
 | `DIRECTOR` | Formal approval/review authority for the scoped Directorate where the frozen flow grants it. |
+| `DEPUTY_DIRECTOR` | Real deputy post of a scoped Directorate. It receives no Director approval authority merely from its role; it may review minutes only through an active, explicit delegation from that Directorate's Director. |
 | `EXECUTIVE_MANAGEMENT` | Operational coordination for the scoped Directorate: preparation, scheduling, execution or follow-up only where the flow grants it. Does not inherit Director approval authority. |
 | `AUTHORITY_OFFICE` | High-Authority-office review/forwarding and authority-owned participant/governance work where defined. |
 | `EXECUTIVE_SECRETARY` | Authority-controlled scheduling, execution, minutes, follow-up and exception ownership where defined. |
@@ -73,6 +74,18 @@ Rules:
 - The approval audit record must identify the delegated capability scope and the delegating Director. Expiry or revocation immediately removes the effective authority without deleting history.
 - `SYSTEM_ADMIN` cannot grant or receive this business capability.
 
+### DIRECTORATE_MINUTES_APPROVAL
+`DIRECTOR` may explicitly delegate a Directorate's official-minutes review to an active, scoped `DEPUTY_DIRECTOR` of that same Directorate.
+
+Rules:
+- The delegation is unit-scoped, time-bound, revocable and requires recorded grant and revocation reasons.
+- At most one active minutes-approval delegation may exist for a Directorate; repeating a grant to that same deputy is idempotent.
+- It applies only to that Directorate's pending `UNIT` review row of a submitted minutes version. The deputy may acknowledge it or request correction.
+- It never grants drafting, submission, finalization, approval for another Directorate, or the `HIGH_AUTHORITY` approval. A required High Authority approval remains separate.
+- The Director retains their original review authority; the first valid action resolves that unit review row.
+- Audit records must identify a delegated acknowledgement or correction and contain the capability scope and delegating Director.
+- `SYSTEM_ADMIN` cannot grant or receive this business capability.
+
 ## 5. Role × Flow Authority Summary
 This matrix is a summary only; exact permission, scope, ownership and status checks remain mandatory.
 
@@ -89,7 +102,7 @@ This matrix is a summary only; exact permission, scope, ownership and status che
 | FLOW-09 Terminal Assignment | `SYSTEM_ADMIN`: technical terminal administration only. Meeting assignment/revoke: lead `EXECUTIVE_MANAGEMENT` for non-authority meetings or `EXECUTIVE_SECRETARY` for authority-controlled meetings. |
 | FLOW-10A Biometric/Attendance | Enrollment only via scoped `BIOMETRIC_ENROLLMENT` + required permissions. Attendance remains governed by attendance permission and meeting context. |
 | FLOW-10B DERMALOG | Deferred/not authorized. No production SDK/device claim or new authority. |
-| FLOW-11 Execution/Minutes | Non-authority: scoped `EXECUTIVE_MANAGEMENT` owns execution/minutes where permitted; scoped `DIRECTOR` reviews/acknowledges as defined. Authority-controlled: `EXECUTIVE_SECRETARY`; `HIGH_AUTHORITY` performs explicit approval where required. |
+| FLOW-11 Execution/Minutes | Non-authority: scoped `EXECUTIVE_MANAGEMENT` owns execution/minutes where permitted; scoped `DIRECTOR` reviews/acknowledges as defined. An active same-unit `DEPUTY_DIRECTOR` holder of `DIRECTORATE_MINUTES_APPROVAL` may acknowledge or request correction for that unit only. Authority-controlled: `EXECUTIVE_SECRETARY`; `HIGH_AUTHORITY` performs explicit approval where required. |
 | FLOW-12 Follow-Up | Follow-up owner: scoped `EXECUTIVE_MANAGEMENT` or authority `EXECUTIVE_SECRETARY`. Responsible-unit `DIRECTOR`/`EXECUTIVE_MANAGEMENT` manages unit items; assigned `EMPLOYEE` may work its own item where permitted. |
 | FLOW-13 Exceptions | Non-authority owner: scoped `EXECUTIVE_MANAGEMENT`; authority owner: `EXECUTIVE_SECRETARY`. `DIRECTOR` or `HIGH_AUTHORITY` performs required review/approval according to governance mode. |
 | FLOW-14 Reporting | Reporting is role/permission/scope specific. `SYSTEM_ADMIN` gets technical reporting only, not executive business dashboards. Backend owns metric semantics; export ownership/expiry/security remain enforced. |

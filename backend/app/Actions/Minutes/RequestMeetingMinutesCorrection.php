@@ -24,10 +24,12 @@ class RequestMeetingMinutesCorrection
             $version = $locked->currentVersion()->lockForUpdate()->first();
             if (!$version || $version->submitted_at === null) abort(422, 'MINUTES_VERSION_STALE');
 
+            $delegation = null;
             $reviewerType = strtoupper($reviewerType);
             if ($reviewerType === MeetingMinuteReview::UNIT) {
                 if (!$unitId || !$this->governance->mayReviewUnit($locked->meeting, $actor, $unitId)) abort(403, 'UNAUTHORIZED_MINUTES_REVIEW');
                 $review = MeetingMinuteReview::query()->lockForUpdate()->where('meeting_minute_version_id', $version->id)->where('reviewer_type', MeetingMinuteReview::UNIT)->where('organizational_unit_id', $unitId)->firstOrFail();
+                $delegation = $this->governance->delegatedReviewScopeFor($locked->meeting, $actor, $unitId);
             } elseif ($reviewerType === MeetingMinuteReview::HIGH_AUTHORITY) {
                 if (!$this->governance->mayApproveHighAuthority($locked->meeting, $actor)) abort(403, 'UNAUTHORIZED_MINUTES_REVIEW');
                 $review = MeetingMinuteReview::query()->lockForUpdate()->where('meeting_minute_version_id', $version->id)->where('reviewer_type', MeetingMinuteReview::HIGH_AUTHORITY)->firstOrFail();
@@ -39,8 +41,16 @@ class RequestMeetingMinutesCorrection
             \App\Models\MeetingAction::create([
                 'meeting_id' => $locked->meeting_id,
                 'actor_id' => $actor->id,
-                'action' => 'MINUTES_CORRECTION_REQUESTED',
-                'metadata' => ['minutes_id' => $locked->id, 'version_id' => $version->id, 'review_id' => $review->id, 'reason' => $reason],
+                'action' => $delegation ? 'MINUTES_CORRECTION_REQUESTED_UNDER_DELEGATION' : 'MINUTES_CORRECTION_REQUESTED',
+                'metadata' => array_filter([
+                    'minutes_id' => $locked->id,
+                    'version_id' => $version->id,
+                    'review_id' => $review->id,
+                    'reason' => $reason,
+                    'delegated_capability_scope_id' => $delegation?->id,
+                    'delegated_capability' => $delegation?->capability,
+                    'delegated_by_user_id' => $delegation?->granted_by_user_id,
+                ], static fn ($value) => $value !== null),
             ]);
             return $locked->fresh(['currentVersion.reviews']);
         });

@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\AmmsRoleScope;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
 use App\Models\OrganizationalUnit;
+use App\Models\User;
+use App\Models\UserRole;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class MeetingMinutesReviewTest extends TestCase
@@ -61,6 +67,73 @@ class MeetingMinutesReviewTest extends TestCase
         $this->assertCount(0, $versions[1]->reviews);
         $this->actingAs($coordinator, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/submit')->assertOk();
         $this->assertSame(2, $meeting->fresh()->minutes()->firstOrFail()->currentVersion()->value('version_number'));
+    }
+
+    public function test_director_can_delegate_minutes_review_to_same_unit_deputy_and_revoke_it(): void
+    {
+        [$meeting, , $director, $unit] = $this->submittedMinutesFixture();
+        $deputy = $this->createTechnologyDeputy($unit);
+        $this->assertTrue($deputy->can('meeting.view'));
+        $this->assertTrue($deputy->hasScopedRole('DEPUTY_DIRECTOR', $unit->id));
+
+        $grant = $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
+            'organizational_unit_id' => $unit->id,
+            'delegate_user_id' => $deputy->id,
+            'expires_at' => now()->addWeek()->toDateString(),
+            'reason' => 'غیابت موقت رئیس ریاست.',
+        ])->assertCreated()->assertJsonPath('data.active', true);
+
+        $alternateDeputy = $this->createTechnologyDeputy($unit, 'EMP-TECH-003', 'tech.deputy.alternate@example.test');
+        $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
+            'organizational_unit_id' => $unit->id,
+            'delegate_user_id' => $alternateDeputy->id,
+            'expires_at' => now()->addWeek()->toDateString(),
+            'reason' => 'نباید هم‌زمان دو معاون فعال باشد.',
+        ])->assertStatus(422);
+
+        $this->assertTrue($deputy->fresh()->can('meeting.minutes.review'));
+        $this->assertTrue($deputy->fresh()->can('meeting.minutes.review-delegated'));
+        $this->assertTrue(Gate::forUser($deputy->fresh())->allows('minutesReviewUnit', [Meeting::query()->findOrFail($meeting->id), $unit->id]));
+
+        $this->actingAs($deputy->fresh(), 'sanctum')->getJson('/api/meetings/'.$meeting->id.'/action-capabilities')
+            ->assertOk()
+            ->assertJsonPath('data.minutes.review', true)
+            ->assertJsonPath('data.minutes.reviewable_unit_ids', [$unit->id])
+            ->assertJsonPath('data.minutes.delegated_review_unit_ids', [$unit->id]);
+
+        $this->actingAs($deputy->fresh(), 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/reviews/'.$unit->id.'/acknowledge')
+            ->assertOk()->assertJsonPath('data.status', 'READY_TO_FINALIZE');
+
+        $this->assertDatabaseHas('meeting_actions', [
+            'meeting_id' => $meeting->id,
+            'actor_id' => $deputy->id,
+            'action' => 'MINUTES_UNIT_ACKNOWLEDGED_UNDER_DELEGATION',
+        ]);
+
+        [$secondMeeting] = $this->submittedMinutesFixture();
+        $this->actingAs($director, 'sanctum')->deleteJson('/api/minutes-approval-delegations/'.$grant->json('data.id'), [
+            'reason' => 'بازگشت رئیس ریاست.',
+        ])->assertOk()->assertJsonPath('data.active', false);
+
+        $this->actingAs($deputy->fresh(), 'sanctum')->postJson('/api/meetings/'.$secondMeeting->id.'/minutes/reviews/'.$unit->id.'/acknowledge')
+            ->assertStatus(403);
+    }
+
+    private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber = 'EMP-TECH-004', string $email = 'tech.deputy@example.test'): User
+    {
+        $employee = Employee::query()->where('employee_number', $employeeNumber)->firstOrFail();
+        $deputy = User::create([
+            'name' => 'معاون ریاست تکنالوژی',
+            'email' => $email,
+            'password' => Hash::make('ChangeMe!2026'),
+            'employee_id' => $employee->id,
+        ]);
+        $role = Role::query()->where('name', 'DEPUTY_DIRECTOR')->where('guard_name', 'sanctum')->firstOrFail();
+        $deputy->assignRole($role);
+        UserRole::create(['user_id' => $deputy->id, 'role' => 'DEPUTY_DIRECTOR', 'organizational_unit_id' => $unit->id]);
+        AmmsRoleScope::create(['user_id' => $deputy->id, 'role_id' => $role->id, 'organizational_unit_id' => $unit->id]);
+
+        return $deputy;
     }
 
     private function submittedMinutesFixture(): array

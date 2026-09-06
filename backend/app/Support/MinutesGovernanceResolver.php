@@ -9,6 +9,11 @@ use App\Models\User;
 
 class MinutesGovernanceResolver
 {
+    public function delegatedReviewScopeFor(Meeting $meeting, User $actor, int $unitId): ?\App\Models\AmmsCapabilityScope
+    {
+        return app(DirectorateMinutesApprovalDelegation::class)->scopeFor($meeting, $actor, $unitId);
+    }
+
     public function isAuthorityControlled(Meeting $meeting): bool
     {
         $flowType = (string) ($meeting->request?->flow_type ?? '');
@@ -49,8 +54,13 @@ class MinutesGovernanceResolver
 
     public function mayReviewUnit(Meeting $meeting, User $actor, int $unitId): bool
     {
-        return $actor->isActive() && $actor->can('meeting.minutes.review') && $actor->hasScopedRole('DIRECTOR', $unitId)
-            && $meeting->units()->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists();
+        if (!$actor->isActive() || !$actor->can('meeting.minutes.review')) return false;
+
+        if ($actor->hasScopedRole('DIRECTOR', $unitId)) {
+            return $meeting->units()->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])->where('organizational_unit_id', $unitId)->exists();
+        }
+
+        return $this->delegatedReviewScopeFor($meeting, $actor, $unitId) !== null;
     }
 
     public function mayApproveHighAuthority(Meeting $meeting, User $actor): bool

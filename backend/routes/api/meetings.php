@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Meetings\MeetingExceptionController;
 use App\Http\Controllers\Api\Meetings\MeetingExecutionController;
 use App\Http\Controllers\Api\Meetings\MeetingMinutesController;
+use App\Http\Controllers\Api\Meetings\MinutesApprovalDelegationController;
 use App\Http\Controllers\Api\Meetings\MeetingParticipantChangeController;
 use App\Http\Controllers\Api\Meetings\MeetingRescheduleController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
@@ -13,6 +14,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/meetings', [DirectoryController::class, 'meetings']);
     Route::get('/meetings/{meeting}/action-capabilities', [DirectoryController::class, 'meetingActionCapabilities']);
     Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
+
+    // Directorate minutes-review delegation
+    Route::get('/minutes-approval-delegations', [MinutesApprovalDelegationController::class, 'index']);
+    Route::post('/minutes-approval-delegations', [MinutesApprovalDelegationController::class, 'store']);
+    Route::delete('/minutes-approval-delegations/{capabilityScope}', [MinutesApprovalDelegationController::class, 'revoke']);
 
     // Execution Lifecycle (Start / Adjourn / Complete)
     Route::get('/meetings/{meeting}/execution', [MeetingExecutionController::class, 'show']);

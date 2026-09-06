@@ -35,6 +35,8 @@ class MeetingActionCapabilities
                 'prepare' => $this->allows(fn (): bool => $gate->allows('minutesPrepare', $meeting)),
                 'submit' => $this->allows(fn (): bool => $gate->allows('minutesSubmit', $meeting)),
                 'review' => $this->canReviewMinutes($meeting, $actor),
+                'reviewable_unit_ids' => $this->reviewableMinutesUnitIds($meeting, $actor),
+                'delegated_review_unit_ids' => $this->delegatedMinutesReviewUnitIds($meeting, $actor),
                 'approve_authority' => $this->allows(fn (): bool => $gate->allows('minutesApproveAuthority', $meeting)),
                 'finalize' => $this->allows(fn (): bool => $gate->allows('minutesFinalize', $meeting)),
                 'document' => $this->allows(fn (): bool => $gate->allows('minutesDocumentView', $meeting)),
@@ -78,6 +80,12 @@ class MeetingActionCapabilities
 
     private function canReviewMinutes(Meeting $meeting, User $actor): bool
     {
+        return $this->reviewableMinutesUnitIds($meeting, $actor) !== [];
+    }
+
+    /** @return array<int, int> */
+    private function reviewableMinutesUnitIds(Meeting $meeting, User $actor): array
+    {
         $unitIds = $meeting->units()
             ->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])
             ->pluck('organizational_unit_id')
@@ -85,15 +93,27 @@ class MeetingActionCapabilities
             ->unique()
             ->values();
 
+        $reviewable = [];
         foreach ($unitIds as $unitId) {
-            if ($this->allows(function () use ($actor, $meeting, $unitId): bool {
-                return Gate::forUser($actor)->allows('minutesReviewUnit', [$meeting, $unitId]);
-            })) {
-                return true;
+            if (Gate::forUser($actor)->allows('minutesReviewUnit', [$meeting, $unitId])) {
+                $reviewable[] = $unitId;
             }
         }
 
-        return false;
+        return $reviewable;
+    }
+
+    /** @return array<int, int> */
+    private function delegatedMinutesReviewUnitIds(Meeting $meeting, User $actor): array
+    {
+        return $meeting->units()
+            ->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])
+            ->pluck('organizational_unit_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->filter(fn (int $unitId): bool => app(MinutesGovernanceResolver::class)->delegatedReviewScopeFor($meeting, $actor, $unitId) !== null)
+            ->values()
+            ->all();
     }
 
     private function canTerminalOperation(Meeting $meeting, User $actor, string $operation): bool

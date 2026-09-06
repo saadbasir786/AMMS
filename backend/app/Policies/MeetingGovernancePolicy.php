@@ -22,7 +22,7 @@ class MeetingGovernancePolicy extends MeetingPolicy
         if ($user->can('meeting.view')) {
             $formalUnitIds = $meeting->units->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])
                 ->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->all();
-            if ($this->hasFormalRole($user, $formalUnitIds, ['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])) return true;
+            if ($this->hasFormalRole($user, $formalUnitIds, ['DIRECTOR', 'DEPUTY_DIRECTOR', 'EXECUTIVE_MANAGEMENT'])) return true;
             if ($user->employee_id && $meeting->participants->contains(fn ($participant): bool => (int) $participant->employee_id === (int) $user->employee_id)) return true;
         }
 

@@ -122,7 +122,7 @@ class DirectoryController extends Controller
 
     private function scopeMeetings($query, $user)
     {
-        $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT')));
+        $unitIds = array_unique(array_merge($user->scopedRoleUnitIds('DIRECTOR'), $user->scopedRoleUnitIds('DEPUTY_DIRECTOR'), $user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT')));
         $officeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
 
         return $query->where(function ($q) use ($user, $unitIds, $officeIds): void {

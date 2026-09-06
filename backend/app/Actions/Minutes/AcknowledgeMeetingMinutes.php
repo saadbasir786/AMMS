@@ -26,13 +26,21 @@ class AcknowledgeMeetingMinutes
             $review = MeetingMinuteReview::query()->lockForUpdate()->where('meeting_minute_version_id', $version->id)->where('reviewer_type', MeetingMinuteReview::UNIT)->where('organizational_unit_id', $unitId)->firstOrFail();
             if ($review->status === MeetingMinuteReview::CORRECTION_REQUESTED) abort(422, 'MINUTES_REVIEW_INCOMPLETE');
             if ($review->status === MeetingMinuteReview::ACKNOWLEDGED) return $locked->fresh(['currentVersion.reviews']);
+            $delegation = $this->governance->delegatedReviewScopeFor($locked->meeting, $actor, $unitId);
             $review->forceFill(['status' => MeetingMinuteReview::ACKNOWLEDGED, 'reviewed_by_user_id' => $actor->id, 'reviewed_at' => now()])->saveQuietly();
             $this->refreshReadiness($locked, $version->id);
             \App\Models\MeetingAction::create([
                 'meeting_id' => $locked->meeting_id,
                 'actor_id' => $actor->id,
-                'action' => 'MINUTES_UNIT_ACKNOWLEDGED',
-                'metadata' => ['minutes_id' => $locked->id, 'version_id' => $version->id, 'organizational_unit_id' => $unitId],
+                'action' => $delegation ? 'MINUTES_UNIT_ACKNOWLEDGED_UNDER_DELEGATION' : 'MINUTES_UNIT_ACKNOWLEDGED',
+                'metadata' => array_filter([
+                    'minutes_id' => $locked->id,
+                    'version_id' => $version->id,
+                    'organizational_unit_id' => $unitId,
+                    'delegated_capability_scope_id' => $delegation?->id,
+                    'delegated_capability' => $delegation?->capability,
+                    'delegated_by_user_id' => $delegation?->granted_by_user_id,
+                ], static fn ($value) => $value !== null),
             ]);
             return $locked->fresh(['currentVersion.reviews']);
         });

@@ -45,6 +45,8 @@ type MinutesReviewsCardProps = {
   onFinalize: () => Promise<void>
   onDownloadPdf: () => Promise<void>
   canReview?: boolean
+  reviewableUnitIds?: number[]
+  delegatedReviewUnitIds?: number[]
   canApproveAuthority?: boolean
   canFinalize?: boolean
   canDocument?: boolean
@@ -60,6 +62,8 @@ export function MinutesReviewsCard({
   onFinalize,
   onDownloadPdf,
   canReview = false,
+  reviewableUnitIds = [],
+  delegatedReviewUnitIds = [],
   canApproveAuthority = false,
   canFinalize = false,
   canDocument = false,
@@ -103,7 +107,10 @@ export function MinutesReviewsCard({
           <div className="space-y-2.5">
             {reviews.map((rev) => {
               const isAuthorityReview = rev.reviewer_type === 'HIGH_AUTHORITY'
-              const canActOnReview = isAuthorityReview ? canApproveAuthority : canReview
+              const canActOnReview = isAuthorityReview
+                ? canApproveAuthority
+                : canReview && reviewableUnitIds.includes(rev.organizational_unit_id)
+              const isDelegatedReview = !isAuthorityReview && delegatedReviewUnitIds.includes(rev.organizational_unit_id)
               const cfg = REVIEW_STATUS_CONFIG[rev.status] || {
                 label: rev.status,
                 color: 'text-slate-600 bg-slate-100 border-slate-200',
@@ -153,6 +160,10 @@ export function MinutesReviewsCard({
                         <CheckCircle2 className="size-3" />
                         <span>{isAuthorityReview ? 'تأیید مقام عالی' : 'تأیید صورت‌جلسه'}</span>
                       </Button>
+
+                      {isDelegatedReview && (
+                        <span className="text-[10px] font-semibold text-muted-foreground">با صلاحیت تفویض‌شده</span>
+                      )}
 
                       <Button
                         size="sm"

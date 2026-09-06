@@ -67,6 +67,7 @@ const roleLabels: Record<string, string> = {
   SYSTEM_ADMIN: 'مدیر سیستم',
   EMPLOYEE: 'کارمند',
   DIRECTOR: 'رئیس ریاست',
+  DEPUTY_DIRECTOR: 'معاون ریاست',
   EXECUTIVE_MANAGEMENT: 'مدیریت اجرائیه',
   AUTHORITY_OFFICE: 'دفتر مقام',
   EXECUTIVE_SECRETARY: 'سکرتریت اجرائیه',

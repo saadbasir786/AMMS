@@ -348,6 +348,8 @@ export function MeetingMinutesPage() {
               onFinalize={handleFinalize}
               onDownloadPdf={handleDownloadPdf}
               canReview={meeting.action_capabilities?.minutes.review === true}
+              reviewableUnitIds={meeting.action_capabilities?.minutes.reviewable_unit_ids || []}
+              delegatedReviewUnitIds={meeting.action_capabilities?.minutes.delegated_review_unit_ids || []}
               canApproveAuthority={meeting.action_capabilities?.minutes.approve_authority === true}
               canFinalize={meeting.action_capabilities?.minutes.finalize === true}
               canDocument={meeting.action_capabilities?.minutes.document === true}

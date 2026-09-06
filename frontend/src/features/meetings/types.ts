@@ -63,6 +63,8 @@ export type MeetingActionCapabilities = {
     prepare: boolean
     submit: boolean
     review: boolean
+    reviewable_unit_ids: number[]
+    delegated_review_unit_ids: number[]
     approve_authority: boolean
     finalize: boolean
     document: boolean
