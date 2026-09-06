@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Fingerprint, UserCheck, ShieldCheck, Search, Eye } from 'lucide-react'
+import { Fingerprint, Pencil, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/amms/status-badge'
@@ -8,9 +8,10 @@ import type { Employee } from '../types'
 
 type EmployeesTableProps = {
   employees: Employee[]
+  onEdit?: (employee: Employee) => void
 }
 
-export function EmployeesTable({ employees }: EmployeesTableProps) {
+export function EmployeesTable({ employees, onEdit }: EmployeesTableProps) {
   if (employees.length === 0) {
     return (
       <div
@@ -43,6 +44,7 @@ export function EmployeesTable({ employees }: EmployeesTableProps) {
               <th className="py-3.5 px-4 font-bold">سمت اداری</th>
               <th className="py-3.5 px-4 font-bold">وضعیت</th>
               <th className="py-3.5 px-4 font-bold text-center">بایومتریک</th>
+              {onEdit && <th className="py-3.5 px-4 font-bold text-center">عملیات</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -108,6 +110,13 @@ export function EmployeesTable({ employees }: EmployeesTableProps) {
                     </Link>
                   </Button>
                 </td>
+                {onEdit && (
+                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => onEdit(emp)}>
+                      <Pencil className="ml-1 size-3" /> اصلاح
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

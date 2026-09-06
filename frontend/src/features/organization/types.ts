@@ -43,6 +43,9 @@ export type EmployeeRole = {
 export type Employee = {
   id: number
   employee_number: string
+  first_name?: string
+  last_name?: string
+  father_name?: string | null
   full_name: string
   email?: string
   phone?: string
