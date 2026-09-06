@@ -30,20 +30,32 @@ export function DelegationsPage({ initialTab }: DelegationsPageProps) {
       />
 
       {/* Hub Navigation Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/50 border border-border/70 overflow-x-auto w-full sm:w-fit shadow-xs">
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-muted/70 border border-border/80 overflow-x-auto w-full sm:w-fit shadow-xs">
         <button
           type="button"
           onClick={() => handleTabChange('internal')}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap',
+            'flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap',
             activeTab === 'internal'
-              ? 'bg-background text-foreground shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/25'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
           )}
         >
-          <ShieldCheck className={cn('size-4', activeTab === 'internal' ? 'text-primary' : 'text-muted-foreground')} />
+          <ShieldCheck
+            className={cn(
+              'size-4 shrink-0',
+              activeTab === 'internal' ? 'text-primary-foreground' : 'text-muted-foreground'
+            )}
+          />
           <span>تأیید جلسات داخلی</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-normal">
+          <span
+            className={cn(
+              'text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors',
+              activeTab === 'internal'
+                ? 'bg-primary-foreground/20 text-primary-foreground'
+                : 'bg-muted-foreground/10 text-muted-foreground'
+            )}
+          >
             مدیریت اجرائیه
           </span>
         </button>
@@ -52,15 +64,27 @@ export function DelegationsPage({ initialTab }: DelegationsPageProps) {
           type="button"
           onClick={() => handleTabChange('minutes')}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap',
+            'flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap',
             activeTab === 'minutes'
-              ? 'bg-background text-foreground shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/25'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
           )}
         >
-          <FileCheck className={cn('size-4', activeTab === 'minutes' ? 'text-primary' : 'text-muted-foreground')} />
+          <FileCheck
+            className={cn(
+              'size-4 shrink-0',
+              activeTab === 'minutes' ? 'text-primary-foreground' : 'text-muted-foreground'
+            )}
+          />
           <span>بررسی و تأیید صورت‌جلسات</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-normal">
+          <span
+            className={cn(
+              'text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors',
+              activeTab === 'minutes'
+                ? 'bg-primary-foreground/20 text-primary-foreground'
+                : 'bg-muted-foreground/10 text-muted-foreground'
+            )}
+          >
             معاونت اداره
           </span>
         </button>
