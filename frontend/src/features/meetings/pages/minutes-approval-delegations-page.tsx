@@ -560,7 +560,6 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
                 value={expiresAt}
                 onChange={setExpiresAt}
                 placeholder="انتخاب تاریخ انقضا..."
-                className="h-9.5 rounded-xl text-xs"
               />
             </div>
 

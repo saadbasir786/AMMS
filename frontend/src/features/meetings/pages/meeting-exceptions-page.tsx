@@ -385,7 +385,6 @@ export function MeetingExceptionsPage() {
                 value={resumeSchedule.meeting_date}
                 onChange={(iso) => setResumeSchedule({ ...resumeSchedule, meeting_date: iso })}
                 placeholder="انتخاب تاریخ جدید جلسه..."
-                className="h-9.5 text-xs rounded-xl"
               />
             </div>
 

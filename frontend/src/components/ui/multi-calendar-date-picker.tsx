@@ -190,8 +190,16 @@ export function MultiCalendarDatePicker({
   // Triple summary
   const tripleSummary = useMemo(() => getTripleDateSummary(value), [value])
 
+  // Sanitize wrapper className to prevent height clipping (e.g. h-9.5 passed by callers)
+  const wrapperClassName = useMemo(() => {
+    if (!className) return ''
+    return className
+      .replace(/\b(h-\S+|min-h-\S+|max-h-\S+)\b/g, '')
+      .trim()
+  }, [className])
+
   return (
-    <div className={cn('space-y-1.5', className)} dir="rtl">
+    <div className={cn('w-full space-y-1.5', wrapperClassName)} dir="rtl">
       <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
         <PopoverPrimitive.Trigger asChild disabled={disabled}>
           <button
@@ -372,20 +380,20 @@ export function MultiCalendarDatePicker({
 
       {/* Triple Conversion Badge when Date is Selected */}
       {tripleSummary && (
-        <div className="p-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-border/50 text-[10px] space-y-1 text-muted-foreground animate-in fade-in">
-          <div className="flex flex-wrap items-center justify-between gap-1 text-foreground font-medium">
-            <span className="flex items-center gap-1">
-              <Sun className="size-3 text-amber-500" />
-              <span>{tripleSummary.solar}</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <Moon className="size-3 text-indigo-400" />
-              <span>{tripleSummary.lunar}</span>
-            </span>
-            <span className="flex items-center gap-1 font-mono text-muted-foreground">
-              <Globe className="size-3 text-sky-400" />
-              <span>{tripleSummary.gregorian}</span>
-            </span>
+        <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-border/70 text-[11px] text-muted-foreground animate-in fade-in duration-150">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-amber-500/20 text-foreground font-medium shadow-2xs">
+              <Sun className="size-3 text-amber-500 shrink-0" />
+              <span className="truncate">{tripleSummary.solar}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-indigo-500/20 text-foreground font-medium shadow-2xs">
+              <Moon className="size-3 text-indigo-400 shrink-0" />
+              <span className="truncate">{tripleSummary.lunar}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-sky-500/20 text-muted-foreground font-mono shadow-2xs">
+              <Globe className="size-3 text-sky-400 shrink-0" />
+              <span className="truncate">{tripleSummary.gregorian}</span>
+            </div>
           </div>
         </div>
       )}

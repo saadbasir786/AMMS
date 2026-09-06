@@ -577,7 +577,6 @@ export function InternalApprovalDelegationsPage({ embedded = false }: InternalAp
                 value={expiresAt}
                 onChange={setExpiresAt}
                 placeholder="انتخاب تاریخ انقضا..."
-                className="h-9.5 rounded-xl text-xs"
               />
             </div>
 
