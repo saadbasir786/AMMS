@@ -5,6 +5,7 @@ export type OrganizationalUnit = {
   name: string
   code: string
   unit_type?: string
+  status?: string
   parent_id?: number | null
   description?: string
   head_employee_id?: number | null
@@ -20,6 +21,13 @@ export type EmployeePosition = {
   id: number
   title: string
   code?: string
+  position_type?: string | null
+  status?: 'ACTIVE' | 'INACTIVE'
+  organizational_unit_id?: number
+  unit?: {
+    id: number
+    name: string
+  } | null
 }
 
 export type EmployeeRole = {

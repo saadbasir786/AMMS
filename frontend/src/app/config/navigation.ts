@@ -2,6 +2,7 @@ import type { ApplicationShellNavItem } from '@/components/layout/application-sh
 import {
   BarChart3,
   Bell,
+  BriefcaseBusiness,
   CalendarDays,
   ClipboardCheck,
   FilePlus2,
@@ -26,6 +27,7 @@ export const navigationItems: ApplicationShellNavItem[] = [
   { to: '/action-items', label: 'اقدامات من', icon: ClipboardCheck, roles: ['EMPLOYEE', 'DIRECTOR', 'EXECUTIVE_MANAGEMENT', 'AUTHORITY_OFFICE', 'EXECUTIVE_SECRETARY', 'HIGH_AUTHORITY'] },
   { to: '/notifications', label: 'اعلان‌ها', icon: Bell },
   { to: '/admin/organization', label: 'ساختار تشکیلاتی', icon: Network, role: 'SYSTEM_ADMIN' },
+  { to: '/admin/positions', label: 'سمت‌های سازمانی', icon: BriefcaseBusiness, role: 'SYSTEM_ADMIN' },
   { to: '/admin/employees', label: 'کارمندان', icon: Users, role: 'SYSTEM_ADMIN' },
   { to: '/admin/roles', label: 'کاربران و صلاحیت‌ها', icon: ShieldCheck, role: 'SYSTEM_ADMIN' },
   { to: '/admin/terminals', label: 'ترمینال‌ها', icon: Monitor, role: 'SYSTEM_ADMIN' },

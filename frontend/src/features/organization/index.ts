@@ -1,5 +1,6 @@
 export { OrganizationPage } from './pages/organization-page'
 export { EmployeesPage } from './pages/employees-page'
+export { PositionsPage } from './pages/positions-page'
 export { NotificationsPage } from './pages/notifications-page'
 
 export { OrganizationTreeCard } from './components/organization-tree-card'

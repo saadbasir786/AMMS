@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Organization\AssignCapabilityRequest;
 use App\Http\Requests\Organization\AssignRoleRequest;
 use App\Http\Requests\Organization\StoreEmployeeRequest;
+use App\Http\Requests\Organization\StorePositionRequest;
 use App\Http\Requests\Organization\StoreUserRequest;
 use App\Http\Resources\CapabilityScopeResource;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\OrganizationalUnitResource;
+use App\Http\Resources\PositionResource;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\UserRoleResource;
 use App\Models\AmmsCapabilityScope;
@@ -17,6 +19,7 @@ use App\Models\AmmsRoleScope;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationalUnit;
+use App\Models\Position;
 use App\Models\User as UserModel;
 use App\Models\UserRole;
 use App\Services\ScopedCapabilityManager;
@@ -27,6 +30,8 @@ use Spatie\Permission\Models\Role;
 class AdminController extends Controller
 {
     private function admin(Request $request): void { abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && ($request->user()->can('organization.manage') || $request->user()->can('user.manage') || $request->user()->can('role.manage')), 403, 'FORBIDDEN'); }
+
+    private function organizationAdmin(Request $request): void { abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('organization.manage'), 403, 'FORBIDDEN'); }
 
     public function users(Request $request)
     {
@@ -122,6 +127,36 @@ class AdminController extends Controller
         $this->admin($request);
         $data = $request->validate(['organization_id'=>['required','integer','exists:organizations,id'],'parent_id'=>['nullable','integer','exists:organizational_units,id'],'name'=>['required','string','max:255'],'code'=>['nullable','string','max:50'],'unit_type'=>['required','in:DIRECTORATE,DEPARTMENT,MANAGEMENT,OFFICE,OTHER'],'status'=>['sometimes','in:ACTIVE,INACTIVE']]);
         return (new OrganizationalUnitResource(OrganizationalUnit::create($data)))->additional(['success'=>true,'message'=>'واحد تشکیلاتی ایجاد شد.'])->response()->setStatusCode(201);
+    }
+
+    public function positions(Request $request)
+    {
+        $this->organizationAdmin($request);
+
+        return PositionResource::collection(Position::query()->with('unit')->orderBy('title')->paginate(30))
+            ->additional(['success' => true, 'message' => 'فهرست سمت‌های سازمانی.']);
+    }
+
+    public function storePosition(StorePositionRequest $request)
+    {
+        $position = Position::create($request->validated());
+
+        return (new PositionResource($position->load('unit')))
+            ->additional(['success' => true, 'message' => 'سمت سازمانی ایجاد شد.'])
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function updatePosition(StorePositionRequest $request, Position $position)
+    {
+        $data = $request->validated();
+        $isBeingDeactivated = ($data['status'] ?? $position->status) === 'INACTIVE' && $position->status === 'ACTIVE';
+        abort_if($isBeingDeactivated && Employee::query()->where('position_id', $position->id)->where('status', 'ACTIVE')->exists(), 422, 'POSITION_HAS_ACTIVE_EMPLOYEES');
+
+        $position->update($data);
+
+        return (new PositionResource($position->fresh('unit')))
+            ->additional(['success' => true, 'message' => 'سمت سازمانی اصلاح شد.']);
     }
 
     public function organizations(Request $request)
