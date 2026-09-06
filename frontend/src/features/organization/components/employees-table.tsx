@@ -112,8 +112,15 @@ export function EmployeesTable({ employees, onEdit }: EmployeesTableProps) {
                 </td>
                 {onEdit && (
                   <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                    <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => onEdit(emp)}>
-                      <Pencil className="ml-1 size-3" /> اصلاح
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-xl text-xs gap-1.5 hover:bg-primary/5 hover:text-primary"
+                      onClick={() => onEdit(emp)}
+                    >
+                      <Pencil className="size-3.5" />
+                      <span>اصلاح</span>
                     </Button>
                   </td>
                 )}

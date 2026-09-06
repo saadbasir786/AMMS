@@ -1,12 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, RotateCw, UserPlus, Users } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Users,
+  CheckCircle2,
+  BriefcaseBusiness,
+  AlertCircle,
+  Plus,
+  RotateCw,
+  Search,
+  UserPlus,
+  Building2,
+  Check
+} from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { api, apiData, apiError } from '@/lib/api-client'
 import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 import { EmployeesTable } from '../components/employees-table'
@@ -25,28 +42,46 @@ type EmployeeForm = {
 }
 
 const emptyForm: EmployeeForm = {
-  employee_number: '', first_name: '', last_name: '', father_name: '', organizational_unit_id: '',
-  position_id: '', email: '', phone: '', status: 'ACTIVE',
+  employee_number: '',
+  first_name: '',
+  last_name: '',
+  father_name: '',
+  organizational_unit_id: '',
+  position_id: '',
+  email: '',
+  phone: '',
+  status: 'ACTIVE',
 }
 
-export function EmployeesPage() {
+type EmployeesPageProps = {
+  embedded?: boolean
+}
+
+export function EmployeesPage({ embedded = false }: EmployeesPageProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
   const [positions, setPositions] = useState<EmployeePosition[]>([])
   const [form, setForm] = useState<EmployeeForm>(emptyForm)
   const [editing, setEditing] = useState<Employee | null>(null)
-  const [search, setSearch] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDeactivation, setConfirmDeactivation] = useState(false)
+
+  // Filters
+  const [search, setSearch] = useState('')
+  const [unitFilter, setUnitFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const [loadedEmployees, unitResponse, loadedPositions] = await Promise.all([
-        fetchAllAdminPages<Employee>('/admin/employees'), api.get('/admin/organizational-units'), fetchAllAdminPages<EmployeePosition>('/admin/positions'),
+        fetchAllAdminPages<Employee>('/admin/employees'),
+        api.get('/admin/organizational-units'),
+        fetchAllAdminPages<EmployeePosition>('/admin/positions'),
       ])
       setEmployees(loadedEmployees)
       setUnits(apiData(unitResponse) || [])
@@ -58,36 +93,97 @@ export function EmployeesPage() {
     }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  const availablePositions = useMemo(
-    () => positions.filter((position) => String(position.organizational_unit_id || position.unit?.id) === form.organizational_unit_id && position.status !== 'INACTIVE'),
-    [form.organizational_unit_id, positions]
+  // KPIs
+  const activeCount = useMemo(
+    () => employees.filter((e) => e.status !== 'INACTIVE').length,
+    [employees]
+  )
+  const withPositionCount = useMemo(
+    () => employees.filter((e) => !!e.position_id || !!e.position?.title).length,
+    [employees]
+  )
+  const inactiveCount = useMemo(
+    () => employees.filter((e) => e.status === 'INACTIVE').length,
+    [employees]
   )
 
+  // Positions available for the selected unit in the dialog
+  const availablePositions = useMemo(() => {
+    if (!form.organizational_unit_id) return []
+    return positions.filter(
+      (position) =>
+        String(position.organizational_unit_id || position.unit?.id) ===
+          form.organizational_unit_id && position.status !== 'INACTIVE'
+    )
+  }, [form.organizational_unit_id, positions])
+
+  // Filtered employees
   const filteredEmployees = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return employees
-    return employees.filter((employee) => [employee.full_name, employee.employee_number, employee.unit?.name, employee.position?.title].filter(Boolean).some((value) => value!.toLowerCase().includes(query)))
-  }, [employees, search])
+    return employees.filter((employee) => {
+      const q = search.trim().toLowerCase()
+      const matchSearch =
+        !q ||
+        [
+          employee.full_name,
+          employee.employee_number,
+          employee.unit?.name,
+          employee.position?.title,
+          employee.email,
+        ]
+          .filter(Boolean)
+          .some((val) => val!.toLowerCase().includes(q))
 
-  const resetForm = () => { setEditing(null); setForm(emptyForm) }
+      const matchUnit = unitFilter
+        ? String(employee.organizational_unit_id || employee.unit?.id) === unitFilter
+        : true
 
-  const beginEdit = (employee: Employee) => {
+      const matchStatus = statusFilter
+        ? (employee.status || 'ACTIVE') === statusFilter
+        : true
+
+      return matchSearch && matchUnit && matchStatus
+    })
+  }, [employees, search, unitFilter, statusFilter])
+
+  const openCreateDialog = () => {
+    setEditing(null)
+    setForm(emptyForm)
+    setDialogOpen(true)
+  }
+
+  const openEditDialog = (employee: Employee) => {
     setEditing(employee)
     setForm({
       employee_number: employee.employee_number,
       first_name: employee.first_name || employee.full_name.split(' ')[0] || '',
-      last_name: employee.last_name || employee.full_name.split(' ').slice(1).join(' ') || '',
+      last_name:
+        employee.last_name || employee.full_name.split(' ').slice(1).join(' ') || '',
       father_name: employee.father_name || '',
-      organizational_unit_id: String(employee.organizational_unit_id || employee.unit?.id || ''),
-      position_id: String(employee.position?.id || ''),
-      email: employee.email || '', phone: employee.phone || '',
+      organizational_unit_id: String(
+        employee.organizational_unit_id || employee.unit?.id || ''
+      ),
+      position_id: String(employee.position?.id || employee.position_id || ''),
+      email: employee.email || '',
+      phone: employee.phone || '',
       status: employee.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
     })
+    setDialogOpen(true)
   }
 
-  const updateField = <Key extends keyof EmployeeForm>(field: Key, value: EmployeeForm[Key]) => setForm((current) => ({ ...current, [field]: value }))
+  const handleCloseDialog = () => {
+    setDialogOpen(false)
+    setEditing(null)
+    setForm(emptyForm)
+  }
+
+  const updateField = <Key extends keyof EmployeeForm>(
+    field: Key,
+    value: EmployeeForm[Key]
+  ) => setForm((current) => ({ ...current, [field]: value }))
 
   const save = async () => {
     setSaving(true)
@@ -101,9 +197,12 @@ export function EmployeesPage() {
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
       }
-      if (editing) await api.put(`/admin/employees/${editing.id}`, payload)
-      else await api.post('/admin/employees', payload)
-      resetForm()
+      if (editing) {
+        await api.put(`/admin/employees/${editing.id}`, payload)
+      } else {
+        await api.post('/admin/employees', payload)
+      }
+      handleCloseDialog()
       await loadData()
     } catch (err) {
       setError(apiError(err))
@@ -123,49 +222,407 @@ export function EmployeesPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <PageHeader
-        title="مدیریت کارمندان"
-        description="مشخصات پرسنلی، واحد سازمانی و سمت رسمی کارمندان را ثبت و به‌روزرسانی کنید."
-        action={<Badge variant="outline" className="rounded-lg border-primary/30 px-2.5 py-1 text-xs text-primary"><Users className="ml-1 size-3.5" />{employees.filter((employee) => employee.status !== 'INACTIVE').length} کارمند فعال</Badge>}
-      />
-
-      {error && <Alert variant="destructive" className="rounded-2xl"><AlertDescription className="flex items-center justify-between gap-3 text-xs"><span>{error}</span><Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={loadData}><RotateCw className="ml-1 size-3" /> تلاش مجدد</Button></AlertDescription></Alert>}
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <section className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 max-w-md rounded-xl text-xs" placeholder="جست‌وجو بر اساس نام، شماره، واحد یا سمت..." />
-            <span className="text-xs text-muted-foreground">{filteredEmployees.length} نتیجه</span>
+      {/* Header */}
+      {embedded ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-border/50">
+          <div>
+            <h3 className="text-sm font-bold text-foreground">فهرست پرسنل و کارمندان اداری</h3>
+            <p className="text-[11px] text-muted-foreground">
+              سوابق پرسنلی، انتساب به بست رسمی و وضعیت فعالیت کارمندان سازمان
+            </p>
           </div>
-          {!loading && <EmployeesTable employees={filteredEmployees} onEdit={beginEdit} />}
-          {loading && <div className="space-y-3 rounded-2xl border border-border/70 bg-card p-5">{[1, 2, 3, 4].map((item) => <div key={item} className="h-14 animate-pulse rounded-xl bg-muted/60" />)}</div>}
-        </section>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              disabled={loading}
+              className="h-8.5 text-xs font-semibold rounded-xl gap-1.5"
+            >
+              <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>تازه‌سازی</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={openCreateDialog}
+              className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+            >
+              <UserPlus className="size-3.5" />
+              <span>ثبت کارمند جدید</span>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <PageHeader
+          title="مدیریت کارمندان و پرسنل"
+          description="ثبت سوابق پرسنلی، انتساب واحد تشکیلاتی، بست اداری و نظارت بر فعال بودن کارمندان"
+          action={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                disabled={loading}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5"
+              >
+                <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>تازه‌سازی</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={openCreateDialog}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+              >
+                <UserPlus className="size-3.5" />
+                <span>ثبت کارمند جدید</span>
+              </Button>
+            </div>
+          }
+        />
+      )}
 
-        <Card className="h-fit rounded-2xl border-border/70 shadow-xs xl:sticky xl:top-6">
-          <CardHeader className="border-b border-border/60 p-4 sm:p-5"><CardTitle className="flex items-center gap-2 text-sm"><UserPlus className="size-4 text-primary" />{editing ? 'اصلاح کارمند' : 'ثبت کارمند'}</CardTitle></CardHeader>
-          <CardContent className="p-4 sm:p-5">
-            <form className="space-y-3.5" onSubmit={submit}>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="space-y-1.5 text-xs font-bold">نام<Input required value={form.first_name} onChange={(event) => updateField('first_name', event.target.value)} className="h-10 rounded-xl text-xs" /></label>
-                <label className="space-y-1.5 text-xs font-bold">تخلص<Input required value={form.last_name} onChange={(event) => updateField('last_name', event.target.value)} className="h-10 rounded-xl text-xs" /></label>
-              </div>
-              <label className="block space-y-1.5 text-xs font-bold">شماره کارمندی<Input required value={form.employee_number} onChange={(event) => updateField('employee_number', event.target.value)} className="h-10 rounded-xl font-mono text-xs" placeholder="EMP-TECH-001" /></label>
-              <label className="block space-y-1.5 text-xs font-bold">نام پدر <span className="font-normal text-muted-foreground">(اختیاری)</span><Input value={form.father_name} onChange={(event) => updateField('father_name', event.target.value)} className="h-10 rounded-xl text-xs" /></label>
-              <label className="block space-y-1.5 text-xs font-bold">واحد سازمانی<select required value={form.organizational_unit_id} onChange={(event) => setForm((current) => ({ ...current, organizational_unit_id: event.target.value, position_id: '' }))} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-normal"><option value="">انتخاب واحد</option>{units.filter((unit) => unit.status !== 'INACTIVE').map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label>
-              <label className="block space-y-1.5 text-xs font-bold">سمت سازمانی<select value={form.position_id} disabled={!form.organizational_unit_id} onChange={(event) => updateField('position_id', event.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-normal disabled:cursor-not-allowed disabled:opacity-60"><option value="">بدون سمت تعیین‌شده</option>{availablePositions.map((position) => <option key={position.id} value={position.id}>{position.title}</option>)}</select></label>
-              <div className="grid grid-cols-2 gap-3"><label className="space-y-1.5 text-xs font-bold">ایمیل <span className="font-normal text-muted-foreground">(اختیاری)</span><Input type="email" value={form.email} onChange={(event) => updateField('email', event.target.value)} className="h-10 rounded-xl text-xs" /></label><label className="space-y-1.5 text-xs font-bold">شماره تماس <span className="font-normal text-muted-foreground">(اختیاری)</span><Input value={form.phone} onChange={(event) => updateField('phone', event.target.value)} className="h-10 rounded-xl text-xs" /></label></div>
-              {editing && <label className="block space-y-1.5 text-xs font-bold">وضعیت<select value={form.status} onChange={(event) => updateField('status', event.target.value as EmployeeForm['status'])} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-normal"><option value="ACTIVE">فعال</option><option value="INACTIVE">غیرفعال</option></select></label>}
-              <div className="flex gap-2 pt-2"><Button type="submit" disabled={saving} className="h-10 flex-1 rounded-xl text-xs">{editing ? 'ثبت اصلاحات' : <><Plus className="ml-1 size-3.5" /> ثبت کارمند</>}</Button>{editing && <Button type="button" variant="outline" disabled={saving} className="h-10 rounded-xl text-xs" onClick={resetForm}>انصراف</Button>}</div>
-            </form>
-          </CardContent>
-        </Card>
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="rounded-2xl p-4">
+          <AlertCircle className="size-4" />
+          <AlertDescription className="text-xs flex items-center justify-between gap-2">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+            >
+              <RotateCw className="size-3" />
+              <span>تلاش مجدد</span>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Users className="size-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-muted-foreground block font-medium">
+              کل کارمندان ثبت‌شده
+            </span>
+            <strong className="text-lg font-bold text-foreground font-mono">
+              {employees.length} نفر
+            </strong>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-muted-foreground block font-medium">
+              کارمندان فعال
+            </span>
+            <strong className="text-lg font-bold text-foreground font-mono">
+              {activeCount} نفر
+            </strong>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0">
+            <BriefcaseBusiness className="size-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-muted-foreground block font-medium">
+              دارای سمت رسمی
+            </span>
+            <strong className="text-lg font-bold text-foreground font-mono">
+              {withPositionCount} نفر
+            </strong>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-slate-500/10 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
+            <AlertCircle className="size-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-muted-foreground block font-medium">
+              غیرفعال / منفصل
+            </span>
+            <strong className="text-lg font-bold text-foreground font-mono">
+              {inactiveCount} نفر
+            </strong>
+          </div>
+        </div>
       </div>
+
+      {/* Filter & Search Bar */}
+      <div className="p-4 rounded-2xl border border-border/70 bg-card shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground block">
+            جست‌وجوی پرسنل
+          </label>
+          <div className="relative">
+            <Search className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو در نام، شماره کارمندی، ایمیل، سمت..."
+              className="h-9.5 pr-8 text-xs rounded-xl"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground block">
+            فیلتر واحد سازمانی
+          </label>
+          <select
+            value={unitFilter}
+            onChange={(e) => setUnitFilter(e.target.value)}
+            className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-background px-3 text-foreground"
+          >
+            <option value="">همه واحدهای سازمانی</option>
+            {units.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground block">
+            فیلتر وضعیت کارمند
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-background px-3 text-foreground"
+          >
+            <option value="">همه وضعیت‌ها</option>
+            <option value="ACTIVE">فعال</option>
+            <option value="INACTIVE">غیرفعال</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="rounded-2xl border border-border/70 bg-card p-6 space-y-3.5 shadow-xs">
+          <div className="h-8 bg-muted/60 rounded-xl animate-pulse w-1/4" />
+          <div className="space-y-2.5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-14 bg-muted/40 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Table Component */}
+      {!loading && (
+        <EmployeesTable
+          employees={filteredEmployees}
+          onEdit={openEditDialog}
+        />
+      )}
+
+      {/* Create / Edit Employee Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-lg rounded-2xl" dir="rtl">
+          <DialogHeader className="space-y-1.5 text-right">
+            <DialogTitle className="text-sm font-bold">
+              {editing ? 'ویرایش مشخصات کارمند' : 'ثبت کارمند اداری جدید'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              اطلاعات پرسنلی، واحد تابعه و سمت اداری کارمند را در این فرم تکمیل نمایید.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={submit} className="space-y-4 pt-1">
+            {/* Name fields */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  نام <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  required
+                  value={form.first_name}
+                  onChange={(e) => updateField('first_name', e.target.value)}
+                  className="h-9.5 rounded-xl text-xs"
+                  placeholder="نام کارمند..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  تخلص <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  required
+                  value={form.last_name}
+                  onChange={(e) => updateField('last_name', e.target.value)}
+                  className="h-9.5 rounded-xl text-xs"
+                  placeholder="تخلص کارمند..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  شماره کارمندی <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  required
+                  value={form.employee_number}
+                  onChange={(e) => updateField('employee_number', e.target.value)}
+                  placeholder="EMP-TECH-001"
+                  className="h-9.5 rounded-xl font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  نام پدر <span className="text-[10px] text-muted-foreground">(اختیاری)</span>
+                </label>
+                <Input
+                  value={form.father_name}
+                  onChange={(e) => updateField('father_name', e.target.value)}
+                  className="h-9.5 rounded-xl text-xs"
+                  placeholder="نام پدر..."
+                />
+              </div>
+            </div>
+
+            {/* Unit and Position */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground block">
+                واحد سازمانی <span className="text-destructive">*</span>
+              </label>
+              <select
+                required
+                value={form.organizational_unit_id}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    organizational_unit_id: e.target.value,
+                    position_id: '',
+                  }))
+                }
+                className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
+              >
+                <option value="">انتخاب واحد سازمانی...</option>
+                {units
+                  .filter((u) => u.status !== 'INACTIVE')
+                  .map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground block">
+                سمت سازمانی اداری
+              </label>
+              <select
+                value={form.position_id}
+                disabled={!form.organizational_unit_id}
+                onChange={(e) => updateField('position_id', e.target.value)}
+                className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">بدون سمت مصوب (تعیین بعداً)</option>
+                {availablePositions.map((pos) => (
+                  <option key={pos.id} value={pos.id}>
+                    {pos.title} {pos.code ? `(${pos.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Contact info */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  ایمیل رسمی <span className="text-[10px] text-muted-foreground">(اختیاری)</span>
+                </label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => updateField('email', e.target.value)}
+                  placeholder="employee@domain.gov.af"
+                  className="h-9.5 rounded-xl font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  شماره تماس <span className="text-[10px] text-muted-foreground">(اختیاری)</span>
+                </label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  placeholder="07xxxxxxxx"
+                  className="h-9.5 rounded-xl font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            {editing && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground block">
+                  وضعیت کارمند
+                </label>
+                <select
+                  value={form.status}
+                  onChange={(e) =>
+                    updateField('status', e.target.value as EmployeeForm['status'])
+                  }
+                  className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
+                >
+                  <option value="ACTIVE">فعال</option>
+                  <option value="INACTIVE">غیرفعال (منفصل)</option>
+                </select>
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 pt-2 sm:justify-start">
+              <Button
+                type="submit"
+                disabled={saving}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5 flex-1"
+              >
+                {saving ? (
+                  <RotateCw className="size-3.5 animate-spin" />
+                ) : (
+                  <Check className="size-3.5" />
+                )}
+                <span>{editing ? 'ثبت تغییرات' : 'ثبت کارمند جدید'}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                onClick={handleCloseDialog}
+                className="h-9 text-xs rounded-xl"
+              >
+                انصراف
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivation Confirmation Dialog */}
       <ConfirmDialog
         open={confirmDeactivation}
         onOpenChange={setConfirmDeactivation}
-        title="غیرفعال‌سازی کارمند تأیید شود؟"
-        description="حساب وابسته به این کارمند فوراً دسترسی عملیاتی خود را از دست می‌دهد."
-        confirmLabel="غیرفعال‌سازی"
+        title="تأیید غیرفعال‌سازی کارمند"
+        description="با غیرفعال‌سازی این کارمند، هرگونه حساب کاربری وابسته به وی بلافاصله تعلیق خواهد شد و دسترسی‌های عملیاتی وی سلب می‌گردد."
+        confirmLabel="غیرفعال‌سازی کارمند"
         variant="destructive"
         onConfirm={save}
       />

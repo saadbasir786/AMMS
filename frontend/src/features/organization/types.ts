@@ -57,6 +57,7 @@ export type Employee = {
     name: string
     code?: string
   }
+  position_id?: number | null
   position?: EmployeePosition | null
   roles?: EmployeeRole[]
   biometric_status?: string

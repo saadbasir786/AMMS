@@ -126,8 +126,8 @@ export function AppRouter() {
               <Route path="/reports" element={<ReportsRoute />} />
               <Route path="/reports/exports" element={<ReportsRoute exportsOnly />} />
               <Route path="/admin/organization" element={<OrganizationPage />} />
-              <Route path="/admin/positions" element={<PositionsPage />} />
-              <Route path="/admin/employees" element={<EmployeesPage />} />
+              <Route path="/admin/positions" element={<OrganizationPage initialTab="positions" />} />
+              <Route path="/admin/employees" element={<OrganizationPage initialTab="employees" />} />
               <Route path="/admin/roles" element={<UsersPage />} />
               <Route path="/admin/terminals" element={<TerminalsRegistryPage />} />
               <Route path="/admin/terminals/:id" element={<TerminalDetailPage />} />
