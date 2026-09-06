@@ -72,7 +72,7 @@ class MeetingMinutesReviewTest extends TestCase
     public function test_director_can_delegate_minutes_review_to_same_unit_deputy_and_revoke_it(): void
     {
         [$meeting, , $director, $unit] = $this->submittedMinutesFixture();
-        $deputy = $this->createTechnologyDeputy($unit);
+        $deputy = User::query()->where('email', 'tech.deputy@example.test')->firstOrFail();
         $this->assertTrue($deputy->can('meeting.view'));
         $this->assertTrue($deputy->hasScopedRole('DEPUTY_DIRECTOR', $unit->id));
 
@@ -119,7 +119,7 @@ class MeetingMinutesReviewTest extends TestCase
             ->assertStatus(403);
     }
 
-    private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber = 'EMP-TECH-004', string $email = 'tech.deputy@example.test'): User
+    private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber, string $email): User
     {
         $employee = Employee::query()->where('employee_number', $employeeNumber)->firstOrFail();
         $deputy = User::create([

@@ -51,6 +51,16 @@ export const statusLabels: Record<string, string> = {
   DIRECTORATES_ACKNOWLEDGED: 'تأیید دریافت همهٔ ریاست‌ها',
 }
 
+export const meetingActionLabels: Record<string, string> = {
+  APPROVED_UNDER_DELEGATION: 'تأیید با صلاحیت تفویض‌شده',
+  MINUTES_UNIT_ACKNOWLEDGED_UNDER_DELEGATION: 'تأیید صورت‌جلسه با صلاحیت تفویض‌شده',
+  MINUTES_CORRECTION_REQUESTED_UNDER_DELEGATION: 'درخواست اصلاح صورت‌جلسه با صلاحیت تفویض‌شده',
+}
+
+export function meetingActionLabel(action: string): string {
+  return meetingActionLabels[action] || action
+}
+
 export const purposeLabels: Record<string, string> = {
   DECISION: 'تصمیم‌گیری',
   COORDINATION: 'هماهنگی',

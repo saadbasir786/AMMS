@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
         $authoritySeat = OrganizationalUnit::create(['organization_id'=>$organization->id,'name'=>'مقام ریاست عمومی','code'=>'AUTHORITY','unit_type'=>'HIGH_AUTHORITY','status'=>'ACTIVE']);
 
         $director = Position::create(['organizational_unit_id'=>$tech->id,'title'=>'رئیس ریاست','position_type'=>'DIRECTOR','status'=>'ACTIVE']);
+        $deputyDirector = Position::create(['organizational_unit_id'=>$tech->id,'title'=>'معاون ریاست','position_type'=>'DEPUTY_DIRECTOR','status'=>'ACTIVE']);
         $executive = Position::create(['organizational_unit_id'=>$techExec->id,'title'=>'مدیر اجرائیه','position_type'=>'EXECUTIVE_MANAGEMENT','status'=>'ACTIVE']);
         $engineer = Position::create(['organizational_unit_id'=>$software->id,'title'=>'انجنیر نرم‌افزار','position_type'=>'EMPLOYEE','status'=>'ACTIVE']);
         $admin = Position::create(['organizational_unit_id'=>$techExec->id,'title'=>'مسؤول اداری','position_type'=>'EMPLOYEE','status'=>'ACTIVE']);
@@ -43,6 +44,7 @@ class DatabaseSeeder extends Seeder
         $secretaryPosition = Position::create(['organizational_unit_id'=>$authorityOffice->id,'title'=>'سکرتر اجرائیوی','code'=>'EXEC-SECRETARY','position_type'=>'EXECUTIVE_SECRETARY','status'=>'ACTIVE']);
 
         $techDirectorEmployee = Employee::create(['employee_number'=>'EMP-TECH-001','first_name'=>'احمد','last_name'=>'احمدی','father_name'=>'محمد','organizational_unit_id'=>$tech->id,'position_id'=>$director->id,'email'=>'tech.director@example.test','phone'=>'0700000001','status'=>'ACTIVE']);
+        $techDeputyEmployee = Employee::create(['employee_number'=>'EMP-TECH-005','first_name'=>'فرید','last_name'=>'صادقی','father_name'=>'محمد','organizational_unit_id'=>$tech->id,'position_id'=>$deputyDirector->id,'email'=>'tech.deputy@example.test','phone'=>'0700000005','status'=>'ACTIVE']);
         $techExecEmployee = Employee::create(['employee_number'=>'EMP-TECH-002','first_name'=>'عبدالباقی','last_name'=>'رحیمی','father_name'=>'علی','organizational_unit_id'=>$techExec->id,'position_id'=>$executive->id,'email'=>'tech.exec@example.test','phone'=>'0700000002','status'=>'ACTIVE']);
         $employeeA = Employee::create(['employee_number'=>'EMP-TECH-003','first_name'=>'حامد','last_name'=>'کریمی','father_name'=>'عبدالله','organizational_unit_id'=>$software->id,'position_id'=>$engineer->id,'email'=>'employee.a@example.test','phone'=>'0700000003','status'=>'ACTIVE']);
         $employeeB = Employee::create(['employee_number'=>'EMP-TECH-004','first_name'=>'مریم','last_name'=>'نوری','father_name'=>'حسین','organizational_unit_id'=>$infra->id,'position_id'=>$admin->id,'email'=>'employee.b@example.test','phone'=>'0700000004','status'=>'ACTIVE']);
@@ -71,6 +73,7 @@ class DatabaseSeeder extends Seeder
         AmmsRoleScope::create(['user_id'=>$system->id,'role_id'=>$systemRole->id,'organizational_unit_id'=>null]);
         $makeUser('مدیریت اجرائیه تکنالوژی','tech.exec@example.test',$techExecEmployee,'EXECUTIVE_MANAGEMENT',$tech->id);
         $makeUser('رئیس ریاست تکنالوژی','tech.director@example.test',$techDirectorEmployee,'DIRECTOR',$tech->id);
+        $makeUser('معاون ریاست تکنالوژی','tech.deputy@example.test',$techDeputyEmployee,'DEPUTY_DIRECTOR',$tech->id);
         $makeUser('مدیریت اجرائیه مالی','finance.exec@example.test',$financeExecEmployee,'EXECUTIVE_MANAGEMENT',$finance->id);
         $makeUser('رئیس ریاست مالی','finance.director@example.test',$financeDirectorEmployee,'DIRECTOR',$finance->id);
         $makeUser('مدیریت اجرائیه منابع بشری','hr.exec@example.test',$hrExecEmployee,'EXECUTIVE_MANAGEMENT',$hr->id);

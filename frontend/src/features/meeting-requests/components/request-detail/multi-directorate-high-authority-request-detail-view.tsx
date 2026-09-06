@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { DetailSummaryCard } from '@/components/amms/detail-summary-card'
 import { WorkflowTimeline } from '@/components/amms/workflow-timeline'
+import { meetingActionLabel } from '@/app/config/labels'
 
 type Any = any
 
@@ -82,7 +83,7 @@ export function MultiDirectorateHighAuthorityRequestDetailView({
 
   const timelineItems = (request.actions || []).map((action: Any) => ({
     id: action.id,
-    title: action.action,
+    title: meetingActionLabel(action.action),
     meta: `${action.actor?.name || 'سیستم'} · ${new Date(action.created_at).toLocaleString('fa-AF')}`,
     comment: action.comment,
   }))

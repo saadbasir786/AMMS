@@ -22,6 +22,16 @@ class InternalMeetingRequestTest extends TestCase
         $this->seed();
     }
 
+    public function test_technology_deputy_is_seeded_with_the_correct_role_and_scope(): void
+    {
+        $deputy = User::where('email', 'tech.deputy@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+
+        $this->assertSame('EMP-TECH-005', $deputy->employee->employee_number);
+        $this->assertTrue($deputy->hasScopedRole('DEPUTY_DIRECTOR', $tech->id));
+        $this->assertTrue($deputy->can('meeting.minutes.review'));
+    }
+
     public function test_technology_flow_can_be_approved_scheduled_and_converted_once(): void
     {
         $exec = User::where('email','tech.exec@example.test')->firstOrFail();

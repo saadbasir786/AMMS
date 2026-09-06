@@ -3,6 +3,7 @@ import { Clock3, CheckCircle2, Send, XCircle, RotateCcw, Calendar, FileText } fr
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { cn } from '@/lib/utils'
+import { meetingActionLabel } from '@/app/config/labels'
 
 const ACTION_LABELS: Record<string, { label: string; icon: any; color: string }> = {
   CREATED: {
@@ -27,6 +28,11 @@ const ACTION_LABELS: Record<string, { label: string; icon: any; color: string }>
   },
   APPROVED: {
     label: 'درخواست تأیید شد',
+    icon: CheckCircle2,
+    color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40',
+  },
+  APPROVED_UNDER_DELEGATION: {
+    label: meetingActionLabel('APPROVED_UNDER_DELEGATION'),
     icon: CheckCircle2,
     color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40',
   },
