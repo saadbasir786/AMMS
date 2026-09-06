@@ -61,6 +61,34 @@ export type Employee = {
   biometric_status?: string
 }
 
+export type UserRoleScope = {
+  id: number
+  role: string
+  organizational_unit_id: number | null
+  unit?: { id: number; name: string } | null
+}
+
+export type AdminUser = {
+  id: number
+  name: string
+  email: string
+  status: 'ACTIVE' | 'INACTIVE'
+  employee_id?: number | null
+  employee?: Employee | null
+  roles?: UserRoleScope[]
+}
+
+export type UserAccessAudit = {
+  id: number
+  action: string
+  role?: string | null
+  organizational_unit_id?: number | null
+  unit?: { id: number; name: string } | null
+  actor?: { id: number; name: string; email: string } | null
+  metadata?: Record<string, unknown> | null
+  created_at: string
+}
+
 export type SystemNotification = {
   id: number
   title: string

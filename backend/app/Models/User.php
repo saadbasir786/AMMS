@@ -23,6 +23,7 @@ class User extends Authenticatable
     public function legacyRoles(): HasMany { return $this->hasMany(UserRole::class); }
     public function roleScopes(): HasMany { return $this->hasMany(AmmsRoleScope::class); }
     public function capabilityScopes(): HasMany { return $this->hasMany(AmmsCapabilityScope::class); }
+    public function accessAudits(): HasMany { return $this->hasMany(UserAccessAudit::class); }
     public function notifications(): HasMany { return $this->hasMany(AmmsNotification::class); }
 
     public function hasScopedRole(string $role, ?int $unitId = null): bool

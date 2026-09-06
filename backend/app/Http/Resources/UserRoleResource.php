@@ -13,6 +13,7 @@ class UserRoleResource extends JsonResource
         $unit = $this->relationLoaded('unit') ? $this->unit : null;
 
         return [
+            'id' => $this->id,
             'role' => $roleName,
             'organizational_unit_id' => $this->organizational_unit_id,
             'unit' => $unit ? new OrganizationalUnitResource($unit) : null,

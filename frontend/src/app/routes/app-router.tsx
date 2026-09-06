@@ -37,6 +37,7 @@ const ReportsPage = lazy(() => import('@/features/reports/pages/reports-page').t
 const OrganizationPage = lazy(() => import('@/features/organization/pages/organization-page').then(({ OrganizationPage: Page }) => ({ default: Page })))
 const EmployeesPage = lazy(() => import('@/features/organization/pages/employees-page').then(({ EmployeesPage: Page }) => ({ default: Page })))
 const PositionsPage = lazy(() => import('@/features/organization/pages/positions-page').then(({ PositionsPage: Page }) => ({ default: Page })))
+const UsersPage = lazy(() => import('@/features/organization/pages/users-page').then(({ UsersPage: Page }) => ({ default: Page })))
 const NotificationsPage = lazy(() => import('@/features/organization/pages/notifications-page').then(({ NotificationsPage: Page }) => ({ default: Page })))
 
 function AppShellLayout() {
@@ -127,7 +128,7 @@ export function AppRouter() {
               <Route path="/admin/organization" element={<OrganizationPage />} />
               <Route path="/admin/positions" element={<PositionsPage />} />
               <Route path="/admin/employees" element={<EmployeesPage />} />
-              <Route path="/admin/roles" element={<EmployeesPage isRolesView />} />
+              <Route path="/admin/roles" element={<UsersPage />} />
               <Route path="/admin/terminals" element={<TerminalsRegistryPage />} />
               <Route path="/admin/terminals/:id" element={<TerminalDetailPage />} />
               <Route path="/admin/biometrics" element={<BiometricsRegistryPage />} />

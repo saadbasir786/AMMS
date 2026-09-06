@@ -17,7 +17,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::post('/admin/users', [AdminController::class, 'storeUser']);
     Route::put('/admin/users/{user}', [AdminController::class, 'updateUser']);
+    Route::get('/admin/users/{user}/access-audits', [AdminController::class, 'accessAudits']);
     Route::post('/admin/users/{user}/roles', [AdminController::class, 'assignRole']);
+    Route::delete('/admin/users/{user}/roles/{roleScope}', [AdminController::class, 'revokeRole']);
     Route::get('/admin/employees', [AdminController::class, 'employees']);
     Route::post('/admin/employees', [AdminController::class, 'storeEmployee']);
     Route::put('/admin/employees/{employee}', [AdminController::class, 'updateEmployee']);
