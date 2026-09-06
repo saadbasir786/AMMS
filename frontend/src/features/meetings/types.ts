@@ -98,6 +98,21 @@ export type MeetingFilters = {
   unit_id: string
 }
 
+export type PaginationMeta = {
+  current_page: number
+  from: number | null
+  last_page: number
+  per_page: number
+  to: number | null
+  total: number
+}
+
+export type MeetingStats = {
+  total: number
+  upcoming: number
+  completed: number
+}
+
 export type ExecutionSession = {
   id: number
   meeting_id: number

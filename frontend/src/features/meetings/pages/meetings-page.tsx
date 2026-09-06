@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CalendarDays,
@@ -8,21 +8,27 @@ import {
   RotateCw,
   AlertCircle,
   FilePlus2,
-  Search
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiPage } from '@/lib/api-client'
 import { MeetingsFilterBar } from '../components/meetings-filter-bar'
 import { MeetingsTable } from '../components/meetings-table'
-import type { MeetingItem, MeetingFilters } from '../types'
+import type { MeetingItem, MeetingFilters, PaginationMeta, MeetingStats } from '../types'
 
 export function MeetingsPage() {
   const [meetings, setMeetings] = useState<MeetingItem[]>([])
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [page, setPage] = useState<number>(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [stats, setStats] = useState<MeetingStats>({
+    total: 0,
+    upcoming: 0,
+    completed: 0,
+  })
 
   const [filters, setFilters] = useState<MeetingFilters>({
     search: '',
@@ -30,13 +36,32 @@ export function MeetingsPage() {
     unit_id: '',
   })
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (targetPage = 1) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/meetings')
-      const paged = apiPage(res)
-      setMeetings(paged.data || [])
+      const params: Record<string, any> = {
+        page: targetPage,
+        per_page: 15,
+      }
+      if (filters.search.trim()) {
+        params.search = filters.search.trim()
+      }
+      if (filters.status && filters.status !== 'ALL') {
+        params.status = filters.status
+      }
+      if (filters.unit_id) {
+        params.unit_id = filters.unit_id
+      }
+
+      const res = await api.get('/meetings', { params })
+      const pageInfo = apiPage(res)
+      setMeetings(pageInfo.data || [])
+      setPagination(pageInfo.meta || null)
+
+      if (res?.data?.stats) {
+        setStats(res.data.stats)
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -45,46 +70,21 @@ export function MeetingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filters])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    setPage(1)
+    loadData(1)
+  }, [filters, loadData])
 
-  // Filtered meetings
-  const filteredMeetings = useMemo(() => {
-    return meetings.filter((m) => {
-      // Search
-      if (filters.search.trim()) {
-        const query = filters.search.toLowerCase().trim()
-        const matchesTitle = m.title?.toLowerCase().includes(query)
-        const matchesNumber = m.meeting_number?.toLowerCase().includes(query)
-        const matchesLocation = m.location?.toLowerCase().includes(query)
-        const matchesChairperson = m.chairperson?.full_name?.toLowerCase().includes(query)
-        const matchesUnit = m.request?.requesting_unit?.name?.toLowerCase().includes(query)
-        if (
-          !matchesTitle &&
-          !matchesNumber &&
-          !matchesLocation &&
-          !matchesChairperson &&
-          !matchesUnit
-        ) {
-          return false
-        }
-      }
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    loadData(newPage)
+  }
 
-      // Status
-      if (filters.status && filters.status !== 'ALL') {
-        if (m.status !== filters.status) return false
-      }
-
-      return true
-    })
-  }, [meetings, filters])
-
-  // Stat summary counters
-  const scheduledCount = meetings.filter((m) => m.status === 'SCHEDULED').length
-  const completedCount = meetings.filter((m) => ['HELD', 'COMPLETED'].includes(m.status)).length
+  const handleResetFilters = () => {
+    setFilters({ search: '', status: 'ALL', unit_id: '' })
+  }
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -105,7 +105,7 @@ export function MeetingsPage() {
         }
       />
 
-      {/* Summary KPI Strip */}
+      {/* Summary KPI Strip - Authoritative Backend Calculations */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">
           <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
@@ -114,7 +114,7 @@ export function MeetingsPage() {
           <div>
             <span className="text-[10px] text-muted-foreground block font-medium">کل جلسات</span>
             <strong className="text-base font-bold text-foreground font-mono">
-              {meetings.length}
+              {stats.total}
             </strong>
           </div>
         </div>
@@ -128,7 +128,7 @@ export function MeetingsPage() {
               جلسات آینده
             </span>
             <strong className="text-base font-bold text-foreground font-mono">
-              {scheduledCount}
+              {stats.upcoming}
             </strong>
           </div>
         </div>
@@ -142,7 +142,7 @@ export function MeetingsPage() {
               پایان‌یافته / تکمیل
             </span>
             <strong className="text-base font-bold text-foreground font-mono">
-              {completedCount}
+              {stats.completed}
             </strong>
           </div>
         </div>
@@ -156,8 +156,8 @@ export function MeetingsPage() {
               تطبیق زمانی
             </span>
             <strong className="text-base font-bold text-foreground font-mono">
-              {meetings.length > 0
-                ? `${Math.round((completedCount / (meetings.length || 1)) * 100)}%`
+              {stats.total > 0
+                ? `${Math.round((stats.completed / (stats.total || 1)) * 100)}%`
                 : '۱۰۰٪'}
             </strong>
           </div>
@@ -168,7 +168,7 @@ export function MeetingsPage() {
       <MeetingsFilterBar
         filters={filters}
         onChange={setFilters}
-        onReset={() => setFilters({ search: '', status: 'ALL', unit_id: '' })}
+        onReset={handleResetFilters}
       />
 
       {/* Error Alert */}
@@ -180,7 +180,7 @@ export function MeetingsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadData}
+              onClick={() => loadData(page)}
               className="h-8 text-xs font-semibold gap-1.5 shrink-0"
             >
               <RotateCw className="size-3" />
@@ -202,9 +202,14 @@ export function MeetingsPage() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Table with Pure Server-Side Pagination */}
       {!loading && !error && (
-        <MeetingsTable meetings={filteredMeetings} loading={loading} />
+        <MeetingsTable
+          meetings={meetings}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   )

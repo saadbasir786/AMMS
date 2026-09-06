@@ -70,11 +70,60 @@ class DirectoryController extends Controller
     {
         $this->authorize('viewAny', Meeting::class);
         $user = $request->user();
+
+        $baseQuery = $this->scopeMeetings(Meeting::query(), $user);
+        $totalCount = (clone $baseQuery)->count();
+        $upcomingCount = (clone $baseQuery)
+            ->where('meeting_date', '>=', today())
+            ->whereIn('status', ['SCHEDULED', 'IN_PROGRESS'])
+            ->count();
+        $completedCount = (clone $baseQuery)->whereIn('status', ['HELD', 'COMPLETED'])->count();
+
         $query = $this->scopeMeetings(
             Meeting::with(['request.requestingUnit','request.authorityContext.authorityEmployee','authorityContext.authorityEmployee','authorityContext.authorityPosition','authorityContext.authorityOfficeUnit','chairperson','participants.employee.unit','currentScheduleVersion','activeRescheduleCase','currentParticipantVersion.members.employee.unit','activeParticipantChangeCase.items.oldEmployee','activeParticipantChangeCase.items.newEmployee','terminalAssignments.terminal','terminalAssignments.sessions','currentTerminalSession']),
             $user
-        )->where('meeting_date','>=',today())->orderBy('meeting_date');
-        return MeetingResource::collection($query->paginate(15))->additional(['success'=>true,'message'=>'جلسات رسمی.']);
+        );
+
+        if ($request->filled('search')) {
+            $term = '%' . $request->string('search')->trim() . '%';
+            $query->where(function ($q) use ($term): void {
+                $q->where('title', 'like', $term)
+                  ->orWhere('meeting_number', 'like', $term)
+                  ->orWhere('location', 'like', $term);
+            });
+        }
+
+        if ($request->filled('status') && $request->string('status') !== 'ALL') {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('unit_id')) {
+            $unitId = $request->integer('unit_id');
+            $query->where(function ($q) use ($unitId): void {
+                $q->where('organizing_unit_id', $unitId)
+                  ->orWhereHas('units', fn ($uq) => $uq->where('organizational_unit_id', $unitId))
+                  ->orWhereHas('request', fn ($rq) => $rq->where('requesting_unit_id', $unitId));
+            });
+        }
+
+        if ($request->boolean('upcoming_only')) {
+            $query->where('meeting_date', '>=', today());
+        }
+
+        $query->orderByDesc('meeting_date')->orderByDesc('start_time');
+
+        $perPage = min(max($request->integer('per_page', $request->integer('limit', 15)), 1), 50);
+        $paginator = $query->paginate($perPage);
+
+        return MeetingResource::collection($paginator)->additional([
+            'success' => true,
+            'message' => 'جلسات رسمی.',
+            'stats' => [
+                'total' => $totalCount,
+                'upcoming' => $upcomingCount,
+                'completed' => $completedCount,
+            ],
+        ]);
     }
 
     public function meetingActionCapabilities(Request $request, Meeting $meeting, MeetingActionCapabilities $capabilities)
