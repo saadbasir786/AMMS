@@ -1,27 +1,47 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Bell, RotateCw, AlertCircle, CheckCheck, Inbox, Mail } from 'lucide-react'
+import { Bell, RotateCw, AlertCircle, CheckCheck, Check } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiPage } from '@/lib/api-client'
 import { NotificationsList } from '../components/notifications-list'
-import type { SystemNotification } from '../types'
+import type { SystemNotification, PaginationMeta } from '../types'
 
 export function NotificationsPage() {
   const [notifications, setNotifications] = useState<SystemNotification[]>([])
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [page, setPage] = useState<number>(1)
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL')
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (targetPage = 1, targetFilter = 'ALL') => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/notifications')
+      const params: Record<string, any> = {
+        limit: 15,
+        page: targetPage,
+      }
+      if (targetFilter === 'UNREAD') {
+        params.filter = 'UNREAD'
+      }
+
+      const res = await api.get('/notifications', { params })
       const pageInfo = apiPage(res)
       setNotifications(pageInfo.data || [])
+      setPagination(pageInfo.meta || null)
+
+      if (res?.data && typeof res.data.unread_count === 'number') {
+        setUnreadCount(res.data.unread_count)
+      }
+      if (res?.data && typeof res.data.total_count === 'number') {
+        setTotalCount(res.data.total_count)
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -33,14 +53,62 @@ export function NotificationsPage() {
   }, [])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    loadData(page, filter)
+  }, [loadData, page, filter])
 
-  const unreadCount = notifications.filter((n) => !n.read_at).length
-  const filteredList =
-    filter === 'UNREAD'
-      ? notifications.filter((n) => !n.read_at)
-      : notifications
+  const handleFilterChange = (newFilter: 'ALL' | 'UNREAD') => {
+    setFilter(newFilter)
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      const res = await api.post(`/notifications/${id}/read`)
+      if (res?.data && typeof res.data.unread_count === 'number') {
+        setUnreadCount(res.data.unread_count)
+      } else {
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+      }
+
+      if (filter === 'UNREAD') {
+        // Reload current page from server to reflect removal from unread list
+        loadData(page, filter)
+      } else {
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+          )
+        )
+      }
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          'خطا در علامت‌گذاری اعلان به عنوان خوانده‌شده.'
+      )
+    }
+  }
+
+  const handleMarkAllAsRead = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.post('/notifications/read-all')
+      setUnreadCount(0)
+      // Reload server-side data for the current page and filter
+      await loadData(page, filter)
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          'خطا در علامت‌گذاری کلیه اعلان‌ها.'
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -50,10 +118,17 @@ export function NotificationsPage() {
         description="پیگیری لحظه‌ای گردش کار جلسات، دعوت‌نامه‌ها، تغییرات زمان‌بندی و مصوبات منتسب به شما"
         action={
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs px-2.5 py-1 text-primary border-primary/30">
-              <Bell className="size-3.5 ml-1" />
-              <span>{unreadCount} پیام جدید</span>
-            </Badge>
+            {unreadCount > 0 ? (
+              <Badge variant="outline" className="text-xs px-2.5 py-1 text-primary border-primary/30">
+                <Bell className="size-3.5 ml-1" />
+                <span>{unreadCount} پیام خوانده‌نشده</span>
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs px-2.5 py-1 text-muted-foreground border-border/60">
+                <Check className="size-3.5 ml-1" />
+                <span>تمامی پیام‌ها خوانده شده است</span>
+              </Badge>
+            )}
           </div>
         }
       />
@@ -67,7 +142,7 @@ export function NotificationsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadData}
+              onClick={() => loadData(page, filter)}
               className="h-8 text-xs font-semibold gap-1.5 shrink-0"
             >
               <RotateCw className="size-3" />
@@ -77,22 +152,23 @@ export function NotificationsPage() {
         </Alert>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Toolbar & Filter Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Tabs */}
         <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-muted/60 border border-border/70 w-fit">
           <button
-            onClick={() => setFilter('ALL')}
+            onClick={() => handleFilterChange('ALL')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === 'ALL'
                 ? 'bg-card text-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            همه پیام‌ها ({notifications.length})
+            همه پیام‌ها ({totalCount})
           </button>
 
           <button
-            onClick={() => setFilter('UNREAD')}
+            onClick={() => handleFilterChange('UNREAD')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === 'UNREAD'
                 ? 'bg-card text-foreground shadow-xs'
@@ -108,16 +184,32 @@ export function NotificationsPage() {
           </button>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={busy || loading}
-          onClick={loadData}
-          className="h-8.5 text-xs font-semibold rounded-xl gap-1.5"
-        >
-          <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>تازه‌سازی</span>
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy || loading}
+              onClick={handleMarkAllAsRead}
+              className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+            >
+              <CheckCheck className="size-3.5" />
+              <span>علامت‌گذاری همه به عنوان خوانده‌شده</span>
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || loading}
+            onClick={() => loadData(page, filter)}
+            className="h-8.5 text-xs font-semibold rounded-xl gap-1.5"
+          >
+            <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>تازه‌سازی</span>
+          </Button>
+        </div>
       </div>
 
       {/* Loading Skeleton */}
@@ -129,11 +221,14 @@ export function NotificationsPage() {
         </div>
       )}
 
-      {/* Notifications List */}
+      {/* Notifications List with Server-Side Pagination */}
       {!loading && (
         <NotificationsList
-          notifications={filteredList}
+          notifications={notifications}
+          pagination={pagination}
           busy={busy}
+          onPageChange={handlePageChange}
+          onMarkAsRead={handleMarkAsRead}
         />
       )}
     </div>

@@ -9,6 +9,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DirectoryController::class, 'dashboard']);
     Route::get('/approvals', [DirectoryController::class, 'approvals']);
     Route::get('/notifications', [DirectoryController::class, 'notifications']);
+    Route::get('/notifications/unread-count', [DirectoryController::class, 'unreadCount']);
+    Route::post('/notifications/read-all', [DirectoryController::class, 'markAllNotificationsRead']);
     Route::post('/notifications/{notification}/read', [DirectoryController::class, 'markNotificationRead']);
     Route::get('/organizational-units', [DirectoryController::class, 'units']);
     Route::get('/employees', [DirectoryController::class, 'employees']);

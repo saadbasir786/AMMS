@@ -25,10 +25,21 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
      - Biometric enrollment uses the scoped `BIOMETRIC_ENROLLMENT` delegated capability.
      - Historical migrations do not override current Policies/Resolvers or the authorization charter.
 
-3. **Autonomous Rule Evolution Directive (AI Self-Evolution)**
+3. **Backend Architecture, API & Engineering Standards**
+   - Reference File: [.agents/rules/backend-architecture-and-api-standards.md](.agents/rules/backend-architecture-and-api-standards.md)
+   - Core Directives:
+     - Mandatory Server-Side Pagination with defensive bounds (`page`, `per_page`) for dynamic/unbounded lists
+     - Standard `JsonResource::collection($paginator)` envelope with `meta` (`current_page`, `last_page`, `total`, `from`, `to`)
+     - Authoritative global counters (`unread_count`, `total_count`) calculated on backend and passed in additional meta
+     - Strict Route Precedence: static endpoints before parameterized `{wildcard}` routes
+     - Atomic database transactions (`DB::transaction`) for state transitions and workflows
+     - Immutable audit logs for every workflow transition and administrative decision
+     - Mandatory automated Feature Tests in `backend/tests/Feature/` covering happy path, 401, 403, and user isolation
+
+4. **Autonomous Rule Evolution Directive (AI Self-Evolution)**
    - AI assistants may autonomously evolve implementation conventions such as UI consistency, reusable component patterns, and non-domain architecture guidance.
    - AI assistants must **not** autonomously change roles, permissions, organizational-scope semantics, delegated capabilities, business-flow authority, approval paths, ownership rules, or lifecycle states. These require an explicit user/domain decision and the authorization charter takes precedence over general autonomous-evolution guidance.
 
-4. **Mandatory Per-Feature Git Commit & Push Policy**
+5. **Mandatory Per-Feature Git Commit & Push Policy**
    - Once a feature or capability is completed and verified, and upon user approval, a clean, dedicated Git commit must be recorded and pushed to the remote repository BEFORE starting the next feature.
    - Never pile up multiple unrelated refactored features in an uncommitted state.

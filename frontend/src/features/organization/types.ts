@@ -93,11 +93,22 @@ export type UserAccessAudit = {
 
 export type SystemNotification = {
   id: number
+  type?: string
   title: string
   message: string
   notification_type?: string
+  data?: Record<string, any>
   read_at?: string | null
   created_at: string
-  action_url?: string
+  action_url?: string | null
   meta?: Record<string, any>
+}
+
+export type PaginationMeta = {
+  current_page: number
+  from: number | null
+  last_page: number
+  per_page: number
+  to: number | null
+  total: number
 }

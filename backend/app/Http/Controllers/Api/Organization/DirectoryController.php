@@ -96,15 +96,62 @@ class DirectoryController extends Controller
     public function notifications(Request $request)
     {
         abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
-        return NotificationResource::collection($request->user()->notifications()->latest()->paginate(20))->additional(['success'=>true,'message'=>'اعلان‌های شما.']);
+        $baseQuery = $request->user()->notifications();
+        $totalCount = (clone $baseQuery)->count();
+        $unreadCount = (clone $baseQuery)->whereNull('read_at')->count();
+
+        $query = (clone $baseQuery)->latest();
+        if ($request->query('filter') === 'UNREAD' || $request->boolean('unread_only')) {
+            $query->whereNull('read_at');
+        }
+        $perPage = min(max($request->integer('per_page', $request->integer('limit', 15)), 1), 50);
+        $paginator = $query->paginate($perPage);
+
+        return NotificationResource::collection($paginator)->additional([
+            'success' => true,
+            'message' => 'اعلان‌های شما.',
+            'unread_count' => $unreadCount,
+            'total_count' => $totalCount,
+        ]);
     }
 
     public function markNotificationRead(Request $request, AmmsNotification $notification)
     {
         abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
         abort_unless($notification->user_id === $request->user()->id, 403, 'FORBIDDEN');
-        $notification->update(['read_at'=>now()]);
-        return (new NotificationResource($notification))->additional(['success'=>true,'message'=>'اعلان خوانده شد.']);
+        if (is_null($notification->read_at)) {
+            $notification->update(['read_at' => now()]);
+        }
+        $unreadCount = $request->user()->notifications()->whereNull('read_at')->count();
+
+        return (new NotificationResource($notification))->additional([
+            'success' => true,
+            'message' => 'اعلان خوانده شد.',
+            'unread_count' => $unreadCount,
+        ]);
+    }
+
+    public function markAllNotificationsRead(Request $request)
+    {
+        abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
+        $request->user()->notifications()->whereNull('read_at')->update(['read_at' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'کلیه اعلان‌ها به عنوان خوانده‌شده علامت‌گذاری شدند.',
+            'unread_count' => 0,
+        ]);
+    }
+
+    public function unreadCount(Request $request)
+    {
+        abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
+        $count = $request->user()->notifications()->whereNull('read_at')->count();
+
+        return response()->json([
+            'success' => true,
+            'unread_count' => $count,
+        ]);
     }
 
     private function scopeMeetingRequests($query, $user)

@@ -31,6 +31,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { cn, formatPersianDate } from '@/lib/utils'
+import { NotificationBellDropdown } from '@/features/organization'
 
 export type ApplicationShellRole = {
   role: string
@@ -320,16 +321,7 @@ function Header({
         </div>
 
         {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative size-9 rounded-xl hover:bg-muted"
-          aria-label="اعلان‌ها"
-          onClick={() => onNavigate('/notifications')}
-        >
-          <Bell className="size-[18px] text-muted-foreground" />
-          <span className="absolute end-2 top-2 size-2 rounded-full bg-rose-500 ring-2 ring-background" />
-        </Button>
+        <NotificationBellDropdown onNavigate={onNavigate} />
 
         {/* User Dropdown */}
         <DropdownMenu>
