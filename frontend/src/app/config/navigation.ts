@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 export const navigationItems: ApplicationShellNavItem[] = [
+  { to: '/internal-meeting-approval-delegations', label: 'تفویض صلاحیت جلسات داخلی', icon: ShieldCheck, role: 'DIRECTOR' },
   { to: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { to: '/meeting-requests', label: 'درخواست‌های جلسه', icon: FilePlus2, roles: ['EMPLOYEE', 'DIRECTOR', 'EXECUTIVE_MANAGEMENT', 'AUTHORITY_OFFICE', 'EXECUTIVE_SECRETARY', 'HIGH_AUTHORITY'] },
   { to: '/incoming-meeting-requests', label: 'درخواست‌های وارده', icon: ClipboardCheck, roles: ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'] },
@@ -30,4 +31,3 @@ export const navigationItems: ApplicationShellNavItem[] = [
   { to: '/admin/biometrics', label: 'بایومتریک', icon: Fingerprint, role: 'SYSTEM_ADMIN' },
   { to: '/reports', label: 'گزارش‌ها و تحلیل', icon: BarChart3, roles: ['EXECUTIVE_MANAGEMENT', 'HIGH_AUTHORITY', 'AUTHORITY_OFFICE', 'EXECUTIVE_SECRETARY', 'DIRECTOR'] },
 ]
-

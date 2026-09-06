@@ -62,12 +62,23 @@ Rules:
 - Revocation preserves audit history and immediately removes effective authority.
 - Raw biometric templates/images remain protected independently from enrollment authority.
 
+### INTERNAL_MEETING_REQUEST_APPROVAL
+`DIRECTOR` may explicitly delegate only the approval of a same-Directorate internal meeting request to an active, scoped `EXECUTIVE_MANAGEMENT` user.
+
+Rules:
+- The delegation is unit-scoped, time-bound, revocable and requires a recorded grant reason; revocation requires a recorded reason.
+- It applies only to FLOW-01 (`INTERNAL_DIRECTORATE`) while the request is `PENDING_INTERNAL_APPROVAL`.
+- It grants **approve only**. It never grants return-for-revision, reject, scheduling, finalization, another Directorate's approval, or any authority-controlled flow action.
+- The delegate must hold the `EXECUTIVE_MANAGEMENT` role scoped to the same Directorate; a child management employment unit does not expand the delegated scope.
+- The approval audit record must identify the delegated capability scope and the delegating Director. Expiry or revocation immediately removes the effective authority without deleting history.
+- `SYSTEM_ADMIN` cannot grant or receive this business capability.
+
 ## 5. Role × Flow Authority Summary
 This matrix is a summary only; exact permission, scope, ownership and status checks remain mandatory.
 
 | Flow | Authority summary |
 | --- | --- |
-| FLOW-01 Internal | Scoped `EXECUTIVE_MANAGEMENT`: create/edit/submit, coordinate schedule, finalize meeting conversion. Same-unit `DIRECTOR`: approve/return/reject. |
+| FLOW-01 Internal | Scoped `EXECUTIVE_MANAGEMENT`: create/edit/submit, coordinate schedule, finalize meeting conversion. Same-unit `DIRECTOR`: approve/return/reject. An active holder of same-unit `INTERNAL_MEETING_REQUEST_APPROVAL` may approve only. |
 | FLOW-02 Bilateral | Requesting/target scoped `EXECUTIVE_MANAGEMENT`: coordination. Each scoped `DIRECTOR`: formal approval for its own Directorate as defined. Exactly two formal Directorates. |
 | FLOW-03 Multi-Directorate | Requesting/participating `EXECUTIVE_MANAGEMENT`: unit coordination. Each scoped `DIRECTOR`: unit approval/confirmation as defined. No unrelated unit authority. |
 | FLOW-04 Directorate + High Authority | Requester-side `EXECUTIVE_MANAGEMENT`/`DIRECTOR`; `AUTHORITY_OFFICE` for office review/authority participant domain; `HIGH_AUTHORITY` for explicit decisions; `EXECUTIVE_SECRETARY` for authority scheduling/final coordination. |

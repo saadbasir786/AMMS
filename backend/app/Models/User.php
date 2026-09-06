@@ -65,6 +65,16 @@ class User extends Authenticatable
         return false;
     }
 
+    public function hasExactScopedCapability(string $capability, int $unitId): bool
+    {
+        return $this->isActive()
+            && $this->capabilityScopes()
+                ->active()
+                ->where('capability', $capability)
+                ->where('organizational_unit_id', $unitId)
+                ->exists();
+    }
+
     public function scopedCapabilityUnitIds(string $capability): array
     {
         if (!$this->isActive()) return [];

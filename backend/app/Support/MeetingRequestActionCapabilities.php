@@ -24,7 +24,9 @@ class MeetingRequestActionCapabilities
         return [
             'edit' => $isInternal && $this->allows(fn (): bool => $gate->allows('update', $request)),
             'submit' => $isInternal && $this->allows(fn (): bool => $gate->allows('submit', $request)),
-            'approve' => $isInternal && $this->mayReview($request, $actor, 'meeting-request.approve'),
+            'approve' => $isInternal && $this->allows(fn (): bool => $gate->allows('approveInternal', $request)),
+            'approve_with_delegation' => $isInternal
+                && app(InternalMeetingApprovalDelegation::class)->scopeFor($actor, $request) !== null,
             'return_for_revision' => $isInternal && $this->mayReview($request, $actor, 'meeting-request.return'),
             'reject' => $isInternal && $this->mayReview($request, $actor, 'meeting-request.reject'),
             'start_scheduling' => $isInternal

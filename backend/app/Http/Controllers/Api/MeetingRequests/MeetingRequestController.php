@@ -22,6 +22,7 @@ use App\Models\MeetingRequest;
 use App\Services\MeetingRequestService;
 use App\Support\MeetingRequestActionCapabilities;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class MeetingRequestController extends Controller
 {
@@ -96,7 +97,11 @@ class MeetingRequestController extends Controller
     public function approve(Request $request, MeetingRequest $meetingRequest, ApproveMeetingRequest $action)
     {
         $this->assertInternalDirectorateRequest($meetingRequest);
-        $this->authorize('review', $meetingRequest);
+        abort_unless(
+            Gate::forUser($request->user())->allows('approveInternal', $meetingRequest),
+            403,
+            'UNAUTHORIZED_APPROVER',
+        );
         return (new MeetingRequestResource($action($request->user(), $meetingRequest)))->additional(['success'=>true,'message'=>'درخواست تأیید شد.']);
     }
 

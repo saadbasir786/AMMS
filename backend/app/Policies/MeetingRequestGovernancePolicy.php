@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\MeetingRequest;
 use App\Models\User;
+use App\Support\InternalMeetingApprovalDelegation;
 
 class MeetingRequestGovernancePolicy extends MeetingRequestPolicy
 {
@@ -63,6 +64,19 @@ class MeetingRequestGovernancePolicy extends MeetingRequestPolicy
         return $user->isActive() && ($user->can('meeting-request.submit') || $user->can('meeting-request.resubmit'))
             && $request->created_by === $user->id && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
             && in_array($request->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true);
+    }
+
+    public function approveInternal(User $user, MeetingRequest $request): bool
+    {
+        if ($request->flow_type !== 'INTERNAL_DIRECTORATE') {
+            return false;
+        }
+
+        if (parent::review($user, $request) === true) {
+            return true;
+        }
+
+        return app(InternalMeetingApprovalDelegation::class)->scopeFor($user, $request) !== null;
     }
 
     public function schedule(User $user, MeetingRequest $request): bool

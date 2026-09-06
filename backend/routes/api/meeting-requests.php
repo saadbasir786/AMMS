@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\MeetingRequests\AuthorityInitiatedMeetingRequestController;
 use App\Http\Controllers\Api\MeetingRequests\HighAuthorityMeetingRequestController;
 use App\Http\Controllers\Api\MeetingRequests\InterDirectorateMeetingRequestController;
+use App\Http\Controllers\Api\MeetingRequests\InternalMeetingApprovalDelegationController;
 use App\Http\Controllers\Api\MeetingRequests\MeetingRequestAttachmentController;
 use App\Http\Controllers\Api\MeetingRequests\MeetingRequestController;
 use App\Http\Controllers\Api\MeetingRequests\MultiDirectorateMeetingRequestController;
@@ -14,6 +15,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // 1. Internal Meeting Requests
     // -------------------------------------------------------------------------
     Route::get('/meeting-requests', [MeetingRequestController::class, 'index']);
+    Route::get('/internal-meeting-approval-delegations', [InternalMeetingApprovalDelegationController::class, 'index']);
+    Route::post('/internal-meeting-approval-delegations', [InternalMeetingApprovalDelegationController::class, 'store']);
+    Route::delete('/internal-meeting-approval-delegations/{capabilityScope}', [InternalMeetingApprovalDelegationController::class, 'revoke']);
     Route::post('/meeting-requests', [MeetingRequestController::class, 'store']);
     Route::get('/meeting-requests/{meetingRequest}/action-capabilities', [MeetingRequestController::class, 'actionCapabilities']);
     Route::get('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'show']);

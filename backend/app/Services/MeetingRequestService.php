@@ -11,6 +11,7 @@ use App\Models\MeetingRequest;
 use App\Models\MeetingRequestAction;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Support\InternalMeetingApprovalDelegation;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -73,20 +74,25 @@ class MeetingRequestService
         });
     }
 
-    public function review(User $actor, MeetingRequest $request, string $decision, ?string $reason = null): MeetingRequest
+    public function review(User $actor, MeetingRequest $request, string $decision, ?string $reason = null, array $metadata = []): MeetingRequest
     {
-        return DB::transaction(function () use ($actor, $request, $decision, $reason) {
+        return DB::transaction(function () use ($actor, $request, $decision, $reason, $metadata) {
             abort_unless($actor->isActive(), 403, 'UNAUTHORIZED');
             $locked = MeetingRequest::query()->lockForUpdate()->findOrFail($request->id);
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current?->isReviewable(), 422, 'REQUEST_NOT_PENDING_APPROVAL');
-            abort_unless($actor->hasScopedRole('DIRECTOR', $locked->requesting_unit_id), 403, 'UNAUTHORIZED_APPROVER');
+            $delegatedApproval = $decision === 'approve'
+                && isset($metadata['delegated_capability_scope_id'])
+                && app(InternalMeetingApprovalDelegation::class)->scopeFor($actor, $locked)?->id === (int) $metadata['delegated_capability_scope_id'];
+            abort_unless($actor->hasScopedRole('DIRECTOR', $locked->requesting_unit_id) || $delegatedApproval, 403, 'UNAUTHORIZED_APPROVER');
             if (in_array($decision, ['return', 'reject'], true) && blank($reason)) abort(422, $decision === 'return' ? 'RETURN_REASON_REQUIRED' : 'REJECTION_REASON_REQUIRED');
             $next = ['approve' => MeetingRequestStatus::APPROVED, 'return' => MeetingRequestStatus::RETURNED_FOR_REVISION, 'reject' => MeetingRequestStatus::REJECTED][$decision] ?? null;
             abort_unless($next && $current->canTransitionTo($next), 422, 'INVALID_STATUS_TRANSITION');
-            $action = ['approve' => 'APPROVED', 'return' => 'RETURNED', 'reject' => 'REJECTED'][$decision];
+            $action = $delegatedApproval
+                ? 'APPROVED_UNDER_DELEGATION'
+                : ['approve' => 'APPROVED', 'return' => 'RETURNED', 'reject' => 'REJECTED'][$decision];
             $locked->update(['status' => $next->value, 'approved_by' => $decision === 'approve' ? $actor->id : $locked->approved_by, 'approved_at' => $decision === 'approve' ? now() : $locked->approved_at]);
-            $this->action($locked, $actor, $action, $current->value, $next->value, $reason);
+            $this->action($locked, $actor, $action, $current->value, $next->value, $reason, $metadata);
             $this->notify($locked->created_by, $decision === 'approve' ? 'درخواست تأیید شد' : ($decision === 'return' ? 'درخواست جهت اصلاح برگشت داده شد' : 'درخواست رد شد'), $reason ?: 'درخواست شما بررسی شد.', $locked);
             if ($decision === 'approve' && $locked->coordinator_id) $this->notify($locked->coordinator_id, 'درخواست آماده زمان‌بندی است', 'یک درخواست تأییدشده برای زمان‌بندی آماده است.', $locked);
             return $locked->fresh($this->withRelations());
@@ -227,9 +233,9 @@ class MeetingRequestService
         return $prefix.'-'.now()->format('Y').'-'.str_pad((string) $sequence->fresh()->value, 5, '0', STR_PAD_LEFT);
     }
 
-    private function action(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null): void
+    private function action(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
     {
-        MeetingRequestAction::create(['meeting_request_id'=>$request->id,'actor_id'=>$actor->id,'action'=>$action,'from_status'=>$from,'to_status'=>$to,'comment'=>$comment]);
+        MeetingRequestAction::create(['meeting_request_id'=>$request->id,'actor_id'=>$actor->id,'action'=>$action,'from_status'=>$from,'to_status'=>$to,'comment'=>$comment,'metadata'=>$metadata ?: null]);
     }
 
     private function notify(int $userId, string $title, string $message, MeetingRequest $request): void

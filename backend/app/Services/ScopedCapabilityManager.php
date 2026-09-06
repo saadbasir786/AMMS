@@ -12,12 +12,12 @@ use Spatie\Permission\PermissionRegistrar;
 
 class ScopedCapabilityManager
 {
-    public function grant(User $user, string $capability, OrganizationalUnit $unit, ?User $grantedBy = null): AmmsCapabilityScope
+    public function grant(User $user, string $capability, OrganizationalUnit $unit, ?User $grantedBy = null, array $details = []): AmmsCapabilityScope
     {
         $permissions = SpecialCapability::permissions($capability);
         $this->assertGrantableSubject($user, $unit);
 
-        return DB::transaction(function () use ($user, $capability, $unit, $grantedBy, $permissions): AmmsCapabilityScope {
+        return DB::transaction(function () use ($user, $capability, $unit, $grantedBy, $permissions, $details): AmmsCapabilityScope {
             $existing = AmmsCapabilityScope::query()
                 ->active()
                 ->where('user_id', $user->id)
@@ -36,6 +36,8 @@ class ScopedCapabilityManager
                 'organizational_unit_id' => $unit->id,
                 'granted_by_user_id' => $grantedBy?->id,
                 'granted_at' => now(),
+                'expires_at' => $details['expires_at'] ?? null,
+                'grant_reason' => $details['grant_reason'] ?? null,
             ]);
 
             $user->givePermissionTo($permissions);
@@ -45,9 +47,9 @@ class ScopedCapabilityManager
         });
     }
 
-    public function revoke(AmmsCapabilityScope $scope, ?User $revokedBy = null): AmmsCapabilityScope
+    public function revoke(AmmsCapabilityScope $scope, ?User $revokedBy = null, ?string $reason = null): AmmsCapabilityScope
     {
-        return DB::transaction(function () use ($scope, $revokedBy): AmmsCapabilityScope {
+        return DB::transaction(function () use ($scope, $revokedBy, $reason): AmmsCapabilityScope {
             $current = AmmsCapabilityScope::query()->lockForUpdate()->findOrFail($scope->id);
             if (!$current->isActive()) {
                 return $current->load(['unit', 'grantedBy', 'revokedBy']);
@@ -56,6 +58,7 @@ class ScopedCapabilityManager
             $current->update([
                 'revoked_by_user_id' => $revokedBy?->id,
                 'revoked_at' => now(),
+                'revocation_reason' => $reason,
             ]);
 
             $hasOtherActiveScope = AmmsCapabilityScope::query()

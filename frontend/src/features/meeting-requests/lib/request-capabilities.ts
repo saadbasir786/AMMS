@@ -4,6 +4,7 @@ export type MeetingRequestActionCapabilities = {
   edit: boolean
   submit: boolean
   approve: boolean
+  approve_with_delegation: boolean
   return_for_revision: boolean
   reject: boolean
   start_scheduling: boolean

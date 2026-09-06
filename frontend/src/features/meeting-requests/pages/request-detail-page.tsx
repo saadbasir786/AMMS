@@ -372,6 +372,7 @@ export function RequestDetailPage({
               edit: false,
               submit: false,
               approve: false,
+              approve_with_delegation: false,
               return_for_revision: false,
               reject: false,
               start_scheduling: false,

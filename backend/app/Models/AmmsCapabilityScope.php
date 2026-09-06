@@ -14,12 +14,16 @@ class AmmsCapabilityScope extends Model
         'organizational_unit_id',
         'granted_by_user_id',
         'granted_at',
+        'expires_at',
+        'grant_reason',
         'revoked_by_user_id',
         'revoked_at',
+        'revocation_reason',
     ];
 
     protected $casts = [
         'granted_at' => 'datetime',
+        'expires_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
 
@@ -30,11 +34,13 @@ class AmmsCapabilityScope extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereNull('revoked_at');
+        return $query
+            ->whereNull('revoked_at')
+            ->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     public function isActive(): bool
     {
-        return $this->revoked_at === null;
+        return $this->revoked_at === null && ($this->expires_at === null || $this->expires_at->isFuture());
     }
 }

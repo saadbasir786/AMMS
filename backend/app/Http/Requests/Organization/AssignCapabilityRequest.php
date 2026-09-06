@@ -19,7 +19,7 @@ class AssignCapabilityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'capability' => ['required', 'string', Rule::in(SpecialCapability::all())],
+            'capability' => ['required', 'string', Rule::in(SpecialCapability::systemAdminAssignable())],
             'organizational_unit_id' => ['required', 'integer', 'exists:organizational_units,id'],
         ];
     }

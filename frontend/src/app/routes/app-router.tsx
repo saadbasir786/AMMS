@@ -14,6 +14,7 @@ const CreateRequestPage = lazy(() => import('@/features/meeting-requests/pages/c
 const RequestDetailPage = lazy(() => import('@/features/meeting-requests/pages/request-detail-page').then(({ RequestDetailPage: Page }) => ({ default: Page })))
 const EditRequestPage = lazy(() => import('@/features/meeting-requests/pages/edit-request-page').then(({ EditRequestPage: Page }) => ({ default: Page })))
 const ApprovalsPage = lazy(() => import('@/features/meeting-requests/pages/approvals-page').then(({ ApprovalsPage: Page }) => ({ default: Page })))
+const InternalApprovalDelegationsPage = lazy(() => import('@/features/meeting-requests/pages/internal-approval-delegations-page').then(({ InternalApprovalDelegationsPage: Page }) => ({ default: Page })))
 const SchedulingPage = lazy(() => import('@/features/scheduling/pages/scheduling-page').then(({ SchedulingPage: Page }) => ({ default: Page })))
 const MeetingsPage = lazy(() => import('@/features/meetings/pages/meetings-page').then(({ MeetingsPage: Page }) => ({ default: Page })))
 const MeetingDetailPage = lazy(() => import('@/features/meetings/pages/meeting-detail-page').then(({ MeetingDetailPage: Page }) => ({ default: Page })))
@@ -103,6 +104,7 @@ export function AppRouter() {
               <Route path="/meeting-requests/:id/multi-high-scheduling" element={<SchedulingRoute />} />
               <Route path="/meeting-requests/:id/authority-initiated-scheduling" element={<SchedulingRoute />} />
               <Route path="/approvals" element={<ApprovalsPage priorityLabels={priorityLabels} purposeLabels={purposeLabels} />} />
+              <Route path="/internal-meeting-approval-delegations" element={<InternalApprovalDelegationsPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/meetings/:id/reschedule" element={<MeetingReschedulePage />} />
               <Route path="/meetings/:id/participants/change" element={<MeetingParticipantChangePage />} />

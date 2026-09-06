@@ -113,6 +113,7 @@ export function RequestActionsCard({
               className="w-full h-9.5 text-xs font-semibold rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               disabled={!!busyAction}
               onClick={() => run('approve')}
+              title={capabilities.approve_with_delegation ? 'تأیید با صلاحیت تفویض‌شده' : undefined}
             >
               {busyAction === 'approve' ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -121,6 +122,11 @@ export function RequestActionsCard({
               )}
               <span>تأیید درخواست جلسه</span>
             </Button>}
+            {capabilities.approve_with_delegation && (
+              <p className="text-center text-[11px] text-muted-foreground">
+                تأیید با صلاحیت تفویض‌شده ثبت می‌شود.
+              </p>
+            )}
 
             {(capabilities.return_for_revision || capabilities.reject) && <div className="space-y-1.5 pt-1">
               <label className="text-[11px] font-semibold text-muted-foreground block">
