@@ -45,6 +45,7 @@ export function RequestParticipantsCard({
             {participants.map((p: any) => {
               const fullName = p.employee?.full_name || 'کارمند'
               const unitName = p.employee?.unit?.name || 'واحد سازمانی'
+              const positionTitle = p.employee?.position?.title
               const initial = fullName.charAt(0)
               const isFinal = p.participant_type === 'FINAL'
 
@@ -62,7 +63,7 @@ export function RequestParticipantsCard({
                         {fullName}
                       </strong>
                       <span className="text-[10px] text-muted-foreground block truncate">
-                        {unitName}
+                        {positionTitle ? `${positionTitle} · ${unitName}` : unitName}
                       </span>
                     </div>
                   </div>

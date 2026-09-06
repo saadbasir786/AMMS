@@ -41,6 +41,9 @@ class InternalMeetingRequestTest extends TestCase
 
         $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', ['requesting_unit_id'=>$tech->id,'subject'=>'جلسه بررسی پلان توسعه سیستم‌ها','purpose'=>'COORDINATION','priority'=>'NORMAL','participant_ids'=>$employees])->assertCreated();
         $request = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($exec, 'sanctum')->getJson("/api/meeting-requests/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.participants.0.employee.position.title', 'رئیس ریاست');
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk()->assertJsonPath('data.status','PENDING_INTERNAL_APPROVAL');
         $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk()->assertJsonPath('data.status','APPROVED');
 
