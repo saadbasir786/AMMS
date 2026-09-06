@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { History, KeyRound, Pencil, Plus, RotateCw, ShieldCheck, UserCog, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { History, KeyRound, Plus, RotateCw, ShieldCheck, UserCog, X } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData, apiError, apiPage } from '@/lib/api-client'
 import type { AdminUser, Employee, OrganizationalUnit, UserAccessAudit, UserRoleScope } from '../types'
+import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 
 const roleLabels: Record<string, string> = {
   SYSTEM_ADMIN: 'مدیر سیستم', EMPLOYEE: 'کارمند', DIRECTOR: 'رییس ریاست', DEPUTY_DIRECTOR: 'معاون ریاست',
@@ -41,9 +42,8 @@ export function UsersPage() {
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [usersResponse, employeesResponse, unitsResponse] = await Promise.all([api.get('/admin/users'), api.get('/admin/employees'), api.get('/admin/organizational-units')])
-      const loadedUsers = apiPage(usersResponse)?.data || []
-      setUsers(loadedUsers); setEmployees(apiPage(employeesResponse)?.data || []); setUnits(apiData(unitsResponse) || [])
+      const [loadedUsers, loadedEmployees, unitsResponse] = await Promise.all([fetchAllAdminPages<AdminUser>('/admin/users'), fetchAllAdminPages<Employee>('/admin/employees'), api.get('/admin/organizational-units')])
+      setUsers(loadedUsers); setEmployees(loadedEmployees); setUnits(apiData(unitsResponse) || [])
       setSelected((current) => current ? loadedUsers.find((user: AdminUser) => user.id === current.id) || null : null)
     } catch (err) { setError(apiError(err)) } finally { setLoading(false) }
   }, [])
@@ -54,6 +54,23 @@ export function UsersPage() {
 
   useEffect(() => { void load() }, [load])
   useEffect(() => { if (selected) void loadAudits(selected.id); else setAudits([]) }, [selected, loadAudits])
+
+  const selectableRoles = useMemo(() => {
+    if (!selected?.employee) return ['SYSTEM_ADMIN']
+    if (selected.roles?.some((scope) => scope.role === 'SYSTEM_ADMIN')) return ['SYSTEM_ADMIN']
+    const positionRole = selected.employee.position?.position_type
+    return ['EMPLOYEE', ...(positionRole && positionRole !== 'EMPLOYEE' && roleLabels[positionRole] ? [positionRole] : [])]
+  }, [selected])
+  const selectableUnits = useMemo(() => {
+    const scopeIds = new Set(selected?.employee?.unit_scope_ids || [])
+    return units.filter((unit) => unit.status !== 'INACTIVE' && scopeIds.has(unit.id))
+  }, [selected, units])
+  useEffect(() => {
+    if (!selectableRoles.includes(role)) {
+      setRole(selectableRoles[0] || 'EMPLOYEE')
+      setRoleUnitId('')
+    }
+  }, [role, selectableRoles])
 
   const beginEdit = (user: AdminUser) => {
     setSelected(user)
@@ -97,7 +114,7 @@ export function UsersPage() {
       </section>
       <section className="space-y-6">
         <Card className="rounded-2xl border-border/70 shadow-xs"><CardHeader className="p-4 sm:p-5"><CardTitle className="text-sm">{selected ? 'اصلاح حساب کاربری' : 'ایجاد حساب کاربری'}</CardTitle></CardHeader><CardContent className="p-4 sm:p-5"><form className="space-y-3.5" onSubmit={submit}><label className="block space-y-1.5 text-xs font-bold">نام نمایشی<Input required value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} className="h-10 rounded-xl text-xs" /></label><label className="block space-y-1.5 text-xs font-bold">ایمیل ورود<Input required type="email" value={form.email} onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))} className="h-10 rounded-xl text-xs" /></label><label className="block space-y-1.5 text-xs font-bold">کارمند مرتبط<select value={form.employee_id} onChange={(event) => setForm((value) => ({ ...value, employee_id: event.target.value }))} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-normal"><option value="">حساب فنی / بدون کارمند</option>{employees.filter((employee) => employee.status !== 'INACTIVE' && (!employee.email || !users.some((user) => user.employee_id === employee.id && user.id !== selected?.id))).map((employee) => <option key={employee.id} value={employee.id}>{employee.full_name} · {employee.employee_number}</option>)}</select></label><label className="block space-y-1.5 text-xs font-bold">رمز عبور {selected && <span className="font-normal text-muted-foreground">(برای حفظ رمز فعلی خالی بگذارید)</span>}<Input required={!selected} type="password" value={form.password} onChange={(event) => setForm((value) => ({ ...value, password: event.target.value }))} className="h-10 rounded-xl text-xs" /></label>{selected && <label className="block space-y-1.5 text-xs font-bold">وضعیت<select value={form.status} onChange={(event) => setForm((value) => ({ ...value, status: event.target.value as AccountForm['status'] }))} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-normal"><option value="ACTIVE">فعال</option><option value="INACTIVE">غیرفعال</option></select></label>}<div className="flex gap-2 pt-2"><Button disabled={saving} type="submit" className="h-10 flex-1 rounded-xl text-xs">{selected ? 'ثبت اصلاحات' : <><Plus className="ml-1 size-3.5" />ایجاد حساب</>}</Button>{selected && <Button type="button" variant="outline" onClick={resetForm} className="h-10 rounded-xl text-xs">انصراف</Button>}</div></form></CardContent></Card>
-        {selected && <Card className="rounded-2xl border-border/70 shadow-xs"><CardHeader className="p-4 sm:p-5"><CardTitle className="flex items-center gap-2 text-sm"><KeyRound className="size-4 text-primary" />نقش‌ها و حوزه‌ها</CardTitle></CardHeader><CardContent className="space-y-3 p-4 sm:p-5"><div className="space-y-2">{(selected.roles || []).map((scope) => <div key={scope.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2.5 text-xs"><span>{roleLabels[scope.role] || scope.role} {scope.unit ? `· ${scope.unit.name}` : '· سراسری'}</span><Button type="button" size="icon" variant="ghost" className="size-7 text-destructive" onClick={() => setRevokeTarget(scope)}><X className="size-3.5" /></Button></div>)}</div><select value={role} onChange={(event) => { setRole(event.target.value); setRoleUnitId('') }} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs">{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{role !== 'SYSTEM_ADMIN' && <select required value={roleUnitId} onChange={(event) => setRoleUnitId(event.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs"><option value="">حوزهٔ سازمانی را انتخاب کنید</option>{units.filter((unit) => unit.status !== 'INACTIVE').map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select>}<Button type="button" disabled={saving || (role !== 'SYSTEM_ADMIN' && !roleUnitId)} onClick={() => void assignRole()} className="h-10 w-full rounded-xl text-xs"><Plus className="ml-1 size-3.5" />واگذاری نقش</Button></CardContent></Card>}
+        {selected && <Card className="rounded-2xl border-border/70 shadow-xs"><CardHeader className="p-4 sm:p-5"><CardTitle className="flex items-center gap-2 text-sm"><KeyRound className="size-4 text-primary" />نقش‌ها و حوزه‌ها</CardTitle></CardHeader><CardContent className="space-y-3 p-4 sm:p-5"><div className="space-y-2">{(selected.roles || []).map((scope) => <div key={scope.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-2.5 text-xs"><span>{roleLabels[scope.role] || scope.role} {scope.unit ? `· ${scope.unit.name}` : '· سراسری'}</span><Button type="button" size="icon" variant="ghost" className="size-7 text-destructive" onClick={() => setRevokeTarget(scope)}><X className="size-3.5" /></Button></div>)}</div><select value={role} onChange={(event) => { setRole(event.target.value); setRoleUnitId('') }} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs">{selectableRoles.map((value) => <option key={value} value={value}>{roleLabels[value] || value}</option>)}</select>{role !== 'SYSTEM_ADMIN' && <select required value={roleUnitId} onChange={(event) => setRoleUnitId(event.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs"><option value="">حوزهٔ سازمانی را انتخاب کنید</option>{selectableUnits.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select>}<Button type="button" disabled={saving || (role !== 'SYSTEM_ADMIN' && !roleUnitId)} onClick={() => void assignRole()} className="h-10 w-full rounded-xl text-xs"><Plus className="ml-1 size-3.5" />واگذاری نقش</Button></CardContent></Card>}
       </section>
     </div>
     <ConfirmDialog open={confirmDeactivation} onOpenChange={setConfirmDeactivation} title="غیرفعال‌سازی حساب تأیید شود؟" description="توکن‌های فعال این کاربر فوراً باطل می‌شوند و تا فعال‌سازی مجدد امکان ورود نخواهد داشت." confirmLabel="غیرفعال‌سازی" variant="destructive" onConfirm={save} />

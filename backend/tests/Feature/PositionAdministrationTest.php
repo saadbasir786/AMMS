@@ -46,6 +46,13 @@ class PositionAdministrationTest extends TestCase
         $this->actingAs($admin, 'sanctum')->putJson('/api/admin/positions/'.$directorPosition->id, [
             'organizational_unit_id' => $directorPosition->organizational_unit_id,
             'title' => $directorPosition->title,
+            'position_type' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+        ])->assertStatus(422);
+
+        $this->actingAs($admin, 'sanctum')->putJson('/api/admin/positions/'.$directorPosition->id, [
+            'organizational_unit_id' => $directorPosition->organizational_unit_id,
+            'title' => $directorPosition->title,
             'position_type' => $directorPosition->position_type,
             'status' => 'INACTIVE',
         ])->assertStatus(422);

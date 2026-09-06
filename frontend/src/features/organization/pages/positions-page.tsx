@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { api, apiData, apiError, apiPage } from '@/lib/api-client'
+import { api, apiData, apiError } from '@/lib/api-client'
+import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 import type { EmployeePosition, OrganizationalUnit } from '../types'
 
 type PositionForm = {
@@ -48,11 +49,11 @@ export function PositionsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [positionsResponse, unitsResponse] = await Promise.all([
-        api.get('/admin/positions'),
+      const [loadedPositions, unitsResponse] = await Promise.all([
+        fetchAllAdminPages<EmployeePosition>('/admin/positions'),
         api.get('/admin/organizational-units'),
       ])
-      setPositions(apiPage(positionsResponse)?.data || apiData(positionsResponse) || [])
+      setPositions(loadedPositions)
       setUnits(apiData(unitsResponse) || [])
     } catch (err) {
       setError(apiError(err))

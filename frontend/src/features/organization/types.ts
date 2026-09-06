@@ -51,6 +51,7 @@ export type Employee = {
   phone?: string
   status?: string
   organizational_unit_id?: number
+  unit_scope_ids?: number[]
   unit?: {
     id: number
     name: string

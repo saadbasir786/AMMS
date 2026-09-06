@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
 use App\Models\AmmsRoleScope;
+use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
 use App\Models\OrganizationalUnit;
+use App\Models\Position;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -83,7 +84,7 @@ class MeetingMinutesReviewTest extends TestCase
             'reason' => 'غیابت موقت رئیس ریاست.',
         ])->assertCreated()->assertJsonPath('data.active', true);
 
-        $alternateDeputy = $this->createTechnologyDeputy($unit, 'EMP-TECH-003', 'tech.deputy.alternate@example.test');
+        $alternateDeputy = $this->createTechnologyDeputy($unit, 'EMP-TECH-ALT', 'tech.deputy.alternate@example.test');
         $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
             'organizational_unit_id' => $unit->id,
             'delegate_user_id' => $alternateDeputy->id,
@@ -121,7 +122,19 @@ class MeetingMinutesReviewTest extends TestCase
 
     private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber, string $email): User
     {
-        $employee = Employee::query()->where('employee_number', $employeeNumber)->firstOrFail();
+        $position = Position::query()
+            ->where('organizational_unit_id', $unit->id)
+            ->where('position_type', 'DEPUTY_DIRECTOR')
+            ->firstOrFail();
+        $employee = Employee::create([
+            'employee_number' => $employeeNumber,
+            'first_name' => 'معاون',
+            'last_name' => 'جایگزین',
+            'organizational_unit_id' => $unit->id,
+            'position_id' => $position->id,
+            'email' => $email,
+            'status' => 'ACTIVE',
+        ]);
         $deputy = User::create([
             'name' => 'معاون ریاست تکنالوژی',
             'email' => $email,
@@ -138,8 +151,8 @@ class MeetingMinutesReviewTest extends TestCase
 
     private function submittedMinutesFixture(): array
     {
-        $coordinator = \App\Models\User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
-        $director = \App\Models\User::query()->where('email', 'tech.director@example.test')->firstOrFail();
+        $coordinator = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
+        $director = User::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
         $participant = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW11-REV-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $coordinator->id, 'subject' => 'جلسهٔ بررسی FLOW-11', 'purpose' => 'REVIEW', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $coordinator->id]);
@@ -154,6 +167,7 @@ class MeetingMinutesReviewTest extends TestCase
         $this->actingAs($coordinator, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/draft')->assertCreated();
         $this->actingAs($coordinator, 'sanctum')->putJson('/api/meetings/'.$meeting->id.'/minutes/draft', $this->payload('نسخهٔ نخست'))->assertOk();
         $this->actingAs($coordinator, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/submit')->assertOk();
+
         return [$meeting->fresh(), $coordinator, $director, $unit];
     }
 

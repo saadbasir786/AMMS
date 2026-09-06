@@ -9,7 +9,10 @@ class EmployeePolicy
 {
     public function before(User $user): ?bool
     {
-        if (!$user->isActive()) return false;
+        if (! $user->isActive()) {
+            return false;
+        }
+
         return $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('employee.manage') ? true : null;
     }
 
@@ -25,12 +28,12 @@ class EmployeePolicy
 
     public function create(User $user): bool
     {
-        return $user->isActive() && $user->can('employee.manage');
+        return $user->isActive() && $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('employee.manage');
     }
 
     public function update(User $user, Employee $employee): bool
     {
-        return $user->isActive() && $user->can('employee.manage');
+        return $user->isActive() && $user->hasScopedRole('SYSTEM_ADMIN') && $user->can('employee.manage');
     }
 
     public function delete(User $user, Employee $employee): bool

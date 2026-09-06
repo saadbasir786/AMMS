@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { api, apiError, apiPage } from '@/lib/api-client'
+import { api, apiData, apiError } from '@/lib/api-client'
+import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 import { EmployeesTable } from '../components/employees-table'
 import type { Employee, EmployeePosition, OrganizationalUnit } from '../types'
 
@@ -28,11 +29,7 @@ const emptyForm: EmployeeForm = {
   position_id: '', email: '', phone: '', status: 'ACTIVE',
 }
 
-type EmployeesPageProps = {
-  isRolesView?: boolean
-}
-
-export function EmployeesPage({ isRolesView = false }: EmployeesPageProps) {
+export function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
   const [positions, setPositions] = useState<EmployeePosition[]>([])
@@ -48,12 +45,12 @@ export function EmployeesPage({ isRolesView = false }: EmployeesPageProps) {
     setLoading(true)
     setError(null)
     try {
-      const [employeeResponse, unitResponse, positionResponse] = await Promise.all([
-        api.get('/admin/employees'), api.get('/admin/organizational-units'), api.get('/admin/positions'),
+      const [loadedEmployees, unitResponse, loadedPositions] = await Promise.all([
+        fetchAllAdminPages<Employee>('/admin/employees'), api.get('/admin/organizational-units'), fetchAllAdminPages<EmployeePosition>('/admin/positions'),
       ])
-      setEmployees(apiPage(employeeResponse)?.data || [])
-      setUnits(apiPage(unitResponse)?.data || [])
-      setPositions(apiPage(positionResponse)?.data || [])
+      setEmployees(loadedEmployees)
+      setUnits(apiData(unitResponse) || [])
+      setPositions(loadedPositions)
     } catch (err) {
       setError(apiError(err))
     } finally {
@@ -127,8 +124,8 @@ export function EmployeesPage({ isRolesView = false }: EmployeesPageProps) {
   return (
     <div className="space-y-6" dir="rtl">
       <PageHeader
-        title={isRolesView ? 'کاربران و صلاحیت‌ها' : 'مدیریت کارمندان'}
-        description={isRolesView ? 'مدیریت نقش‌ها در فاز بعدی به این بخش منتقل می‌شود.' : 'مشخصات پرسنلی، واحد سازمانی و سمت رسمی کارمندان را ثبت و به‌روزرسانی کنید.'}
+        title="مدیریت کارمندان"
+        description="مشخصات پرسنلی، واحد سازمانی و سمت رسمی کارمندان را ثبت و به‌روزرسانی کنید."
         action={<Badge variant="outline" className="rounded-lg border-primary/30 px-2.5 py-1 text-xs text-primary"><Users className="ml-1 size-3.5" />{employees.filter((employee) => employee.status !== 'INACTIVE').length} کارمند فعال</Badge>}
       />
 

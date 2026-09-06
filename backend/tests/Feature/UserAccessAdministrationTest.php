@@ -65,4 +65,43 @@ class UserAccessAdministrationTest extends TestCase
             'organizational_unit_id' => $technology->id,
         ]);
     }
+
+    public function test_technical_permissions_without_system_admin_role_cannot_manage_accounts(): void
+    {
+        $executive = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
+        $executive->givePermissionTo(['user.manage', 'role.manage', 'employee.manage']);
+
+        $this->actingAs($executive, 'sanctum')->getJson('/api/admin/users')->assertForbidden();
+        $this->actingAs($executive, 'sanctum')->getJson('/api/admin/employees')->assertForbidden();
+    }
+
+    public function test_last_active_system_admin_cannot_be_deactivated_or_have_its_role_revoked(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $scope = $admin->roleScopes()->whereHas('role', fn ($query) => $query->where('name', 'SYSTEM_ADMIN'))->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')->putJson('/api/admin/users/'.$admin->id, [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'status' => 'INACTIVE',
+        ])->assertStatus(422);
+
+        $this->actingAs($admin, 'sanctum')->deleteJson('/api/admin/users/'.$admin->id.'/roles/'.$scope->id)->assertStatus(422);
+    }
+
+    public function test_deactivating_a_business_account_revokes_its_obsolete_role_scope(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $executive = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')->putJson('/api/admin/users/'.$executive->id, [
+            'name' => $executive->name,
+            'email' => $executive->email,
+            'employee_id' => $executive->employee_id,
+            'status' => 'INACTIVE',
+        ])->assertOk()->assertJsonPath('data.status', 'INACTIVE');
+
+        $this->assertDatabaseMissing('amms_role_scopes', ['user_id' => $executive->id]);
+        $this->assertDatabaseHas('user_access_audits', ['user_id' => $executive->id, 'action' => 'ROLE_REVOKED']);
+    }
 }

@@ -54,4 +54,27 @@ class EmployeeAdministrationTest extends TestCase
             'status' => 'INACTIVE',
         ])->assertOk()->assertJsonPath('data.status', 'INACTIVE');
     }
+
+    public function test_employee_transfer_revokes_obsolete_role_scope_and_records_it(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $executive = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
+        $employee = $executive->employee;
+        $financePosition = Position::query()->where('position_type', 'EXECUTIVE_MANAGEMENT')->whereHas('unit', fn ($query) => $query->where('code', 'FIN-EXEC'))->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')->putJson('/api/admin/employees/'.$employee->id, [
+            'employee_number' => $employee->employee_number,
+            'first_name' => $employee->first_name,
+            'last_name' => $employee->last_name,
+            'father_name' => $employee->father_name,
+            'organizational_unit_id' => $financePosition->organizational_unit_id,
+            'position_id' => $financePosition->id,
+            'email' => $employee->email,
+            'phone' => $employee->phone,
+            'status' => 'ACTIVE',
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('amms_role_scopes', ['user_id' => $executive->id]);
+        $this->assertDatabaseHas('user_access_audits', ['user_id' => $executive->id, 'action' => 'ROLE_REVOKED']);
+    }
 }
