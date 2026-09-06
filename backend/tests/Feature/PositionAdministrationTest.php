@@ -57,4 +57,20 @@ class PositionAdministrationTest extends TestCase
             'status' => 'INACTIVE',
         ])->assertStatus(422);
     }
+
+    public function test_system_admin_can_filter_positions_and_view_employee_counts(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/positions?position_type=DIRECTOR')
+            ->assertOk();
+
+        $items = $response->json('data');
+        $this->assertNotEmpty($items);
+        foreach ($items as $item) {
+            $this->assertSame('DIRECTOR', $item['position_type']);
+            $this->assertArrayHasKey('employees_count', $item);
+            $this->assertGreaterThanOrEqual(0, $item['employees_count']);
+        }
+    }
 }

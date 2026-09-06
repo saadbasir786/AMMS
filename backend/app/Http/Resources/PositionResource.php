@@ -9,6 +9,16 @@ class PositionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return ['id'=>$this->id,'organizational_unit_id'=>$this->organizational_unit_id,'title'=>$this->title,'code'=>$this->code,'position_type'=>$this->position_type,'status'=>$this->status,'unit'=>new OrganizationalUnitResource($this->whenLoaded('unit'))];
+        return [
+            'id' => $this->id,
+            'organizational_unit_id' => $this->organizational_unit_id,
+            'title' => $this->title,
+            'code' => $this->code,
+            'position_type' => $this->position_type,
+            'status' => $this->status,
+            'employees_count' => $this->employees_count ?? null,
+            'unit' => new OrganizationalUnitResource($this->whenLoaded('unit')),
+            'created_at' => $this->created_at?->toISOString(),
+        ];
     }
 }

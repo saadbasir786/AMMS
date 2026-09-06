@@ -64,7 +64,11 @@ type Delegate = {
 
 type Unit = { id: number; name: string; code?: string }
 
-export function InternalApprovalDelegationsPage() {
+type InternalApprovalDelegationsPageProps = {
+  embedded?: boolean
+}
+
+export function InternalApprovalDelegationsPage({ embedded = false }: InternalApprovalDelegationsPageProps = {}) {
   const [delegations, setDelegations] = useState<Delegation[]>([])
   const [delegates, setDelegates] = useState<Delegate[]>([])
   const [units, setUnits] = useState<Unit[]>([])
@@ -210,11 +214,45 @@ export function InternalApprovalDelegationsPage() {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      <PageHeader
-        title="تفویض صلاحیت تأیید جلسات داخلی"
-        description="تفویض محدود، زمان‌دار و دارای پیگرد ممیزی جهت تأیید درخواست‌های داخلی به مدیر اجرائیه همان ریاست"
-        action={
-          <div className="flex items-center gap-2">
+      {!embedded ? (
+        <PageHeader
+          title="تفویض صلاحیت تأیید جلسات داخلی"
+          description="تفویض محدود، زمان‌دار و دارای پیگرد ممیزی جهت تأیید درخواست‌های داخلی به مدیر اجرائیه همان ریاست"
+          action={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                disabled={loading}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5"
+              >
+                <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>تازه‌سازی</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={openCreateDialog}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                <span>تفویض صلاحیت جدید</span>
+              </Button>
+            </div>
+          }
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card border border-border/70 shadow-xs">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <ShieldCheck className="size-4 text-primary" />
+              <span>تفویض صلاحیت تأیید جلسات داخلی</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              تفویض موقت و مقید تأیید درخواست‌های جلسه داخلی به مدیر اجرائیه همان ریاست
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -234,8 +272,8 @@ export function InternalApprovalDelegationsPage() {
               <span>تفویض صلاحیت جدید</span>
             </Button>
           </div>
-        }
-      />
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (

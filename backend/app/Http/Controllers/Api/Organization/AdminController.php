@@ -48,7 +48,31 @@ class AdminController extends Controller
     {
         $this->authorize('viewAny', UserModel::class);
 
-        return UserResource::collection(UserModel::with(['employee.unit', 'employee.position', 'roleScopes.role', 'roleScopes.unit', 'capabilityScopes.unit'])->latest()->paginate($this->perPage($request, 20)))->additional(['success' => true, 'message' => 'فهرست کاربران.']);
+        $query = UserModel::with(['employee.unit', 'employee.position', 'roleScopes.role', 'roleScopes.unit', 'capabilityScopes.unit'])->latest();
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('employee', function ($eq) use ($search) {
+                        $eq->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhere('employee_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('role')) {
+            $role = $request->input('role');
+            $query->whereHas('roleScopes.role', fn ($rq) => $rq->where('name', $role));
+        }
+
+        return UserResource::collection($query->paginate($this->perPage($request, 20)))->additional(['success' => true, 'message' => 'فهرست کاربران.']);
     }
 
     public function storeUser(StoreUserRequest $request)
@@ -181,7 +205,28 @@ class AdminController extends Controller
         abort_unless($request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('employee.manage'), 403, 'FORBIDDEN');
         $this->authorize('viewAny', Employee::class);
 
-        return EmployeeResource::collection(Employee::with(['unit', 'position'])->latest()->paginate($this->perPage($request, 20)))->additional(['success' => true, 'message' => 'فهرست همهٔ کارمندان.']);
+        $query = Employee::with(['unit', 'position'])->latest();
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('employee_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('organizational_unit_id')) {
+            $query->where('organizational_unit_id', $request->integer('organizational_unit_id'));
+        }
+
+        return EmployeeResource::collection($query->paginate($this->perPage($request, 20)))->additional(['success' => true, 'message' => 'فهرست همهٔ کارمندان.']);
     }
 
     public function storeEmployee(StoreEmployeeRequest $request)
@@ -233,7 +278,29 @@ class AdminController extends Controller
     {
         $this->organizationAdmin($request);
 
-        return PositionResource::collection(Position::query()->with('unit')->orderBy('title')->paginate($this->perPage($request, 30)))
+        $query = Position::query()->with('unit')->withCount('employees')->orderBy('title');
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('organizational_unit_id')) {
+            $query->where('organizational_unit_id', $request->integer('organizational_unit_id'));
+        }
+
+        if ($request->filled('position_type')) {
+            $query->where('position_type', $request->input('position_type'));
+        }
+
+        return PositionResource::collection($query->paginate($this->perPage($request, 30)))
             ->additional(['success' => true, 'message' => 'فهرست سمت‌های سازمانی.']);
     }
 
@@ -241,7 +308,7 @@ class AdminController extends Controller
     {
         $position = Position::create($request->validated());
 
-        return (new PositionResource($position->load('unit')))
+        return (new PositionResource($position->load('unit')->loadCount('employees')))
             ->additional(['success' => true, 'message' => 'سمت سازمانی ایجاد شد.'])
             ->response()
             ->setStatusCode(201);
@@ -256,7 +323,7 @@ class AdminController extends Controller
 
         $position->update($data);
 
-        return (new PositionResource($position->fresh('unit')))
+        return (new PositionResource($position->fresh('unit')->loadCount('employees')))
             ->additional(['success' => true, 'message' => 'سمت سازمانی اصلاح شد.']);
     }
 

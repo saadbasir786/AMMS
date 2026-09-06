@@ -14,7 +14,11 @@ import {
   Check,
   Building2,
   Mail,
-  UserCheck
+  UserCheck,
+  BriefcaseBusiness,
+  ShieldAlert,
+  Info,
+  UserPlus
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { StatusBadge } from '@/components/amms/status-badge'
@@ -23,6 +27,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -94,6 +99,7 @@ export function UsersPage() {
   const [auditDialogOpen, setAuditDialogOpen] = useState(false)
 
   // Forms
+  const [accountType, setAccountType] = useState<'EMPLOYEE' | 'TECHNICAL'>('EMPLOYEE')
   const [form, setForm] = useState<AccountForm>(emptyForm)
   const [newRole, setNewRole] = useState('EMPLOYEE')
   const [newRoleUnitId, setNewRoleUnitId] = useState('')
@@ -214,15 +220,32 @@ export function UsersPage() {
     }
   }, [newRole, selectableRoles])
 
+  // Eligible employees for account assignment
+  const eligibleEmployees = useMemo(() => {
+    return employees.filter(
+      (e) =>
+        e.status !== 'INACTIVE' &&
+        (!users.some((u) => u.employee_id === e.id && u.id !== selectedUser?.id) ||
+          (selectedUser && selectedUser.employee_id === e.id))
+    )
+  }, [employees, users, selectedUser])
+
+  const selectedEmployee = useMemo(() => {
+    if (!form.employee_id) return null
+    return employees.find((e) => String(e.id) === String(form.employee_id)) || null
+  }, [employees, form.employee_id])
+
   // Dialog open handlers
   const openCreateAccountDialog = () => {
     setSelectedUser(null)
+    setAccountType('EMPLOYEE')
     setForm(emptyForm)
     setAccountDialogOpen(true)
   }
 
   const openEditAccountDialog = (user: AdminUser) => {
     setSelectedUser(user)
+    setAccountType(user.employee_id ? 'EMPLOYEE' : 'TECHNICAL')
     setForm({
       name: user.name,
       email: user.email,
@@ -248,25 +271,31 @@ export function UsersPage() {
 
   // Handle employee selection in account creation
   const handleEmployeeChange = (empId: string) => {
-    setForm((prev) => {
-      const found = employees.find((e) => String(e.id) === empId)
-      return {
-        ...prev,
-        employee_id: empId,
-        name: prev.name || found?.full_name || '',
-        email: prev.email || found?.email || '',
-      }
-    })
+    const found = employees.find((e) => String(e.id) === empId)
+    setForm((prev) => ({
+      ...prev,
+      employee_id: empId,
+      name: found ? found.full_name : prev.name,
+      email: found?.email || prev.email,
+    }))
   }
 
   // Account submit
   const saveAccount = async () => {
+    if (accountType === 'EMPLOYEE' && !form.employee_id) {
+      setError('لطفاً کارمند مورد نظر را جهت اتصال به حساب سازمانی انتخاب نمایید.')
+      return
+    }
+    if (!selectedUser && (!form.password || form.password.length < 12)) {
+      setError('رمز عبور باید حداقل ۱۲ کاراکتر باشد.')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
       const payload = {
         ...form,
-        employee_id: form.employee_id ? Number(form.employee_id) : null,
+        employee_id: accountType === 'EMPLOYEE' && form.employee_id ? Number(form.employee_id) : null,
         password: form.password || undefined,
       }
       if (selectedUser) {
@@ -652,45 +681,155 @@ export function UsersPage() {
         <DialogContent className="sm:max-w-md rounded-2xl" dir="rtl">
           <DialogHeader className="space-y-1.5 text-right">
             <DialogTitle className="text-sm font-bold">
-              {selectedUser ? 'اصلاح حساب کاربری' : 'ایجاد حساب کاربری جدید'}
+              {selectedUser ? 'اصلاح مشخصات حساب کاربری' : 'ایجاد حساب کاربری جدید'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              حساب کاربری را به کارمند فعال متصل نموده یا به صورت اکانت فنی ایجاد نمایید.
+              {selectedUser
+                ? 'ویرایش هویت کاربر، ایمیل رسمی ورود یا وضعیت فعالیت حساب'
+                : 'تعیین هویت کاربر بر اساس پرونده پرسنلی کارمند یا ایجاد حساب فنی'}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAccountSubmit} className="space-y-3.5 pt-1">
+          <form onSubmit={handleAccountSubmit} className="space-y-4 pt-1">
+            {/* Account Type Toggle */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
-                کارمند مرتبط
+                نوع حساب کاربری
               </label>
-              <select
-                value={form.employee_id}
-                onChange={(e) => handleEmployeeChange(e.target.value)}
-                className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
-              >
-                <option value="">حساب فنی / بدون کارمند سازمانی</option>
-                {employees
-                  .filter(
-                    (e) =>
-                      e.status !== 'INACTIVE' &&
-                      (!e.email ||
-                        !users.some(
-                          (u) => u.employee_id === e.id && u.id !== selectedUser?.id
-                        ))
-                  )
-                  .map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.full_name} · {emp.unit?.name || 'واحد نامشخص'} (
-                      {emp.employee_number})
-                    </option>
-                  ))}
-              </select>
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/70 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountType('EMPLOYEE')
+                  }}
+                  className={cn(
+                    'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all',
+                    accountType === 'EMPLOYEE'
+                      ? 'bg-card text-primary font-bold shadow-xs border border-border/70'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <UserCheck className="size-3.5 shrink-0" />
+                  <span>حساب پرسنل اداری</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountType('TECHNICAL')
+                    setForm((prev) => ({ ...prev, employee_id: '' }))
+                  }}
+                  className={cn(
+                    'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all',
+                    accountType === 'TECHNICAL'
+                      ? 'bg-card text-primary font-bold shadow-xs border border-border/70'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <ShieldAlert className="size-3.5 shrink-0" />
+                  <span>حساب فنی سیستم</span>
+                </button>
+              </div>
             </div>
 
+            {/* Employee Selection (if Employee Account) */}
+            {accountType === 'EMPLOYEE' ? (
+              <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground block">
+                      انتخاب کارمند سازمان <span className="text-destructive">*</span>
+                    </label>
+                    <a
+                      href="/admin/employees"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium transition-colors"
+                      title="ثبت کارمند جدید در بخش تشکیلات و پرسنل"
+                    >
+                      <UserPlus className="size-3" />
+                      <span>ثبت کارمند جدید در تشکیلات</span>
+                    </a>
+                  </div>
+                  {eligibleEmployees.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 space-y-2">
+                      <p className="text-[11px] leading-relaxed">
+                        تمامی کارمندان فعلی سیستم دارای حساب کاربری هستند یا هنوز پرونده پرسنلی ثبت نشده است. برای تعریف کارمند جدید، به بخش مدیریت تشکیلات مراجعه نمایید.
+                      </p>
+                      <a
+                        href="/admin/employees"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        <UserPlus className="size-3.5" />
+                        <span>ورود به بخش مدیریت پرسنل</span>
+                      </a>
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={form.employee_id}
+                      onChange={(e) => handleEmployeeChange(e.target.value)}
+                      className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
+                    >
+                      <option value="">-- انتخاب کارمند فاقد حساب کاربری --</option>
+                      {eligibleEmployees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.full_name} · {emp.position?.title || 'کارمند'} ({emp.employee_number})
+                          {emp.unit?.name ? ` · ${emp.unit.name}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Selected Employee Summary Card */}
+                {selectedEmployee && (
+                  <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <strong className="font-bold text-foreground flex items-center gap-1.5">
+                        <UserCheck className="size-3.5 text-primary" />
+                        <span>{selectedEmployee.full_name}</span>
+                      </strong>
+                      <Badge variant="outline" className="font-mono text-[10px] rounded-md">
+                        {selectedEmployee.employee_number}
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5">
+                      <span className="flex items-center gap-1">
+                        <Building2 className="size-3 text-muted-foreground/70" />
+                        <span>{selectedEmployee.unit?.name || 'واحد نامشخص'}</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BriefcaseBusiness className="size-3 text-muted-foreground/70" />
+                        <span>{selectedEmployee.position?.title || 'سمت نامشخص'}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Technical Account Notice */
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                <Info className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <p className="text-[11px] leading-relaxed">
+                  حساب فنی منحصراً برای مدیران سیستم (<span className="font-mono font-bold">SYSTEM_ADMIN</span>) بوده، به کارمند اداری متصل نمی‌شود و اختیارات جلسات سازمانی را دریافت نمی‌کند.
+                </p>
+              </div>
+            )}
+
+            {/* Name Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                نام نمایشی <span className="text-destructive">*</span>
+              <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span>
+                  {accountType === 'EMPLOYEE' ? 'نام و نام خانوادگی صاحب حساب' : 'عنوان حساب / نام مدیر فنی'}{' '}
+                  <span className="text-destructive">*</span>
+                </span>
+                {accountType === 'EMPLOYEE' && selectedEmployee && (
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    (برگرفته از پرونده پرسنلی)
+                  </span>
+                )}
               </label>
               <Input
                 required
@@ -698,14 +837,19 @@ export function UsersPage() {
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="نام کامل کاربر..."
+                placeholder={
+                  accountType === 'EMPLOYEE'
+                    ? 'نام و تخلص کارمند...'
+                    : 'مثال: مدیر فنی زیرساخت'
+                }
                 className="h-9.5 rounded-xl text-xs"
               />
             </div>
 
+            {/* Email Field */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
-                ایمیل رسمی ورود <span className="text-destructive">*</span>
+                ایمیل رسمی ورود (شناسه کاربری) <span className="text-destructive">*</span>
               </label>
               <Input
                 required
@@ -719,9 +863,10 @@ export function UsersPage() {
               />
             </div>
 
+            {/* Password Field */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
-                رمز عبور{' '}
+                رمز عبور ورود{' '}
                 {selectedUser ? (
                   <span className="text-[10px] font-normal text-muted-foreground">
                     (جهت ابقای رمز فعلی خالی بگذارید)
@@ -733,19 +878,26 @@ export function UsersPage() {
               <Input
                 required={!selectedUser}
                 type="password"
+                minLength={selectedUser ? undefined : 12}
                 value={form.password}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, password: e.target.value }))
                 }
-                placeholder={selectedUser ? '••••••••' : 'رمز عبور قوی...'}
-                className="h-9.5 rounded-xl text-xs"
+                placeholder={selectedUser ? '••••••••••••' : 'حداقل ۱۲ کاراکتر...'}
+                className="h-9.5 rounded-xl text-xs font-mono"
               />
+              {!selectedUser && (
+                <span className="text-[10px] text-muted-foreground block">
+                  رمز عبور طبق ضوابط امنیتی باید حداقل ۱۲ کاراکتر باشد.
+                </span>
+              )}
             </div>
 
+            {/* Status Field (if editing) */}
             {selectedUser && (
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">
-                  وضعیت حساب
+                  وضعیت حساب کاربری
                 </label>
                 <select
                   value={form.status}
@@ -758,7 +910,7 @@ export function UsersPage() {
                   className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
                 >
                   <option value="ACTIVE">فعال</option>
-                  <option value="INACTIVE">غیرفعال (مسدود)</option>
+                  <option value="INACTIVE">غیرفعال (مسدودشده)</option>
                 </select>
               </div>
             )}

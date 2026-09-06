@@ -20,9 +20,11 @@ class EmployeeResource extends JsonResource
             'phone' => $this->phone,
             'status' => $this->status,
             'organizational_unit_id' => $this->organizational_unit_id,
+            'position_id' => $this->position_id,
             'unit_scope_ids' => $this->unitScopeIds(),
             'unit' => new OrganizationalUnitResource($this->whenLoaded('unit')),
             'position' => new PositionResource($this->whenLoaded('position')),
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 

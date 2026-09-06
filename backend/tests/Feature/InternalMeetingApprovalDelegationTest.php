@@ -34,7 +34,13 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             ])
             ->assertCreated()
             ->assertJsonPath('data.capability', SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL)
-            ->assertJsonPath('data.active', true);
+            ->assertJsonPath('data.active', true)
+            ->assertJsonPath('data.granted_by.id', $director->id);
+
+        $this->actingAs($director, 'sanctum')
+            ->getJson('/api/internal-meeting-approval-delegations?status=ACTIVE')
+            ->assertOk()
+            ->assertJsonPath('data.delegations.0.granted_by.name', $director->name);
 
         $this->assertTrue($executive->fresh()->can('meeting-request.approve-delegated'));
 

@@ -45,7 +45,11 @@ type Delegation = {
   active: boolean
 }
 
-export function MinutesApprovalDelegationsPage() {
+type MinutesApprovalDelegationsPageProps = {
+  embedded?: boolean
+}
+
+export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesApprovalDelegationsPageProps = {}) {
   const [delegations, setDelegations] = useState<Delegation[]>([])
   const [delegates, setDelegates] = useState<Delegate[]>([])
   const [units, setUnits] = useState<Unit[]>([])
@@ -191,11 +195,45 @@ export function MinutesApprovalDelegationsPage() {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      <PageHeader
-        title="تفویض بررسی صورت‌جلسات رسمی"
-        description="تفویض محدود، زمان‌دار و قابل لغو صلاحیت بررسی، اعلام نظر یا درخواست اصلاح صورت‌جلسه به معاونت همان ریاست"
-        action={
-          <div className="flex items-center gap-2">
+      {!embedded ? (
+        <PageHeader
+          title="تفویض بررسی صورت‌جلسات رسمی"
+          description="تفویض محدود، زمان‌دار و قابل لغو صلاحیت بررسی، اعلام نظر یا درخواست اصلاح صورت‌جلسه به معاونت همان ریاست"
+          action={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                disabled={loading}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5"
+              >
+                <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>تازه‌سازی</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={openCreateDialog}
+                className="h-9 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                <span>تفویض جدید به معاونت</span>
+              </Button>
+            </div>
+          }
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card border border-border/70 shadow-xs">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FileCheck className="size-4 text-primary" />
+              <span>تفویض بررسی صورت‌جلسات رسمی</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              تفویض بررسی و اعلام نظر رسمی روی صورت‌جلسات ارسالی به معاونت متبوع
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -215,8 +253,8 @@ export function MinutesApprovalDelegationsPage() {
               <span>تفویض جدید به معاونت</span>
             </Button>
           </div>
-        }
-      />
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (

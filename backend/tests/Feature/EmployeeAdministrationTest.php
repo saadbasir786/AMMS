@@ -47,12 +47,31 @@ class EmployeeAdministrationTest extends TestCase
         $payload['position_id'] = $technologyPosition->id;
         $employee = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/employees', $payload)
             ->assertCreated()
-            ->assertJsonPath('data.position.id', $technologyPosition->id);
+            ->assertJsonPath('data.position.id', $technologyPosition->id)
+            ->assertJsonPath('data.position_id', $technologyPosition->id);
 
         $this->actingAs($admin, 'sanctum')->putJson('/api/admin/employees/'.$employee->json('data.id'), [
             ...$payload,
             'status' => 'INACTIVE',
         ])->assertOk()->assertJsonPath('data.status', 'INACTIVE');
+    }
+
+    public function test_system_admin_can_filter_employees_by_search_and_unit(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $technology = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/employees?search=نوری')
+            ->assertOk();
+        $this->assertNotEmpty($response->json('data'));
+        $this->assertSame('EMP-TECH-004', $response->json('data.0.employee_number'));
+
+        $unitResponse = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/employees?organizational_unit_id='.$technology->id)
+            ->assertOk();
+        foreach ($unitResponse->json('data') as $item) {
+            $this->assertSame($technology->id, $item['organizational_unit_id']);
+            $this->assertArrayHasKey('position_id', $item);
+        }
     }
 
     public function test_employee_transfer_revokes_obsolete_role_scope_and_records_it(): void

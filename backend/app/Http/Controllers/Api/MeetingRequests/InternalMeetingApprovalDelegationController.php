@@ -23,12 +23,28 @@ class InternalMeetingApprovalDelegationController extends Controller
         $actor = $request->user();
         $unitIds = $this->directorUnitIds($actor);
 
-        $delegations = AmmsCapabilityScope::query()
+        $query = AmmsCapabilityScope::query()
             ->with(['user.employee.unit', 'unit', 'grantedBy', 'revokedBy'])
             ->where('capability', SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL)
             ->whereIn('organizational_unit_id', $unitIds)
-            ->latest('id')
-            ->get();
+            ->latest('id');
+
+        if ($request->filled('status')) {
+            $status = $request->input('status');
+            if ($status === 'ACTIVE') {
+                $query->active();
+            } elseif ($status === 'REVOKED') {
+                $query->whereNotNull('revoked_at');
+            } elseif ($status === 'EXPIRED') {
+                $query->whereNull('revoked_at')->whereNotNull('expires_at')->where('expires_at', '<=', now());
+            }
+        }
+
+        if ($request->filled('organizational_unit_id')) {
+            $query->where('organizational_unit_id', $request->integer('organizational_unit_id'));
+        }
+
+        $delegations = $query->get();
 
         $delegates = User::query()
             ->with('employee.unit')
