@@ -30,10 +30,14 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
    - Core Directives:
      - Mandatory Server-Side Pagination with defensive bounds (`page`, `per_page`) for dynamic/unbounded lists
      - Standard `JsonResource::collection($paginator)` envelope with `meta` (`current_page`, `last_page`, `total`, `from`, `to`)
-     - Authoritative global counters (`unread_count`, `total_count`) calculated on backend and passed in additional meta
+     - Authoritative scoped counters (`unread_count`, `total_count`, `stats`) calculated on backend in additional response fields; preserve pagination meta semantics
      - Strict Route Precedence: static endpoints before parameterized `{wildcard}` routes
      - Atomic database transactions (`DB::transaction`) for state transitions and workflows
      - Immutable audit logs for every workflow transition and administrative decision
+     - FormRequest validation and explicit input allowlists; reuse canonical Policies/Resolvers for scope and authority
+     - Concurrency protection and defined retry behavior for competing workflow writes; external side effects after commit
+     - Forward migrations, historical data preservation, private file access and safe error/logging contracts
+     - Preserve existing API consumers and follow the backend module-development checklist for new and edited modules
      - Mandatory automated Feature Tests in `backend/tests/Feature/` covering happy path, 401, 403, and user isolation
 
 4. **Autonomous Rule Evolution Directive (AI Self-Evolution)**
