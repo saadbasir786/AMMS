@@ -50,7 +50,8 @@ class MeetingActionCapabilities
             'reschedule' => [
                 'view' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleViewHistory', $meeting)),
                 'create' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleCreateCase', $meeting)),
-                'propose' => $this->allows(fn (): bool => $gate->allows('meetingReschedulePeerPropose', $meeting)),
+                'propose' => $this->allows(fn (): bool => $gate->allows('meetingReschedulePeerPropose', $meeting)
+                    || $gate->allows('meetingRescheduleAuthorityPropose', $meeting)),
                 'acknowledge' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleAcknowledge', $meeting)),
                 'request_alternative' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleRequestAlternative', $meeting)),
                 'confirm' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleConfirm', $meeting)),
@@ -130,7 +131,9 @@ class MeetingActionCapabilities
     private function canActiveParticipantOperation(Meeting $meeting, User $actor, string $ability): bool
     {
         $case = $meeting->activeParticipantChangeCase()->first();
-        if (!$case) return false;
+        if (! $case) {
+            return false;
+        }
 
         return $this->allows(fn (): bool => Gate::forUser($actor)->allows($ability, [
             $meeting,
@@ -143,7 +146,9 @@ class MeetingActionCapabilities
     {
         return $this->allows(function () use ($meeting, $actor, $operation): bool {
             $governance = app(MeetingExceptionGovernanceResolver::class);
-            if (!$governance->owner($meeting, $actor)) return false;
+            if (! $governance->owner($meeting, $actor)) {
+                return false;
+            }
 
             return $actor->can("meeting.exception.{$operation}");
         });

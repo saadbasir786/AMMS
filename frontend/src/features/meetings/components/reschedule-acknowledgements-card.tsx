@@ -12,8 +12,8 @@ type RescheduleAcknowledgementsCardProps = {
   canAcknowledge: boolean
   canRequestAlternative: boolean
   busy: boolean
-  onAcknowledge: () => Promise<void>
-  onRequestAlternative: (reason: string) => Promise<void>
+  onAcknowledge: () => Promise<boolean>
+  onRequestAlternative: (reason: string) => Promise<boolean>
 }
 
 export function RescheduleAcknowledgementsCard({
@@ -35,9 +35,10 @@ export function RescheduleAcknowledgementsCard({
       return
     }
     setError(null)
-    await onRequestAlternative(alternativeReason)
-    setAlternativeReason('')
-    setShowAlternativeBox(false)
+    if (await onRequestAlternative(alternativeReason)) {
+      setAlternativeReason('')
+      setShowAlternativeBox(false)
+    }
   }
 
   const acknowledgements = activeProposal.acknowledgements || []

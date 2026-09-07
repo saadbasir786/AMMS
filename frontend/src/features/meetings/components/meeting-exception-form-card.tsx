@@ -9,15 +9,17 @@ import type { ExceptionCaseType } from '../types'
 type MeetingExceptionFormCardProps = {
   busy: boolean
   canCreate?: boolean
-  onCreateCase: (caseType: ExceptionCaseType, reason: string) => Promise<void>
+  meetingStatus?: string
+  onCreateCase: (caseType: ExceptionCaseType, reason: string) => Promise<boolean>
 }
 
 export function MeetingExceptionFormCard({
   busy,
   canCreate = false,
+  meetingStatus,
   onCreateCase,
 }: MeetingExceptionFormCardProps) {
-  const [caseType, setCaseType] = useState<ExceptionCaseType>('POSTPONEMENT')
+  const [caseType, setCaseType] = useState<ExceptionCaseType>(meetingStatus === 'POSTPONED' ? 'RESUMPTION' : meetingStatus === 'CANCELLED' ? 'REOPENING' : 'POSTPONEMENT')
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -27,11 +29,10 @@ export function MeetingExceptionFormCard({
       return
     }
     setError(null)
-    await onCreateCase(caseType, reason)
-    setReason('')
+    if (await onCreateCase(caseType, reason)) setReason('')
   }
 
-  if (!canCreate) return null
+  if (!canCreate || !['SCHEDULED', 'POSTPONED', 'CANCELLED'].includes(meetingStatus || '')) return null
 
   return (
     <Card className="border border-border/70 shadow-xs" dir="rtl">
@@ -68,10 +69,10 @@ export function MeetingExceptionFormCard({
               onChange={(e) => setCaseType(e.target.value as ExceptionCaseType)}
               className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-3"
             >
-              <option value="POSTPONEMENT">تعویق جلسه (به دلیل شرایط پیش‌بینی‌نشده)</option>
-              <option value="CANCELLATION">لغو کامل جلسه</option>
-              <option value="REOPENING">بازگشایی جلسه لغوشده</option>
-              <option value="RESUMPTION">تعیین زمان جدید و فعال‌سازی مجدد جلسه</option>
+              {meetingStatus === 'SCHEDULED' && <option value="POSTPONEMENT">تعویق جلسه (به دلیل شرایط پیش‌بینی‌نشده)</option>}
+              {['SCHEDULED', 'POSTPONED'].includes(meetingStatus || '') && <option value="CANCELLATION">لغو کامل جلسه</option>}
+              {meetingStatus === 'CANCELLED' && <option value="REOPENING">بازگشایی جلسه لغوشده</option>}
+              {meetingStatus === 'POSTPONED' && <option value="RESUMPTION">تعیین زمان جدید و فعال‌سازی مجدد جلسه</option>}
             </select>
           </div>
 

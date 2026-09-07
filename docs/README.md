@@ -4,6 +4,7 @@
 
 ## Current authoritative documentation
 
+- [`meeting-workspace-api.md`](meeting-workspace-api.md) — current pagination, capabilities and API contracts for the three meeting-change workspaces.
 - [`release/RELEASE_BASELINE.md`](release/RELEASE_BASELINE.md) — frozen AMMS product/release baseline for FLOW-01 through FLOW-14. FLOW-10B remains deferred.
 - [`../AGENTS.md`](../AGENTS.md) — workspace development directives and active rule charters.
 - [`../.agents/rules/frontend-architecture-and-design.md`](../.agents/rules/frontend-architecture-and-design.md) — canonical frontend architecture and UI/UX rules.

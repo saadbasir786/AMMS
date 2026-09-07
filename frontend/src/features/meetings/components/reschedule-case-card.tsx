@@ -11,6 +11,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatSolarDate } from '@/lib/calendar-utils'
 import type { RescheduleCase } from '../types'
+import { governanceLabels, workspaceStatusLabels } from '../lib/workspace-labels'
 
 type RescheduleCaseCardProps = {
   activeCase: RescheduleCase
@@ -32,14 +33,14 @@ export function RescheduleCaseCard({
         <div className="flex items-center justify-between gap-3">
           <div>
             <span className="text-[11px] font-semibold text-muted-foreground block">
-              پرونده رسمی تغییر زمان‌بندی • {activeCase.governance_mode}
+              پرونده رسمی تغییر زمان‌بندی • {governanceLabels[activeCase.governance_mode] || 'نامشخص'}
             </span>
             <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">
               پرونده فعال تغییر زمان جلسه
             </h3>
           </div>
           <Badge variant="outline" className="text-xs px-2.5 py-1">
-            {activeCase.status}
+            {workspaceStatusLabels[activeCase.status] || 'نامشخص'}
           </Badge>
         </div>
       </CardHeader>

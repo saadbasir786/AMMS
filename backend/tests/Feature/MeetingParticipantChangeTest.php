@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Actions\Meetings\AddMeetingParticipantChangeItem;
 use App\Actions\Meetings\ConfirmMeetingParticipantChange;
 use App\Actions\Meetings\CreateMeetingParticipantChangeCase;
-use App\Actions\Meetings\RejectMeetingParticipantChange;
 use App\Actions\Meetings\RefreshParticipantChangeCaseBaseline;
+use App\Actions\Meetings\RejectMeetingParticipantChange;
 use App\Actions\Meetings\RemoveMeetingParticipantChangeItem;
 use App\Actions\Meetings\ReturnMeetingParticipantChange;
 use App\Actions\Meetings\SubmitMeetingParticipantChange;
@@ -16,8 +16,8 @@ use App\Models\MeetingAuthorityContext;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
-use App\Models\OrganizationAuthority;
 use App\Models\OrganizationalUnit;
+use App\Models\OrganizationAuthority;
 use App\Models\User;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
@@ -212,6 +212,30 @@ class MeetingParticipantChangeTest extends TestCase
         $this->actingAs($users['techExec'], 'sanctum')->patchJson("/api/meetings/{$meeting->id}/participants/1", ['employee_id' => 99])->assertStatus(404);
     }
 
+    public function test_authority_candidate_scope_includes_descendants_but_rejects_ancestors(): void
+    {
+        [$meeting, $users] = $this->authorityMeeting();
+        $office = $this->unit('AUTH-OFFICE');
+        $parent = OrganizationalUnit::create(['organization_id' => $office->organization_id, 'name' => 'Parent office', 'code' => 'TEST-PARENT', 'unit_type' => $office->unit_type, 'status' => 'ACTIVE']);
+        $office->update(['parent_id' => $parent->id]);
+        $child = OrganizationalUnit::create(['organization_id' => $office->organization_id, 'parent_id' => $office->id, 'name' => 'Child office', 'code' => 'TEST-CHILD', 'unit_type' => $office->unit_type, 'status' => 'ACTIVE']);
+        $make = fn ($unit, $number) => Employee::create(['employee_number' => $number, 'first_name' => 'ScopeCandidate', 'last_name' => $number, 'organizational_unit_id' => $unit->id, 'status' => 'ACTIVE']);
+        $allowed = $make($child, 'SCOPE-CHILD');
+        $denied = $make($parent, 'SCOPE-PARENT');
+        $url = "/api/meetings/{$meeting->id}/participant-change/employees?search=ScopeCandidate&per_page=1";
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs($users['authorityOffice'], 'sanctum')->getJson($url)
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $allowed->id);
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['authorityOffice'], 'Add office representative');
+        $this->actingAs($users['authorityOffice'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/participant-change/{$case->id}/items", ['operation' => 'ADD', 'new_employee_id' => $denied->id])
+            ->assertStatus(422);
+        $this->assertSame(0, $case->items()->count());
+        $this->actingAs($users['authorityOffice'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/participant-change/{$case->id}/items", ['operation' => 'ADD', 'new_employee_id' => $allowed->id])
+            ->assertCreated();
+        $this->assertSame(1, $case->items()->count());
+        $this->actingAs($this->user('system.admin@example.test'), 'sanctum')->getJson($url)->assertForbidden();
+    }
+
     private function unit(string $code): OrganizationalUnit
     {
         return OrganizationalUnit::where('code', $code)->firstOrFail();
@@ -233,10 +257,15 @@ class MeetingParticipantChangeTest extends TestCase
         $employees = ['techDirector' => $this->employee('tech.director@example.test'), 'techEmployee' => $this->employee('employee.a@example.test'), 'financeDirector' => $this->employee('finance.director@example.test'), 'financeExec' => $this->employee('finance.exec@example.test'), 'hrDirector' => $this->employee('hr.director@example.test')];
         $request = MeetingRequest::create(['request_number' => 'FLOW08-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $this->unit('TECH')->id, 'created_by' => $users['techExec']->id, 'subject' => 'جلسهٔ آزمایشی FLOW-08', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $users['techExec']->id]);
         $meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW08-M-'.uniqid(), 'title' => $request->subject, 'organizing_unit_id' => $this->unit('TECH')->id, 'coordinator_id' => $users['techExec']->id, 'chairperson_employee_id' => $employees['financeDirector']->id, 'meeting_date' => now()->addDays(20)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'تالار آزمایش', 'status' => 'SCHEDULED']);
-        foreach (['TECH', 'FIN', 'HR'] as $code) MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $this->unit($code)->id, 'role' => 'PARTICIPATING']);
-        foreach ([$employees['techDirector'], $employees['financeDirector'], $employees['hrDirector']] as $employee) MeetingParticipant::create(['meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'organizational_unit_id' => $employee->organizational_unit_id, 'role' => 'PARTICIPATING']);
+        foreach (['TECH', 'FIN', 'HR'] as $code) {
+            MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $this->unit($code)->id, 'role' => 'PARTICIPATING']);
+        }
+        foreach ([$employees['techDirector'], $employees['financeDirector'], $employees['hrDirector']] as $employee) {
+            MeetingParticipant::create(['meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'organizational_unit_id' => $employee->organizational_unit_id, 'role' => 'PARTICIPATING']);
+        }
         app(ScheduleVersionService::class)->applyToMeeting($meeting, app(ScheduleVersionService::class)->createNext($meeting, ['meeting_date' => $meeting->meeting_date->format('Y-m-d'), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time, 'location' => $meeting->location], $users['techExec']->id));
         app(ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $users['techExec']->id);
+
         return [$meeting->fresh(['request', 'units.unit', 'participants.employee.unit', 'currentParticipantVersion.members.employee.unit', 'currentScheduleVersion']), $users, $employees];
     }
 
@@ -253,11 +282,14 @@ class MeetingParticipantChangeTest extends TestCase
         $meeting->update(['chairperson_employee_id' => $employees['authority']->id]);
         $meeting = $meeting->fresh(['request.authorityContext', 'authorityContext', 'units.unit', 'participants.employee.unit']);
         $meeting->update(['current_participant_version_id' => null]);
-        foreach ($meeting->participantVersions as $version) $version->members()->delete();
+        foreach ($meeting->participantVersions as $version) {
+            $version->members()->delete();
+        }
         $meeting->participantVersions()->delete();
         app(ParticipantVersionService::class)->ensureInitialVersion($meeting, $users['techExec']->id);
         $users['secretary'] = $this->user('executive.secretary@example.test');
         $users['authorityOffice'] = $this->user('authority.office@example.test');
+
         return [$meeting->fresh(['request', 'authorityContext', 'units.unit', 'participants.employee.unit', 'currentParticipantVersion.members.employee.unit', 'currentScheduleVersion']), $users, $employees];
     }
 }

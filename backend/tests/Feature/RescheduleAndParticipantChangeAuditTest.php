@@ -6,11 +6,12 @@ use App\Models\Meeting;
 use App\Models\MeetingAuthorityContext;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
-use App\Models\OrganizationAuthority;
 use App\Models\OrganizationalUnit;
+use App\Models\OrganizationAuthority;
 use App\Models\User;
 use App\Support\ParticipantGovernanceResolver;
 use App\Support\ParticipantVersionService;
+use App\Support\ScheduleVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
@@ -103,6 +104,39 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
         $this->assertTrue((bool) $authorityMember->is_mandatory);
     }
 
+    public function test_authority_scheduler_capability_exposes_the_authorized_proposal_form(): void
+    {
+        [$meeting] = $this->authorityMeeting();
+        $secretary = $this->user('executive.secretary@example.test');
+        $this->grant($secretary, ['authority-request.view', 'meeting-reschedule.propose']);
+        $this->assertFalse(Gate::forUser($secretary)->allows('meetingReschedulePeerPropose', $meeting));
+        $this->assertTrue(Gate::forUser($secretary)->allows('meetingRescheduleAuthorityPropose', $meeting));
+        $this->actingAs($secretary, 'sanctum')->getJson("/api/meetings/{$meeting->id}/action-capabilities")
+            ->assertOk()->assertJsonPath('data.reschedule.propose', true);
+        $this->actingAs($this->user('tech.exec@example.test'), 'sanctum')->getJson("/api/meetings/{$meeting->id}/action-capabilities")
+            ->assertOk()->assertJsonPath('data.reschedule.propose', false);
+    }
+
+    public function test_workspace_history_is_paginated_without_changing_the_current_version(): void
+    {
+        [$meeting] = $this->internalMeeting();
+        $owner = $this->user('tech.exec@example.test');
+        $this->getJson("/api/meetings/{$meeting->id}/reschedule")->assertUnauthorized();
+        for ($i = 0; $i < 4; $i++) {
+            $version = app(ScheduleVersionService::class)->createNext($meeting, [
+                'meeting_date' => $meeting->meeting_date->format('Y-m-d'), 'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'Hall '.$i,
+            ], $owner->id);
+        }
+        app(ScheduleVersionService::class)->applyToMeeting($meeting, $version);
+        $this->actingAs($owner, 'sanctum')->getJson("/api/meetings/{$meeting->id}/reschedule?page=2&per_page=2")
+            ->assertOk()->assertJsonCount(2, 'data.schedule_versions')
+            ->assertJsonPath('data.schedule_versions_meta.total', 4)
+            ->assertJsonPath('data.schedule_versions_meta.current_page', 2)
+            ->assertJsonPath('data.current_schedule_version.id', $version->id);
+        $this->actingAs($this->user('finance.exec@example.test'), 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/reschedule")->assertForbidden();
+    }
+
     private function peerMeeting(): array
     {
         $tech = $this->unit('TECH');
@@ -115,6 +149,7 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
         $meeting = $this->meeting($request, $tech, $this->user('tech.exec@example.test'));
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $tech->id, 'role' => 'REQUESTING']);
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $finance->id, 'role' => 'PARTICIPATING']);
+
         return [$meeting->fresh(['request', 'units', 'participants', 'authorityContext']), $tech, $finance];
     }
 
@@ -128,6 +163,7 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
         ]);
         $meeting = $this->meeting($request, $tech, $this->user('tech.exec@example.test'));
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $tech->id, 'role' => 'REQUESTING']);
+
         return [$meeting->fresh(['request', 'units', 'participants', 'authorityContext']), $tech];
     }
 
@@ -148,6 +184,7 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
             'authority_position_id' => $authority->authority_position_id, 'authority_employee_id' => $this->user('high.authority@example.test')->employee_id,
             'authority_office_unit_id' => $office->id,
         ]);
+
         return [$meeting->fresh(['request', 'units', 'participants', 'authorityContext']), $tech];
     }
 

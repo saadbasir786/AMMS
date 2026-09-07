@@ -229,6 +229,8 @@ export type RescheduleCase = {
 }
 
 export type MeetingRescheduleData = {
+  actions?: WorkspaceAuditItem[]
+  actions_meta?: PaginationMeta
   meeting: MeetingItem & {
     request?: any
     authority_context?: any
@@ -237,6 +239,7 @@ export type MeetingRescheduleData = {
   }
   current_schedule_version?: ScheduleVersion | null
   schedule_versions?: ScheduleVersion[]
+  schedule_versions_meta?: PaginationMeta
   active_reschedule_case?: RescheduleCase | null
 }
 
@@ -247,11 +250,11 @@ export type ParticipantChangeItem = {
   old_employee_id?: number | null
   new_employee_id?: number | null
   participant_role?: string
-  oldEmployee?: {
+  old_employee?: {
     id: number
     full_name: string
   }
-  newEmployee?: {
+  new_employee?: {
     id: number
     full_name: string
   }
@@ -265,7 +268,7 @@ export type ParticipantChangeCase = {
   owner_unit_id?: number
   baseline_participant_version_id: number
   baseline_schedule_version_id: number
-  ownerUnit?: {
+  owner_unit?: {
     id: number
     name: string
   }
@@ -273,12 +276,15 @@ export type ParticipantChangeCase = {
 }
 
 export type ParticipantVersion = {
+  members?: any[]
   id: number
   version_number: number
   created_at?: string
 }
 
 export type MeetingParticipantChangeData = {
+  participant_actions?: WorkspaceAuditItem[]
+  participant_actions_meta?: PaginationMeta
   meeting: MeetingItem & {
     current_schedule_version_id?: number
     current_participant_version_id?: number
@@ -287,6 +293,7 @@ export type MeetingParticipantChangeData = {
   }
   current_participant_version?: ParticipantVersion | null
   participant_versions?: ParticipantVersion[]
+  participant_versions_meta?: PaginationMeta
   current_participants?: any[]
   employee_options?: any[]
   active_participant_change_case?: ParticipantChangeCase | null
@@ -300,6 +307,9 @@ export type ExceptionCaseType =
   | 'RESUMPTION'
 
 export type ExceptionReview = {
+  reason?: string | null
+  action_capabilities?: { acknowledge: boolean; approve: boolean; correction: boolean }
+  unit_name?: string | null
   id: number
   reviewer_type: string
   review_requirement: string
@@ -309,6 +319,9 @@ export type ExceptionReview = {
 }
 
 export type ExceptionVersion = {
+  administrative_note?: string | null
+  replacement_expected?: boolean
+  proposed_resume_date?: string | null
   id: number
   version_number: number
   reason: string
@@ -316,6 +329,7 @@ export type ExceptionVersion = {
 }
 
 export type ExceptionCase = {
+  action_capabilities?: { edit: boolean; submit: boolean; withdraw: boolean; reject: boolean; apply: boolean; resume: boolean }
   id: number
   case_type: ExceptionCaseType
   status: string
@@ -334,8 +348,17 @@ export type MeetingExceptionData = {
     meeting_number: string
     title: string
     status: string
-    current_schedule_version_id?: number
+    current_schedule_version?: ScheduleVersion | null
     request_status?: string
   }
   data?: ExceptionCase[]
+  meta?: PaginationMeta
+}
+
+export type WorkspaceAuditItem = {
+  id: number
+  action: string
+  comment?: string | null
+  created_at?: string
+  actor?: { name?: string } | null
 }

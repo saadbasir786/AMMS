@@ -3,9 +3,9 @@
 use App\Http\Controllers\Api\Meetings\MeetingExceptionController;
 use App\Http\Controllers\Api\Meetings\MeetingExecutionController;
 use App\Http\Controllers\Api\Meetings\MeetingMinutesController;
-use App\Http\Controllers\Api\Meetings\MinutesApprovalDelegationController;
 use App\Http\Controllers\Api\Meetings\MeetingParticipantChangeController;
 use App\Http\Controllers\Api\Meetings\MeetingRescheduleController;
+use App\Http\Controllers\Api\Meetings\MinutesApprovalDelegationController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meetings/{meeting}/reschedule/confirm', [MeetingRescheduleController::class, 'confirm']);
 
     // Participant Changes Governance
+    Route::get('/meetings/{meeting}/participant-change/employees', [MeetingParticipantChangeController::class, 'employees']);
     Route::get('/meetings/{meeting}/participant-change', [MeetingParticipantChangeController::class, 'workspace']);
     Route::get('/meetings/{meeting}/participant-history', [MeetingParticipantChangeController::class, 'history']);
     Route::post('/meetings/{meeting}/participant-change-cases', [MeetingParticipantChangeController::class, 'createCase']);

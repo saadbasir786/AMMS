@@ -22,7 +22,7 @@ type RescheduleProposalFormProps = {
     end_time: string
     location: string
     comment?: string
-  }) => Promise<void>
+  }) => Promise<boolean>
 }
 
 export function RescheduleProposalForm({
@@ -58,14 +58,14 @@ export function RescheduleProposalForm({
       return
     }
     setError(null)
-    await onSubmit({
+    const saved = await onSubmit({
       meeting_date: meetingDate,
       start_time: startTime,
       end_time: endTime,
       location,
       comment: comment || undefined,
     })
-    setComment('')
+    if (saved) setComment('')
   }
 
   return (

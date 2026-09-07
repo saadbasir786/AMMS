@@ -27,15 +27,29 @@ use App\Models\Meeting;
 use App\Models\MeetingExceptionCase;
 use App\Models\MeetingExceptionReview;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class MeetingExceptionController extends Controller
 {
-    public function index(Meeting $meeting): JsonResponse
+    public function index(Request $request, Meeting $meeting)
     {
         Gate::authorize('viewMeeting', [MeetingExceptionCase::class, $meeting]);
-        $cases = $meeting->exceptionCases()->with('currentVersion.reviews')->latest('id')->get();
-        return response()->json(['data' => MeetingExceptionCaseResource::collection($cases)]);
+        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer']]);
+        $cases = $meeting->exceptionCases()->with(['meeting.request', 'meeting.units', 'meeting.authorityContext', 'currentVersion.reviews.organizationalUnit', 'currentVersion.reviews.version.exceptionCase.meeting'])
+            ->latest('id')->paginate(min(max($request->integer('per_page', 15), 1), 50));
+        $meeting->loadMissing(['request', 'currentScheduleVersion']);
+
+        return MeetingExceptionCaseResource::collection($cases)->additional([
+            'success' => true,
+            'message' => 'پرونده‌های وضعیت استثنایی جلسه.',
+            'meeting' => [
+                'id' => $meeting->id, 'meeting_number' => $meeting->meeting_number,
+                'title' => $meeting->title, 'status' => $meeting->status,
+                'request_status' => $meeting->request?->status,
+                'current_schedule_version' => $meeting->currentScheduleVersion,
+            ],
+        ]);
     }
 
     public function store(CreateMeetingExceptionCaseRequest $request, Meeting $meeting, CreateMeetingExceptionCase $action): JsonResponse
@@ -50,6 +64,7 @@ class MeetingExceptionController extends Controller
             $request->input('proposed_resume_date'),
             $request->input('administrative_note'),
         );
+
         return (new MeetingExceptionCaseResource($case))->response()->setStatusCode(201);
     }
 
@@ -57,6 +72,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load(['meeting', 'currentVersion.reviews', 'versions']);
         Gate::authorize('view', $case);
+
         return new MeetingExceptionCaseResource($case);
     }
 
@@ -64,6 +80,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load('meeting');
         Gate::authorize('updateDraft', $case);
+
         return new MeetingExceptionCaseResource($action->execute($case, $request->user(), $request->string('reason')->toString(), $request->input('administrative_note'), (bool) $request->boolean('replacement_expected'), $request->input('proposed_resume_date')));
     }
 
@@ -71,6 +88,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load('meeting');
         Gate::authorize('submit', $case);
+
         return new MeetingExceptionCaseResource($action->execute($case, request()->user()));
     }
 
@@ -78,6 +96,7 @@ class MeetingExceptionController extends Controller
     {
         $review->load('version.exceptionCase.meeting');
         Gate::authorize('acknowledge', $review);
+
         return new MeetingExceptionReviewResource($action->execute($review, request()->user()));
     }
 
@@ -85,6 +104,7 @@ class MeetingExceptionController extends Controller
     {
         $review->load('version.exceptionCase.meeting');
         Gate::authorize('approve', $review);
+
         return new MeetingExceptionReviewResource($action->execute($review, request()->user()));
     }
 
@@ -92,6 +112,7 @@ class MeetingExceptionController extends Controller
     {
         $review->load('version.exceptionCase.meeting');
         Gate::authorize('view', $review);
+
         return new MeetingExceptionCaseResource($action->execute($review, $request->user(), $request->string('reason')->toString()));
     }
 
@@ -99,6 +120,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load('meeting');
         Gate::authorize('apply', $case);
+
         return new MeetingExceptionCaseResource($action->execute($case, $request->user(), $request->string('reason')->toString()));
     }
 
@@ -106,6 +128,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load('meeting');
         Gate::authorize('withdraw', $case);
+
         return new MeetingExceptionCaseResource($action->execute($case, $request->user(), $request->string('reason')->toString()));
     }
 
@@ -119,6 +142,7 @@ class MeetingExceptionController extends Controller
             MeetingExceptionCase::REOPENING => $reopen->execute($case, request()->user()),
             default => abort(422, 'MEETING_EXCEPTION_NOT_ALLOWED'),
         };
+
         return new MeetingExceptionCaseResource($result);
     }
 
@@ -126,6 +150,7 @@ class MeetingExceptionController extends Controller
     {
         $case->load('meeting');
         Gate::authorize('apply', $case);
+
         return new MeetingExceptionCaseResource($action->execute($case, $request->user(), $request->validated()));
     }
 }

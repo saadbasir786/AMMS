@@ -31,6 +31,9 @@ import { TimePicker } from '@/components/ui/time-picker'
 import { api, apiData } from '@/lib/api-client'
 import { MeetingExceptionFormCard } from '../components/meeting-exception-form-card'
 import { MeetingExceptionCaseCard } from '../components/meeting-exception-case-card'
+import { WorkspacePagination } from '../components/workspace-pagination'
+import { caseTypeLabels, workspaceStatusLabels } from '../lib/workspace-labels'
+import { exceptionCreatePayload } from '../lib/workspace-contracts'
 import type { MeetingExceptionData, ExceptionCase, ExceptionCaseType } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 import type { MeetingActionCapabilities } from '../types'
@@ -44,6 +47,12 @@ export function MeetingExceptionsPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [editTarget, setEditTarget] = useState<ExceptionCase | null>(null)
+  const [editReason, setEditReason] = useState('')
+  const [decisionTarget, setDecisionTarget] = useState<{ kind: 'correction' | 'reject'; id: number } | null>(null)
+  const [decisionReason, setDecisionReason] = useState('')
+  const [dialogError, setDialogError] = useState<string | null>(null)
 
   // Modals state
   const [confirmApplyTarget, setConfirmApplyTarget] = useState<ExceptionCase | null>(null)
@@ -63,10 +72,10 @@ export function MeetingExceptionsPage() {
     setError(null)
     try {
       const [res, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/exceptions`),
+        api.get(`/meetings/${id}/exceptions`, { params: { page, per_page: 15 } }),
         fetchMeetingActionCapabilities(id),
       ])
-      setData(apiData(res))
+      setData(res.data)
       setCapabilities(actionCapabilities)
     } catch (err: any) {
       setError(
@@ -76,7 +85,7 @@ export function MeetingExceptionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, page])
 
   useEffect(() => {
     loadData()
@@ -85,25 +94,40 @@ export function MeetingExceptionsPage() {
   const runCall = async (method: 'post' | 'put', url: string, body?: any) => {
     setBusy(true)
     setError(null)
+    setDialogError(null)
     try {
       await api[method](url, body)
       await loadData()
+      return true
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'عملیات با خطا مواجه شد.')
+      const message = Object.values(err?.response?.data?.errors || {}).flat().join(' ') || err?.response?.data?.message || 'عملیات با خطا مواجه شد.'
+      setError(message)
+      setDialogError(message)
+      return false
     } finally {
       setBusy(false)
     }
   }
 
   const handleCreateCase = async (caseType: ExceptionCaseType, reason: string) => {
-    if (!id) return
-    await runCall('post', `/meetings/${id}/exceptions`, {
-      case_type: caseType,
-      reason,
-    })
+    if (!id) return false
+    const saved = await runCall('post', `/meetings/${id}/exceptions`, exceptionCreatePayload(caseType, reason))
+    if (saved) setPage(1)
+    return saved
   }
 
   const handleAction = (kind: string, item: ExceptionCase) => {
+    setDialogError(null)
+    if (kind === 'edit') {
+      setEditTarget(item)
+      setEditReason(item.current_version?.reason || '')
+      return
+    }
+    if (kind === 'reject') {
+      setDecisionTarget({ kind: 'reject', id: item.id })
+      setDecisionReason('')
+      return
+    }
     if (kind === 'submit') {
       runCall('post', `/meeting-exceptions/${item.id}/submit`)
     } else if (kind === 'apply') {
@@ -112,9 +136,9 @@ export function MeetingExceptionsPage() {
       setResumeTarget(item)
       setResumeSchedule({
         meeting_date: '',
-        start_time: '09:00',
-        end_time: '10:00',
-        location: '',
+        start_time: data?.meeting.current_schedule_version?.start_time.slice(0, 5) || '09:00',
+        end_time: data?.meeting.current_schedule_version?.end_time.slice(0, 5) || '10:00',
+        location: data?.meeting.current_schedule_version?.location || '',
       })
     } else if (kind === 'withdraw') {
       setWithdrawTarget(item)
@@ -122,14 +146,19 @@ export function MeetingExceptionsPage() {
     }
   }
 
-  const handleReviewAction = async (reviewId: number, actionType: 'acknowledge' | 'approve') => {
+  const handleReviewAction = async (reviewId: number, actionType: 'acknowledge' | 'approve' | 'correction') => {
+    if (actionType === 'correction') {
+      setDecisionTarget({ kind: 'correction', id: reviewId })
+      setDecisionReason('')
+      setDialogError(null)
+      return
+    }
     await runCall('post', `/meeting-exception-reviews/${reviewId}/${actionType}`)
   }
 
   const handleExecuteApply = async () => {
     if (!confirmApplyTarget) return
-    await runCall('post', `/meeting-exceptions/${confirmApplyTarget.id}/apply`)
-    setConfirmApplyTarget(null)
+    return runCall('post', `/meeting-exceptions/${confirmApplyTarget.id}/apply`)
   }
 
   const handleExecuteResume = async () => {
@@ -138,8 +167,7 @@ export function MeetingExceptionsPage() {
       setError('تاریخ، ساعت و محل زمان‌بندی جدید الزامی است.')
       return
     }
-    await runCall('post', `/meeting-exceptions/${resumeTarget.id}/resume`, resumeSchedule)
-    setResumeTarget(null)
+    if (await runCall('post', `/meeting-exceptions/${resumeTarget.id}/resume`, resumeSchedule)) setResumeTarget(null)
   }
 
   const handleExecuteWithdraw = async () => {
@@ -148,14 +176,13 @@ export function MeetingExceptionsPage() {
       setError('ثبت دلیل پس‌گرفتن پرونده الزامی است.')
       return
     }
-    await runCall('post', `/meeting-exceptions/${withdrawTarget.id}/withdraw`, {
+    const saved = await runCall('post', `/meeting-exceptions/${withdrawTarget.id}/withdraw`, {
       reason: withdrawReason,
     })
-    setWithdrawTarget(null)
-    setWithdrawReason('')
+    if (saved) { setWithdrawTarget(null); setWithdrawReason('') }
   }
 
-  const cases = Array.isArray(data) ? data : data?.data || []
+  const cases = data?.data || []
   const meeting = data?.meeting
 
   return (
@@ -214,7 +241,7 @@ export function MeetingExceptionsPage() {
       )}
 
       {/* Main Content */}
-      {!loading && (
+      {!loading && data && (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           {/* Main Column */}
           <section className="space-y-6">
@@ -237,21 +264,21 @@ export function MeetingExceptionsPage() {
                   <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block">وضعیت فعلی</span>
                     <strong className="text-xs font-bold text-foreground block mt-0.5">
-                      {meeting?.status || '—'}
+                      {meeting?.status ? <StatusBadge status={meeting.status} /> : '—'}
                     </strong>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block">نسخه زمان‌بندی</span>
                     <strong className="text-xs font-bold text-foreground block mt-0.5 font-mono">
-                      نسخه {meeting?.current_schedule_version_id || '۱'}
+                      نسخه {meeting?.current_schedule_version?.version_number || '—'}
                     </strong>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block">درخواست اصلی</span>
                     <strong className="text-xs font-bold text-foreground block mt-0.5">
-                      {meeting?.request_status || 'تأییدشده'}
+                      {meeting?.request_status === 'CONVERTED_TO_MEETING' ? 'تبدیل‌شده به جلسه' : '—'}
                     </strong>
                   </div>
                 </div>
@@ -262,6 +289,7 @@ export function MeetingExceptionsPage() {
             <MeetingExceptionFormCard
               busy={busy}
               canCreate={capabilities?.exceptions.create === true}
+              meetingStatus={meeting?.status}
               onCreateCase={handleCreateCase}
             />
 
@@ -274,14 +302,10 @@ export function MeetingExceptionsPage() {
                   busy={busy}
                   onAction={handleAction}
                   onReviewAction={handleReviewAction}
-                  canSubmit={capabilities?.exceptions.submit === true}
-                  canWithdraw={capabilities?.exceptions.withdraw === true}
-                  canApply={capabilities?.exceptions.apply === true}
-                  canAcknowledge={capabilities?.exceptions.acknowledge === true}
-                  canApprove={capabilities?.exceptions.approve === true}
                 />
               ))}
             </div>
+            <WorkspacePagination meta={data.meta} onChange={setPage} busy={busy || loading} />
           </section>
 
           {/* Sidebar Column */}
@@ -338,10 +362,10 @@ export function MeetingExceptionsPage() {
                         className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50 text-xs"
                       >
                         <strong className="font-semibold text-foreground block">
-                          پرونده #{c.id} • {c.case_type}
+                          پرونده #{c.id} • {caseTypeLabels[c.case_type] || 'پرونده استثنایی'}
                         </strong>
                         <span className="text-[10px] text-muted-foreground block mt-0.5">
-                          وضعیت: {c.status}
+                          وضعیت: {workspaceStatusLabels[c.status] || 'نامشخص'}
                         </span>
                       </div>
                     ))}
@@ -358,10 +382,41 @@ export function MeetingExceptionsPage() {
         open={!!confirmApplyTarget}
         onOpenChange={(open) => !open && setConfirmApplyTarget(null)}
         title="اجرای تصمیم پرونده استثنایی تأیید شود؟"
-        description="با اجرای این تصمیم، وضعیت رسمی جلسه تغییر یافته و به اطلاع تمامی اعضا و واحدهای مربوطه خواهد رسید."
+        description="با اجرای این تصمیم، وضعیت رسمی جلسه و سوابق مربوط به آن به‌روزرسانی می‌شود."
         confirmLabel="تأیید و اجرای تصمیم"
         onConfirm={handleExecuteApply}
-      />
+      >
+        {dialogError && <Alert variant="destructive"><AlertDescription>{dialogError}</AlertDescription></Alert>}
+      </ConfirmDialog>
+
+      <Dialog open={!!editTarget || !!decisionTarget} onOpenChange={(open) => { if (!open && !busy) { setEditTarget(null); setDecisionTarget(null) } }}>
+        <DialogContent dir="rtl" className="rounded-2xl sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editTarget ? 'اصلاح دلیل پرونده' : decisionTarget?.kind === 'correction' ? 'برگشت پرونده جهت اصلاح' : 'رد پرونده استثنایی'}</DialogTitle>
+            <DialogDescription>دلیل رسمی را درج کنید. سوابق نسخه‌های قبلی حفظ می‌شود.</DialogDescription>
+          </DialogHeader>
+          {dialogError && <Alert variant="destructive"><AlertDescription>{dialogError}</AlertDescription></Alert>}
+          <Textarea aria-label="دلیل رسمی" rows={4} disabled={busy} value={editTarget ? editReason : decisionReason}
+            onChange={(event) => editTarget ? setEditReason(event.target.value) : setDecisionReason(event.target.value)} />
+          <DialogFooter>
+            <Button disabled={busy || (editTarget ? editReason : decisionReason).trim().length < 3} onClick={async () => {
+              let saved = false
+              if (editTarget) {
+                saved = await runCall('put', `/meeting-exceptions/${editTarget.id}/draft`, {
+                  reason: editReason,
+                  administrative_note: editTarget.current_version?.administrative_note,
+                  proposed_resume_date: editTarget.current_version?.proposed_resume_date,
+                  replacement_expected: editTarget.case_type === 'RESUMPTION',
+                })
+              } else if (decisionTarget) {
+                const prefix = decisionTarget.kind === 'correction' ? 'meeting-exception-reviews' : 'meeting-exceptions'
+                saved = await runCall('post', `/${prefix}/${decisionTarget.id}/${decisionTarget.kind}`, { reason: decisionReason })
+              }
+              if (saved) { setEditTarget(null); setDecisionTarget(null) }
+            }}>{busy ? 'در حال ثبت…' : editTarget ? 'ذخیرهٔ اصلاحات' : 'تأیید و ثبت تصمیم'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Resume Modal */}
       <Dialog open={!!resumeTarget} onOpenChange={(open) => !open && setResumeTarget(null)}>
@@ -376,6 +431,7 @@ export function MeetingExceptionsPage() {
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
+            {dialogError && <Alert variant="destructive"><AlertDescription>{dialogError}</AlertDescription></Alert>}
             <div className="space-y-1.5">
               <label className="font-bold text-foreground block">تاریخ جلسه جدید</label>
               <MultiCalendarDatePicker
@@ -448,6 +504,7 @@ export function MeetingExceptionsPage() {
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
+            {dialogError && <Alert variant="destructive"><AlertDescription>{dialogError}</AlertDescription></Alert>}
             <div className="space-y-1.5">
               <label className="font-bold text-foreground block">دلیل پس‌گرفتن پرونده</label>
               <Textarea

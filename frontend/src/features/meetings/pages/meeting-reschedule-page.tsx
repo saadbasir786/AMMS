@@ -27,6 +27,8 @@ import { RescheduleAcknowledgementsCard } from '../components/reschedule-acknowl
 import type { MeetingRescheduleData } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 import type { MeetingActionCapabilities } from '../types'
+import { WorkspacePagination } from '../components/workspace-pagination'
+import { WorkspaceAuditCard } from '../components/workspace-audit-card'
 
 export function MeetingReschedulePage() {
   const { id } = useParams<{ id: string }>()
@@ -41,6 +43,7 @@ export function MeetingReschedulePage() {
   // Form states
   const [caseReason, setCaseReason] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [page, setPage] = useState(1)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -48,7 +51,7 @@ export function MeetingReschedulePage() {
     setError(null)
     try {
       const [wsRes, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/reschedule`),
+        api.get(`/meetings/${id}/reschedule`, { params: { page } }),
         fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
@@ -61,7 +64,7 @@ export function MeetingReschedulePage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, page])
 
   useEffect(() => {
     loadData()
@@ -73,8 +76,10 @@ export function MeetingReschedulePage() {
     try {
       await fn()
       await loadData()
+      return true
     } catch (err: any) {
       setError(err?.response?.data?.message || 'عملیات تغییر زمان انجام نشد.')
+      return false
     } finally {
       setBusy(false)
     }
@@ -107,17 +112,16 @@ export function MeetingReschedulePage() {
   const ackCount = activeProposal?.acknowledgements?.length || 0
   const openAlternatives = (activeCase?.alternative_requests || []).filter((a) => a.status === 'OPEN')
   const history = useMemo(
-    () => [...(workspace?.schedule_versions || [])].sort((a, b) => a.version_number - b.version_number),
+    () => workspace?.schedule_versions || [],
     [workspace]
   )
 
-  const handleCreateCase = () => {
+  const handleCreateCase = async () => {
     if (!caseReason.trim()) {
       setError('ثبت دلیل رسمی تغییر زمان الزامی است.')
       return
     }
-    runCall(() => api.post(`/meetings/${id}/reschedule-cases`, { reason: caseReason }))
-    setCaseReason('')
+    if (await runCall(() => api.post(`/meetings/${id}/reschedule-cases`, { reason: caseReason }))) setCaseReason('')
   }
 
   const handleSubmitProposal = (proposalData: any) =>
@@ -131,7 +135,7 @@ export function MeetingReschedulePage() {
   const handleAcknowledge = () =>
     activeProposal
       ? runCall(() => api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/acknowledge`))
-      : Promise.resolve()
+      : Promise.resolve(false)
 
   const handleRequestAlternative = (reasonText: string) =>
     activeProposal
@@ -140,7 +144,7 @@ export function MeetingReschedulePage() {
             reason: reasonText,
           })
         )
-      : Promise.resolve()
+      : Promise.resolve(false)
 
   const handleConfirmNewVersion = () => runCall(() => api.post(`/meetings/${id}/reschedule/confirm`))
 
@@ -375,12 +379,14 @@ export function MeetingReschedulePage() {
                     )}
                   </div>
                 ))}
+                <WorkspacePagination meta={workspace.schedule_versions_meta} onChange={setPage} busy={busy || loading} />
               </CardContent>
             </Card>
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+            <WorkspaceAuditCard actions={workspace.actions} meta={workspace.actions_meta} onPageChange={setPage} busy={busy || loading} />
             {/* Create Case Card */}
             {!activeCase && (
               <Card className="border border-border/70 shadow-xs">
@@ -464,7 +470,7 @@ export function MeetingReschedulePage() {
         description="با تأیید شما، پیشنهاد جاری تبدیل به نسخه معتبر جلسه شده و تقویم سیستم به‌روزرسانی می‌شود."
         confirmLabel="تأیید و صدور نسخه جدید"
         onConfirm={handleConfirmNewVersion}
-      />
+      >{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</ConfirmDialog>
     </div>
   )
 }

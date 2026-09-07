@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Trash2, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import type { ParticipantChangeCase } from '../types'
+import { workspaceStatusLabels, participantRoleLabels } from '../lib/workspace-labels'
 
 const OP_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   REPLACE: {
@@ -28,7 +30,8 @@ type ParticipantChangeCaseCardProps = {
   activeCase: ParticipantChangeCase
   canEdit: boolean
   busy: boolean
-  onDeleteItem: (itemId: number) => Promise<void>
+  onDeleteItem: (itemId: number) => Promise<boolean>
+  onSaveReason: (reason: string) => Promise<boolean>
 }
 
 export function ParticipantChangeCaseCard({
@@ -36,7 +39,9 @@ export function ParticipantChangeCaseCard({
   canEdit,
   busy,
   onDeleteItem,
+  onSaveReason,
 }: ParticipantChangeCaseCardProps) {
+  const [reason, setReason] = useState(activeCase.reason)
   const items = activeCase.items || []
 
   return (
@@ -48,16 +53,20 @@ export function ParticipantChangeCaseCard({
               پرونده رسمی تغییر اشتراک‌کنندگان
             </span>
             <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">
-              پرونده فعال تغییر اعضا ({activeCase.status})
+              پرونده فعال تغییر اعضا ({workspaceStatusLabels[activeCase.status] || 'نامشخص'})
             </h3>
           </div>
           <Badge variant="outline" className="text-xs px-2.5 py-1">
-            مالک: {activeCase.owner_type === 'AUTHORITY' ? 'دفتر مقام' : activeCase.ownerUnit?.name || 'ریاست'}
+            مالک: {activeCase.owner_type === 'AUTHORITY' ? 'دفتر مقام' : activeCase.owner_unit?.name || 'ریاست'}
           </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5 space-y-4">
+        {canEdit && <div className="space-y-2">
+          <Textarea aria-label="دلیل تغییر اشتراک‌کنندگان" value={reason} onChange={(event) => setReason(event.target.value)} disabled={busy} />
+          <Button variant="outline" disabled={busy || !reason?.trim() || reason === activeCase.reason} onClick={() => onSaveReason(reason)}>ذخیرهٔ دلیل اصلاح‌شده</Button>
+        </div>}
         {activeCase.reason && (
           <p className="text-xs text-muted-foreground leading-relaxed">
             {activeCase.reason}
@@ -127,23 +136,23 @@ export function ParticipantChangeCaseCard({
                       <div className="min-w-0 truncate">
                         {item.operation === 'REPLACE' && (
                           <span className="font-semibold text-foreground">
-                            {item.oldEmployee?.full_name || '—'} ←{' '}
-                            <strong className="text-primary">{item.newEmployee?.full_name || '—'}</strong>
+                            {item.old_employee?.full_name || '—'} ←{' '}
+                            <strong className="text-primary">{item.new_employee?.full_name || '—'}</strong>
                           </span>
                         )}
                         {item.operation === 'ADD' && (
                           <strong className="font-bold text-emerald-700 dark:text-emerald-300">
-                            + {item.newEmployee?.full_name || '—'}
+                            + {item.new_employee?.full_name || '—'}
                           </strong>
                         )}
                         {item.operation === 'REMOVE' && (
                           <span className="text-rose-600 line-through">
-                            - {item.oldEmployee?.full_name || '—'}
+                            - {item.old_employee?.full_name || '—'}
                           </span>
                         )}
                         {item.participant_role && (
                           <span className="text-[10px] text-muted-foreground mr-2">
-                            (سمت: {item.participant_role})
+                            (سمت: {participantRoleLabels[item.participant_role] || 'عضو'})
                           </span>
                         )}
                       </div>

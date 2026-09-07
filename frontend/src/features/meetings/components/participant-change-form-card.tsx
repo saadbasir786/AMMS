@@ -1,12 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Send, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import type { ParticipantChangeCase } from '../types'
+import type { PaginationMeta } from '../types'
+import { api } from '@/lib/api-client'
+import { WorkspacePagination } from './workspace-pagination'
 
 type ParticipantChangeFormCardProps = {
+  meetingId: number
   activeCase: ParticipantChangeCase
   ownerParticipants: any[]
   employeeOptions: any[]
@@ -16,12 +20,13 @@ type ParticipantChangeFormCardProps = {
     old_employee_id: number | null
     new_employee_id: number | null
     participant_role: string
-  }) => Promise<void>
-  onRemoveItem: (oldEmployeeId: number) => Promise<void>
-  onSubmitCase: () => Promise<void>
+  }) => Promise<boolean>
+  onRemoveItem: (oldEmployeeId: number) => Promise<boolean>
+  onSubmitCase: () => Promise<boolean>
 }
 
 export function ParticipantChangeFormCard({
+  meetingId,
   activeCase,
   ownerParticipants,
   employeeOptions,
@@ -30,11 +35,28 @@ export function ParticipantChangeFormCard({
   onRemoveItem,
   onSubmitCase,
 }: ParticipantChangeFormCardProps) {
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [candidates, setCandidates] = useState(employeeOptions)
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [searching, setSearching] = useState(false)
   const [operation, setOperation] = useState<'REPLACE' | 'ADD' | 'REMOVE'>('REPLACE')
   const [oldId, setOldId] = useState('')
   const [newId, setNewId] = useState('')
   const [role, setRole] = useState('PARTICIPATING')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setSearching(true)
+    const timer = setTimeout(() => {
+      api.get(`/meetings/${meetingId}/participant-change/employees`, { params: { search, page, per_page: 15 }, signal: controller.signal })
+        .then(({ data }) => { setCandidates(data.data); setPagination(data.meta) })
+        .catch((err) => { if (!controller.signal.aborted) setError(err?.response?.data?.message || 'جستجوی کارمندان انجام نشد.') })
+        .finally(() => { if (!controller.signal.aborted) setSearching(false) })
+    }, 250)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [meetingId, search, page])
 
   const items = activeCase.items || []
 
@@ -49,10 +71,11 @@ export function ParticipantChangeFormCard({
     }
     setError(null)
 
+    let saved: boolean
     if (operation === 'REMOVE') {
-      await onRemoveItem(Number(oldId))
+      saved = await onRemoveItem(Number(oldId))
     } else {
-      await onAddItem({
+      saved = await onAddItem({
         operation,
         old_employee_id: operation === 'ADD' ? null : Number(oldId),
         new_employee_id: Number(newId) || null,
@@ -60,8 +83,7 @@ export function ParticipantChangeFormCard({
       })
     }
 
-    setOldId('')
-    setNewId('')
+    if (saved) { setOldId(''); setNewId('') }
   }
 
   const oldParticipantOptions = ownerParticipants.map((p) => ({
@@ -69,7 +91,7 @@ export function ParticipantChangeFormCard({
     label: `${p.employee?.full_name || 'کارمند'} (${p.employee?.unit?.name || p.organizational_unit?.name || 'واحد'})`,
   }))
 
-  const newEmployeeSelectOptions = employeeOptions.map((e) => ({
+  const newEmployeeSelectOptions = candidates.map((e) => ({
     value: String(e.id),
     label: `${e.full_name} • ${e.unit?.name || 'واحد نامشخص'}`,
   }))
@@ -86,6 +108,12 @@ export function ParticipantChangeFormCard({
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5 space-y-4">
+        {operation !== 'REMOVE' && <div className="space-y-2">
+          <label className="text-xs font-bold" htmlFor="participant-candidate-search">جستجوی کارمند جدید در حوزهٔ مجاز</label>
+          <Input id="participant-candidate-search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); setNewId('') }} placeholder="نام، تخلص یا شمارهٔ کارمند" />
+          {searching && <p className="text-xs" role="status">در حال جستجو…</p>}
+          <WorkspacePagination meta={pagination} busy={searching} onChange={(next) => { setPage(next); setNewId('') }} />
+        </div>}
         {error && (
           <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 text-xs text-rose-700 dark:text-rose-300 font-medium">
             {error}

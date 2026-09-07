@@ -25,6 +25,10 @@ import { ParticipantChangeFormCard } from '../components/participant-change-form
 import type { MeetingParticipantChangeData } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 import type { MeetingActionCapabilities } from '../types'
+import { participantRoleLabels } from '../lib/workspace-labels'
+import { WorkspacePagination } from '../components/workspace-pagination'
+import { WorkspaceAuditCard } from '../components/workspace-audit-card'
+import { isParticipantBaselineStale } from '../lib/workspace-contracts'
 
 export function MeetingParticipantChangePage() {
   const { id } = useParams<{ id: string }>()
@@ -39,7 +43,8 @@ export function MeetingParticipantChangePage() {
   // Case creation & confirmation states
   const [reason, setReason] = useState('')
   const [reviewReason, setReviewReason] = useState('')
-  const [confirmDialog, setConfirmDialog] = useState<'confirm' | 'reject' | null>(null)
+  const [page, setPage] = useState(1)
+  const [confirmDialog, setConfirmDialog] = useState<'confirm' | 'reject' | 'return' | null>(null)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -47,7 +52,7 @@ export function MeetingParticipantChangePage() {
     setError(null)
     try {
       const [wsRes, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/participant-change`),
+        api.get(`/meetings/${id}/participant-change`, { params: { page } }),
         fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
@@ -60,7 +65,7 @@ export function MeetingParticipantChangePage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, page])
 
   useEffect(() => {
     loadData()
@@ -72,8 +77,10 @@ export function MeetingParticipantChangePage() {
     try {
       await fn()
       await loadData()
+      return true
     } catch (err: any) {
       setError(err?.response?.data?.message || 'عملیات تغییر اشتراک‌کنندگان انجام نشد.')
+      return false
     } finally {
       setBusy(false)
     }
@@ -81,7 +88,7 @@ export function MeetingParticipantChangePage() {
 
   const meeting = workspace?.meeting
   const current = workspace?.current_participant_version
-  const currentParticipants = workspace?.current_participants || []
+  const currentParticipants = workspace?.current_participant_version?.members ?? workspace?.current_participants ?? []
   const active = workspace?.active_participant_change_case
   const employeeOptions = workspace?.employee_options || []
 
@@ -91,8 +98,7 @@ export function MeetingParticipantChangePage() {
   const isPreparer = capabilities?.participant_change.manage === true
   const isConfirmer = capabilities?.participant_change.confirm === true
 
-  const isStale =
-    Number(active?.baseline_schedule_version_id) !== Number(meeting?.current_schedule_version_id)
+  const isStale = isParticipantBaselineStale(active, meeting?.current_schedule_version_id)
 
   const ownerParticipants = useMemo(() => {
     if (!active) return currentParticipants
@@ -115,17 +121,16 @@ export function MeetingParticipantChangePage() {
   }, [active, currentParticipants, ownerId, authorityId, meeting])
 
   const history = useMemo(
-    () => [...(workspace?.participant_versions || [])].sort((a, b) => a.version_number - b.version_number),
+    () => workspace?.participant_versions || [],
     [workspace]
   )
 
-  const handleCreateCase = () => {
+  const handleCreateCase = async () => {
     if (!reason.trim()) {
       setError('ثبت دلیل رسمی تغییر فهرست الزامی است.')
       return
     }
-    runCall(() => api.post(`/meetings/${id}/participant-change-cases`, { reason }))
-    setReason('')
+    if (await runCall(() => api.post(`/meetings/${id}/participant-change-cases`, { reason }))) setReason('')
   }
 
   const handleAddItem = (itemData: any) =>
@@ -150,30 +155,32 @@ export function MeetingParticipantChangePage() {
   const handleConfirmCase = () =>
     runCall(() => api.post(`/meetings/${id}/participant-change/${active?.id}/confirm`))
 
-  const handleReturnCase = () => {
+  const handleReturnCase = async () => {
     if (!reviewReason.trim()) {
       setError('دلیل برگشت جهت اصلاح الزامی است.')
-      return
+      return false
     }
-    runCall(() =>
+    const saved = await runCall(() =>
       api.post(`/meetings/${id}/participant-change/${active?.id}/return`, {
         reason: reviewReason,
       })
     )
-    setReviewReason('')
+    if (saved) setReviewReason('')
+    return saved
   }
 
-  const handleRejectCase = () => {
+  const handleRejectCase = async () => {
     if (!reviewReason.trim()) {
       setError('دلیل رد پرونده الزامی است.')
-      return
+      return false
     }
-    runCall(() =>
+    const saved = await runCall(() =>
       api.post(`/meetings/${id}/participant-change/${active?.id}/reject`, {
         reason: reviewReason,
       })
     )
-    setReviewReason('')
+    if (saved) setReviewReason('')
+    return saved
   }
 
   return (
@@ -288,7 +295,7 @@ export function MeetingParticipantChangePage() {
                         </div>
 
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 shrink-0">
-                          {p.participant_role || 'عضو'}
+                          {participantRoleLabels[p.participant_role || p.role] || 'عضو'}
                         </Badge>
                       </div>
                     ))}
@@ -328,12 +335,14 @@ export function MeetingParticipantChangePage() {
                 canEdit={isPreparer && ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(active.status)}
                 busy={busy}
                 onDeleteItem={handleDeleteItem}
+                onSaveReason={(nextReason) => runCall(() => api.put(`/meetings/${id}/participant-change/${active.id}`, { reason: nextReason }))}
               />
             )}
 
             {/* Change Form Card */}
             {active && isPreparer && ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(active.status) && (
               <ParticipantChangeFormCard
+                meetingId={Number(id)}
                 activeCase={active}
                 ownerParticipants={ownerParticipants}
                 employeeOptions={employeeOptions}
@@ -380,12 +389,14 @@ export function MeetingParticipantChangePage() {
                     )}
                   </div>
                 ))}
+                <WorkspacePagination meta={workspace.participant_versions_meta} onChange={setPage} busy={busy || loading} />
               </CardContent>
             </Card>
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+            <WorkspaceAuditCard actions={workspace.participant_actions} meta={workspace.participant_actions_meta} onPageChange={setPage} busy={busy || loading} />
             {/* Create Case Card */}
             {!active && (
               <Card className="border border-border/70 shadow-xs">
@@ -463,7 +474,7 @@ export function MeetingParticipantChangePage() {
                     <Button
                       variant="outline"
                       disabled={busy || !reviewReason.trim()}
-                      onClick={handleReturnCase}
+                      onClick={() => setConfirmDialog('return')}
                       className="h-9 text-xs font-semibold rounded-xl text-amber-700 dark:text-amber-300"
                     >
                       برگشت جهت اصلاح
@@ -485,6 +496,10 @@ export function MeetingParticipantChangePage() {
       )}
 
       {/* Confirmation Dialogs */}
+      <ConfirmDialog open={confirmDialog === 'return'} onOpenChange={(open) => !open && setConfirmDialog(null)}
+        title="پرونده برای اصلاح برگردانده شود؟" description="دلیل شما ثبت می‌شود و تهیه‌کننده می‌تواند پرونده را اصلاح کند." onConfirm={handleReturnCase}>
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+      </ConfirmDialog>
       <ConfirmDialog
         open={confirmDialog === 'confirm'}
         onOpenChange={(open) => !open && setConfirmDialog(null)}
@@ -492,7 +507,7 @@ export function MeetingParticipantChangePage() {
         description="با تأیید شما، نسخه جدید فهرست اعضای جلسه صادر و مبنای ثبت حضور و غیاب قرار خواهد گرفت."
         confirmLabel="تأیید و اعمال نسخه جدید"
         onConfirm={handleConfirmCase}
-      />
+      >{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</ConfirmDialog>
 
       <ConfirmDialog
         open={confirmDialog === 'reject'}
@@ -502,7 +517,7 @@ export function MeetingParticipantChangePage() {
         confirmLabel="تأیید و رد پرونده"
         variant="destructive"
         onConfirm={handleRejectCase}
-      />
+      >{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</ConfirmDialog>
     </div>
   )
 }

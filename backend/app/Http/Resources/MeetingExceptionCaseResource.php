@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Support\MeetingExceptionActionCapabilities;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class MeetingExceptionCaseResource extends JsonResource
@@ -11,8 +12,11 @@ class MeetingExceptionCaseResource extends JsonResource
     public function toArray($request): array
     {
         $version = $this->currentVersion;
+
         return [
             'id' => $this->id,
+            'action_capabilities' => $request->user()
+                ? app(MeetingExceptionActionCapabilities::class)->forCase($this->resource, $request->user()) : [],
             'uuid' => $this->uuid,
             'meeting_id' => $this->meeting_id,
             'case_type' => $this->case_type,

@@ -22,7 +22,7 @@ type ConfirmDialogProps = {
   cancelLabel?: string
   variant?: 'default' | 'destructive'
   children?: React.ReactNode
-  onConfirm: () => void | Promise<void>
+  onConfirm: () => void | boolean | Promise<void | boolean>
 }
 
 export function ConfirmDialog({
@@ -44,8 +44,8 @@ export function ConfirmDialog({
 
     try {
       setPending(true)
-      await onConfirm()
-      onOpenChange(false)
+      const result = await onConfirm()
+      if (result !== false) onOpenChange(false)
     } finally {
       setPending(false)
     }

@@ -13,6 +13,7 @@ use App\Http\Resources\MeetingResource;
 use App\Models\Meeting;
 use App\Models\MeetingRescheduleAlternativeRequest;
 use App\Models\MeetingRescheduleProposal;
+use App\Support\MeetingWorkspacePagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,18 +23,23 @@ class MeetingRescheduleController
     public function workspace(Request $request, Meeting $meeting): JsonResponse
     {
         Gate::authorize('meetingRescheduleViewHistory', $meeting);
-        return response()->json(['data' => $this->workspaceData($meeting)]);
+
+        return response()->json(['data' => $this->workspaceData($meeting, $request)]);
     }
 
     public function history(Request $request, Meeting $meeting): JsonResponse
     {
         Gate::authorize('meetingRescheduleViewHistory', $meeting);
+        $versions = MeetingWorkspacePagination::read($meeting->scheduleVersions()->orderByDesc('version_number')->orderByDesc('id'), $request);
+        $cases = MeetingWorkspacePagination::read($meeting->rescheduleCases()->with(['proposals.acknowledgements', 'alternativeRequests'])->latest('id'), $request);
+        $actions = MeetingWorkspacePagination::read($meeting->rescheduleActions()->with('actor')->latest('id'), $request);
+
         return response()->json(['data' => [
             'meeting_id' => $meeting->id,
             'current_schedule_version' => $meeting->currentScheduleVersion,
-            'schedule_versions' => $meeting->scheduleVersions()->orderBy('version_number')->get(),
-            'reschedule_cases' => $meeting->rescheduleCases()->with(['proposals.acknowledgements', 'alternativeRequests'])->latest()->get(),
-            'actions' => $meeting->rescheduleActions()->with('actor')->oldest()->get(),
+            'schedule_versions' => $versions['data'], 'schedule_versions_meta' => $versions['meta'],
+            'reschedule_cases' => $cases['data'], 'reschedule_cases_meta' => $cases['meta'],
+            'actions' => $actions['data'], 'actions_meta' => $actions['meta'],
         ]]);
     }
 
@@ -41,6 +47,7 @@ class MeetingRescheduleController
     {
         Gate::authorize('meetingRescheduleCreateCase', $meeting);
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
+
         return response()->json(['data' => $action($request->user(), $meeting, $reason)], 201);
     }
 
@@ -49,6 +56,7 @@ class MeetingRescheduleController
         Gate::authorize('meetingReschedulePeerPropose', $meeting);
         $data = $this->proposalData($request);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
+
         return response()->json(['data' => $action($request->user(), $meeting, $case, $data)], 201);
     }
 
@@ -57,6 +65,7 @@ class MeetingRescheduleController
         Gate::authorize('meetingRescheduleAuthorityPropose', $meeting);
         $data = $this->proposalData($request);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
+
         return response()->json(['data' => $action($request->user(), $meeting, $case, $data)], 201);
     }
 
@@ -64,6 +73,7 @@ class MeetingRescheduleController
     {
         Gate::authorize('meetingRescheduleAcknowledge', $meeting);
         $case = $proposal->rescheduleCase()->firstOrFail();
+
         return response()->json(['data' => $action($request->user(), $meeting, $case, $proposal)]);
     }
 
@@ -75,12 +85,14 @@ class MeetingRescheduleController
             'suggested_start_time' => ['nullable', 'date_format:H:i'], 'suggested_end_time' => ['nullable', 'date_format:H:i'],
         ]);
         $case = $proposal->rescheduleCase()->firstOrFail();
+
         return response()->json(['data' => $action($request->user(), $meeting, $case, $proposal, $data)], 201);
     }
 
     public function resolveAlternative(Request $request, Meeting $meeting, MeetingRescheduleAlternativeRequest $alternative, ResolveMeetingScheduleAlternative $action): JsonResponse
     {
         Gate::authorize('meetingRescheduleResolveAlternative', $meeting);
+
         return response()->json(['data' => $action($request->user(), $meeting, $alternative)]);
     }
 
@@ -88,6 +100,7 @@ class MeetingRescheduleController
     {
         Gate::authorize('meetingRescheduleConfirm', $meeting);
         $case = $meeting->activeRescheduleCase()->firstOrFail();
+
         return response()->json(['data' => new MeetingResource($action($request->user(), $meeting, $case))]);
     }
 
@@ -100,19 +113,24 @@ class MeetingRescheduleController
         ]);
     }
 
-    private function workspaceData(Meeting $meeting): array
+    private function workspaceData(Meeting $meeting, Request $request): array
     {
         $meeting->load([
             'request', 'units.unit', 'participants.employee.unit', 'authorityContext', 'chairperson',
-            'currentScheduleVersion', 'scheduleVersions', 'activeRescheduleCase.proposals.acknowledgements.unit',
-            'activeRescheduleCase.alternativeRequests.unit', 'rescheduleActions.actor',
+            'currentScheduleVersion', 'activeRescheduleCase.proposals' => fn ($q) => $q->where('status', 'ACTIVE'),
+            'activeRescheduleCase.proposals.acknowledgements.unit',
+            'activeRescheduleCase.alternativeRequests' => fn ($q) => $q->where('status', 'OPEN'),
+            'activeRescheduleCase.alternativeRequests.unit',
         ]);
+        $versions = MeetingWorkspacePagination::read($meeting->scheduleVersions()->orderByDesc('version_number')->orderByDesc('id'), $request);
+        $actions = MeetingWorkspacePagination::read($meeting->rescheduleActions()->with('actor')->latest('id'), $request);
+
         return [
             'meeting' => new MeetingResource($meeting),
             'current_schedule_version' => $meeting->currentScheduleVersion,
             'active_reschedule_case' => $meeting->activeRescheduleCase,
-            'schedule_versions' => $meeting->scheduleVersions->sortBy('version_number')->values(),
-            'actions' => $meeting->rescheduleActions->sortBy('created_at')->values(),
+            'schedule_versions' => $versions['data'], 'schedule_versions_meta' => $versions['meta'],
+            'actions' => $actions['data'], 'actions_meta' => $actions['meta'],
         ];
     }
 }

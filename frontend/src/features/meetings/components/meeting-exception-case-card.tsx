@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { cn } from '@/lib/utils'
 import type { ExceptionCase } from '../types'
+import { StatusBadge } from '@/components/amms/status-badge'
+import { governanceLabels } from '../lib/workspace-labels'
 
 const CASE_LABELS: Record<string, string> = {
   POSTPONEMENT: 'تعویق جلسه',
@@ -36,12 +38,7 @@ type MeetingExceptionCaseCardProps = {
   item: ExceptionCase
   busy: boolean
   onAction: (kind: string, item: ExceptionCase) => void
-  onReviewAction: (reviewId: number, action: 'acknowledge' | 'approve') => Promise<void>
-  canSubmit?: boolean
-  canWithdraw?: boolean
-  canApply?: boolean
-  canAcknowledge?: boolean
-  canApprove?: boolean
+  onReviewAction: (reviewId: number, action: 'acknowledge' | 'approve' | 'correction') => Promise<void>
 }
 
 export function MeetingExceptionCaseCard({
@@ -49,12 +46,8 @@ export function MeetingExceptionCaseCard({
   busy,
   onAction,
   onReviewAction,
-  canSubmit = false,
-  canWithdraw = false,
-  canApply = false,
-  canAcknowledge = false,
-  canApprove = false,
 }: MeetingExceptionCaseCardProps) {
+  const capabilities = item.action_capabilities
   const statusCfg = STATUS_LABELS[item.status] || {
     label: item.status,
     color: 'text-slate-600 bg-slate-100',
@@ -93,14 +86,14 @@ export function MeetingExceptionCaseCard({
           <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50">
             <span className="text-[10px] text-muted-foreground block">وضعیت مبنا</span>
             <strong className="text-xs font-bold text-foreground block mt-0.5">
-              {item.baseline?.meeting_status || '—'}
+              {item.baseline?.meeting_status ? <StatusBadge status={item.baseline.meeting_status} /> : '—'}
             </strong>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50">
             <span className="text-[10px] text-muted-foreground block">نوع حاکمیت</span>
             <strong className="text-xs font-bold text-foreground block mt-0.5">
-              {item.governance_mode || 'عادی'}
+              {governanceLabels[item.governance_mode] || 'نامشخص'}
             </strong>
           </div>
 
@@ -149,21 +142,22 @@ export function MeetingExceptionCaseCard({
                 >
                   <div>
                     <strong className="font-semibold text-foreground block">
-                      {r.reviewer_type === 'UNIT' ? 'ریاست مربوطه' : 'دفتر مقام عالی'} • {r.review_requirement}
+                      {r.reviewer_type === 'UNIT' ? r.unit_name || 'ریاست مربوطه' : 'مقام عالی'} • {r.review_requirement === 'APPROVAL' ? 'تأیید رسمی' : 'تأیید دریافت'}
                     </strong>
                     <span className="text-[10px] text-muted-foreground">
                       {r.organizational_unit_id ? `واحد سازمانی #${r.organizational_unit_id}` : 'مقام'}
                     </span>
+                    {r.reason && <p className="mt-2 text-xs leading-relaxed">دلیل بررسی: {r.reason}</p>}
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Badge variant={r.status === 'APPROVED' ? 'default' : 'outline'} className="text-[10px]">
-                      {r.status === 'APPROVED' ? 'تأییدشده' : r.status === 'ACKNOWLEDGED' ? 'تأیید دریافت' : 'در انتظار'}
+                      {r.status === 'APPROVED' ? 'تأییدشده' : r.status === 'ACKNOWLEDGED' ? 'تأیید دریافت' : r.status === 'CORRECTION_REQUESTED' ? 'درخواست اصلاح' : 'در انتظار'}
                     </Badge>
 
-                    {r.status === 'PENDING' && (canAcknowledge || canApprove) && (
+                    {r.status === 'PENDING' && (
                       <div className="flex gap-1.5">
-                        {canAcknowledge && <Button
+                        {r.action_capabilities?.acknowledge && <Button
                           size="sm"
                           variant="outline"
                           disabled={busy}
@@ -172,7 +166,7 @@ export function MeetingExceptionCaseCard({
                         >
                           تأیید دریافت
                         </Button>}
-                        {canApprove && <Button
+                        {r.action_capabilities?.approve && <Button
                           size="sm"
                           disabled={busy}
                           onClick={() => onReviewAction(r.id, 'approve')}
@@ -180,6 +174,7 @@ export function MeetingExceptionCaseCard({
                         >
                           تأیید
                         </Button>}
+                        {r.action_capabilities?.correction && <Button variant="outline" disabled={busy} onClick={() => onReviewAction(r.id, 'correction')}>برگشت جهت اصلاح</Button>}
                       </div>
                     )}
                   </div>
@@ -191,7 +186,9 @@ export function MeetingExceptionCaseCard({
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-          {item.status === 'DRAFT' && canSubmit && (
+          {capabilities?.edit && <Button variant="outline" disabled={busy} onClick={() => onAction('edit', item)}>ویرایش و اصلاح دلیل</Button>}
+          {capabilities?.reject && <Button variant="destructive" disabled={busy} onClick={() => onAction('reject', item)}>رد پرونده</Button>}
+          {capabilities?.submit && (
             <Button
               disabled={busy}
               onClick={() => onAction('submit', item)}
@@ -202,7 +199,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {['DRAFT', 'UNDER_REVIEW', 'RETURNED_FOR_CORRECTION'].includes(item.status) && canWithdraw && (
+          {capabilities?.withdraw && (
             <Button
               variant="outline"
               disabled={busy}
@@ -214,7 +211,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {item.status === 'READY_TO_APPLY' && item.case_type !== 'RESUMPTION' && canApply && (
+          {capabilities?.apply && (
             <Button
               disabled={busy}
               onClick={() => onAction('apply', item)}
@@ -225,7 +222,7 @@ export function MeetingExceptionCaseCard({
             </Button>
           )}
 
-          {item.status === 'READY_TO_APPLY' && item.case_type === 'RESUMPTION' && canApply && (
+          {capabilities?.resume && (
             <Button
               disabled={busy}
               onClick={() => onAction('resume_modal', item)}
