@@ -20,7 +20,7 @@ class SubmitHighAuthorityMeetingRequest
             abort_unless($locked->created_by === $actor->id && $this->canManageRequester($actor, $locked->requesting_unit_id), 403, 'FORBIDDEN');
             abort_unless($locked->status === MeetingRequestStatus::DRAFT->value, 422, 'REQUEST_NOT_DRAFT');
             $this->activeAuthorityFor($locked);
-            abort_unless($locked->requestingUnit?->status === 'ACTIVE' && $locked->requestingUnit?->unit_type === 'DIRECTORATE', 422, 'INVALID_REQUESTING_DIRECTORATE');
+            abort_unless($locked->requestingUnit?->status === 'ACTIVE' && $locked->requestingUnit?->isFormalGovernanceUnit(), 422, 'INVALID_REQUESTING_DIRECTORATE');
             abort_unless(filled($locked->subject) && filled($locked->purpose) && filled($locked->meeting_justification) && filled($locked->requested_outcome), 422, 'REQUEST_INCOMPLETE');
 
             $from = $this->updateStatus($locked, MeetingRequestStatus::PENDING_REQUESTER_APPROVAL);

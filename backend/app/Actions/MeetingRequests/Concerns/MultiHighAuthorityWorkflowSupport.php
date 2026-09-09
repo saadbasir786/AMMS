@@ -60,12 +60,12 @@ trait MultiHighAuthorityWorkflowSupport
         abort_unless($requesters->count() === 1, 422, 'EXACTLY_ONE_REQUESTER_REQUIRED');
         abort_unless($participants->count() >= 1, 422, 'MULTIPLE_DIRECTORATES_REQUIRED_FOR_MULTI_HIGH_AUTHORITY');
         $requester = $requesters->first()->unit;
-        abort_unless($requester && $requester->status === 'ACTIVE' && $requester->unit_type === 'DIRECTORATE', 422, 'INVALID_REQUESTER_DIRECTORATE');
+        abort_unless($requester && $requester->status === 'ACTIVE' && $requester->isFormalGovernanceUnit(), 422, 'INVALID_REQUESTER_DIRECTORATE');
         $ids = $rows->pluck('organizational_unit_id')->map(fn ($id) => (int) $id)->all();
         abort_if(count($ids) !== count(array_unique($ids)), 422, 'DUPLICATE_PARTICIPATING_DIRECTORATE');
         abort_if($participants->contains(fn ($row) => (int) $row->organizational_unit_id === (int) $requester->id), 422, 'REQUESTER_CANNOT_BE_PARTICIPATING');
         foreach ($rows->pluck('unit')->filter() as $unit) {
-            abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_PARTICIPATING_DIRECTORATE');
+            abort_unless($unit->status === 'ACTIVE' && $unit->isFormalGovernanceUnit(), 422, 'INVALID_PARTICIPATING_DIRECTORATE');
             abort_unless((int) $unit->organization_id === (int) $requester->organization_id, 422, 'CROSS_ORGANIZATION_HIGH_AUTHORITY_MEETING_NOT_ALLOWED');
         }
     }

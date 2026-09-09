@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { OrganizationTreeCard } from '../components/organization-tree-card'
 import { OrganizationalUnitDialog } from '../components/organizational-unit-dialog'
 import { PositionsPage } from './positions-page'
@@ -49,8 +50,21 @@ export function OrganizationPage({ initialTab }: OrganizationPageProps) {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/organizational-units')
-      setUnits(apiData(res) || [])
+      let loadedUnits: OrganizationalUnit[] = []
+      try {
+        const res = await api.get('/admin/organizational-units/tree')
+        loadedUnits = apiData(res) || []
+      } catch {
+        try {
+          const res = await api.get('/organizational-units/tree')
+          loadedUnits = apiData(res) || []
+        } catch {
+          loadedUnits = await fetchAllPages<OrganizationalUnit>('/admin/organizational-units').catch(() =>
+            fetchAllPages<OrganizationalUnit>('/organizational-units')
+          )
+        }
+      }
+      setUnits(loadedUnits)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||

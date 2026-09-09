@@ -15,6 +15,19 @@ export type OrganizationalUnitType =
   | 'HIGH_AUTHORITY'
   | 'AUTHORITY_OFFICE'
 
+export const FORMAL_GOVERNANCE_UNIT_TYPES = [
+  'GENERAL_PRESIDENCY',
+  'DEPUTY_PRESIDENCY',
+  'GENERAL_DIRECTORATE',
+  'DIRECTORATE',
+  'ATTACHED_AGENCY',
+  'DEPUTY_DIRECTORATE',
+] as const
+
+export function isFormalGovernanceUnit(unit: { unit_type?: string } | null | undefined): boolean {
+  return !!unit?.unit_type && (FORMAL_GOVERNANCE_UNIT_TYPES as readonly string[]).includes(unit.unit_type)
+}
+
 export type PositionType =
   | 'DIRECTOR'
   | 'DEPUTY_DIRECTOR'

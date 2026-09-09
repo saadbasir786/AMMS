@@ -401,4 +401,82 @@ class OrganizationalUnitManagementTest extends TestCase
             'unit_type' => 'DIRECTORATE',
         ])->assertForbidden();
     }
+
+    public function test_duplicate_root_name_in_same_organization_is_prevented(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+
+        // 1. Create first root unit
+        $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
+            'name' => 'ریاست عمومی تفتیش و نظارت',
+            'code' => 'ROOT-AUDIT-1',
+            'unit_type' => 'GENERAL_DIRECTORATE',
+            'parent_id' => null,
+            'status' => 'ACTIVE',
+        ])->assertCreated();
+
+        // 2. Attempt duplicate root name in same organization -> Must be rejected with 422
+        $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
+            'name' => 'ریاست عمومی تفتیش و نظارت',
+            'code' => 'ROOT-AUDIT-2',
+            'unit_type' => 'GENERAL_DIRECTORATE',
+            'parent_id' => null,
+            'status' => 'ACTIVE',
+        ])->assertStatus(422)
+          ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_same_root_name_in_different_organizations_is_allowed(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+
+        $org2 = Organization::create([
+            'name' => 'اداره امور امارت اسلامی',
+            'code' => 'AOP',
+            'status' => 'ACTIVE',
+        ]);
+
+        // 1. Create root in default organization
+        $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
+            'name' => 'ریاست عمومی اداری و منابع',
+            'code' => 'ADMIN-ORG1',
+            'unit_type' => 'GENERAL_DIRECTORATE',
+            'parent_id' => null,
+            'status' => 'ACTIVE',
+        ])->assertCreated();
+
+        // 2. Create same root name in organization 2 -> Must Succeed
+        $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
+            'organization_id' => $org2->id,
+            'name' => 'ریاست عمومی اداری و منابع',
+            'code' => 'ADMIN-ORG2',
+            'unit_type' => 'GENERAL_DIRECTORATE',
+            'parent_id' => null,
+            'status' => 'ACTIVE',
+        ])->assertCreated()
+          ->assertJsonPath('data.organization_id', $org2->id)
+          ->assertJsonPath('data.name', 'ریاست عمومی اداری و منابع');
+    }
+
+    public function test_admin_and_directory_tree_endpoints_return_unpaginated_complete_tree(): void
+    {
+        $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
+        $exec = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
+
+        // Admin tree endpoint
+        $adminRes = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/organizational-units/tree')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $totalUnits = OrganizationalUnit::count();
+        $this->assertSame($totalUnits, count($adminRes->json('data')));
+        $this->assertSame($totalUnits, $adminRes->json('total_count'));
+
+        // Directory tree endpoint for regular authenticated users
+        $dirRes = $this->actingAs($exec, 'sanctum')->getJson('/api/organizational-units/tree')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame($totalUnits, count($dirRes->json('data')));
+    }
 }

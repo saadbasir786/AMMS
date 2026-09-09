@@ -8,4 +8,4 @@ export { EmployeesTable } from './components/employees-table'
 export { NotificationsList } from './components/notifications-list'
 export { NotificationBellDropdown } from './components/notification-bell-dropdown'
 
-export type * from './types'
+export * from './types'

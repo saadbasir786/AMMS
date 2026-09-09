@@ -21,7 +21,7 @@ class CreateHighAuthorityMeetingRequest
             abort_unless($actor->can('meeting-request.create'), 403, 'FORBIDDEN');
 
             $requester = OrganizationalUnit::with('organization')->findOrFail((int) $data['requesting_unit_id']);
-            abort_unless($requester->unit_type === 'DIRECTORATE' && $requester->status === 'ACTIVE', 422, 'INVALID_REQUESTING_DIRECTORATE');
+            abort_unless($requester->isFormalGovernanceUnit() && $requester->status === 'ACTIVE', 422, 'INVALID_REQUESTING_DIRECTORATE');
             abort_unless($this->canManageRequester($actor, $requester->id), 403, 'FORBIDDEN');
             $authority = $this->activeAuthorityFor((new MeetingRequest(['requesting_unit_id' => $requester->id]))->setRelation('requestingUnit', $requester));
 

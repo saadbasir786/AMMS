@@ -273,6 +273,28 @@ class AdminController extends Controller
         return OrganizationalUnitResource::collection($units)->additional(['success' => true, 'message' => 'مدیریت واحدهای تشکیلاتی.']);
     }
 
+    public function tree(Request $request)
+    {
+        $this->admin($request);
+
+        $orgId = $request->input('organization_id');
+        $query = OrganizationalUnit::with(['parent', 'children'])
+            ->orderBy('name')
+            ->orderBy('id');
+
+        if ($orgId) {
+            $query->where('organization_id', (int) $orgId);
+        }
+
+        $units = $query->get();
+
+        return OrganizationalUnitResource::collection($units)->additional([
+            'success' => true,
+            'message' => 'درخت کامل چارت تشکیلاتی.',
+            'total_count' => $units->count(),
+        ]);
+    }
+
     public const ALLOWED_UNIT_TYPES = [
         'GENERAL_PRESIDENCY',
         'DEPUTY_PRESIDENCY',
@@ -297,6 +319,7 @@ class AdminController extends Controller
         $this->admin($request);
 
         $parentId = $request->filled('parent_id') ? (int) $request->input('parent_id') : null;
+        $parentScopeId = $parentId ?? 0;
 
         $orgId = (int) ($request->input('organization_id')
             ?? ($parentId ? OrganizationalUnit::query()->where('id', $parentId)->value('organization_id') : null)
@@ -305,12 +328,8 @@ class AdminController extends Controller
             ?? 1);
 
         $nameRule = Rule::unique('organizational_units', 'name')
-            ->where('organization_id', $orgId);
-        if ($parentId !== null) {
-            $nameRule->where('parent_id', $parentId);
-        } else {
-            $nameRule->whereNull('parent_id');
-        }
+            ->where('organization_id', $orgId)
+            ->where('parent_scope_id', $parentScopeId);
 
         $codeRule = Rule::unique('organizational_units', 'code')
             ->where('organization_id', $orgId);
@@ -330,16 +349,13 @@ class AdminController extends Controller
         $data['organization_id'] = $orgId;
         $data['parent_id'] = $parentId;
 
-        $unit = DB::transaction(function () use ($data, $parentId, $orgId) {
+        $unit = DB::transaction(function () use ($data, $parentId, $parentScopeId, $orgId) {
             // Concurrency protection: lock and verify sibling uniqueness
             $query = OrganizationalUnit::query()
                 ->where('organization_id', $orgId)
+                ->where('parent_scope_id', $parentScopeId)
                 ->where('name', $data['name']);
-            if ($parentId !== null) {
-                $query->where('parent_id', $parentId);
-            } else {
-                $query->whereNull('parent_id');
-            }
+
             abort_if(
                 $query->lockForUpdate()->exists(),
                 422,
@@ -374,14 +390,12 @@ class AdminController extends Controller
             ? ($request->filled('parent_id') ? (int) $request->input('parent_id') : null)
             : $unit->parent_id;
 
+        $newParentScopeId = $newParentId ?? 0;
+
         $nameRule = Rule::unique('organizational_units', 'name')
-            ->where('organization_id', $orgId);
-        if ($newParentId !== null) {
-            $nameRule->where('parent_id', $newParentId);
-        } else {
-            $nameRule->whereNull('parent_id');
-        }
-        $nameRule->ignore($unit->id);
+            ->where('organization_id', $orgId)
+            ->where('parent_scope_id', $newParentScopeId)
+            ->ignore($unit->id);
 
         $codeRule = Rule::unique('organizational_units', 'code')
             ->where('organization_id', $orgId)
@@ -404,17 +418,14 @@ class AdminController extends Controller
             $data['parent_id'] = $newParentId;
         }
 
-        $freshUnit = DB::transaction(function () use ($unit, $data, $newParentId, $orgId) {
+        $freshUnit = DB::transaction(function () use ($unit, $data, $newParentId, $newParentScopeId, $orgId) {
             // Concurrency protection: lock and verify sibling uniqueness
             $query = OrganizationalUnit::query()
                 ->where('organization_id', $orgId)
                 ->where('id', '!=', $unit->id)
+                ->where('parent_scope_id', $newParentScopeId)
                 ->where('name', $data['name']);
-            if ($newParentId !== null) {
-                $query->where('parent_id', $newParentId);
-            } else {
-                $query->whereNull('parent_id');
-            }
+
             abort_if(
                 $query->lockForUpdate()->exists(),
                 422,

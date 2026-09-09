@@ -106,12 +106,7 @@ trait InterDirectorateWorkflowSupport
     private function topDirectorate(int $unitId): ?OrganizationalUnit
     {
         $unit = OrganizationalUnit::find($unitId);
-        $visited = [];
-        while ($unit && $unit->parent_id && !in_array($unit->id, $visited, true)) {
-            $visited[] = $unit->id;
-            $unit = $unit->parent;
-        }
-        return $unit?->unit_type === 'DIRECTORATE' ? $unit : null;
+        return $unit?->formalGovernanceUnit();
     }
 
     private function ensureSameOrganizationAndDistinct(OrganizationalUnit $requester, OrganizationalUnit $target): void
@@ -119,7 +114,7 @@ trait InterDirectorateWorkflowSupport
         abort_unless($requester->status === 'ACTIVE' && $target->status === 'ACTIVE', 422, 'INVALID_TARGET_DIRECTORATE');
         abort_if($requester->id === $target->id, 422, 'SAME_REQUESTER_AND_TARGET');
         abort_unless($requester->organization_id === $target->organization_id, 422, 'INVALID_TARGET_DIRECTORATE');
-        abort_unless($requester->unit_type === 'DIRECTORATE' && $target->unit_type === 'DIRECTORATE', 422, 'INVALID_TARGET_DIRECTORATE');
+        abort_unless($requester->isFormalGovernanceUnit() && $target->isFormalGovernanceUnit(), 422, 'INVALID_TARGET_DIRECTORATE');
     }
 
     private function ensureAuthorizedApproverExists(int $unitId): void

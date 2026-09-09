@@ -39,7 +39,7 @@ class UpdateHighAuthorityMeetingRequest
                 || (array_key_exists('requested_outcome', $data) && $data['requested_outcome'] !== $locked->requested_outcome);
 
             $requester = OrganizationalUnit::with('organization')->findOrFail($newRequesterId);
-            abort_unless($requester->unit_type === 'DIRECTORATE' && $requester->status === 'ACTIVE', 422, 'INVALID_REQUESTING_DIRECTORATE');
+            abort_unless($requester->isFormalGovernanceUnit() && $requester->status === 'ACTIVE', 422, 'INVALID_REQUESTING_DIRECTORATE');
             abort_unless($this->canManageRequester($actor, $requester->id), 403, 'FORBIDDEN');
             $authority = $this->activeAuthorityFor((new MeetingRequest())->setRelation('requestingUnit', $requester));
             $this->ensureRequesterApproverExists($requester->id);

@@ -28,6 +28,7 @@ import { MultiSearchableSelect } from '@/components/ui/multi-searchable-select'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { TimePicker } from '@/components/ui/time-picker'
 import { ParticipantPicker } from '@/shared/components'
+import { isFormalGovernanceUnit } from '@/features/organization'
 import { cn } from '@/lib/utils'
 import type {
   CreateMeetingMode,
@@ -66,24 +67,34 @@ export function MeetingRequestForm({
     mode === 'multi-high-authority' ||
     mode === 'authority-initiated'
 
-  // Determine user's assigned directorate
+  // Determine user's assigned formal governance unit
   const userDirectorateId = useMemo(() => {
     if (!currentUser) return null
     const execOrDirectorRole = currentUser.roles?.find((r: any) =>
       ['EXECUTIVE_MANAGEMENT', 'DIRECTOR'].includes(r.role)
     )
-    if (execOrDirectorRole?.unit?.id) return Number(execOrDirectorRole.unit.id)
-    if (execOrDirectorRole?.organizational_unit_id) return Number(execOrDirectorRole.organizational_unit_id)
+    let rawUnitId: number | null = null
+    if (execOrDirectorRole?.unit?.id) rawUnitId = Number(execOrDirectorRole.unit.id)
+    else if (execOrDirectorRole?.organizational_unit_id) rawUnitId = Number(execOrDirectorRole.organizational_unit_id)
+    else if (currentUser.employee?.unit?.id) rawUnitId = Number(currentUser.employee.unit.id)
+    else if (currentUser.employee?.organizational_unit_id) rawUnitId = Number(currentUser.employee.organizational_unit_id)
 
-    const empUnit = currentUser.employee?.unit
-    if (empUnit) {
-      if (empUnit.parent_id) {
-        return Number(empUnit.parent_id)
+    if (!rawUnitId) return null
+
+    // Traverse up using `units` hierarchy to find the enclosing formal governance unit
+    let current = units.find((u) => Number(u.id) === rawUnitId)
+    const visited = new Set<number>()
+    while (current && !visited.has(Number(current.id))) {
+      visited.add(Number(current.id))
+      if (isFormalGovernanceUnit(current)) {
+        return Number(current.id)
       }
-      return Number(empUnit.id)
+      if (!current.parent_id) break
+      current = units.find((u) => Number(u.id) === Number(current?.parent_id))
     }
-    return null
-  }, [currentUser])
+
+    return rawUnitId
+  }, [currentUser, units])
 
   const isSystemAdmin = useMemo(() => {
     return !!currentUser?.roles?.some((r: any) => r.role === 'SYSTEM_ADMIN')
@@ -118,9 +129,9 @@ export function MeetingRequestForm({
   const [submittingAction, setSubmittingAction] = useState<'draft' | 'submit' | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
-  // Filter directorate units
+  // Filter formal governance units eligible for meeting participation
   const directorates = useMemo(() => {
-    return units.filter((u) => u.unit_type === 'DIRECTORATE' || !u.parent_id)
+    return units.filter(isFormalGovernanceUnit)
   }, [units])
 
   // Compute eligible units for the selected requesting directorate
@@ -165,19 +176,19 @@ export function MeetingRequestForm({
 
   const validate = (): boolean => {
     if (!form.requesting_unit_id) {
-      setErrorMessage('لطفاً ریاست درخواست‌کننده را انتخاب نمایید.')
+      setErrorMessage('لطفاً واحد اداری درخواست‌کننده را انتخاب نمایید.')
       return false
     }
     if (isInterDirectorate && !form.target_unit_id) {
-      setErrorMessage('لطفاً ریاست مقصد را انتخاب نمایید.')
+      setErrorMessage('لطفاً واحد اداری مقصد را انتخاب نمایید.')
       return false
     }
     if (isInterDirectorate && Number(form.requesting_unit_id) === Number(form.target_unit_id)) {
-      setErrorMessage('ریاست درخواست‌کننده و ریاست مقصد نمی‌توانند یکسان باشند.')
+      setErrorMessage('واحد اداری درخواست‌کننده و واحد اداری مقصد نمی‌توانند یکسان باشند.')
       return false
     }
     if (isMultiDirectorate && (!form.target_unit_ids || form.target_unit_ids.length < 2)) {
-      setErrorMessage('در جلسات چندریاستی حداقل دو ریاست مقصد باید انتخاب شود.')
+      setErrorMessage('در جلسات چندجانبه حداقل دو واحد اداری مقصد باید انتخاب شود.')
       return false
     }
     if (!form.subject.trim()) {
@@ -233,7 +244,7 @@ export function MeetingRequestForm({
             {/* Requesting Unit */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
-                ریاست درخواست‌کننده <span className="text-destructive">*</span>
+                واحد اداری درخواست‌کننده <span className="text-destructive">*</span>
               </label>
               {canChangeRequestingUnit ? (
                 <SearchableSelect
@@ -245,9 +256,9 @@ export function MeetingRequestForm({
                   }))}
                   value={form.requesting_unit_id}
                   onChange={(val) => handleFieldChange('requesting_unit_id', val)}
-                  placeholder="انتخاب یا جستجوی ریاست درخواست‌کننده..."
-                  searchPlaceholder="جستجوی نام یا کد ریاست..."
-                  emptyMessage="ریاستی با این مشخصات یافت نشد."
+                  placeholder="انتخاب یا جستجوی واحد اداری درخواست‌کننده..."
+                  searchPlaceholder="جستجوی نام یا کد واحد اداری..."
+                  emptyMessage="واحد اداری با این مشخصات یافت نشد."
                 />
               ) : (
                 <div className="flex items-center justify-between h-9.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-xs">
@@ -256,7 +267,7 @@ export function MeetingRequestForm({
                     <span className="font-bold text-foreground truncate">
                       {directorates.find((u) => Number(u.id) === Number(form.requesting_unit_id))?.name ||
                         currentUser?.employee?.unit?.name ||
-                        'ریاست شما'}
+                        'واحد اداری شما'}
                     </span>
                   </div>
                   <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md shrink-0 font-medium">
@@ -271,7 +282,7 @@ export function MeetingRequestForm({
             {isInterDirectorate && (
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">
-                  ریاست مقصد (طرف جلسه) <span className="text-destructive">*</span>
+                  واحد اداری مقصد (طرف جلسه) <span className="text-destructive">*</span>
                 </label>
                 <SearchableSelect
                   options={directorates
@@ -284,9 +295,9 @@ export function MeetingRequestForm({
                     }))}
                   value={form.target_unit_id}
                   onChange={(val) => handleFieldChange('target_unit_id', val)}
-                  placeholder="انتخاب یا جستجوی ریاست مقصد..."
-                  searchPlaceholder="جستجوی نام یا کد ریاست مقصد..."
-                  emptyMessage="ریاست مقصدی با این مشخصات یافت نشد."
+                  placeholder="انتخاب یا جستجوی واحد اداری مقصد..."
+                  searchPlaceholder="جستجوی نام یا کد واحد اداری مقصد..."
+                  emptyMessage="واحد اداری مقصدی با این مشخصات یافت نشد."
                 />
               </div>
             )}
@@ -354,10 +365,10 @@ export function MeetingRequestForm({
           {isMultiDirectorate && (
             <div className="space-y-2 pt-2 border-t border-border/50">
               <label className="text-xs font-bold text-foreground block">
-                ریاست‌های مقصد مشارکت‌کننده <span className="text-destructive">*</span>
+                واحدهای اداری مقصد مشارکت‌کننده <span className="text-destructive">*</span>
               </label>
               <span className="text-[11px] text-muted-foreground block">
-                حداقل دو ریاست مقصد را جهت هماهنگی و ارسال درخواست جلسه انتخاب نمایید.
+                حداقل دو واحد اداری مقصد را جهت هماهنگی و ارسال درخواست جلسه انتخاب نمایید.
               </span>
               <MultiSearchableSelect
                 options={directorates
@@ -370,9 +381,9 @@ export function MeetingRequestForm({
                   }))}
                 value={form.target_unit_ids || []}
                 onChange={(ids) => handleFieldChange('target_unit_ids', ids)}
-                placeholder="انتخاب یا جستجوی ریاست‌های مقصد..."
-                searchPlaceholder="جستجوی نام یا کد ریاست مقصد..."
-                emptyMessage="ریاست مقصدی با این مشخصات یافت نشد."
+                placeholder="انتخاب یا جستجوی واحدهای اداری مقصد..."
+                searchPlaceholder="جستجوی نام یا کد واحد اداری مقصد..."
+                emptyMessage="واحد اداری مقصدی با این مشخصات یافت نشد."
               />
             </div>
           )}

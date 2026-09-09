@@ -647,4 +647,129 @@ class MultiDirectorateMeetingRequestTest extends TestCase
             $this->actingAs($actor, 'sanctum')->postJson("/api/meeting-requests/{$ctx['request']->id}/multi/units/{$unit->id}/participants/confirm")->assertOk();
         }
     }
+
+    public function test_multi_directorate_between_mixed_formal_governance_units_without_bypassing_authority(): void
+    {
+        $techExec = User::where('email', 'tech.exec@example.test')->firstOrFail();
+        $techDirector = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $financeExec = User::where('email', 'finance.exec@example.test')->firstOrFail();
+        $financeDirector = User::where('email', 'finance.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+        $finance = OrganizationalUnit::where('code', 'FIN')->firstOrFail();
+        $techEmployee = \App\Models\Employee::where('employee_number', 'EMP-TECH-003')->firstOrFail();
+        $financeEmployee = \App\Models\Employee::where('employee_number', 'EMP-FIN-002')->firstOrFail();
+
+        // Create an ATTACHED_AGENCY unit (mixed formal governance unit type)
+        $agency = OrganizationalUnit::create([
+            'organization_id' => $tech->organization_id,
+            'name' => 'اداره ملی ستندرد',
+            'code' => 'ANSA',
+            'unit_type' => 'ATTACHED_AGENCY',
+            'status' => 'ACTIVE',
+        ]);
+
+        $agencyPosDirector = Position::create([
+            'organizational_unit_id' => $agency->id,
+            'title' => 'رئیس اداره ملی ستندرد',
+            'code' => 'POS-ANSA-DIR',
+            'position_type' => 'DIRECTOR',
+            'status' => 'ACTIVE',
+        ]);
+
+        $agencyPosExec = Position::create([
+            'organizational_unit_id' => $agency->id,
+            'title' => 'مدیر اجرائیه اداره ستندرد',
+            'code' => 'POS-ANSA-EXEC',
+            'position_type' => 'EXECUTIVE_MANAGEMENT',
+            'status' => 'ACTIVE',
+        ]);
+
+        $agencyEmpDirector = \App\Models\Employee::create([
+            'employee_number' => 'EMP-ANSA-001',
+            'first_name' => 'جمشید',
+            'last_name' => 'کریمی',
+            'father_name' => 'گل محمد',
+            'organizational_unit_id' => $agency->id,
+            'position_id' => $agencyPosDirector->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $agencyEmpExec = \App\Models\Employee::create([
+            'employee_number' => 'EMP-ANSA-002',
+            'first_name' => 'شریف',
+            'last_name' => 'حیدری',
+            'father_name' => 'محمد جان',
+            'organizational_unit_id' => $agency->id,
+            'position_id' => $agencyPosExec->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $agencyDirectorUser = User::factory()->create([
+            'name' => 'رئیس اداره ستندرد',
+            'email' => 'ansa.director@example.test',
+            'status' => 'ACTIVE',
+            'employee_id' => $agencyEmpDirector->id,
+        ]);
+        $agencyDirectorUser->assignRole('DIRECTOR');
+        \App\Models\UserRole::create(['user_id' => $agencyDirectorUser->id, 'role' => 'DIRECTOR', 'organizational_unit_id' => $agency->id]);
+        $roleDirector = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'DIRECTOR', 'guard_name' => 'sanctum']);
+        \App\Models\AmmsRoleScope::create(['user_id' => $agencyDirectorUser->id, 'role_id' => $roleDirector->id, 'organizational_unit_id' => $agency->id]);
+
+        $agencyExecUser = User::factory()->create([
+            'name' => 'مدیر اجرائیه اداره ستندرد',
+            'email' => 'ansa.exec@example.test',
+            'status' => 'ACTIVE',
+            'employee_id' => $agencyEmpExec->id,
+        ]);
+        $agencyExecUser->assignRole('EXECUTIVE_MANAGEMENT');
+        \App\Models\UserRole::create(['user_id' => $agencyExecUser->id, 'role' => 'EXECUTIVE_MANAGEMENT', 'organizational_unit_id' => $agency->id]);
+        $roleExec = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'EXECUTIVE_MANAGEMENT', 'guard_name' => 'sanctum']);
+        \App\Models\AmmsRoleScope::create(['user_id' => $agencyExecUser->id, 'role_id' => $roleExec->id, 'organizational_unit_id' => $agency->id]);
+
+        // 1. Create multi-unit meeting request with DIRECTORATEs (TECH, FIN) and ATTACHED_AGENCY (ANSA)
+        $created = $this->actingAs($techExec, 'sanctum')->postJson('/api/meeting-requests/multi-directorate', [
+            'requesting_unit_id' => $tech->id,
+            'target_unit_ids' => [$finance->id, $agency->id],
+            'subject' => 'جلسه هماهنگی استندردهای سیستم‌ها و بودجه',
+            'purpose' => 'COORDINATION',
+            'description' => 'جلسه سه‌جانبه بین تکنالوژی، مالیه و اداره ملی ستندرد.',
+            'priority' => 'NORMAL',
+            'participant_ids' => [$techEmployee->id, $financeEmployee->id, $agencyEmpExec->id],
+        ]);
+        $created->assertCreated()
+            ->assertJsonPath('data.flow_type', 'MULTI_DIRECTORATE')
+            ->assertJsonPath('data.status', 'DRAFT');
+
+        $request = MeetingRequest::latest('id')->firstOrFail();
+
+        // 2. Submit by requester -> PENDING_REQUESTER_APPROVAL
+        $this->actingAs($techExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit-multi")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'PENDING_REQUESTER_APPROVAL');
+
+        // 3. Approve by requester director -> SUBMITTED_TO_TARGETS
+        $this->actingAs($techDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/requester-approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'SUBMITTED_TO_TARGETS');
+
+        // 4. Target reviews
+        $this->actingAs($financeExec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/target-units/{$finance->id}/review")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'UNDER_MULTI_TARGET_REVIEW');
+
+        $this->actingAs($agencyExecUser, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/target-units/{$agency->id}/review")
+            ->assertOk();
+
+        // 5. Cross-scope authorization guard: financeDirector CANNOT approve agency review
+        $this->actingAs($financeDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/target-units/{$agency->id}/approve")
+            ->assertForbidden();
+
+        // 6. Legitimate approvals by scoped directors
+        $this->actingAs($financeDirector, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/target-units/{$finance->id}/approve")
+            ->assertOk();
+
+        $this->actingAs($agencyDirectorUser, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/multi/target-units/{$agency->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'MULTILATERAL_APPROVED');
+    }
 }

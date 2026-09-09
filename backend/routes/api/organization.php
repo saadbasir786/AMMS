@@ -12,6 +12,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [DirectoryController::class, 'unreadCount']);
     Route::post('/notifications/read-all', [DirectoryController::class, 'markAllNotificationsRead']);
     Route::post('/notifications/{notification}/read', [DirectoryController::class, 'markNotificationRead']);
+    Route::get('/organizational-units/tree', [DirectoryController::class, 'tree']);
     Route::get('/organizational-units', [DirectoryController::class, 'units']);
     Route::get('/employees', [DirectoryController::class, 'employees']);
 
@@ -27,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/employees/{employee}', [AdminController::class, 'updateEmployee']);
     Route::post('/admin/employees/{employee}/deactivate', [AdminController::class, 'deactivateEmployee']);
     Route::get('/admin/organizations', [AdminController::class, 'organizations']);
+    Route::get('/admin/organizational-units/tree', [AdminController::class, 'tree']);
     Route::get('/admin/organizational-units', [AdminController::class, 'units']);
     Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
     Route::put('/admin/organizational-units/{unit}', [AdminController::class, 'updateUnit']);

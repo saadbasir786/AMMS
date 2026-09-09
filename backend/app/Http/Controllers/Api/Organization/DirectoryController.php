@@ -50,6 +50,31 @@ class DirectoryController extends Controller
         return MeetingRequestResource::collection($query->orderByDesc('created_at')->orderByDesc('id')->paginate(min(max($request->integer('per_page', 15), 1), 50)))->additional(['success' => true, 'message' => 'درخواست‌های منتظر تأیید.']);
     }
 
+    public function tree(Request $request)
+    {
+        $this->authorize('viewAny', OrganizationalUnit::class);
+
+        $query = OrganizationalUnit::with(['parent', 'children', 'organization'])
+            ->orderBy('name')
+            ->orderBy('id');
+
+        if ($request->filled('organization_id')) {
+            $query->where('organization_id', (int) $request->input('organization_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $units = $query->get();
+
+        return OrganizationalUnitResource::collection($units)->additional([
+            'success' => true,
+            'message' => 'درخت کامل چارت تشکیلاتی.',
+            'total_count' => $units->count(),
+        ]);
+    }
+
     public function units(Request $request)
     {
         $this->authorize('viewAny', OrganizationalUnit::class);

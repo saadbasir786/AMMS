@@ -137,7 +137,7 @@ trait MultiDirectorateWorkflowSupport
         $requester = $requesters->first()->unit;
         abort_unless($requester, 422, 'INVALID_REQUEST_UNITS');
         foreach ($units->pluck('unit')->filter() as $unit) {
-            abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_TARGET_DIRECTORATE');
+            abort_unless($unit->status === 'ACTIVE' && $unit->isFormalGovernanceUnit(), 422, 'INVALID_TARGET_DIRECTORATE');
             abort_unless($unit->organization_id === $requester->organization_id, 422, 'CROSS_ORGANIZATION_MEETING_NOT_ALLOWED');
         }
         abort_if($targets->contains(fn ($row) => (int) $row->organizational_unit_id === (int) $requester->id), 422, 'REQUESTER_CANNOT_BE_TARGET');
@@ -172,15 +172,10 @@ trait MultiDirectorateWorkflowSupport
         }
     }
 
-    private function topDirectorate(int $unitId): ?OrganizationalUnit
+    protected function topDirectorate(int $unitId): ?OrganizationalUnit
     {
         $unit = OrganizationalUnit::find($unitId);
-        $visited = [];
-        while ($unit && $unit->parent_id && !in_array($unit->id, $visited, true)) {
-            $visited[] = $unit->id;
-            $unit = $unit->parent;
-        }
-        return $unit?->unit_type === 'DIRECTORATE' ? $unit : null;
+        return $unit?->formalGovernanceUnit();
     }
 
     private function ensureAuthorizedApproverExists(int $unitId): void

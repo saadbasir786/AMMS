@@ -52,7 +52,7 @@ trait AuthorityInitiatedWorkflowSupport
         abort_unless($units->isNotEmpty(), 422, 'AUTHORITY_INITIATED_REQUIRES_DIRECTORATE');
         $ids = $units->pluck('id')->map(fn ($id) => (int) $id)->all();
         abort_unless(count($ids) === count(array_unique($ids)), 422, 'DUPLICATE_PARTICIPATING_DIRECTORATE');
-        foreach ($units as $unit) abort_unless($unit->status === 'ACTIVE' && $unit->unit_type === 'DIRECTORATE', 422, 'INVALID_PARTICIPATING_DIRECTORATE');
+        foreach ($units as $unit) abort_unless($unit->status === 'ACTIVE' && $unit->isFormalGovernanceUnit(), 422, 'INVALID_PARTICIPATING_DIRECTORATE');
         $organizationIds = $units->pluck('organization_id')->unique();
         abort_unless($organizationIds->count() === 1, 422, 'CROSS_ORGANIZATION_AUTHORITY_INITIATED_MEETING_NOT_ALLOWED');
     }

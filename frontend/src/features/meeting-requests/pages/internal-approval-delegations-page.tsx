@@ -96,7 +96,6 @@ export function InternalApprovalDelegationsPage({ embedded = false }: InternalAp
       setDelegationsStats(data?.stats || null)
       setDelegates(data?.delegates || [])
       setUnits(data?.units || [])
-      setUnitId((current) => current || String(data?.units?.[0]?.id || ''))
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
