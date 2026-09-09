@@ -1,10 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Bell, RotateCw, AlertCircle, CheckCheck, Check } from 'lucide-react'
+import { Bell, RotateCw, AlertCircle, CheckCheck, Check, Volume2, VolumeX } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiPage } from '@/lib/api-client'
+import {
+  playNotificationChime,
+  isNotificationSoundEnabled,
+  setNotificationSoundEnabled,
+} from '@/lib/notification-sound'
 import { NotificationsList } from '../components/notifications-list'
 import type { SystemNotification, PaginationMeta } from '../types'
 
@@ -15,9 +20,19 @@ export function NotificationsPage() {
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL')
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [totalCount, setTotalCount] = useState<number>(0)
+  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled
+    setSoundEnabled(next)
+    setNotificationSoundEnabled(next)
+    if (next) {
+      playNotificationChime(true)
+    }
+  }
 
   const loadData = useCallback(async (targetPage = 1, targetFilter = 'ALL') => {
     setLoading(true)
@@ -118,6 +133,27 @@ export function NotificationsPage() {
         description="پیگیری لحظه‌ای گردش کار جلسات، دعوت‌نامه‌ها، تغییرات زمان‌بندی و مصوبات منتسب به شما"
         action={
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleToggleSound}
+              className="h-8 px-2.5 rounded-xl text-xs gap-1.5 font-medium"
+              title={soundEnabled ? 'قطع صدای اعلان‌ها' : 'فعال‌سازی صدای اعلان‌ها'}
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="size-3.5 text-primary" />
+                  <span>صدای اعلان: روشن</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="size-3.5 text-muted-foreground" />
+                  <span>صدای اعلان: خاموش</span>
+                </>
+              )}
+            </Button>
+
             {unreadCount > 0 ? (
               <Badge variant="outline" className="text-xs px-2.5 py-1 text-primary border-primary/30">
                 <Bell className="size-3.5 ml-1" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Bell,
   CheckCheck,
@@ -7,6 +7,8 @@ import {
   Inbox,
   ExternalLink,
   Check,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -17,6 +19,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api-client'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
+import {
+  playNotificationChime,
+  isNotificationSoundEnabled,
+  setNotificationSoundEnabled,
+} from '@/lib/notification-sound'
 import { cn } from '@/lib/utils'
 import type { SystemNotification } from '../types'
 
@@ -28,19 +35,44 @@ export function NotificationBellDropdown({ onNavigate }: NotificationBellDropdow
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<SystemNotification[]>([])
   const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled)
   const [loading, setLoading] = useState(false)
   const [markingAll, setMarkingAll] = useState(false)
+
+  const isInitialLoad = useRef(true)
+  const previousUnreadCount = useRef<number>(0)
 
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await api.get('/notifications/unread-count')
       if (res?.data && typeof res.data.unread_count === 'number') {
-        setUnreadCount(res.data.unread_count)
+        const count = res.data.unread_count
+        setUnreadCount(count)
+
+        if (isInitialLoad.current) {
+          isInitialLoad.current = false
+          previousUnreadCount.current = count
+        } else if (count > previousUnreadCount.current) {
+          playNotificationChime()
+          previousUnreadCount.current = count
+        } else {
+          previousUnreadCount.current = count
+        }
       }
     } catch {
       // Gracefully ignore silent count polling failures
     }
   }, [])
+
+  const handleToggleSound = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = !soundEnabled
+    setSoundEnabled(next)
+    setNotificationSoundEnabled(next)
+    if (next) {
+      playNotificationChime(true)
+    }
+  }
 
   const fetchRecent = useCallback(async () => {
     setLoading(true)
@@ -156,16 +188,33 @@ export function NotificationBellDropdown({ onNavigate }: NotificationBellDropdow
             )}
           </div>
 
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-2">
+            {/* Sound Toggle Button */}
             <button
-              onClick={handleMarkAllRead}
-              disabled={markingAll}
-              className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+              type="button"
+              onClick={handleToggleSound}
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+              title={soundEnabled ? 'صدای اعلان فعال است (کلیک برای قطع صدا)' : 'صدای اعلان قطع است (کلیک برای فعال‌سازی)'}
+              aria-label="تنظیم صدای اعلان"
             >
-              <CheckCheck className="size-3.5" />
-              <span>خواندن همه</span>
+              {soundEnabled ? (
+                <Volume2 className="size-3.5 text-primary" />
+              ) : (
+                <VolumeX className="size-3.5 text-muted-foreground/60" />
+              )}
             </button>
-          )}
+
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                disabled={markingAll}
+                className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+              >
+                <CheckCheck className="size-3.5" />
+                <span>خواندن همه</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Notifications List */}
