@@ -112,11 +112,15 @@ class CanonicalOrganizationSeederTest extends TestCase
         $this->assertSame($techInfra->id, $techMgtNet->parent_id);
         $this->assertSame('GENERAL_MANAGEMENT', $techInfra->unit_type);
         $this->assertSame('MANAGEMENT', $techMgtNet->unit_type);
+        $this->assertSame('مدیریت عمومی شبکه', $techInfra->name);
+        $this->assertSame('مدیریت شبکه', $techMgtNet->name);
 
         // Software branch (depth 4)
         $techSw = OrganizationalUnit::query()->where('code', 'TECH-SW')->firstOrFail();
         $this->assertSame($techAmirSw->id, $techSw->parent_id);
         $this->assertSame('GENERAL_MANAGEMENT', $techSw->unit_type);
+        $this->assertSame('آمریت نرم‌افزار', $techAmirSw->name);
+        $this->assertSame('مدیریت عمومی نرم‌افزار', $techSw->name);
     }
 
     public function test_deputy_director_position_and_employee_belong_to_deputy_directorate_unit(): void
@@ -131,6 +135,17 @@ class CanonicalOrganizationSeederTest extends TestCase
         $this->assertSame($techDepUnit->id, $deputyEmployee->organizational_unit_id);
         $this->assertSame($deputyPosition->id, $deputyEmployee->position_id);
         $this->assertSame('tech.deputy@example.test', $deputyEmployee->email);
+
+        // Executive General Managers hold GENERAL_MANAGER position type
+        $techExecPos = Position::query()->where('code', 'TECH-EXEC-POS')->firstOrFail();
+        $this->assertSame('GENERAL_MANAGER', $techExecPos->position_type);
+        $this->assertSame('مدیر عمومی اجرائیه', $techExecPos->title);
+
+        $finExecPos = Position::query()->where('code', 'FIN-EXEC-POS')->firstOrFail();
+        $this->assertSame('GENERAL_MANAGER', $finExecPos->position_type);
+
+        $hrExecPos = Position::query()->where('code', 'HR-EXEC-POS')->firstOrFail();
+        $this->assertSame('GENERAL_MANAGER', $hrExecPos->position_type);
     }
 
     public function test_scoped_roles_resolve_and_match_canonical_rules(): void

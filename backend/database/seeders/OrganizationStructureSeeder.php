@@ -92,21 +92,21 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 5c-i. Network & Infrastructure General Management
+        // 5c-i. Network General Management
         $techInfra = OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $techAmirNet->id,
-            'name' => 'مدیریت عمومی شبکه و زیربنا',
+            'name' => 'مدیریت عمومی شبکه',
             'code' => 'TECH-INFRA',
             'unit_type' => 'GENERAL_MANAGEMENT',
             'status' => 'ACTIVE',
         ]);
 
-        // 5c-ii. Network Operational Management
+        // 5c-ii. Network Management
         OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $techInfra->id,
-            'name' => 'مدیریت عملیاتی شبکه',
+            'name' => 'مدیریت شبکه',
             'code' => 'TECH-MGT-NET',
             'unit_type' => 'MANAGEMENT',
             'status' => 'ACTIVE',
@@ -116,7 +116,7 @@ class OrganizationStructureSeeder extends Seeder
         $techAmirSw = OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $techDep->id,
-            'name' => 'آمریت نرم‌افزار و سیستم‌ها',
+            'name' => 'آمریت نرم‌افزار',
             'code' => 'TECH-AMIR-SW',
             'unit_type' => 'AMIRIATE',
             'status' => 'ACTIVE',
@@ -126,7 +126,7 @@ class OrganizationStructureSeeder extends Seeder
         OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $techAmirSw->id,
-            'name' => 'مدیریت عمومی انکشاف نرم‌افزار',
+            'name' => 'مدیریت عمومی نرم‌افزار',
             'code' => 'TECH-SW',
             'unit_type' => 'GENERAL_MANAGEMENT',
             'status' => 'ACTIVE',

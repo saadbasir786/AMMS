@@ -68,9 +68,9 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['TECH-EXEC'],
-            'title' => 'مدیر عمومی اجرائیه تکنالوژی',
+            'title' => 'مدیر عمومی اجرائیه',
             'code' => 'TECH-EXEC-POS',
-            'position_type' => 'EXECUTIVE_MANAGEMENT',
+            'position_type' => 'GENERAL_MANAGER',
             'status' => 'ACTIVE',
         ]);
 
@@ -84,7 +84,7 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['TECH-INFRA'],
-            'title' => 'مدیر عمومی شبکه و زیربنا',
+            'title' => 'مدیر عمومی شبکه',
             'code' => 'TECH-GM-NET-POS',
             'position_type' => 'GENERAL_MANAGER',
             'status' => 'ACTIVE',
@@ -92,7 +92,7 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['TECH-MGT-NET'],
-            'title' => 'مدیر عملیاتی شبکه',
+            'title' => 'مدیر شبکه',
             'code' => 'TECH-MGT-NET-POS',
             'position_type' => 'MANAGER',
             'status' => 'ACTIVE',
@@ -100,7 +100,7 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['TECH-AMIR-SW'],
-            'title' => 'آمر نرم‌افزار و سیستم‌ها',
+            'title' => 'آمر نرم‌افزار',
             'code' => 'TECH-AMIR-SW-POS',
             'position_type' => 'AMIR',
             'status' => 'ACTIVE',
@@ -141,9 +141,9 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['FIN-EXEC'],
-            'title' => 'مدیر عمومی اجرائیه مالی',
+            'title' => 'مدیر عمومی اجرائیه',
             'code' => 'FIN-EXEC-POS',
-            'position_type' => 'EXECUTIVE_MANAGEMENT',
+            'position_type' => 'GENERAL_MANAGER',
             'status' => 'ACTIVE',
         ]);
 
@@ -166,9 +166,9 @@ class PositionSeeder extends Seeder
 
         Position::create([
             'organizational_unit_id' => $unitByCode['HR-EXEC'],
-            'title' => 'مدیر عمومی اجرائیه منابع بشری',
+            'title' => 'مدیر عمومی اجرائیه',
             'code' => 'HR-EXEC-POS',
-            'position_type' => 'EXECUTIVE_MANAGEMENT',
+            'position_type' => 'GENERAL_MANAGER',
             'status' => 'ACTIVE',
         ]);
     }
