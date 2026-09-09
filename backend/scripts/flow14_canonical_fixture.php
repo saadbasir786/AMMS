@@ -46,7 +46,7 @@ $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
 $finance = OrganizationalUnit::where('code', 'FIN')->firstOrFail();
 $hr = OrganizationalUnit::where('code', 'HR')->firstOrFail();
 $authorityOffice = OrganizationalUnit::where('code', 'AUTH-OFFICE')->firstOrFail();
-$fixtureUnit = OrganizationalUnit::firstOrCreate(['code' => 'FLOW14-REPORTING'], ['organization_id' => $tech->organization_id, 'parent_id' => null, 'name' => 'FLOW-14 Reporting Fixture', 'unit_type' => 'DIRECTORATE', 'status' => 'ACTIVE']);
+$fixtureUnit = OrganizationalUnit::firstOrCreate(['code' => 'FLOW14-REPORTING'], ['organization_id' => $tech->organization_id, 'parent_id' => $tech->parent_id ?? $tech->id, 'name' => 'FLOW-14 Reporting Fixture', 'unit_type' => 'DIRECTORATE', 'status' => 'ACTIVE']);
 $employees = [
     'tech_director' => Employee::where('email', 'tech.director@example.test')->firstOrFail(),
     'tech_exec' => Employee::where('email', 'tech.exec@example.test')->firstOrFail(),

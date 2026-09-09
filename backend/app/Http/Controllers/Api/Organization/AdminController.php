@@ -561,8 +561,20 @@ class AdminController extends Controller
         abort_unless($user->isActive() && $user->employee && $user->employee->position?->status === 'ACTIVE', 422, 'BUSINESS_ROLE_REQUIRES_ACTIVE_EMPLOYEE');
         abort_unless($unit->isWithinScope((int) $user->employee->organizational_unit_id), 422, 'ROLE_SCOPE_OUTSIDE_EMPLOYEE_ORGANIZATION');
 
-        $requiredPositionType = $roleName === 'EMPLOYEE' ? null : $roleName;
-        abort_unless($requiredPositionType === null || $user->employee->position?->position_type === $requiredPositionType, 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
+        abort_unless($this->positionMatchesRole($roleName, $user->employee->position?->position_type), 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
+    }
+
+    private function positionMatchesRole(string $roleName, ?string $positionType): bool
+    {
+        if ($roleName === 'EMPLOYEE') {
+            return true;
+        }
+
+        if ($roleName === 'EXECUTIVE_MANAGEMENT') {
+            return in_array($positionType, ['EXECUTIVE_MANAGEMENT', 'GENERAL_MANAGER'], true);
+        }
+
+        return $positionType === $roleName;
     }
 
     private function assertNotDeactivatingLastSystemAdmin(UserModel $user, bool $isBeingDeactivated): void
@@ -614,7 +626,7 @@ class AdminController extends Controller
             if ($roleName === 'SYSTEM_ADMIN') {
                 continue;
             }
-            $positionMatches = $roleName === 'EMPLOYEE' || $employee?->position?->position_type === $roleName;
+            $positionMatches = $this->positionMatchesRole($roleName, $employee?->position?->position_type);
             $scopeMatches = $employee && $scope->unit?->status === 'ACTIVE' && $scope->unit->isWithinScope((int) $employee->organizational_unit_id);
             if ($user->isActive() && $employee?->position?->status === 'ACTIVE' && $positionMatches && $scopeMatches) {
                 continue;

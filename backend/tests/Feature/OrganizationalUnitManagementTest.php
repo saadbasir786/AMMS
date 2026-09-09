@@ -168,34 +168,43 @@ class OrganizationalUnitManagementTest extends TestCase
         $admin = User::query()->where('email', 'system.admin@example.test')->firstOrFail();
         $tech = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
 
+        $testDir = OrganizationalUnit::create([
+            'organization_id' => $tech->organization_id,
+            'parent_id' => $tech->parent_id,
+            'name' => 'ریاست تست ساختار چارتر',
+            'code' => 'TEST-CHARTER-DIR',
+            'unit_type' => 'DIRECTORATE',
+            'status' => 'ACTIVE',
+        ]);
+
         // CASE 1: Technology Directorate -> Executive General Management (without an Amirate parent)
         $case1 = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
-            'parent_id' => $tech->id,
+            'organization_id' => $testDir->organization_id,
+            'parent_id' => $testDir->id,
             'name' => 'مدیریت عمومی اجرائیه تکنالوژی',
-            'code' => 'TECH-GM-EXEC',
+            'code' => 'TECH-GM-EXEC-TEST',
             'unit_type' => 'GENERAL_MANAGEMENT',
             'status' => 'ACTIVE',
         ])->assertCreated()->json('data.id');
 
         $this->assertDatabaseHas('organizational_units', [
             'id' => $case1,
-            'parent_id' => $tech->id,
+            'parent_id' => $testDir->id,
             'unit_type' => 'GENERAL_MANAGEMENT',
         ]);
 
         // CASE 2: Technology Directorate -> Network and Systems Amirate -> Network General Management -> Network Management
         $case2Amir = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
-            'parent_id' => $tech->id,
+            'organization_id' => $testDir->organization_id,
+            'parent_id' => $testDir->id,
             'name' => 'آمریت شبکه و سیستم‌ها',
-            'code' => 'TECH-AMIR-NET',
+            'code' => 'TECH-AMIR-NET-TEST',
             'unit_type' => 'AMIRIATE',
             'status' => 'ACTIVE',
         ])->assertCreated()->json('data.id');
 
         $case2GM = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
+            'organization_id' => $testDir->organization_id,
             'parent_id' => $case2Amir,
             'name' => 'مدیریت عمومی شبکه',
             'code' => 'TECH-GM-NET-CASE2',
@@ -204,10 +213,10 @@ class OrganizationalUnitManagementTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         $case2Mgt = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
+            'organization_id' => $testDir->organization_id,
             'parent_id' => $case2GM,
             'name' => 'مدیریت عملیاتی شبکه',
-            'code' => 'TECH-MGT-NET',
+            'code' => 'TECH-MGT-NET-TEST',
             'unit_type' => 'MANAGEMENT',
             'status' => 'ACTIVE',
         ])->assertCreated()->json('data.id');
@@ -220,8 +229,8 @@ class OrganizationalUnitManagementTest extends TestCase
 
         // CASE 3: Technology Directorate -> Software Amirate -> Software General Management
         $case3Amir = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
-            'parent_id' => $tech->id,
+            'organization_id' => $testDir->organization_id,
+            'parent_id' => $testDir->id,
             'name' => 'آمریت نرم‌افزار',
             'code' => 'TECH-AMIR-SW-C3',
             'unit_type' => 'AMIRIATE',
@@ -229,7 +238,7 @@ class OrganizationalUnitManagementTest extends TestCase
         ])->assertCreated()->json('data.id');
 
         $case3GM = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
+            'organization_id' => $testDir->organization_id,
             'parent_id' => $case3Amir,
             'name' => 'مدیریت عمومی انکشاف نرم‌افزار',
             'code' => 'TECH-GM-SW-C3',
@@ -245,8 +254,8 @@ class OrganizationalUnitManagementTest extends TestCase
 
         // CASE 4: Technology Directorate -> Technology Deputy Directorate
         $case4Deputy = $this->actingAs($admin, 'sanctum')->postJson('/api/admin/organizational-units', [
-            'organization_id' => $tech->organization_id,
-            'parent_id' => $tech->id,
+            'organization_id' => $testDir->organization_id,
+            'parent_id' => $testDir->id,
             'name' => 'معاونیت ریاست تکنالوژی',
             'code' => 'TECH-DEP-DIR-C4',
             'unit_type' => 'DEPUTY_DIRECTORATE',
@@ -255,7 +264,7 @@ class OrganizationalUnitManagementTest extends TestCase
 
         $this->assertDatabaseHas('organizational_units', [
             'id' => $case4Deputy,
-            'parent_id' => $tech->id,
+            'parent_id' => $testDir->id,
             'unit_type' => 'DEPUTY_DIRECTORATE',
         ]);
     }
@@ -347,7 +356,7 @@ class OrganizationalUnitManagementTest extends TestCase
             'parent_id' => $software->id,
             'name' => $software->name,
             'code' => $software->code,
-            'unit_type' => 'DEPARTMENT',
+            'unit_type' => $software->unit_type,
         ])->assertStatus(422)
           ->assertJsonPath('message', 'واحد سازمانی نمی‌تواند مافوق خودش باشد.');
 
@@ -365,7 +374,7 @@ class OrganizationalUnitManagementTest extends TestCase
             'parent_id' => $subSoftware->id,
             'name' => $software->name,
             'code' => $software->code,
-            'unit_type' => 'DEPARTMENT',
+            'unit_type' => $software->unit_type,
         ])->assertStatus(422)
           ->assertJsonPath('message', 'نمی‌توان یک واحد زیرمجموعه را به عنوان مافوق تعیین نمود.');
     }
