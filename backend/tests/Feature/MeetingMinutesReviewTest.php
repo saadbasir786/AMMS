@@ -144,6 +144,71 @@ class MeetingMinutesReviewTest extends TestCase
             ->assertJsonPath('data.stats.expired', 0);
     }
 
+    public function test_director_can_delegate_minutes_approval_to_executive_management_and_manager_can_review(): void
+    {
+        [$meeting, , $director, $unit] = $this->submittedMinutesFixture();
+        $exec = $this->createTechnologyExecutive($unit, 'EMP-TECH-EXEC2', 'tech.exec2@example.test');
+
+        // Verify delegates index contains both role options
+        $delegatesRes = $this->actingAs($director, 'sanctum')
+            ->getJson('/api/minutes-approval-delegations')
+            ->assertOk();
+
+        $ids = collect($delegatesRes->json('data.delegates'))->pluck('id')->all();
+        $this->assertContains($exec->id, $ids);
+
+        // Grant minutes approval delegation to executive manager
+        $grant = $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
+            'organizational_unit_id' => $unit->id,
+            'delegate_user_id' => $exec->id,
+            'expires_at' => now()->addWeek()->toDateString(),
+            'reason' => 'تفویض صلاحیت بررسی و تأیید مینوت به مدیر اجرائیه.',
+        ])->assertCreated()->assertJsonPath('data.active', true);
+
+        $this->assertTrue($exec->fresh()->can('meeting.minutes.review'));
+        $this->assertTrue($exec->fresh()->can('meeting.minutes.review-delegated'));
+        $this->assertTrue(Gate::forUser($exec->fresh())->allows('minutesReviewUnit', [Meeting::query()->findOrFail($meeting->id), $unit->id]));
+
+        $this->actingAs($exec->fresh(), 'sanctum')->getJson('/api/meetings/'.$meeting->id.'/action-capabilities')
+            ->assertOk()
+            ->assertJsonPath('data.minutes.review', true)
+            ->assertJsonPath('data.minutes.reviewable_unit_ids', [$unit->id])
+            ->assertJsonPath('data.minutes.delegated_review_unit_ids', [$unit->id]);
+
+        $this->actingAs($exec->fresh(), 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/minutes/reviews/'.$unit->id.'/acknowledge')
+            ->assertOk()->assertJsonPath('data.status', 'READY_TO_FINALIZE');
+
+        $this->assertDatabaseHas('meeting_actions', [
+            'meeting_id' => $meeting->id,
+            'actor_id' => $exec->id,
+            'action' => 'MINUTES_UNIT_ACKNOWLEDGED_UNDER_DELEGATION',
+        ]);
+    }
+
+    private function createTechnologyExecutive(OrganizationalUnit $unit, string $employeeNumber, string $email): User
+    {
+        $employee = Employee::create([
+            'employee_number' => $employeeNumber,
+            'first_name' => 'مدیر',
+            'last_name' => 'اجرائیه همکار',
+            'organizational_unit_id' => $unit->id,
+            'email' => $email,
+            'status' => 'ACTIVE',
+        ]);
+        $executive = User::create([
+            'name' => 'مدیر اجرائیه تکنالوژی ۲',
+            'email' => $email,
+            'password' => Hash::make('ChangeMe!2026'),
+            'employee_id' => $employee->id,
+        ]);
+        $role = Role::query()->where('name', 'EXECUTIVE_MANAGEMENT')->where('guard_name', 'sanctum')->firstOrFail();
+        $executive->assignRole($role);
+        UserRole::create(['user_id' => $executive->id, 'role' => 'EXECUTIVE_MANAGEMENT', 'organizational_unit_id' => $unit->id]);
+        AmmsRoleScope::create(['user_id' => $executive->id, 'role_id' => $role->id, 'organizational_unit_id' => $unit->id]);
+
+        return $executive;
+    }
+
     private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber, string $email): User
     {
         $position = Position::query()

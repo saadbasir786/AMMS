@@ -133,6 +133,92 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_director_can_delegate_internal_approval_to_deputy_director_and_deputy_can_approve(): void
+    {
+        [$director, $executive, $tech] = $this->technologyActors();
+        $deputy = User::query()->where('email', 'tech.deputy@example.test')->firstOrFail();
+
+        // 1. Verify candidate list exposes both executive and deputy with their role titles
+        $indexResponse = $this->actingAs($director, 'sanctum')
+            ->getJson('/api/internal-meeting-approval-delegations')
+            ->assertOk();
+
+        $candidateIds = collect($indexResponse->json('data.delegates'))->pluck('id')->all();
+        $this->assertContains($executive->id, $candidateIds);
+        $this->assertContains($deputy->id, $candidateIds);
+
+        $deputyEntry = collect($indexResponse->json('data.delegates'))->firstWhere('id', $deputy->id);
+        $this->assertEquals('معاون ریاست', $deputyEntry['role_title']);
+
+        $execEntry = collect($indexResponse->json('data.delegates'))->firstWhere('id', $executive->id);
+        $this->assertEquals('مدیر اجرائیه', $execEntry['role_title']);
+
+        // 2. Delegate to Deputy Director
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/internal-meeting-approval-delegations', [
+                'organizational_unit_id' => $tech->id,
+                'delegate_user_id' => $deputy->id,
+                'expires_at' => now()->addWeek()->toDateString(),
+                'reason' => 'تفویض صلاحیت تأیید به معاون محترم ریاست.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.capability', SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL)
+            ->assertJsonPath('data.active', true);
+
+        $this->assertTrue($deputy->fresh()->can('meeting-request.approve-delegated'));
+        $this->assertTrue($deputy->fresh()->can('meeting-request.view'));
+
+        // 3. Deputy can approve internal meeting request
+        $request = $this->createAndSubmitInternalRequest($executive, $tech);
+
+        $this->actingAs($deputy->fresh(), 'sanctum')
+            ->getJson("/api/meeting-requests/{$request->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.approve', true)
+            ->assertJsonPath('data.approve_with_delegation', true);
+
+        $this->actingAs($deputy->fresh(), 'sanctum')
+            ->postJson("/api/meeting-requests/{$request->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'APPROVED');
+
+        $this->assertDatabaseHas('meeting_request_actions', [
+            'meeting_request_id' => $request->id,
+            'actor_id' => $deputy->id,
+            'action' => 'APPROVED_UNDER_DELEGATION',
+        ]);
+    }
+
+    public function test_delegation_cannot_be_granted_to_regular_employee(): void
+    {
+        [$director, , $tech] = $this->technologyActors();
+        $employee = Employee::create([
+            'employee_number' => 'EMP-REG-'.uniqid(),
+            'first_name' => 'کارمند',
+            'last_name' => 'عادی',
+            'email' => 'tech.employee.'.uniqid().'@example.test',
+            'organizational_unit_id' => $tech->id,
+            'status' => 'ACTIVE',
+        ]);
+        $employeeUser = User::create([
+            'name' => 'کارمند عادی تکنالوژی',
+            'email' => $employee->email,
+            'password' => \Illuminate\Support\Facades\Hash::make('ChangeMe!2026'),
+            'employee_id' => $employee->id,
+            'status' => 'ACTIVE',
+        ]);
+        $employeeUser->assignRole('EMPLOYEE');
+
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/internal-meeting-approval-delegations', [
+                'organizational_unit_id' => $tech->id,
+                'delegate_user_id' => $employeeUser->id,
+                'expires_at' => now()->addWeek()->toDateString(),
+                'reason' => 'تلاش نامعتبر برای تفویض به کارمند عادی.',
+            ])
+            ->assertStatus(422);
+    }
+
     /** @return array{User, User, OrganizationalUnit} */
     private function technologyActors(): array
     {

@@ -30,9 +30,11 @@ final class SpecialCapability
                 'biometric.enrollment.cancel',
             ],
             self::INTERNAL_MEETING_REQUEST_APPROVAL => [
+                'meeting-request.view',
                 'meeting-request.approve-delegated',
             ],
             self::DIRECTORATE_MINUTES_APPROVAL => [
+                'meeting.minutes.review',
                 'meeting.minutes.review-delegated',
             ],
             default => throw new InvalidArgumentException("Unknown AMMS special capability: {$capability}"),

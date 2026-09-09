@@ -17,7 +17,10 @@ class InternalMeetingApprovalDelegation
             || $request->flow_type !== 'INTERNAL_DIRECTORATE'
             || $request->status !== 'PENDING_INTERNAL_APPROVAL'
             || !$actor->can('meeting-request.approve-delegated')
-            || !$actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
+            || (
+                !$actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $request->requesting_unit_id)
+                && !$actor->hasScopedRole('DEPUTY_DIRECTOR', (int) $request->requesting_unit_id)
+            )
         ) {
             return null;
         }

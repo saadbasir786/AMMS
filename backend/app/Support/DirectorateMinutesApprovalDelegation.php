@@ -15,7 +15,10 @@ class DirectorateMinutesApprovalDelegation
         if (
             !$actor->isActive()
             || !$actor->can('meeting.minutes.review-delegated')
-            || !$actor->hasScopedRole('DEPUTY_DIRECTOR', $unitId)
+            || (
+                !$actor->hasScopedRole('DEPUTY_DIRECTOR', $unitId)
+                && !$actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+            )
             || !$meeting->units()
                 ->whereIn('role', ['REQUESTING', 'REQUESTER', 'PARTICIPATING'])
                 ->where('organizational_unit_id', $unitId)

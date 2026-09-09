@@ -4,13 +4,11 @@ import {
   CheckCircle2,
   Users,
   AlertCircle,
-  Plus,
   RotateCw,
   Search,
   Building2,
   Calendar,
   XCircle,
-  Check,
   UserCheck
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
@@ -19,21 +17,18 @@ import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData } from '@/lib/api-client'
 
 type Unit = { id: number; name: string }
-type Delegate = { id: number; name: string; email?: string; employee?: { full_name: string } | null }
+type Delegate = {
+  id: number
+  name: string
+  email?: string
+  role_title?: string
+  roles?: string[]
+  employee?: { full_name: string } | null
+}
 type Delegation = {
   id: number
   unit?: Unit
@@ -53,13 +48,6 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
   const [delegations, setDelegations] = useState<Delegation[]>([])
   const [delegates, setDelegates] = useState<Delegate[]>([])
   const [units, setUnits] = useState<Unit[]>([])
-
-  // Modal & Form
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [unitId, setUnitId] = useState('')
-  const [delegateUserId, setDelegateUserId] = useState('')
-  const [expiresAt, setExpiresAt] = useState('')
-  const [reason, setReason] = useState('')
 
   // Revocation
   const [revokeTarget, setRevokeTarget] = useState<Delegation | null>(null)
@@ -94,7 +82,6 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
       setDelegationsStats(data?.stats || null)
       setDelegates(data?.delegates || [])
       setUnits(data?.units || [])
-      setUnitId((current) => current || String(data?.units?.[0]?.id || ''))
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -108,10 +95,6 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
   useEffect(() => {
     loadData()
   }, [loadData])
-
-  useEffect(() => {
-    setDelegateUserId('')
-  }, [unitId])
 
   useEffect(() => {
     setDelegationsPage(1)
@@ -160,40 +143,6 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
     })
   }, [delegations, delegationsStats, search, statusFilter])
 
-  const openCreateDialog = () => {
-    setDelegateUserId('')
-    setExpiresAt('')
-    setReason('')
-    setDialogOpen(true)
-  }
-
-  const grant = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!unitId || !delegateUserId || !expiresAt || !reason.trim()) {
-      setError('انتخاب اداره، معاونت مربوطه، تاریخ پایان و استناد اداری الزامی است.')
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      await api.post('/minutes-approval-delegations', {
-        organizational_unit_id: Number(unitId),
-        delegate_user_id: Number(delegateUserId),
-        expires_at: expiresAt,
-        reason: reason.trim(),
-      })
-      setDialogOpen(false)
-      setDelegateUserId('')
-      setExpiresAt('')
-      setReason('')
-      await loadData()
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'ثبت تفویض صلاحیت با خطا مواجه شد.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const revoke = async () => {
     if (!revokeTarget || !revocationReason.trim()) return
     setBusy(true)
@@ -215,65 +164,11 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      {!embedded ? (
+      {!embedded && (
         <PageHeader
           title="تفویض بررسی صورت‌جلسات رسمی"
-          description="تفویض محدود، زمان‌دار و قابل لغو صلاحیت بررسی، اعلام نظر یا درخواست اصلاح صورت‌جلسه به معاونت همان ریاست"
-          action={
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadData}
-                disabled={loading}
-                className="h-9 text-xs font-semibold rounded-xl gap-1.5"
-              >
-                <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>تازه‌سازی</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={openCreateDialog}
-                className="h-9 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
-              >
-                <Plus className="size-3.5" />
-                <span>تفویض جدید به معاونت</span>
-              </Button>
-            </div>
-          }
+          description="تفویض محدود، زمان‌دار و دارای پیگرد ممیزی جهت بررسی و تأیید صورت‌جلسات به معاونت یا مدیریت اجرائیه"
         />
-      ) : (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card border border-border/70 shadow-xs">
-          <div>
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <FileCheck className="size-4 text-primary" />
-              <span>تفویض بررسی صورت‌جلسات رسمی</span>
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              تفویض بررسی و اعلام نظر رسمی روی صورت‌جلسات ارسالی به معاونت متبوع
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadData}
-              disabled={loading}
-              className="h-9 text-xs font-semibold rounded-xl gap-1.5"
-            >
-              <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>تازه‌سازی</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={openCreateDialog}
-              className="h-9 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
-            >
-              <Plus className="size-3.5" />
-              <span>تفویض جدید به معاونت</span>
-            </Button>
-          </div>
-        </div>
       )}
 
       {/* Error Alert */}
@@ -331,7 +226,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
           </div>
           <div>
             <span className="text-[10px] text-muted-foreground block font-medium">
-              معاونان واجد صلاحیت اداری
+              افراد واجد صلاحیت (معاونت / مدیریت)
             </span>
             <strong className="text-lg font-bold text-foreground font-mono">
               {delegates.length} نفر
@@ -418,7 +313,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
               <table className="w-full text-xs text-right border-collapse">
                 <thead>
                   <tr className="border-b border-border/60 bg-slate-50/70 dark:bg-slate-900/40 text-muted-foreground">
-                    <th className="py-3.5 px-4 font-bold">معاون ریاست (دارنده صلاحیت)</th>
+                    <th className="py-3.5 px-4 font-bold">فرد واجد صلاحیت (دارنده صلاحیت)</th>
                     <th className="py-3.5 px-4 font-bold">ریاست / اداره مربوطه</th>
                     <th className="py-3.5 px-4 font-bold">مهلت اعتبار</th>
                     <th className="py-3.5 px-4 font-bold">دلیل و استناد تفویض</th>
@@ -547,108 +442,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
         </div>
       )}
 
-      {/* Grant Delegation Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl" dir="rtl">
-          <DialogHeader className="space-y-1.5 text-right">
-            <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <FileCheck className="size-4 text-primary" />
-              <span>تفویض بررسی صورت‌جلسه به معاونت</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              صلاحیت بررسی، تأیید یا درخواست اصلاح صورت‌جلسه به معاون منصوب همان اداره تفویض می‌گردد.
-            </DialogDescription>
-          </DialogHeader>
 
-          <form onSubmit={grant} className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                ریاست / اداره مربوطه <span className="text-destructive">*</span>
-              </label>
-              <select
-                required
-                value={unitId}
-                onChange={(e) => setUnitId(e.target.value)}
-                className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
-              >
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                معاونت واجد صلاحیت <span className="text-destructive">*</span>
-              </label>
-              <select
-                required
-                value={delegateUserId}
-                onChange={(e) => setDelegateUserId(e.target.value)}
-                className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
-              >
-                <option value="">انتخاب معاون اداره...</option>
-                {delegates.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.employee?.full_name || d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                تاریخ پایان اعتبار تفویض <span className="text-destructive">*</span>
-              </label>
-              <MultiCalendarDatePicker
-                value={expiresAt}
-                onChange={setExpiresAt}
-                placeholder="انتخاب تاریخ انقضا..."
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                دلیل و استناد اداری تفویض <span className="text-destructive">*</span>
-              </label>
-              <Textarea
-                required
-                rows={3}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="دلیل و محدوده اداری تفویض بررسی صورت‌جلسه را درج فرمایید..."
-                className="rounded-xl text-xs leading-relaxed"
-              />
-            </div>
-
-            <DialogFooter className="gap-2 pt-2 sm:justify-start">
-              <Button
-                type="submit"
-                disabled={busy}
-                className="h-9 text-xs font-semibold rounded-xl gap-1.5 flex-1"
-              >
-                {busy ? (
-                  <RotateCw className="size-3.5 animate-spin" />
-                ) : (
-                  <Check className="size-3.5" />
-                )}
-                <span>ثبت و ابلاغ تفویض صلاحیت</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busy}
-                onClick={() => setDialogOpen(false)}
-                className="h-9 text-xs rounded-xl"
-              >
-                انصراف
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Revocation Confirm Dialog */}
       <ConfirmDialog

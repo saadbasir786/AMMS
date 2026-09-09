@@ -51,7 +51,7 @@ class MeetingRequestPolicy
             return false;
         }
         $unitIds = in_array($request->flow_type, ['INTER_DIRECTORATE', 'MULTI_DIRECTORATE'], true) ? $request->units()->pluck('organizational_unit_id')->all() : [$request->requesting_unit_id];
-        return collect(['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])->contains(fn (string $role) => collect($unitIds)->contains(fn (int $unitId) => $user->hasScopedRole($role, $unitId)));
+        return collect(['DIRECTOR', 'DEPUTY_DIRECTOR', 'EXECUTIVE_MANAGEMENT'])->contains(fn (string $role) => collect($unitIds)->contains(fn (int $unitId) => $user->hasScopedRole($role, $unitId)));
     }
 
     public function viewIncoming(User $user, MeetingRequest $request): bool

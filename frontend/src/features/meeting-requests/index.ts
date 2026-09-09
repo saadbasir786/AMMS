@@ -21,6 +21,10 @@ export { DirectorateHighAuthorityRequestDetailView } from './components/request-
 export { MultiDirectorateHighAuthorityRequestDetailView } from './components/request-detail/multi-directorate-high-authority-request-detail-view'
 export { HighAuthorityInitiatedRequestDetailView } from './components/request-detail/high-authority-initiated-request-detail-view'
 export { ParticipantPicker } from '@/shared/components'
+export {
+  UnifiedDelegationDialog,
+  type DelegationCapabilityType,
+} from './components/unified-delegation-dialog'
 
 export {
   fetchMeetingRequestActionCapabilities,

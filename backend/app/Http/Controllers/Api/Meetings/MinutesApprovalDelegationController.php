@@ -68,11 +68,11 @@ class MinutesApprovalDelegationController extends Controller
         ];
 
         $delegates = User::query()
-            ->with('employee.unit')
+            ->with(['employee.unit', 'roles', 'roleScopes.role'])
             ->where(fn ($query) => $query->where('status', 'ACTIVE')->orWhereNull('status'))
             ->whereHas('roleScopes', fn ($query) => $query
                 ->whereIn('organizational_unit_id', $unitIds)
-                ->whereHas('role', fn ($role) => $role->where('name', 'DEPUTY_DIRECTOR')->where('guard_name', 'sanctum')))
+                ->whereHas('role', fn ($role) => $role->whereIn('name', ['DEPUTY_DIRECTOR', 'EXECUTIVE_MANAGEMENT'])->where('guard_name', 'sanctum')))
             ->orderBy('name')
             ->orderBy('id')
             ->limit(50)
@@ -85,15 +85,31 @@ class MinutesApprovalDelegationController extends Controller
             'delegations_meta' => $delegationsPayload['meta'],
             'delegations_links' => $delegationsPayload['links'],
             'stats' => $stats,
-            'delegates' => $delegates->map(fn (User $user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'employee' => $user->employee ? [
-                    'full_name' => $user->employee->full_name,
-                    'unit' => $user->employee->unit ? ['id' => $user->employee->unit->id, 'name' => $user->employee->unit->name] : null,
-                ] : null,
-            ]),
+            'delegates' => $delegates->map(function (User $user) use ($unitIds): array {
+                $rolesInUnits = $user->roleScopes
+                    ->whereIn('organizational_unit_id', $unitIds)
+                    ->map(fn ($rs) => $rs->role?->name)
+                    ->filter()
+                    ->unique();
+
+                $roleTitle = match (true) {
+                    $rolesInUnits->contains('DEPUTY_DIRECTOR') => 'معاون ریاست',
+                    $rolesInUnits->contains('EXECUTIVE_MANAGEMENT') => 'مدیر اجرائیه',
+                    default => 'کادر اداری',
+                };
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role_title' => $roleTitle,
+                    'roles' => $rolesInUnits->values()->all(),
+                    'employee' => $user->employee ? [
+                        'full_name' => $user->employee->full_name,
+                        'unit' => $user->employee->unit ? ['id' => $user->employee->unit->id, 'name' => $user->employee->unit->name] : null,
+                    ] : null,
+                ];
+            }),
             'units' => $units,
         ]]);
     }
@@ -106,9 +122,12 @@ class MinutesApprovalDelegationController extends Controller
 
         $delegate = User::query()->with('employee.unit')->findOrFail($request->integer('delegate_user_id'));
         abort_unless(
-            $delegate->isActive() && $delegate->hasScopedRole('DEPUTY_DIRECTOR', $unit->id),
+            $delegate->isActive() && (
+                $delegate->hasScopedRole('DEPUTY_DIRECTOR', $unit->id)
+                || $delegate->hasScopedRole('EXECUTIVE_MANAGEMENT', $unit->id)
+            ),
             422,
-            'DELEGATE_MUST_BE_DEPUTY_DIRECTOR_OF_UNIT',
+            'فرد منتخب باید معاون یا مدیر اجرائیه همان ریاست باشد.',
         );
 
         $scope = DB::transaction(function () use ($actor, $delegate, $manager, $request, $unit) {
