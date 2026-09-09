@@ -24,6 +24,7 @@ type Delegate = {
   email?: string
   role_title?: string
   roles?: string[]
+  has_active_delegation?: boolean
   employee?: {
     full_name: string
     organizational_unit_id?: number
@@ -52,6 +53,7 @@ export function UnifiedDelegationDialog({
 
   const [units, setUnits] = useState<Unit[]>([])
   const [delegates, setDelegates] = useState<Delegate[]>([])
+  const [activeDelegationUserId, setActiveDelegationUserId] = useState<number | null>(null)
   const [loadingCandidates, setLoadingCandidates] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export function UnifiedDelegationDialog({
       setReason('')
       setError(null)
       setSuccessMessage(null)
+      setActiveDelegationUserId(null)
     }
   }, [open, initialCapability])
 
@@ -83,6 +86,7 @@ export function UnifiedDelegationDialog({
 
       setUnits(fetchedUnits)
       setDelegates(fetchedDelegates)
+      setActiveDelegationUserId(data?.active_delegation_user_id ?? null)
       if (fetchedUnits.length > 0) {
         setUnitId((curr) => curr || String(fetchedUnits[0].id))
       }
@@ -105,6 +109,13 @@ export function UnifiedDelegationDialog({
     setDelegateUserId('')
   }, [unitId, capability])
 
+  const selectedDelegate = delegates.find((d) => String(d.id) === String(delegateUserId))
+  const isSelectedDelegateActive = Boolean(selectedDelegate?.has_active_delegation)
+  const activeMinutesHolder =
+    capability === 'MINUTES' && activeDelegationUserId
+      ? delegates.find((d) => d.id === activeDelegationUserId)
+      : null
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const effectiveUnitId = unitId || (units.length > 0 ? String(units[0].id) : '')
@@ -116,6 +127,16 @@ export function UnifiedDelegationDialog({
 
     if (!effectiveUnitId) {
       setError('اطلاعات اداره مربوطه در دسترس نیست. لطفاً مجدداً تلاش نمایید.')
+      return
+    }
+
+    if (isSelectedDelegateActive) {
+      setError('این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای این بخش می‌باشد و امکان تفویض مجدد وجود ندارد.')
+      return
+    }
+
+    if (capability === 'MINUTES' && activeDelegationUserId) {
+      setError('در حال حاضر یک تفویض فعال برای بررسی صورت‌جلسات در این اداره وجود دارد. ابتدا تفویض قبلی را لغو فرمایید.')
       return
     }
 
@@ -247,7 +268,7 @@ export function UnifiedDelegationDialog({
             </div>
             <select
               required
-              disabled={loadingCandidates || delegates.length === 0}
+              disabled={loadingCandidates || delegates.length === 0 || (capability === 'MINUTES' && Boolean(activeDelegationUserId))}
               value={delegateUserId}
               onChange={(e) => setDelegateUserId(e.target.value)}
               className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
@@ -255,14 +276,42 @@ export function UnifiedDelegationDialog({
               <option value="">
                 {delegates.length === 0
                   ? 'هیچ فرد واجد صلاحیتی در این اداره یافت نشد'
+                  : capability === 'MINUTES' && Boolean(activeDelegationUserId)
+                  ? 'تفویض صورت‌جلسات در این اداره قبلاً اختصاص یافته است'
                   : 'انتخاب فرد واجد صلاحیت (معاون یا مدیر اجرائیه)...'}
               </option>
               {delegates.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.employee?.full_name || d.name} — {d.role_title || 'کادر اداری'}{d.email ? ` (${d.email})` : ''}
+                <option
+                  key={d.id}
+                  value={d.id}
+                  disabled={d.has_active_delegation || (capability === 'MINUTES' && Boolean(activeDelegationUserId))}
+                >
+                  {d.employee?.full_name || d.name} — {d.role_title || 'کادر اداری'}
+                  {d.email ? ` (${d.email})` : ''}
+                  {d.has_active_delegation ? ' (دارای تفویض فعال)' : ''}
                 </option>
               ))}
             </select>
+
+            {capability === 'MINUTES' && activeMinutesHolder && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] flex items-start gap-2.5">
+                <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">تفویض فعال در این اداره وجود دارد</p>
+                  <p className="leading-relaxed text-amber-700 dark:text-amber-300/90 text-[10.5px]">
+                    در حال حاضر صلاحیت بررسی صورت‌جلسات به <strong>{activeMinutesHolder.employee?.full_name || activeMinutesHolder.name} ({activeMinutesHolder.role_title || 'کادر اداری'})</strong> تفویض شده است. طبق مقررات سازمانی، در هر اداره حداکثر یک تفویض فعال مجاز است. در صورت نیاز به تغییر، ابتدا تفویض قبلی را لغو فرمایید.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isSelectedDelegateActive && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] flex items-center gap-2">
+                <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای این بخش می‌باشد و امکان تفویض مجدد وجود ندارد.</span>
+              </div>
+            )}
+
             <p className="text-[10px] text-muted-foreground">
               فقط کادر دارای اهلیت سازمانی (معاونت اداره یا مدیریت اجرائیه) در این لیست مجاز می‌باشند.
             </p>
@@ -298,7 +347,12 @@ export function UnifiedDelegationDialog({
           <DialogFooter className="gap-2 pt-2 sm:justify-start">
             <Button
               type="submit"
-              disabled={busy || loadingCandidates}
+              disabled={
+                busy ||
+                loadingCandidates ||
+                isSelectedDelegateActive ||
+                (capability === 'MINUTES' && Boolean(activeDelegationUserId))
+              }
               className="h-9 text-xs font-semibold rounded-xl gap-1.5 flex-1"
             >
               {busy ? (

@@ -229,6 +229,41 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_duplicate_delegation_to_same_user_is_prevented(): void
+    {
+        [$director, $executive, $tech] = $this->technologyActors();
+
+        // 1. Initial successful delegation
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/internal-meeting-approval-delegations', [
+                'organizational_unit_id' => $tech->id,
+                'delegate_user_id' => $executive->id,
+                'expires_at' => now()->addWeek()->toDateString(),
+                'reason' => 'تفویض اول به مدیر اجرائیه.',
+            ])
+            ->assertCreated();
+
+        // 2. Candidate list exposes has_active_delegation = true
+        $indexResponse = $this->actingAs($director, 'sanctum')
+            ->getJson('/api/internal-meeting-approval-delegations')
+            ->assertOk();
+
+        $candidate = collect($indexResponse->json('data.delegates'))->firstWhere('id', $executive->id);
+        $this->assertNotNull($candidate);
+        $this->assertTrue($candidate['has_active_delegation']);
+
+        // 3. Attempting to delegate AGAIN to the same executive manager must fail with 422
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/internal-meeting-approval-delegations', [
+                'organizational_unit_id' => $tech->id,
+                'delegate_user_id' => $executive->id,
+                'expires_at' => now()->addWeeks(2)->toDateString(),
+                'reason' => 'تلاش اشتباه برای تفویض مجدد.',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای تأیید جلسات داخلی در این اداره می‌باشد.');
+    }
+
     /** @return array{User, User, OrganizationalUnit} */
     private function technologyActors(): array
     {

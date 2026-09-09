@@ -68,6 +68,13 @@ class MinutesApprovalDelegationController extends Controller
             'expired' => (clone $statsBase)->whereNull('revoked_at')->whereNotNull('expires_at')->where('expires_at', '<=', now())->count(),
         ];
 
+        $activeScopes = AmmsCapabilityScope::query()
+            ->active()
+            ->where('capability', SpecialCapability::DIRECTORATE_MINUTES_APPROVAL)
+            ->whereIn('organizational_unit_id', $unitIds)
+            ->get(['user_id', 'organizational_unit_id']);
+        $activeUserIds = $activeScopes->pluck('user_id')->all();
+
         $delegates = User::query()
             ->with(['employee.unit', 'roles', 'roleScopes.role'])
             ->where(fn ($query) => $query->where('status', 'ACTIVE')->orWhereNull('status'))
@@ -86,7 +93,8 @@ class MinutesApprovalDelegationController extends Controller
             'delegations_meta' => $delegationsPayload['meta'],
             'delegations_links' => $delegationsPayload['links'],
             'stats' => $stats,
-            'delegates' => $delegates->map(function (User $user) use ($unitIds): array {
+            'active_delegation_user_id' => $activeScopes->first()?->user_id,
+            'delegates' => $delegates->map(function (User $user) use ($unitIds, $activeUserIds): array {
                 $rolesInUnits = $user->roleScopes
                     ->whereIn('organizational_unit_id', $unitIds)
                     ->map(fn ($rs) => $rs->role?->name)
@@ -105,6 +113,7 @@ class MinutesApprovalDelegationController extends Controller
                     'email' => $user->email,
                     'role_title' => $roleTitle,
                     'roles' => $rolesInUnits->values()->all(),
+                    'has_active_delegation' => in_array($user->id, $activeUserIds, true),
                     'employee' => $user->employee ? [
                         'full_name' => $user->employee->full_name,
                         'unit' => $user->employee->unit ? ['id' => $user->employee->unit->id, 'name' => $user->employee->unit->name] : null,
@@ -133,13 +142,20 @@ class MinutesApprovalDelegationController extends Controller
 
         $scope = DB::transaction(function () use ($actor, $delegate, $manager, $request, $unit) {
             OrganizationalUnit::query()->lockForUpdate()->findOrFail($unit->id);
-            $hasAnotherActiveDelegate = AmmsCapabilityScope::query()
+
+            $activeDelegation = AmmsCapabilityScope::query()
                 ->active()
                 ->where('capability', SpecialCapability::DIRECTORATE_MINUTES_APPROVAL)
                 ->where('organizational_unit_id', $unit->id)
-                ->where('user_id', '!=', $delegate->id)
-                ->exists();
-            abort_if($hasAnotherActiveDelegate, 422, 'ACTIVE_MINUTES_APPROVAL_DELEGATION_EXISTS');
+                ->first();
+
+            if ($activeDelegation) {
+                if ($activeDelegation->user_id === $delegate->id) {
+                    abort(422, 'این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای بررسی صورت‌جلسات در این اداره می‌باشد.');
+                }
+
+                abort(422, 'در حال حاضر یک تفویض صلاحیت فعال برای بررسی صورت‌جلسات در این اداره به شخص دیگری اختصاص دارد. در صورت نیاز، ابتدا تفویض قبلی را لغو فرمایید.');
+            }
 
             $scope = $manager->grant(
                 $delegate,

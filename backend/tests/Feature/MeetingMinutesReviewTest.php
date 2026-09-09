@@ -84,6 +84,15 @@ class MeetingMinutesReviewTest extends TestCase
             'reason' => 'غیابت موقت رئیس ریاست.',
         ])->assertCreated()->assertJsonPath('data.active', true);
 
+        // Attempting duplicate delegation to the same deputy must fail with 422
+        $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
+            'organizational_unit_id' => $unit->id,
+            'delegate_user_id' => $deputy->id,
+            'expires_at' => now()->addWeeks(2)->toDateString(),
+            'reason' => 'تلاش مجدد برای تفویض به همان شخص.',
+        ])->assertStatus(422)
+          ->assertJsonPath('message', 'این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای بررسی صورت‌جلسات در این اداره می‌باشد.');
+
         $alternateDeputy = $this->createTechnologyDeputy($unit, 'EMP-TECH-ALT', 'tech.deputy.alternate@example.test');
         $this->actingAs($director, 'sanctum')->postJson('/api/minutes-approval-delegations', [
             'organizational_unit_id' => $unit->id,

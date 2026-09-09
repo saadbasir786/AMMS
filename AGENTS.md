@@ -44,6 +44,7 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
    - AI assistants may autonomously evolve implementation conventions such as UI consistency, reusable component patterns, and non-domain architecture guidance.
    - AI assistants must **not** autonomously change roles, permissions, organizational-scope semantics, delegated capabilities, business-flow authority, approval paths, ownership rules, or lifecycle states. These require an explicit user/domain decision and the authorization charter takes precedence over general autonomous-evolution guidance.
 
-5. **Mandatory Per-Feature Git Commit & Push Policy**
-   - Once a feature or capability is completed and verified, and upon user approval, a clean, dedicated Git commit must be recorded and pushed to the remote repository BEFORE starting the next feature.
+5. **Mandatory Per-Feature Git Commit Policy (Manual Push by User)**
+   - Once a feature or capability is completed and verified, and upon user approval, a clean, dedicated Git commit must be recorded locally BEFORE starting the next feature.
+   - **Local Commit Only**: The AI assistant must only execute `git commit` and must **NEVER execute `git push`**. All remote push operations are strictly performed manually by the user.
    - Never pile up multiple unrelated refactored features in an uncommitted state.

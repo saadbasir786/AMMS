@@ -69,6 +69,13 @@ class InternalMeetingApprovalDelegationController extends Controller
             'expired' => (clone $statsBase)->whereNull('revoked_at')->whereNotNull('expires_at')->where('expires_at', '<=', now())->count(),
         ];
 
+        $activeUserIds = AmmsCapabilityScope::query()
+            ->active()
+            ->where('capability', SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL)
+            ->whereIn('organizational_unit_id', $unitIds)
+            ->pluck('user_id')
+            ->all();
+
         $delegates = User::query()
             ->with(['employee.unit', 'roles', 'roleScopes.role'])
             ->where(fn ($query) => $query->where('status', 'ACTIVE')->orWhereNull('status'))
@@ -87,7 +94,7 @@ class InternalMeetingApprovalDelegationController extends Controller
             'delegations_meta' => $delegationsPayload['meta'],
             'delegations_links' => $delegationsPayload['links'],
             'stats' => $stats,
-            'delegates' => $delegates->map(function (User $user) use ($unitIds): array {
+            'delegates' => $delegates->map(function (User $user) use ($unitIds, $activeUserIds): array {
                 $rolesInUnits = $user->roleScopes
                     ->whereIn('organizational_unit_id', $unitIds)
                     ->map(fn ($rs) => $rs->role?->name)
@@ -106,6 +113,7 @@ class InternalMeetingApprovalDelegationController extends Controller
                     'email' => $user->email,
                     'role_title' => $roleTitle,
                     'roles' => $rolesInUnits->values()->all(),
+                    'has_active_delegation' => in_array($user->id, $activeUserIds, true),
                     'employee' => $user->employee ? [
                         'full_name' => $user->employee->full_name,
                         'organizational_unit_id' => $user->employee->organizational_unit_id,
@@ -135,6 +143,21 @@ class InternalMeetingApprovalDelegationController extends Controller
         );
 
         $scope = DB::transaction(function () use ($actor, $delegate, $manager, $request, $unit) {
+            OrganizationalUnit::query()->lockForUpdate()->findOrFail($unit->id);
+
+            $alreadyHasActive = AmmsCapabilityScope::query()
+                ->active()
+                ->where('user_id', $delegate->id)
+                ->where('capability', SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL)
+                ->where('organizational_unit_id', $unit->id)
+                ->exists();
+
+            abort_if(
+                $alreadyHasActive,
+                422,
+                'این کاربر در حال حاضر دارای تفویض صلاحیت فعال برای تأیید جلسات داخلی در این اداره می‌باشد.'
+            );
+
             $scope = $manager->grant(
                 $delegate,
                 SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL,

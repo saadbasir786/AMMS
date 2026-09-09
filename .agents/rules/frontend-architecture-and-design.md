@@ -105,8 +105,9 @@ All user-facing text must be clear, professional, respectful, and free of develo
 
 ---
 
-## 7. Mandatory Per-Feature Git Commit & Push Lifecycle
+## 7. Mandatory Per-Feature Git Commit Lifecycle (Manual Push by User)
 
-1. **Commit Timing**: Whenever a feature, workspace, or domain capability is completed and approved by the user, a dedicated, descriptive Git commit MUST be created and pushed to the remote repository **before starting the next feature**.
-2. **Commit Atomicity**: Each commit must strictly encapsulate changes belonging to that specific feature and its associated route/types/cleanup, keeping the Git history clean, logical, and bisectable.
-3. **Zero Accumulation**: Never leave completed features uncommitted across multiple consecutive tasks.
+1. **Commit Timing**: Whenever a feature, workspace, or domain capability is completed and approved by the user, a dedicated, descriptive Git commit MUST be recorded locally **before starting the next feature**.
+2. **Local Commit Only**: The AI assistant must strictly perform only `git commit` and never run `git push`. Remote push operations are handled manually by the user.
+3. **Commit Atomicity**: Each commit must strictly encapsulate changes belonging to that specific feature and its associated route/types/cleanup, keeping the Git history clean, logical, and bisectable.
+4. **Zero Accumulation**: Never leave completed features uncommitted across multiple consecutive tasks.

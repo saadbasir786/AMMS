@@ -253,7 +253,7 @@ For a new module or a change to an existing module:
 4. Keep API contracts and frontend visibility/types synchronized; document new endpoint parameters, aggregate semantics and significant compatibility or deployment requirements in the relevant project documentation.
 5. Verify changed behavior with the required tests and checks. Documentation-only edits need consistency/link/diff checks rather than an unrelated application test run.
 6. Review the diff for secrets, accidental generated files and unrelated changes. Report what changed, verification results and any remaining limitations.
-7. Follow `AGENTS.md`: after feature completion, verification and user approval, create and push a dedicated commit before starting the next feature. Do not infer commit/push approval from a request to edit code or rules.
+7. Follow `AGENTS.md`: after feature completion, verification and user approval, record a clean, dedicated Git commit locally before starting the next feature. Never execute `git push`; remote push is strictly manual by the user.
 
 ## 12. Autonomous Implementation-Rule Evolution
 
