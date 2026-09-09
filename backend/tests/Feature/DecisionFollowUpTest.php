@@ -7,11 +7,13 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingActionItem;
+use App\Models\MeetingActionItemExtensionRequest;
+use App\Models\MeetingActionItemUpdate;
 use App\Models\MeetingDecisionFollowUp;
 use App\Models\MeetingExecutionSession;
+use App\Models\MeetingMinutes;
 use App\Models\MeetingMinuteVersion;
 use App\Models\MeetingMinuteVersionDecision;
-use App\Models\MeetingMinutes;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
@@ -50,6 +52,41 @@ class DecisionFollowUpTest extends TestCase
         $this->assertSame('COMPLETED', $meeting->fresh()->status);
         $meeting->update(['status' => 'HELD']);
         $this->actingAs($owner, 'sanctum')->postJson('/api/meetings/'.$meeting->id.'/follow-up/initialize')->assertStatus(422)->assertJsonPath('code', 'FOLLOWUP_MEETING_NOT_COMPLETED');
+    }
+
+    public function test_meeting_followup_uses_pagination_and_full_scope_kpis(): void
+    {
+        [$meeting, $owner] = $this->finalizedFixture();
+
+        $this->actingAs($owner, 'sanctum')
+            ->postJson('/api/meetings/'.$meeting->id.'/follow-up/initialize')
+            ->assertCreated();
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson('/api/meetings/'.$meeting->id.'/follow-up?per_page=1&page=1')
+            ->assertOk()
+            ->assertJsonPath('data.followups_meta.per_page', 1)
+            ->assertJsonPath('data.followups_meta.current_page', 1)
+            ->assertJsonPath('data.summary.total_decisions', 1)
+            ->assertJsonPath('data.followup_initialized', true);
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson('/api/meetings/'.$meeting->id.'/follow-up?per_page=0')
+            ->assertStatus(422);
+    }
+
+    public function test_action_item_index_exposes_authoritative_stats_alongside_pagination(): void
+    {
+        [, $owner] = $this->finalizedFixture();
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson('/api/action-items?per_page=1')
+            ->assertOk()
+            ->assertJsonPath('stats.total', 0)
+            ->assertJsonPath('stats.in_progress', 0)
+            ->assertJsonPath('stats.pending_verification', 0)
+            ->assertJsonPath('stats.completed', 0)
+            ->assertJsonPath('stats.overdue', 0);
     }
 
     public function test_no_action_requires_reason_and_action_items_are_deterministically_numbered(): void
@@ -150,7 +187,7 @@ class DecisionFollowUpTest extends TestCase
         $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/follow-up/classify', ['classification' => 'ACTION_REQUIRED'])->assertOk();
         $item = $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/action-items', ['title' => 'اقدام قابل تمدید', 'responsible_unit_id' => $meeting->organizing_unit_id, 'assigned_employee_id' => $employeeUser->employee_id, 'due_date' => now()->addDays(2)->format('Y-m-d')])->assertCreated()->json('data');
         $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/extensions', ['requested_due_date' => now()->addDays(12)->format('Y-m-d'), 'reason' => 'نیاز به زمان بیشتر'])->assertCreated();
-        $extension = \App\Models\MeetingActionItemExtensionRequest::firstOrFail();
+        $extension = MeetingActionItemExtensionRequest::firstOrFail();
         $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-item-extensions/'.$extension->id.'/approve')->assertStatus(403);
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-item-extensions/'.$extension->id.'/approve')->assertOk()->assertJsonPath('data.status', 'APPROVED');
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/assignment', ['responsible_unit_id' => $finance->id, 'assigned_employee_id' => null, 'reason' => 'انتقال رسمی مسئولیت'])->assertOk();
@@ -173,8 +210,8 @@ class DecisionFollowUpTest extends TestCase
         $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/progress', ['progress_percent' => 100, 'note' => 'اصلاح انجام شد'])->assertOk();
         $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/submit', ['completion_note' => 'ارسال مجدد'])->assertOk()->assertJsonPath('data.status', 'PENDING_VERIFICATION');
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/verify')->assertOk()->assertJsonPath('data.status', 'COMPLETED');
-        $this->assertSame(2, \App\Models\MeetingActionItemUpdate::where('action_item_id', $item['id'])->where('update_type', \App\Models\MeetingActionItemUpdate::COMPLETION_SUBMITTED)->count());
-        $this->assertSame(1, \App\Models\MeetingActionItemUpdate::where('action_item_id', $item['id'])->where('update_type', \App\Models\MeetingActionItemUpdate::COMPLETION_RETURNED)->count());
+        $this->assertSame(2, MeetingActionItemUpdate::where('action_item_id', $item['id'])->where('update_type', MeetingActionItemUpdate::COMPLETION_SUBMITTED)->count());
+        $this->assertSame(1, MeetingActionItemUpdate::where('action_item_id', $item['id'])->where('update_type', MeetingActionItemUpdate::COMPLETION_RETURNED)->count());
     }
 
     public function test_progress_bounds_and_employee_cannot_cancel_or_mutate_unrelated_item(): void
@@ -200,7 +237,7 @@ class DecisionFollowUpTest extends TestCase
         $item = $this->actingAs($owner, 'sanctum')->postJson('/api/decisions/'.$decision->id.'/action-items', ['title' => 'اقدام عقب‌افتاده', 'responsible_unit_id' => $meeting->organizing_unit_id, 'assigned_employee_id' => $employeeUser->employee_id, 'due_date' => now()->subDay()->format('Y-m-d')])->assertCreated()->json('data');
         $this->actingAs($owner, 'sanctum')->getJson('/api/action-items/'.$item['id'])->assertOk()->assertJsonPath('data.is_overdue', true);
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/cancel', ['reason' => 'تصمیم جایگزین صادر شد.'])->assertOk()->assertJsonPath('data.status', 'CANCELLED')->assertJsonPath('data.is_overdue', false);
-        $this->assertSame(0, \App\Models\MeetingActionItem::where('status', 'OVERDUE')->count());
+        $this->assertSame(0, MeetingActionItem::where('status', 'OVERDUE')->count());
     }
 
     public function test_cross_unit_reassignment_requires_owner_and_private_evidence_is_downloadable_only_in_scope(): void
@@ -245,11 +282,11 @@ class DecisionFollowUpTest extends TestCase
         $this->actingAs($employeeUser, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/submit', ['completion_note' => 'برای تأیید ارسال شد'])->assertOk();
         $this->actingAs($owner, 'sanctum')->postJson('/api/action-items/'.$item['id'].'/completion/verify')->assertOk()->assertJsonPath('data.status', 'COMPLETED');
 
-        $resolved = \App\Models\MeetingActionItemExtensionRequest::findOrFail($extension['id']);
-        $this->assertSame(\App\Models\MeetingActionItemExtensionRequest::WITHDRAWN, $resolved->status);
+        $resolved = MeetingActionItemExtensionRequest::findOrFail($extension['id']);
+        $this->assertSame(MeetingActionItemExtensionRequest::WITHDRAWN, $resolved->status);
         $this->assertNotNull($resolved->reviewed_at);
         $this->assertSame('ACTION_ITEM_COMPLETED_BEFORE_EXTENSION_REVIEW', $resolved->review_reason);
-        $this->assertSame(0, \App\Models\MeetingActionItemExtensionRequest::where('action_item_id', $item['id'])->where('status', 'PENDING')->count());
+        $this->assertSame(0, MeetingActionItemExtensionRequest::where('action_item_id', $item['id'])->where('status', 'PENDING')->count());
         $this->assertSame($originalDueDate, MeetingActionItem::findOrFail($item['id'])->due_date?->format('Y-m-d'));
         $this->assertSame($decision->target_date?->format('Y-m-d'), $decision->fresh()->target_date?->format('Y-m-d'));
         $this->assertDatabaseHas('meeting_actions', ['action' => 'ACTION_ITEM_EXTENSION_WITHDRAWN']);
@@ -273,6 +310,7 @@ class DecisionFollowUpTest extends TestCase
         $version = MeetingMinuteVersion::create(['uuid' => (string) Str::uuid(), 'meeting_minutes_id' => $minutes->id, 'version_number' => 1, 'execution_session_id' => $session->id, 'schedule_version_id' => $scheduleVersion->id, 'participant_version_id' => $participantVersion->id, 'summary' => 'خلاصهٔ نهایی', 'prepared_by_user_id' => $owner->id, 'submitted_at' => now()->subMinutes(20)]);
         $decision = MeetingMinuteVersionDecision::create(['uuid' => (string) Str::uuid(), 'meeting_minute_version_id' => $version->id, 'sequence_number' => 1, 'decision_number' => 'DEC-001', 'decision_text' => 'برنامه برای اجرا ابلاغ گردد.', 'responsible_unit_id' => $unit->id, 'responsible_employee_id' => $employee->id, 'target_date' => now()->addDays(7)->format('Y-m-d'), 'notes' => 'یادداشت تصمیم']);
         $minutes->update(['current_version_id' => $version->id]);
+
         return [$meeting->fresh(['minutes']), $owner, $decision];
     }
 }

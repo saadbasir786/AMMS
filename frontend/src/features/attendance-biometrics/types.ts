@@ -63,6 +63,17 @@ export type MeetingTerminalsData = {
     current_participant_version_id?: number
   }
   assignments: TerminalAssignment[]
+  assignments_meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+  stats?: {
+    total: number
+    active: number
+    revoked: number
+  }
   available_terminals: Terminal[]
 }
 
@@ -94,7 +105,19 @@ export type MeetingAttendanceData = {
     status: string
   }
   records: AttendanceRecord[]
+  official_count?: number
   participants_count?: number
+  records_meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+  stats?: {
+    total: number
+    biometric: number
+    manual: number
+  }
 }
 
 export type BiometricTemplate = {
@@ -119,4 +142,10 @@ export type EmployeeBiometricData = {
     }
   }
   templates?: BiometricTemplate[]
+  templates_meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
 }

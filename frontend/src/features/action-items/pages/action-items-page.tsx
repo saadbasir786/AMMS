@@ -17,13 +17,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiPage } from '@/lib/api-client'
 import { ActionItemsFilterBar } from '../components/action-items-filter-bar'
 import { ActionItemsTable } from '../components/action-items-table'
-import type { ActionItem, ActionItemFilters, ActionItemPageMeta } from '../types'
+import type { ActionItem, ActionItemFilters, ActionItemPageMeta, ActionItemPageStats } from '../types'
 
 export function ActionItemsPage() {
   const [items, setItems] = useState<ActionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pageMeta, setPageMeta] = useState<ActionItemPageMeta | null>(null)
+  const [pageStats, setPageStats] = useState<ActionItemPageStats | null>(null)
   const [page, setPage] = useState(1)
 
   const [filters, setFilters] = useState<ActionItemFilters>({
@@ -48,6 +49,7 @@ export function ActionItemsPage() {
       const payload = apiPage(res)
       setItems(payload?.data || [])
       setPageMeta(payload?.meta || null)
+      setPageStats(payload?.stats || null)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -68,11 +70,11 @@ export function ActionItemsPage() {
   }
 
   // KPI counters
-  const total = pageMeta?.total ?? items.length
-  const inProgressCount = items.filter((i) => ['OPEN', 'IN_PROGRESS'].includes(i.status)).length
-  const pendingVerificationCount = items.filter((i) => i.status === 'PENDING_VERIFICATION').length
-  const completedCount = items.filter((i) => i.status === 'COMPLETED').length
-  const overdueCount = items.filter((i) => i.is_overdue).length
+  const total = pageStats?.total ?? pageMeta?.total ?? items.length
+  const inProgressCount = pageStats?.in_progress ?? items.filter((i) => ['OPEN', 'IN_PROGRESS'].includes(i.status)).length
+  const pendingVerificationCount = pageStats?.pending_verification ?? items.filter((i) => i.status === 'PENDING_VERIFICATION').length
+  const completedCount = pageStats?.completed ?? items.filter((i) => i.status === 'COMPLETED').length
+  const overdueCount = pageStats?.overdue ?? items.filter((i) => i.is_overdue).length
 
   return (
     <div className="space-y-6" dir="rtl">

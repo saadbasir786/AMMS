@@ -10,16 +10,15 @@ use App\Models\MeetingAttendanceRecord;
 use App\Models\MeetingDecisionFollowUp;
 use App\Models\MeetingExceptionCase;
 use App\Models\MeetingMinuteVersionDecision;
+use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingRequest;
 use App\Models\MeetingRescheduleCase;
-use App\Models\MeetingParticipantChangeCase;
 use App\Reporting\Filters\ReportingFilter;
 use App\Reporting\Metrics\ReportingMetricCatalog;
 use App\Reporting\Scopes\ReportingScopeResolver;
 use App\Support\OfficialAttendanceResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -116,41 +115,64 @@ final class ReportingQueryService
 
     public function meetings(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
+        $sort = $this->sortColumn($filters, ['meeting_date', 'meeting_number', 'created_at', 'status']);
+
         return $this->meetingBase($scope, $filters)
             ->with(['request.requestingUnit', 'organizingUnit', 'units.unit', 'currentScheduleVersion', 'currentParticipantVersion', 'authorityContext'])
             ->select('meetings.*')
-            ->orderBy('meetings.'.$filters->sort, $filters->direction)
+            ->orderBy('meetings.'.$sort, $filters->direction)
+            ->orderBy('meetings.id', $filters->direction)
             ->paginate($filters->perPage);
     }
 
     public function requests(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
+        $sort = $this->sortColumn($filters, ['created_at', 'updated_at', 'status', 'priority', 'preferred_date', 'request_number']);
+
         return $this->requestBase($scope, $filters)
             ->with(['requestingUnit', 'meeting'])
             ->select('meeting_requests.*')
-            ->orderBy('meeting_requests.'.$filters->sort, $filters->direction)
+            ->orderBy('meeting_requests.'.$sort, $filters->direction)
+            ->orderBy('meeting_requests.id', $filters->direction)
             ->paginate($filters->perPage);
     }
 
     public function attendance(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
+        $sort = $this->sortColumn($filters, ['created_at']);
         $query = MeetingAttendanceRecord::query()->with(['meeting', 'employee.unit', 'participantVersion', 'invalidation'])
             ->whereIn('meeting_id', $this->meetingBase($scope, $filters)->select('meetings.id'))
             ->whereBetween('recorded_at_server', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
-        if ($filters->attendanceState === 'OFFICIAL') $query->whereDoesntHave('invalidation');
-        if ($filters->attendanceState === 'INVALIDATED') $query->whereHas('invalidation');
-        return $query->orderBy('recorded_at_server', $filters->direction)->paginate($filters->perPage);
+        if ($filters->attendanceState === 'OFFICIAL') {
+            $query->whereDoesntHave('invalidation');
+        }
+        if ($filters->attendanceState === 'INVALIDATED') {
+            $query->whereHas('invalidation');
+        }
+
+        return $query->orderBy('meeting_attendance_records.'.$sort, $filters->direction)
+            ->orderBy('meeting_attendance_records.id', $filters->direction)
+            ->paginate($filters->perPage);
     }
 
     public function decisions(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
-        return $this->decisionBase($scope, $filters)->with(['version.minutes.meeting', 'responsibleUnit', 'responsibleEmployee'])->paginate($filters->perPage);
+        $sort = $this->sortColumn($filters, ['created_at']);
+
+        return $this->decisionBase($scope, $filters)
+            ->with(['version.minutes.meeting', 'responsibleUnit', 'responsibleEmployee'])
+            ->orderBy('meeting_minute_version_decisions.'.$sort, $filters->direction)
+            ->orderBy('meeting_minute_version_decisions.id', $filters->direction)
+            ->paginate($filters->perPage);
     }
 
     public function actionItems(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
+        $sort = $this->sortColumn($filters, ['created_at', 'due_date', 'status', 'completed_at']);
         $query = $this->actionBase($scope, $filters)->with(['responsibleUnit', 'assignedEmployee', 'followup.decision', 'followup.meeting']);
-        if ($filters->actionItemStatus) $query->where('meeting_action_items.status', $filters->actionItemStatus);
+        if ($filters->actionItemStatus) {
+            $query->where('meeting_action_items.status', $filters->actionItemStatus);
+        }
         if ($filters->overdue !== null) {
             $overdue = $filters->overdue;
             $query->where(function (Builder $q) use ($overdue, $filters): void {
@@ -158,19 +180,29 @@ final class ReportingQueryService
                 $overdue ? $q->where($condition) : $q->whereNot($condition);
             });
         }
-        return $query->orderBy('meeting_action_items.'.$filters->sort, $filters->direction)->paginate($filters->perPage);
+
+        return $query->orderBy('meeting_action_items.'.$sort, $filters->direction)
+            ->orderBy('meeting_action_items.id', $filters->direction)
+            ->paginate($filters->perPage);
     }
 
     public function exceptions(ReportingScopeResolver $scope, ReportingFilter $filters): LengthAwarePaginator
     {
+        $sort = $this->sortColumn($filters, ['created_at', 'status']);
         $query = $this->exceptionBase($scope, $filters)->with(['meeting', 'currentVersion.reviews']);
-        if ($filters->exceptionType) $query->where('meeting_exception_cases.case_type', $filters->exceptionType);
-        return $query->orderBy('meeting_exception_cases.created_at', $filters->direction)->paginate($filters->perPage);
+        if ($filters->exceptionType) {
+            $query->where('meeting_exception_cases.case_type', $filters->exceptionType);
+        }
+
+        return $query->orderBy('meeting_exception_cases.'.$sort, $filters->direction)
+            ->orderBy('meeting_exception_cases.id', $filters->direction)
+            ->paginate($filters->perPage);
     }
 
     public function technical(ReportingScopeResolver $scope): array
     {
         $scope->requirePermission('reporting.technical.view');
+
         return [
             'scope' => 'TECHNICAL_INFRASTRUCTURE',
             'as_of' => now()->toIso8601String(),
@@ -188,10 +220,19 @@ final class ReportingQueryService
     {
         $query = Meeting::query()->whereBetween('meetings.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainMeetings($query, $filters->unitId(), $filters->attribution);
-        if ($filters->flowType) $query->whereHas('request', fn (Builder $q) => $q->where('flow_type', $filters->flowType));
-        if ($filters->meetingStatus) $query->where('meetings.status', $filters->meetingStatus);
-        if ($filters->highAuthorityOnly === true) $query->whereHas('authorityContext');
-        if ($filters->search) $query->where(fn (Builder $q) => $q->where('meetings.meeting_number', 'like', '%'.$filters->search.'%')->orWhere('meetings.title', 'like', '%'.$filters->search.'%'));
+        if ($filters->flowType) {
+            $query->whereHas('request', fn (Builder $q) => $q->where('flow_type', $filters->flowType));
+        }
+        if ($filters->meetingStatus) {
+            $query->where('meetings.status', $filters->meetingStatus);
+        }
+        if ($filters->highAuthorityOnly === true) {
+            $query->whereHas('authorityContext');
+        }
+        if ($filters->search) {
+            $query->where(fn (Builder $q) => $q->where('meetings.meeting_number', 'like', '%'.$filters->search.'%')->orWhere('meetings.title', 'like', '%'.$filters->search.'%'));
+        }
+
         return $query;
     }
 
@@ -199,9 +240,16 @@ final class ReportingQueryService
     {
         $query = MeetingRequest::query()->whereBetween('meeting_requests.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainRequests($query, $filters->requestingUnitId ?? $filters->involvedUnitId);
-        if ($filters->flowType) $query->where('meeting_requests.flow_type', $filters->flowType);
-        if ($filters->requestStatus) $query->where('meeting_requests.status', $filters->requestStatus);
-        if ($filters->search) $query->where(fn (Builder $q) => $q->where('meeting_requests.request_number', 'like', '%'.$filters->search.'%')->orWhere('meeting_requests.subject', 'like', '%'.$filters->search.'%'));
+        if ($filters->flowType) {
+            $query->where('meeting_requests.flow_type', $filters->flowType);
+        }
+        if ($filters->requestStatus) {
+            $query->where('meeting_requests.status', $filters->requestStatus);
+        }
+        if ($filters->search) {
+            $query->where(fn (Builder $q) => $q->where('meeting_requests.request_number', 'like', '%'.$filters->search.'%')->orWhere('meeting_requests.subject', 'like', '%'.$filters->search.'%'));
+        }
+
         return $query;
     }
 
@@ -215,6 +263,7 @@ final class ReportingQueryService
             ->join('meetings', 'meetings.id', '=', 'meeting_minutes.meeting_id')
             ->whereBetween('meeting_minutes.finalized_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainJoinedMeetings($query, $filters->unitId(), $filters->attribution);
+
         return $query;
     }
 
@@ -222,7 +271,10 @@ final class ReportingQueryService
     {
         $query = MeetingDecisionFollowUp::query()->join('meetings', 'meetings.id', '=', 'meeting_decision_followups.meeting_id')->whereBetween('meeting_decision_followups.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainJoinedMeetings($query, $filters->unitId(), $filters->attribution);
-        if ($filters->followupStatus) $query->where('meeting_decision_followups.status', $filters->followupStatus);
+        if ($filters->followupStatus) {
+            $query->where('meeting_decision_followups.status', $filters->followupStatus);
+        }
+
         return $query;
     }
 
@@ -230,6 +282,7 @@ final class ReportingQueryService
     {
         $query = MeetingActionItem::query()->join('meeting_decision_followups', 'meeting_decision_followups.id', '=', 'meeting_action_items.decision_followup_id')->join('meetings', 'meetings.id', '=', 'meeting_decision_followups.meeting_id')->whereBetween('meeting_action_items.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()])->select('meeting_action_items.*');
         $scope->constrainActionItems($query, $filters->unitId());
+
         return $query;
     }
 
@@ -237,6 +290,7 @@ final class ReportingQueryService
     {
         $query = MeetingExceptionCase::query()->join('meetings', 'meetings.id', '=', 'meeting_exception_cases.meeting_id')->whereBetween('meeting_exception_cases.created_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainJoinedMeetings($query, $filters->unitId(), $filters->attribution);
+
         return $query;
     }
 
@@ -244,6 +298,7 @@ final class ReportingQueryService
     {
         $query = MeetingRescheduleCase::query()->join('meetings', 'meetings.id', '=', 'meeting_reschedule_cases.meeting_id')->whereNotNull('meeting_reschedule_cases.confirmed_at')->whereBetween('meeting_reschedule_cases.confirmed_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainJoinedMeetings($query, $filters->unitId(), $filters->attribution);
+
         return $query->count();
     }
 
@@ -251,13 +306,20 @@ final class ReportingQueryService
     {
         $query = MeetingParticipantChangeCase::query()->join('meetings', 'meetings.id', '=', 'meeting_participant_change_cases.meeting_id')->whereIn('meeting_participant_change_cases.status', ['CONFIRMED', 'APPLIED'])->whereBetween('meeting_participant_change_cases.updated_at', [$filters->dateRange->from->utc(), $filters->dateRange->toExclusive->utc()]);
         $scope->constrainJoinedMeetings($query, $filters->unitId(), $filters->attribution);
+
         return $query->count();
     }
 
     private function card(string $metricId, mixed $value, string $unit = 'count'): array
     {
         $definition = ReportingMetricCatalog::get($metricId);
+
         return ['metric_id' => $metricId, 'label' => $definition['label'], 'value' => $value, 'unit' => $unit, 'definition_version' => ReportingMetricCatalog::DEFINITION_VERSION];
+    }
+
+    private function sortColumn(ReportingFilter $filters, array $allowed): string
+    {
+        return in_array($filters->sort, $allowed, true) ? $filters->sort : 'created_at';
     }
 
     private function scopeDescriptor(ReportingScopeResolver $scope, ReportingFilter $filters): array

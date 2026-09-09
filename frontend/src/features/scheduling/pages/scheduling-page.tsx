@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { SchedulingStageBar } from '../components/scheduling-stage-bar'
 import { ScheduleFormCard } from '../components/schedule-form-card'
 import { ScheduleReviewCard } from '../components/schedule-review-card'
@@ -46,12 +47,12 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
     try {
       const [reqRes, empRes, unitRes] = await Promise.all([
         api.get(`/meeting-requests/${id}`),
-        api.get('/employees'),
+        fetchAllPages<EmployeeItem>('/employees'),
         api.get('/organizational-units'),
       ])
 
       const reqData = apiData(reqRes)
-      const empData = apiData(empRes) || []
+      const empData = empRes
       const unitData = apiData(unitRes) || []
 
       setRequest(reqData)

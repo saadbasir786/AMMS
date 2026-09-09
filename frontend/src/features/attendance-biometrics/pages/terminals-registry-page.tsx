@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { TerminalsTable } from '../components/terminals-table'
 import { TerminalFormDialog } from '../components/terminal-form-dialog'
 import type { Terminal } from '../types'
@@ -24,11 +25,11 @@ export function TerminalsRegistryPage() {
     setError(null)
     try {
       const [termRes, orgRes] = await Promise.all([
-        api.get('/terminals'),
-        api.get('/admin/organizations').catch(() => ({ data: [] })),
+        fetchAllPages<Terminal>('/terminals'),
+        fetchAllPages<any>('/admin/organizations').catch(() => []),
       ])
-      setTerminals(apiData(termRes) || [])
-      setOrganizations(apiData(orgRes) || [])
+      setTerminals(termRes)
+      setOrganizations(orgRes)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||

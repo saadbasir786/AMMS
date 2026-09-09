@@ -39,6 +39,7 @@ export function EmployeeBiometricsPage() {
   const navigate = useNavigate()
 
   const [data, setData] = useState<EmployeeBiometricData | null>(null)
+  const [templatesPage, setTemplatesPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +48,7 @@ export function EmployeeBiometricsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/employees/${id}/biometrics`)
+      const res = await api.get(`/employees/${id}/biometrics`, { params: { page: templatesPage, per_page: 25 } })
       setData(apiData(res))
     } catch (err: any) {
       setError(
@@ -57,7 +58,7 @@ export function EmployeeBiometricsPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, templatesPage])
 
   useEffect(() => {
     loadData()
@@ -65,6 +66,7 @@ export function EmployeeBiometricsPage() {
 
   const employee = data?.employee
   const templates = data?.templates || []
+  const templatesMeta = data?.templates_meta
   const statusCfg = STATUS_CONFIG[data?.biometric_status || 'NOT_ENROLLED'] || {
     label: data?.biometric_status || '—',
     color: 'text-slate-600 bg-slate-100',
@@ -116,7 +118,8 @@ export function EmployeeBiometricsPage() {
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-20 bg-card border border-border/70 rounded-2xl animate-pulse" />
             ))}
-          </div>
+      </div>
+
           <div className="h-64 bg-card border border-border/70 rounded-2xl animate-pulse" />
         </div>
       )}
@@ -256,6 +259,14 @@ export function EmployeeBiometricsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {templatesMeta && templatesMeta.last_page > 1 && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-xs" dir="rtl">
+              <Button variant="outline" size="sm" disabled={templatesMeta.current_page <= 1} onClick={() => setTemplatesPage((page) => page - 1)}>قبلی</Button>
+              <span>صفحهٔ {templatesMeta.current_page} از {templatesMeta.last_page} · {templatesMeta.total} template</span>
+              <Button variant="outline" size="sm" disabled={templatesMeta.current_page >= templatesMeta.last_page} onClick={() => setTemplatesPage((page) => page + 1)}>بعدی</Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -28,7 +28,7 @@ class MeetingParticipantChangeController
     public function employees(Request $request, Meeting $meeting)
     {
         Gate::authorize('participantChangeViewHistory', $meeting);
-        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer'], 'search' => ['sometimes', 'nullable', 'string', 'max:200']]);
+        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'], 'search' => ['sometimes', 'nullable', 'string', 'max:200']]);
         $query = app(ParticipantCandidateQuery::class)->forActor($meeting, $request->user());
         if ($request->filled('search')) {
             $term = '%'.trim($request->string('search')->toString()).'%';

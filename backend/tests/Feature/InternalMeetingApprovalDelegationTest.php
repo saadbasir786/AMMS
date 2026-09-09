@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AmmsCapabilityScope;
 use App\Models\Employee;
 use App\Models\MeetingRequest;
 use App\Models\OrganizationalUnit;
@@ -104,6 +103,34 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             'id' => $scopeId,
             'revocation_reason' => 'پایان ماموریت.',
         ]);
+    }
+
+    public function test_delegation_index_exposes_stable_pagination_and_authoritative_stats(): void
+    {
+        [$director, $executive, $tech] = $this->technologyActors();
+
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/internal-meeting-approval-delegations', [
+                'organizational_unit_id' => $tech->id,
+                'delegate_user_id' => $executive->id,
+                'expires_at' => now()->addWeek()->toDateString(),
+                'reason' => 'تست استانداردسازی فهرست تفویض.',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($director, 'sanctum')
+            ->getJson('/api/internal-meeting-approval-delegations?per_page=1&page=1&status=ACTIVE')
+            ->assertOk()
+            ->assertJsonPath('data.delegations_meta.per_page', 1)
+            ->assertJsonPath('data.delegations_meta.current_page', 1)
+            ->assertJsonPath('data.stats.total', 1)
+            ->assertJsonPath('data.stats.active', 1)
+            ->assertJsonPath('data.stats.revoked', 0)
+            ->assertJsonPath('data.stats.expired', 0);
+
+        $this->actingAs($director, 'sanctum')
+            ->getJson('/api/internal-meeting-approval-delegations?per_page=0')
+            ->assertStatus(422);
     }
 
     /** @return array{User, User, OrganizationalUnit} */

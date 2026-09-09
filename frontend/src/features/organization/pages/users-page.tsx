@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
-import { api, apiData, apiError, apiPage } from '@/lib/api-client'
+import { api, apiError } from '@/lib/api-client'
 import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 import type {
   AdminUser,
@@ -126,11 +126,11 @@ export function UsersPage() {
       const [loadedUsers, loadedEmployees, unitsResponse] = await Promise.all([
         fetchAllAdminPages<AdminUser>('/admin/users'),
         fetchAllAdminPages<Employee>('/admin/employees'),
-        api.get('/admin/organizational-units'),
+        fetchAllAdminPages<OrganizationalUnit>('/admin/organizational-units'),
       ])
       setUsers(loadedUsers)
       setEmployees(loadedEmployees)
-      setUnits(apiData(unitsResponse) || [])
+      setUnits(unitsResponse)
 
       // Update selectedUser if currently open in any dialog
       setSelectedUser((current) =>
@@ -146,8 +146,10 @@ export function UsersPage() {
   const loadAudits = useCallback(async (userId: number) => {
     setAuditsLoading(true)
     try {
-      const res = await api.get(`/admin/users/${userId}/access-audits`)
-      setAudits(apiPage(res)?.data || [])
+      const loadedAudits = await fetchAllAdminPages<UserAccessAudit>(
+        `/admin/users/${userId}/access-audits`
+      )
+      setAudits(loadedAudits)
     } catch (err) {
       setError(apiError(err))
     } finally {

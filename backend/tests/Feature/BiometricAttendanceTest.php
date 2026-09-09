@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
@@ -50,11 +52,32 @@ class BiometricAttendanceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_attendance_listing_returns_paginated_records_and_authoritative_stats(): void
+    {
+        [$meeting, $participant, $actor] = $this->meetingFixture();
+
+        $this->actingAs($actor, 'sanctum')
+            ->postJson('/api/meetings/'.$meeting->id.'/attendance/manual', [
+                'employee_id' => $participant->id,
+                'reason' => 'آزمون Pagination حضور',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($actor, 'sanctum')
+            ->getJson('/api/meetings/'.$meeting->id.'/attendance?page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('data.stats.total', 1)
+            ->assertJsonPath('data.stats.manual', 1)
+            ->assertJsonPath('data.records_meta.current_page', 1)
+            ->assertJsonPath('data.records_meta.per_page', 1)
+            ->assertJsonCount(1, 'data.records');
+    }
+
     private function meetingFixture(): array
     {
         $actor = User::query()->where('email', 'tech.exec@example.test')->firstOrFail();
-        $unit = \App\Models\OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
-        $participant = \App\Models\Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
+        $unit = OrganizationalUnit::query()->where('code', 'TECH')->firstOrFail();
+        $participant = Employee::query()->where('email', 'tech.director@example.test')->firstOrFail();
         $request = MeetingRequest::create(['request_number' => 'FLOW10A-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $unit->id, 'created_by' => $actor->id, 'subject' => 'جلسهٔ حضور FLOW-10A', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $actor->id]);
         $meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW10A-M-'.uniqid(), 'title' => $request->subject, 'organizing_unit_id' => $unit->id, 'coordinator_id' => $actor->id, 'chairperson_employee_id' => $participant->id, 'meeting_date' => now()->addDays(20)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'تالار آزمایش', 'status' => 'SCHEDULED']);
         MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $unit->id, 'role' => 'PARTICIPATING']);
@@ -62,6 +85,7 @@ class BiometricAttendanceTest extends TestCase
         $schedule = app(ScheduleVersionService::class);
         $schedule->applyToMeeting($meeting, $schedule->createNext($meeting, ['meeting_date' => $meeting->meeting_date->format('Y-m-d'), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time, 'location' => $meeting->location], $actor->id));
         app(ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
+
         return [$meeting->fresh(), $participant, $actor];
     }
 }

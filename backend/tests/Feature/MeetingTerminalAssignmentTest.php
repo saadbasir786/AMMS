@@ -4,22 +4,28 @@ namespace Tests\Feature;
 
 use App\Actions\Meetings\AssignTerminalToMeeting;
 use App\Actions\Terminals\IssueTerminalCredential;
+use App\Actions\Terminals\RegisterTerminal;
 use App\Actions\Terminals\RevokeTerminal;
 use App\Actions\Terminals\RotateTerminalCredential;
-use App\Actions\Terminals\RegisterTerminal;
+use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
-use App\Models\MeetingRequest;
-use App\Models\MeetingScheduleVersion;
-use App\Models\Organization;
-use App\Models\MeetingUnit;
-use App\Support\ParticipantVersionService;
-use App\Support\ScheduleVersionService;
 use App\Models\MeetingParticipantVersion;
 use App\Models\MeetingParticipantVersionMember;
+use App\Models\MeetingRequest;
+use App\Models\MeetingScheduleVersion;
+use App\Models\MeetingUnit;
+use App\Models\Organization;
+use App\Models\OrganizationalUnit;
 use App\Models\Terminal;
+use App\Models\User;
+use App\Support\ParticipantVersionService;
+use App\Support\ScheduleVersionService;
 use App\Support\TerminalAssignmentConflictGuard;
+use App\Support\TerminalCredentialManager;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class MeetingTerminalAssignmentTest extends TestCase
@@ -39,14 +45,14 @@ class MeetingTerminalAssignmentTest extends TestCase
         $first = app(IssueTerminalCredential::class)->execute($admin, $terminal);
         $this->assertNotSame($first['token'], $first['credential']->token_hash);
         $this->assertSame(hash('sha256', $first['token']), $first['credential']->token_hash);
-        $this->assertNotNull(app(\App\Support\TerminalCredentialManager::class)->resolve($first['token']));
+        $this->assertNotNull(app(TerminalCredentialManager::class)->resolve($first['token']));
 
         $second = app(RotateTerminalCredential::class)->execute($admin, $terminal);
-        $this->assertNull(app(\App\Support\TerminalCredentialManager::class)->resolve($first['token']));
-        $this->assertNotNull(app(\App\Support\TerminalCredentialManager::class)->resolve($second['token']));
+        $this->assertNull(app(TerminalCredentialManager::class)->resolve($first['token']));
+        $this->assertNotNull(app(TerminalCredentialManager::class)->resolve($second['token']));
 
         app(RevokeTerminal::class)->execute($admin, $terminal, 'آزمایش لغو ترمینال');
-        $this->assertNull(app(\App\Support\TerminalCredentialManager::class)->resolve($second['token']));
+        $this->assertNull(app(TerminalCredentialManager::class)->resolve($second['token']));
         $this->assertSame('REVOKED', $terminal->fresh()->status);
     }
 
@@ -72,6 +78,26 @@ class MeetingTerminalAssignmentTest extends TestCase
         $this->assertSame($meeting->current_participant_version_id, $assignment->baseline_participant_version_id);
         $this->assertSame('SCHEDULED', $meeting->fresh()->status);
         $this->assertSame('CONVERTED_TO_MEETING', $meeting->fresh()->request->status);
+    }
+
+    public function test_meeting_terminal_workspace_paginates_assignment_history_and_exposes_total_stats(): void
+    {
+        $meeting = $this->futureMeeting();
+        $actor = $this->user('tech.exec@example.test');
+        $window = $this->window($meeting);
+
+        foreach (range(1, 2) as $index) {
+            $terminal = $this->registerTerminal($meeting);
+            app(AssignTerminalToMeeting::class)->execute($actor, $meeting, $terminal, ...$window);
+        }
+
+        $this->actingAs($actor, 'sanctum')
+            ->getJson('/api/meetings/'.$meeting->id.'/terminals?page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.assignments')
+            ->assertJsonPath('data.assignments_meta.per_page', 1)
+            ->assertJsonPath('data.assignments_meta.total', 2)
+            ->assertJsonPath('data.stats.total', 2);
     }
 
     public function test_terminal_api_isolated_and_activation_returns_one_time_session_token(): void
@@ -139,7 +165,7 @@ class MeetingTerminalAssignmentTest extends TestCase
         $terminal = $this->registerTerminal($meeting);
         $window = $this->window($meeting);
         app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$window);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->expectExceptionMessage('TERMINAL_ASSIGNMENT_EXISTS');
         app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$window);
     }
@@ -149,7 +175,7 @@ class MeetingTerminalAssignmentTest extends TestCase
         $meeting = $this->futureMeeting();
         $other = Organization::create(['name' => 'سازمان جداگانه', 'short_name' => 'OTHER', 'type' => 'GOVERNMENT', 'status' => 'ACTIVE']);
         $foreign = app(RegisterTerminal::class)->execute($this->admin(), ['organization_id' => $other->id, 'code' => 'FOREIGN-'.uniqid(), 'name' => 'ترمینال بیرونی', 'status' => 'ACTIVE']);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->expectExceptionMessage('TERMINAL_OUTSIDE_MEETING_ORGANIZATION');
         app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $foreign, ...$this->window($meeting));
     }
@@ -225,38 +251,58 @@ class MeetingTerminalAssignmentTest extends TestCase
         $sessionUuid = $activation->json('data.session.uuid');
         $old = $meeting->fresh('currentParticipantVersion.members')->currentParticipantVersion;
         $new = MeetingParticipantVersion::create(['meeting_id' => $meeting->id, 'version_number' => 2, 'source_change_case_id' => null, 'created_by_user_id' => $this->admin()->id, 'created_at' => now()]);
-        foreach ($old->members as $member) MeetingParticipantVersionMember::create(['participant_version_id' => $new->id, 'employee_id' => $member->employee_id, 'organizational_unit_id' => $member->organizational_unit_id, 'participant_role' => $member->participant_role, 'owner_type' => $member->owner_type, 'owner_unit_id' => $member->owner_unit_id, 'is_mandatory' => $member->is_mandatory, 'created_at' => now()]);
+        foreach ($old->members as $member) {
+            MeetingParticipantVersionMember::create(['participant_version_id' => $new->id, 'employee_id' => $member->employee_id, 'organizational_unit_id' => $member->organizational_unit_id, 'participant_role' => $member->participant_role, 'owner_type' => $member->owner_type, 'owner_unit_id' => $member->owner_unit_id, 'is_mandatory' => $member->is_mandatory, 'created_at' => now()]);
+        }
         $meeting->forceFill(['current_participant_version_id' => $new->id])->save();
         $this->withHeader('Authorization', 'Bearer '.$activation->json('data.session_token'))->getJson('/api/terminal/v1/sessions/'.$sessionUuid.'/manifest')->assertStatus(422)->assertJsonPath('code', 'TERMINAL_SESSION_STALE');
         $this->assertSame('REVOKED', $terminal->fresh()->sessions()->where('uuid', $sessionUuid)->value('status'));
     }
 
-    private function admin() { return $this->user('system.admin@example.test'); }
-    private function user(string $email) { return \App\Models\User::where('email', $email)->firstOrFail(); }
+    private function admin()
+    {
+        return $this->user('system.admin@example.test');
+    }
+
+    private function user(string $email)
+    {
+        return User::where('email', $email)->firstOrFail();
+    }
 
     private function futureMeeting(): Meeting
     {
         $existing = Meeting::query()->with(['request', 'units.unit', 'currentScheduleVersion', 'currentParticipantVersion.members'])->where('status', 'SCHEDULED')->whereDate('meeting_date', '>=', today())->whereNotNull('current_schedule_version_id')->whereNotNull('current_participant_version_id')->orderBy('id')->first();
-        if ($existing) return $existing;
+        if ($existing) {
+            return $existing;
+        }
 
         $tech = $this->user('tech.exec@example.test');
         $request = MeetingRequest::create(['request_number' => 'FLOW09-'.uniqid(), 'flow_type' => 'MULTI_DIRECTORATE', 'requesting_unit_id' => $this->unit('TECH')->id, 'created_by' => $tech->id, 'subject' => 'جلسهٔ آزمایشی FLOW-09', 'purpose' => 'COORDINATION', 'status' => 'CONVERTED_TO_MEETING', 'coordinator_id' => $tech->id]);
-        $employees = collect(['tech.director@example.test', 'finance.director@example.test', 'hr.director@example.test'])->map(fn ($email) => \App\Models\Employee::where('email', $email)->firstOrFail());
+        $employees = collect(['tech.director@example.test', 'finance.director@example.test', 'hr.director@example.test'])->map(fn ($email) => Employee::where('email', $email)->firstOrFail());
         $meeting = Meeting::create(['meeting_request_id' => $request->id, 'meeting_number' => 'FLOW09-M-'.uniqid(), 'title' => $request->subject, 'organizing_unit_id' => $this->unit('TECH')->id, 'coordinator_id' => $tech->id, 'chairperson_employee_id' => $employees->get(1)->id, 'meeting_date' => now()->addDays(20)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '11:00', 'location' => 'تالار آزمایش FLOW-09', 'status' => 'SCHEDULED']);
-        foreach (['TECH', 'FIN', 'HR'] as $code) MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $this->unit($code)->id, 'role' => 'PARTICIPATING']);
-        foreach ($employees as $employee) MeetingParticipant::create(['meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'organizational_unit_id' => $employee->organizational_unit_id, 'role' => 'PARTICIPATING']);
+        foreach (['TECH', 'FIN', 'HR'] as $code) {
+            MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $this->unit($code)->id, 'role' => 'PARTICIPATING']);
+        }
+        foreach ($employees as $employee) {
+            MeetingParticipant::create(['meeting_id' => $meeting->id, 'employee_id' => $employee->id, 'organizational_unit_id' => $employee->organizational_unit_id, 'role' => 'PARTICIPATING']);
+        }
         $schedule = app(ScheduleVersionService::class);
         $schedule->applyToMeeting($meeting, $schedule->createNext($meeting, ['meeting_date' => $meeting->meeting_date->format('Y-m-d'), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time, 'location' => $meeting->location], $tech->id));
         app(ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $tech->id);
+
         return $meeting->fresh(['request', 'units.unit', 'currentScheduleVersion', 'currentParticipantVersion.members.employee.unit']);
     }
 
-    private function unit(string $code) { return \App\Models\OrganizationalUnit::where('code', $code)->firstOrFail(); }
+    private function unit(string $code)
+    {
+        return OrganizationalUnit::where('code', $code)->firstOrFail();
+    }
 
     private function registerTerminal(?Meeting $meeting = null): Terminal
     {
         $meeting ??= $this->futureMeeting();
         $unit = $meeting->units->first(fn ($item) => in_array($item->role, ['REQUESTING', 'PARTICIPATING'], true))->unit;
+
         return app(RegisterTerminal::class)->execute($this->admin(), [
             'organization_id' => $unit->organization_id,
             'code' => 'FLOW09-'.uniqid(),
@@ -274,7 +320,8 @@ class MeetingTerminalAssignmentTest extends TestCase
         $schedule = $meeting->currentScheduleVersion;
         $date = $schedule->meeting_date->format('Y-m-d');
         $from = now('UTC')->subMinutes(5);
-        $until = \Carbon\CarbonImmutable::parse($date.' '.$schedule->end_time, TerminalAssignmentConflictGuard::TIMEZONE)->addDay();
+        $until = CarbonImmutable::parse($date.' '.$schedule->end_time, TerminalAssignmentConflictGuard::TIMEZONE)->addDay();
+
         return [$from->toIso8601String(), $until->toIso8601String()];
     }
 }

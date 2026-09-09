@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Organization;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Organization\EmployeeDirectoryIndexRequest;
+use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\MeetingRequestResource;
 use App\Http\Resources\MeetingResource;
@@ -29,46 +31,73 @@ class DirectoryController extends Controller
             'my_requests' => (clone $base)->where('created_by', $user->id)->count(),
             'returned' => (clone $base)->where('status', 'RETURNED_FOR_REVISION')->count(),
             'pending_approval' => (clone $base)->where('status', 'PENDING_INTERNAL_APPROVAL')->count(),
-            'approved_for_scheduling' => (clone $base)->whereIn('status', ['APPROVED','SCHEDULING','SCHEDULE_CONFIRMED'])->count(),
+            'approved_for_scheduling' => (clone $base)->whereIn('status', ['APPROVED', 'SCHEDULING', 'SCHEDULE_CONFIRMED'])->count(),
             'upcoming_meetings' => (clone $meetingBase)->where('meeting_date', '>=', today())->count(),
         ];
-        return response()->json(['success'=>true,'data'=>$data,'message'=>'داشبورد کاربر.']);
+
+        return response()->json(['success' => true, 'data' => $data, 'message' => 'داشبورد کاربر.']);
     }
 
-    public function approvals(Request $request)
+    public function approvals(PaginatedRequest $request)
     {
         abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
         $user = $request->user();
         $directorUnitIds = $user->scopedRoleUnitIds('DIRECTOR');
-        $query = MeetingRequest::with(['requestingUnit','creator.employee','participants.employee'])
-            ->where('status','PENDING_INTERNAL_APPROVAL')
+        $query = MeetingRequest::with(['requestingUnit', 'creator.employee', 'participants.employee'])
+            ->where('status', 'PENDING_INTERNAL_APPROVAL')
             ->whereIn('requesting_unit_id', $directorUnitIds ?: [-1]);
-        return MeetingRequestResource::collection($query->latest()->paginate(15))->additional(['success'=>true,'message'=>'درخواست‌های منتظر تأیید.']);
+
+        return MeetingRequestResource::collection($query->orderByDesc('created_at')->orderByDesc('id')->paginate(min(max($request->integer('per_page', 15), 1), 50)))->additional(['success' => true, 'message' => 'درخواست‌های منتظر تأیید.']);
     }
 
     public function units(Request $request)
     {
         $this->authorize('viewAny', OrganizationalUnit::class);
-        return OrganizationalUnitResource::collection(OrganizationalUnit::with(['parent','children','organization'])->where('status','ACTIVE')->orderBy('name')->get())->additional(['success'=>true,'message'=>'ساختار تشکیلاتی.']);
+
+        return OrganizationalUnitResource::collection(OrganizationalUnit::with(['parent', 'children', 'organization'])->where('status', 'ACTIVE')->orderBy('name')->get())->additional(['success' => true, 'message' => 'ساختار تشکیلاتی.']);
     }
 
-    public function employees(Request $request)
+    public function employees(EmployeeDirectoryIndexRequest $request)
     {
         $this->authorize('viewAny', Employee::class);
         $user = $request->user();
-        $employeesQuery = Employee::with(['unit','position'])->where('status','ACTIVE');
+        $employeesQuery = Employee::with(['unit', 'position'])->where('status', 'ACTIVE');
         $authorityOfficeIds = array_unique(array_merge($user->scopedRoleUnitIds('AUTHORITY_OFFICE'), $user->scopedRoleUnitIds('EXECUTIVE_SECRETARY')));
-        if (!$user->hasScopedRole('SYSTEM_ADMIN') && $authorityOfficeIds && $user->can('authority-participant.manage') && !$user->can('employee.manage') && !$user->can('meeting-request.view')) {
+        if (! $user->hasScopedRole('SYSTEM_ADMIN') && $authorityOfficeIds && $user->can('authority-participant.manage') && ! $user->can('employee.manage') && ! $user->can('meeting-request.view')) {
             $authorityPositionIds = OrganizationAuthority::query()->whereIn('authority_office_unit_id', $authorityOfficeIds)->where('status', 'ACTIVE')->pluck('authority_position_id')->all();
             $employeesQuery->where(fn ($q) => $q->whereIn('organizational_unit_id', $authorityOfficeIds)->orWhereIn('position_id', $authorityPositionIds ?: [-1]));
         }
-        $employees = $employeesQuery->when($request->filled('unit_id'), fn($q) => $q->where('organizational_unit_id', $request->integer('unit_id')))->orderBy('first_name')->get();
-        return EmployeeResource::collection($employees)->additional(['success'=>true,'message'=>'فهرست کارمندان فعال.']);
+        $validated = $request->validated();
+        $search = trim((string) ($validated['search'] ?? ''));
+        $employeesQuery
+            ->when($search !== '', function ($query) use ($search): void {
+                $term = "%{$search}%";
+                $query->where(function ($searchQuery) use ($term): void {
+                    $searchQuery
+                        ->where('employee_number', 'like', $term)
+                        ->orWhere('first_name', 'like', $term)
+                        ->orWhere('last_name', 'like', $term)
+                        ->orWhere('email', 'like', $term);
+                });
+            })
+            ->when(isset($validated['unit_id']), fn ($query) => $query->where('organizational_unit_id', $validated['unit_id']))
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->orderBy('id');
+        $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), 50);
+        $paginator = $employeesQuery->paginate($perPage);
+
+        return EmployeeResource::collection($paginator)->additional(['success' => true, 'message' => 'فهرست کارمندان فعال.']);
     }
 
     public function meetings(Request $request)
     {
         $this->authorize('viewAny', Meeting::class);
+        $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
         $user = $request->user();
 
         $baseQuery = $this->scopeMeetings(Meeting::query(), $user);
@@ -80,16 +109,16 @@ class DirectoryController extends Controller
         $completedCount = (clone $baseQuery)->whereIn('status', ['HELD', 'COMPLETED'])->count();
 
         $query = $this->scopeMeetings(
-            Meeting::with(['request.requestingUnit','request.authorityContext.authorityEmployee','authorityContext.authorityEmployee','authorityContext.authorityPosition','authorityContext.authorityOfficeUnit','chairperson','participants.employee.unit','currentScheduleVersion','activeRescheduleCase','currentParticipantVersion.members.employee.unit','activeParticipantChangeCase.items.oldEmployee','activeParticipantChangeCase.items.newEmployee','terminalAssignments.terminal','terminalAssignments.sessions','currentTerminalSession']),
+            Meeting::with(['request.requestingUnit', 'request.authorityContext.authorityEmployee', 'authorityContext.authorityEmployee', 'authorityContext.authorityPosition', 'authorityContext.authorityOfficeUnit', 'chairperson', 'participants.employee.unit', 'currentScheduleVersion', 'activeRescheduleCase', 'currentParticipantVersion.members.employee.unit', 'activeParticipantChangeCase.items.oldEmployee', 'activeParticipantChangeCase.items.newEmployee', 'terminalAssignments.terminal', 'terminalAssignments.sessions', 'currentTerminalSession']),
             $user
         );
 
         if ($request->filled('search')) {
-            $term = '%' . $request->string('search')->trim() . '%';
+            $term = '%'.$request->string('search')->trim().'%';
             $query->where(function ($q) use ($term): void {
                 $q->where('title', 'like', $term)
-                  ->orWhere('meeting_number', 'like', $term)
-                  ->orWhere('location', 'like', $term);
+                    ->orWhere('meeting_number', 'like', $term)
+                    ->orWhere('location', 'like', $term);
             });
         }
 
@@ -101,8 +130,8 @@ class DirectoryController extends Controller
             $unitId = $request->integer('unit_id');
             $query->where(function ($q) use ($unitId): void {
                 $q->where('organizing_unit_id', $unitId)
-                  ->orWhereHas('units', fn ($uq) => $uq->where('organizational_unit_id', $unitId))
-                  ->orWhereHas('request', fn ($rq) => $rq->where('requesting_unit_id', $unitId));
+                    ->orWhereHas('units', fn ($uq) => $uq->where('organizational_unit_id', $unitId))
+                    ->orWhereHas('request', fn ($rq) => $rq->where('requesting_unit_id', $unitId));
             });
         }
 
@@ -110,7 +139,7 @@ class DirectoryController extends Controller
             $query->where('meeting_date', '>=', today());
         }
 
-        $query->orderByDesc('meeting_date')->orderByDesc('start_time');
+        $query->orderByDesc('meeting_date')->orderByDesc('start_time')->orderByDesc('id');
 
         $perPage = min(max($request->integer('per_page', $request->integer('limit', 15)), 1), 50);
         $paginator = $query->paginate($perPage);
@@ -139,17 +168,23 @@ class DirectoryController extends Controller
     public function meeting(Meeting $meeting)
     {
         $this->authorize('view', $meeting);
-        return (new MeetingResource($meeting->load(['request.actions.actor','request.requestingUnit','request.authorityContext.authorityEmployee','authorityContext.organizationAuthority','authorityContext.authorityEmployee','authorityContext.authorityPosition','authorityContext.authorityOfficeUnit','units.unit','chairperson','participants.employee.unit','currentScheduleVersion','activeRescheduleCase.proposals.acknowledgements.unit','activeRescheduleCase.alternativeRequests.unit','scheduleVersions','rescheduleActions.actor','currentParticipantVersion.members.employee.unit','participantVersions.members.employee.unit','activeParticipantChangeCase.items.oldEmployee','activeParticipantChangeCase.items.newEmployee','activeParticipantChangeCase.ownerUnit','terminalAssignments.terminal','terminalAssignments.sessions','currentTerminalSession'])))->additional(['success'=>true,'message'=>'جزئیات جلسه.']);
+
+        return (new MeetingResource($meeting->load(['request.actions.actor', 'request.requestingUnit', 'request.authorityContext.authorityEmployee', 'authorityContext.organizationAuthority', 'authorityContext.authorityEmployee', 'authorityContext.authorityPosition', 'authorityContext.authorityOfficeUnit', 'units.unit', 'chairperson', 'participants.employee.unit', 'currentScheduleVersion', 'activeRescheduleCase.proposals.acknowledgements.unit', 'activeRescheduleCase.alternativeRequests.unit', 'scheduleVersions', 'rescheduleActions.actor', 'currentParticipantVersion.members.employee.unit', 'participantVersions.members.employee.unit', 'activeParticipantChangeCase.items.oldEmployee', 'activeParticipantChangeCase.items.newEmployee', 'activeParticipantChangeCase.ownerUnit', 'terminalAssignments.terminal', 'terminalAssignments.sessions', 'currentTerminalSession'])))->additional(['success' => true, 'message' => 'جزئیات جلسه.']);
     }
 
     public function notifications(Request $request)
     {
         abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
+        $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
         $baseQuery = $request->user()->notifications();
         $totalCount = (clone $baseQuery)->count();
         $unreadCount = (clone $baseQuery)->whereNull('read_at')->count();
 
-        $query = (clone $baseQuery)->latest();
+        $query = (clone $baseQuery)->orderByDesc('created_at')->orderByDesc('id');
         if ($request->query('filter') === 'UNREAD' || $request->boolean('unread_only')) {
             $query->whereNull('read_at');
         }
@@ -210,9 +245,15 @@ class DirectoryController extends Controller
 
         return $query->where(function ($q) use ($user, $unitIds, $officeIds): void {
             $q->whereIn('requesting_unit_id', $unitIds ?: [-1]);
-            if ($unitIds) $q->orWhereHas('units', fn ($units) => $units->whereIn('role', ['REQUESTER','TARGET','PARTICIPATING'])->whereIn('organizational_unit_id', $unitIds));
-            if ($officeIds) $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
-            if ($user->employee_id) $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
+            if ($unitIds) {
+                $q->orWhereHas('units', fn ($units) => $units->whereIn('role', ['REQUESTER', 'TARGET', 'PARTICIPATING'])->whereIn('organizational_unit_id', $unitIds));
+            }
+            if ($officeIds) {
+                $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
+            }
+            if ($user->employee_id) {
+                $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
+            }
         });
     }
 
@@ -232,7 +273,9 @@ class DirectoryController extends Controller
                 $q->orWhereHas('participants', fn ($participants) => $participants->where('employee_id', $user->employee_id));
                 $q->orWhereHas('authorityContext', fn ($context) => $context->where('authority_employee_id', $user->employee_id));
             }
-            if ($officeIds) $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
+            if ($officeIds) {
+                $q->orWhereHas('authorityContext', fn ($context) => $context->whereIn('authority_office_unit_id', $officeIds));
+            }
         });
     }
 }

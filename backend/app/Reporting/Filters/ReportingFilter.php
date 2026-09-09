@@ -18,7 +18,9 @@ final class ReportingFilter
     ];
 
     public const ATTRIBUTIONS = ['REQUESTING_UNIT', 'PARTICIPATING_UNIT', 'INVOLVED_UNIT'];
+
     public const SORTS = ['meeting_date', 'meeting_number', 'created_at', 'due_date', 'status', 'completed_at'];
+
     public const ACTION_STATUSES = ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'PENDING_VERIFICATION', 'COMPLETED', 'CANCELLED'];
 
     public function __construct(
@@ -46,18 +48,18 @@ final class ReportingFilter
     {
         $sort = (string) ($request->input('sort', 'created_at'));
         $direction = strtolower((string) ($request->input('direction', 'desc')));
-        if (!in_array($sort, self::SORTS, true) || !in_array($direction, ['asc', 'desc'], true)) {
+        if (! in_array($sort, self::SORTS, true) || ! in_array($direction, ['asc', 'desc'], true)) {
             throw ValidationException::withMessages(['sort' => 'INVALID_REPORTING_SORT']);
         }
         $attribution = (string) ($request->input('attribution', 'INVOLVED_UNIT'));
-        if (!in_array($attribution, self::ATTRIBUTIONS, true)) {
+        if (! in_array($attribution, self::ATTRIBUTIONS, true)) {
             throw ValidationException::withMessages(['attribution' => 'INVALID_REPORTING_ATTRIBUTION']);
         }
         $search = $request->input('search');
         if ($search !== null && mb_strlen((string) $search) > 120) {
             throw ValidationException::withMessages(['search' => 'REPORTING_SEARCH_TOO_LONG']);
         }
-        $perPage = min(100, max(1, (int) $request->input('per_page', 25)));
+        $perPage = min(50, max(1, (int) $request->input('per_page', 25)));
         $bool = static fn ($value): ?bool => $value === null ? null : filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
 
         return new self(

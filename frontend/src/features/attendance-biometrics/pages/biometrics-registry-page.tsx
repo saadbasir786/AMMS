@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 
 export function BiometricsRegistryPage() {
   const [employees, setEmployees] = useState<any[]>([])
@@ -27,8 +27,8 @@ export function BiometricsRegistryPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get('/employees')
-      setEmployees(apiData(res) || [])
+      const employees = await fetchAllPages<any>('/employees')
+      setEmployees(employees)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||

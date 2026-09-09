@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { MeetingRequestForm } from '../components/meeting-request-form'
 import { FormSideGuide } from '../components/form-side-guide'
 import type {
@@ -39,11 +40,11 @@ export function CreateRequestPage({
     try {
       const [resUnits, resEmployees, resMe] = await Promise.all([
         api.get('/organizational-units'),
-        api.get('/employees'),
+        fetchAllPages<EmployeeItem>('/employees'),
         api.get('/me').catch(() => ({ data: { data: null } })),
       ])
       setUnits(apiData(resUnits) || [])
-      setEmployees(apiData(resEmployees) || [])
+      setEmployees(resEmployees)
       setCurrentUser(apiData(resMe) || null)
     } catch (err: any) {
       console.error('Error loading form metadata:', err)

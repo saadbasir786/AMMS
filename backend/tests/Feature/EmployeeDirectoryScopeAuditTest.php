@@ -33,4 +33,29 @@ class EmployeeDirectoryScopeAuditTest extends TestCase
         $this->assertContains($software->id, array_map('intval', data_get($employee, 'unit_scope_ids', [])));
         $this->assertContains($tech->id, array_map('intval', data_get($employee, 'unit_scope_ids', [])));
     }
+
+    public function test_employee_directory_supports_server_pagination_search_and_bounds(): void
+    {
+        $techExec = User::where('email', 'tech.exec@example.test')->firstOrFail();
+
+        $response = $this->actingAs($techExec, 'sanctum')
+            ->getJson('/api/employees?search=EMP-TECH-003&page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonCount(1, 'data');
+
+        $this->assertSame('EMP-TECH-003', $response->json('data.0.employee_number'));
+
+        $this->actingAs($techExec, 'sanctum')
+            ->getJson('/api/employees?per_page=0')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('per_page');
+    }
+
+    public function test_employee_directory_requires_authentication(): void
+    {
+        $this->getJson('/api/employees')->assertUnauthorized();
+    }
 }

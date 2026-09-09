@@ -9,11 +9,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ReportingFilterRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->isActive() === true; }
+    public function authorize(): bool
+    {
+        return $this->user()?->isActive() === true;
+    }
 
     public function rules(): array
     {
         return [
+            'page' => ['nullable', 'integer', 'min:1'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
             'timezone' => ['nullable', 'string', 'max:64'],
@@ -32,10 +36,13 @@ class ReportingFilterRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:120'],
             'sort' => ['nullable', 'in:meeting_date,meeting_number,created_at,due_date,status,completed_at'],
             'direction' => ['nullable', 'in:asc,desc,ASC,DESC'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
             'attribution' => ['nullable', 'in:REQUESTING_UNIT,PARTICIPATING_UNIT,INVOLVED_UNIT'],
         ];
     }
 
-    public function filters(): ReportingFilter { return ReportingFilter::fromRequest($this); }
+    public function filters(): ReportingFilter
+    {
+        return ReportingFilter::fromRequest($this);
+    }
 }

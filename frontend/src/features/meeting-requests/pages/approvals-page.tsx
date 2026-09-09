@@ -23,7 +23,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/amms/confirm-dialog'
 import { StatusBadge } from '@/components/amms/status-badge'
 import { formatSolarDate } from '@/lib/calendar-utils'
-import { api, apiPage } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import type { RequestRowItem } from '../types'
 
 type ApprovalsPageProps = {
@@ -62,12 +63,12 @@ export function ApprovalsPage({
     setError(null)
     try {
       const [genericRes, pendingReqRes] = await Promise.all([
-        api.get('/approvals').catch(() => ({ data: { data: [] } })),
-        api.get('/meeting-requests', { params: { status: 'PENDING_REQUESTER_APPROVAL' } }).catch(() => ({ data: { data: [] } })),
+        fetchAllPages<RequestRowItem>('/approvals').catch(() => []),
+        fetchAllPages<RequestRowItem>('/meeting-requests', { status: 'PENDING_REQUESTER_APPROVAL' }).catch(() => []),
       ])
 
-      const listA = apiPage(genericRes).data || []
-      const listB = apiPage(pendingReqRes).data || []
+      const listA = genericRes
+      const listB = pendingReqRes
       const combined = Array.from(
         new Map([...listA, ...listB].map((item: any) => [item.id, item])).values()
       ).sort((a: any, b: any) =>

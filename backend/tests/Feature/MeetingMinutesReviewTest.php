@@ -120,6 +120,30 @@ class MeetingMinutesReviewTest extends TestCase
             ->assertStatus(403);
     }
 
+    public function test_minutes_delegation_index_exposes_pagination_and_authoritative_stats(): void
+    {
+        [, , $director, $unit] = $this->submittedMinutesFixture();
+        $deputy = User::query()->where('email', 'tech.deputy@example.test')->firstOrFail();
+
+        $this->actingAs($director, 'sanctum')
+            ->postJson('/api/minutes-approval-delegations', [
+                'organizational_unit_id' => $unit->id,
+                'delegate_user_id' => $deputy->id,
+                'expires_at' => now()->addWeek()->toDateString(),
+                'reason' => 'تست استانداردسازی فهرست تفویض صورت‌جلسه.',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($director, 'sanctum')
+            ->getJson('/api/minutes-approval-delegations?per_page=1&page=1&status=ACTIVE')
+            ->assertOk()
+            ->assertJsonPath('data.delegations_meta.per_page', 1)
+            ->assertJsonPath('data.stats.total', 1)
+            ->assertJsonPath('data.stats.active', 1)
+            ->assertJsonPath('data.stats.revoked', 0)
+            ->assertJsonPath('data.stats.expired', 0);
+    }
+
     private function createTechnologyDeputy(OrganizationalUnit $unit, string $employeeNumber, string $email): User
     {
         $position = Position::query()

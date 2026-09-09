@@ -8,9 +8,11 @@ use App\Http\Requests\Organization\AssignRoleRequest;
 use App\Http\Requests\Organization\StoreEmployeeRequest;
 use App\Http\Requests\Organization\StorePositionRequest;
 use App\Http\Requests\Organization\StoreUserRequest;
+use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\CapabilityScopeResource;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\OrganizationalUnitResource;
+use App\Http\Resources\OrganizationResource;
 use App\Http\Resources\PositionResource;
 use App\Http\Resources\UserAccessAuditResource;
 use App\Http\Resources\UserResource;
@@ -44,11 +46,11 @@ class AdminController extends Controller
         abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('organization.manage'), 403, 'FORBIDDEN');
     }
 
-    public function users(Request $request)
+    public function users(PaginatedRequest $request)
     {
         $this->authorize('viewAny', UserModel::class);
-
-        $query = UserModel::with(['employee.unit', 'employee.position', 'roleScopes.role', 'roleScopes.unit', 'capabilityScopes.unit'])->latest();
+        $query = UserModel::with(['employee.unit', 'employee.position', 'roleScopes.role', 'roleScopes.unit', 'capabilityScopes.unit'])
+            ->orderByDesc('created_at')->orderByDesc('id');
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -122,11 +124,11 @@ class AdminController extends Controller
         return (new UserResource($user->fresh(['employee.unit', 'employee.position', 'roleScopes.role', 'roleScopes.unit', 'capabilityScopes.unit'])))->additional(['success' => true, 'message' => 'اطلاعات کاربر اصلاح شد.']);
     }
 
-    public function accessAudits(Request $request, UserModel $user)
+    public function accessAudits(PaginatedRequest $request, UserModel $user)
     {
         $this->authorize('view', $user);
 
-        return UserAccessAuditResource::collection($user->accessAudits()->with(['actor', 'unit'])->latest()->paginate(30))->additional(['success' => true]);
+        return UserAccessAuditResource::collection($user->accessAudits()->with(['actor', 'unit'])->orderByDesc('created_at')->orderByDesc('id')->paginate(min(max($request->integer('per_page', 30), 1), 50)))->additional(['success' => true]);
     }
 
     public function assignRole(AssignRoleRequest $request, UserModel $user)
@@ -200,12 +202,11 @@ class AdminController extends Controller
         return (new CapabilityScopeResource($scope))->additional(['success' => true, 'message' => 'صلاحیت ویژه کاربر لغو شد.']);
     }
 
-    public function employees(Request $request)
+    public function employees(PaginatedRequest $request)
     {
         abort_unless($request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('employee.manage'), 403, 'FORBIDDEN');
         $this->authorize('viewAny', Employee::class);
-
-        $query = Employee::with(['unit', 'position'])->latest();
+        $query = Employee::with(['unit', 'position'])->orderByDesc('created_at')->orderByDesc('id');
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -259,11 +260,16 @@ class AdminController extends Controller
         return (new EmployeeResource($employee))->additional(['success' => true, 'message' => 'کارمند غیرفعال شد.']);
     }
 
-    public function units(Request $request)
+    public function units(PaginatedRequest $request)
     {
         $this->admin($request);
 
-        return OrganizationalUnitResource::collection(OrganizationalUnit::with(['parent', 'children'])->orderBy('name')->get())->additional(['success' => true, 'message' => 'مدیریت واحدهای تشکیلاتی.']);
+        $units = OrganizationalUnit::with(['parent', 'children'])
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(min(max($request->integer('per_page', 50), 1), 50));
+
+        return OrganizationalUnitResource::collection($units)->additional(['success' => true, 'message' => 'مدیریت واحدهای تشکیلاتی.']);
     }
 
     public function storeUnit(Request $request)
@@ -274,11 +280,11 @@ class AdminController extends Controller
         return (new OrganizationalUnitResource(OrganizationalUnit::create($data)))->additional(['success' => true, 'message' => 'واحد تشکیلاتی ایجاد شد.'])->response()->setStatusCode(201);
     }
 
-    public function positions(Request $request)
+    public function positions(PaginatedRequest $request)
     {
         $this->organizationAdmin($request);
 
-        $query = Position::query()->with('unit')->withCount('employees')->orderBy('title');
+        $query = Position::query()->with('unit')->withCount('employees')->orderBy('title')->orderBy('id');
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -327,11 +333,16 @@ class AdminController extends Controller
             ->additional(['success' => true, 'message' => 'سمت سازمانی اصلاح شد.']);
     }
 
-    public function organizations(Request $request)
+    public function organizations(PaginatedRequest $request)
     {
         $this->admin($request);
 
-        return response()->json(['success' => true, 'data' => Organization::withCount('units')->orderBy('name')->get(), 'message' => 'فهرست سازمان‌ها.']);
+        $organizations = Organization::withCount('units')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(min(max($request->integer('per_page', 50), 1), 50));
+
+        return OrganizationResource::collection($organizations)->additional(['success' => true, 'message' => 'فهرست سازمان‌ها.']);
     }
 
     private function assertRoleAssignmentIsValid(UserModel $user, string $roleName, ?OrganizationalUnit $unit): void
@@ -432,6 +443,6 @@ class AdminController extends Controller
 
     private function perPage(Request $request, int $default): int
     {
-        return min(max($request->integer('per_page', $default), 1), 100);
+        return min(max($request->integer('per_page', $default), 1), 50);
     }
 }

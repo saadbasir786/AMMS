@@ -15,16 +15,17 @@ use App\Actions\MeetingRequests\ManageAuthorityInitiatedAuthorityParticipants;
 use App\Actions\MeetingRequests\ManageAuthorityInitiatedUnitParticipants;
 use App\Actions\MeetingRequests\PrepareAuthorityDirectiveRevision;
 use App\Actions\MeetingRequests\ProposeAuthorityInitiatedSchedule;
+use App\Actions\MeetingRequests\ReissueHighAuthorityMeetingDirective;
 use App\Actions\MeetingRequests\RequestAuthorityInitiatedScheduleAlternative;
 use App\Actions\MeetingRequests\RequestDirectiveClarification;
-use App\Actions\MeetingRequests\ResubmitAuthorityInitiatedDraft;
-use App\Actions\MeetingRequests\ReissueHighAuthorityMeetingDirective;
 use App\Actions\MeetingRequests\RespondToDirectiveClarification;
+use App\Actions\MeetingRequests\ResubmitAuthorityInitiatedDraft;
 use App\Actions\MeetingRequests\ReturnAuthorityInitiatedDraftForCorrection;
 use App\Actions\MeetingRequests\StartAuthorityDirectiveCoordination;
 use App\Actions\MeetingRequests\StartAuthorityInitiatedScheduling;
 use App\Actions\MeetingRequests\SubmitAuthorityInitiatedDraftForIssuance;
 use App\Actions\MeetingRequests\UpdateAuthorityInitiatedDraft;
+use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\MeetingRequestResource;
 use App\Http\Resources\MeetingResource;
 use App\Models\MeetingRequest;
@@ -45,6 +46,7 @@ class AuthorityInitiatedMeetingRequestController
             'estimated_duration_minutes' => ['nullable', 'integer', 'min:1'], 'preferred_location' => ['nullable', 'string', 'max:255'],
             'participating_unit_ids' => ['required', 'array', 'min:1'], 'participating_unit_ids.*' => ['integer', 'distinct'],
         ]);
+
         return $this->ok($action($request->user(), $data))->setStatusCode(201);
     }
 
@@ -60,12 +62,14 @@ class AuthorityInitiatedMeetingRequestController
             'participating_unit_ids' => ['sometimes', 'array', 'min:1'], 'participating_unit_ids.*' => ['integer', 'distinct'],
         ]);
         Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
     public function submit(Request $request, MeetingRequest $meetingRequest, SubmitAuthorityInitiatedDraftForIssuance $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
@@ -73,36 +77,42 @@ class AuthorityInitiatedMeetingRequestController
     {
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
         Gate::authorize('authorityInitiatedIssue', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $reason));
     }
 
     public function resubmit(Request $request, MeetingRequest $meetingRequest, ResubmitAuthorityInitiatedDraft $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function issue(Request $request, MeetingRequest $meetingRequest, IssueHighAuthorityMeetingDirective $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedIssue', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function distribute(Request $request, MeetingRequest $meetingRequest, DistributeAuthorityMeetingDirective $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedDistribute', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function startCoordination(Request $request, MeetingRequest $meetingRequest, int $unit, StartAuthorityDirectiveCoordination $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedCoordinate', [$meetingRequest, $unit]);
+
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
     public function acknowledge(Request $request, MeetingRequest $meetingRequest, int $unit, AcknowledgeAuthorityMeetingDirective $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedAcknowledge', [$meetingRequest, $unit]);
+
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
@@ -110,6 +120,7 @@ class AuthorityInitiatedMeetingRequestController
     {
         $reason = $request->validate(['reason' => ['required', 'string']])['reason'];
         Gate::authorize('authorityInitiatedClarify', [$meetingRequest, $unit]);
+
         return $this->ok($action($request->user(), $meetingRequest, $unit, $reason));
     }
 
@@ -117,6 +128,7 @@ class AuthorityInitiatedMeetingRequestController
     {
         $responseText = $request->validate(['response' => ['required', 'string']])['response'];
         Gate::authorize('authorityInitiatedClarificationRespond', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $clarification, $responseText));
     }
 
@@ -130,18 +142,21 @@ class AuthorityInitiatedMeetingRequestController
             'preferred_location' => ['nullable', 'string', 'max:255'], 'participating_unit_ids' => ['nullable', 'array', 'min:1'], 'participating_unit_ids.*' => ['integer', 'distinct'],
         ]);
         Gate::authorize('authorityInitiatedPrepare', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
     public function reissue(Request $request, MeetingRequest $meetingRequest, ReissueHighAuthorityMeetingDirective $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedIssue', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
     public function startScheduling(Request $request, MeetingRequest $meetingRequest, StartAuthorityInitiatedScheduling $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
@@ -149,6 +164,7 @@ class AuthorityInitiatedMeetingRequestController
     {
         $data = $request->validate(['meeting_date' => ['required', 'date'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i'], 'location' => ['required', 'string', 'max:255'], 'comment' => ['nullable', 'string']]);
         Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $data));
     }
 
@@ -156,6 +172,7 @@ class AuthorityInitiatedMeetingRequestController
     {
         $data = $request->validate(['proposal_id' => ['required', 'integer'], 'unit_id' => ['required', 'integer']]);
         Gate::authorize('authorityInitiatedScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
+
         return $this->ok($action($request->user(), $meetingRequest, (int) $data['unit_id'], (int) $data['proposal_id']));
     }
 
@@ -163,12 +180,14 @@ class AuthorityInitiatedMeetingRequestController
     {
         $data = $request->validate(['proposal_id' => ['required', 'integer'], 'unit_id' => ['required', 'integer'], 'reason' => ['required', 'string']]);
         Gate::authorize('authorityInitiatedScheduleAcknowledge', [$meetingRequest, (int) $data['unit_id']]);
+
         return $this->ok($action($request->user(), $meetingRequest, (int) $data['unit_id'], (int) $data['proposal_id'], $data['reason']));
     }
 
     public function confirmSchedule(Request $request, MeetingRequest $meetingRequest, ConfirmAuthorityInitiatedSchedule $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
@@ -176,12 +195,14 @@ class AuthorityInitiatedMeetingRequestController
     {
         $ids = $request->validate(['employee_ids' => ['required', 'array'], 'employee_ids.*' => ['integer', 'distinct']])['employee_ids'];
         Gate::authorize('authorityInitiatedUnitParticipantsManage', [$meetingRequest, $unit]);
+
         return $this->ok($action($request->user(), $meetingRequest, $unit, $ids));
     }
 
     public function unitParticipantsConfirm(Request $request, MeetingRequest $meetingRequest, int $unit, ConfirmAuthorityInitiatedUnitParticipants $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedUnitParticipantsConfirm', [$meetingRequest, $unit]);
+
         return $this->ok($action($request->user(), $meetingRequest, $unit));
     }
 
@@ -189,12 +210,14 @@ class AuthorityInitiatedMeetingRequestController
     {
         $ids = $request->validate(['employee_ids' => ['required', 'array'], 'employee_ids.*' => ['integer', 'distinct']])['employee_ids'];
         Gate::authorize('authorityInitiatedParticipants', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest, $ids));
     }
 
     public function authorityParticipantsConfirm(Request $request, MeetingRequest $meetingRequest, ConfirmAuthorityInitiatedAuthorityParticipants $action): JsonResponse
     {
         Gate::authorize('authorityInitiatedParticipants', $meetingRequest);
+
         return $this->ok($action($request->user(), $meetingRequest));
     }
 
@@ -202,10 +225,11 @@ class AuthorityInitiatedMeetingRequestController
     {
         $data = $request->validate(['agenda' => ['nullable', 'string']]);
         Gate::authorize('authorityInitiatedFinalize', $meetingRequest);
+
         return response()->json(['data' => new MeetingResource($action($request->user(), $meetingRequest, $data))]);
     }
 
-    public function officeInbox(Request $request): JsonResponse
+    public function officeInbox(PaginatedRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user?->isActive() && $user->can('authority-directive.view'), 403, 'FORBIDDEN');
@@ -226,14 +250,19 @@ class AuthorityInitiatedMeetingRequestController
                         $scope->whereIn('authority_office_unit_id', $officeUnitIds);
                     }
                     if ($isHighAuthority) {
-                        if ($officeUnitIds !== []) $scope->orWhere('authority_employee_id', $employeeId);
-                        else $scope->where('authority_employee_id', $employeeId);
+                        if ($officeUnitIds !== []) {
+                            $scope->orWhere('authority_employee_id', $employeeId);
+                        } else {
+                            $scope->where('authority_employee_id', $employeeId);
+                        }
                     }
                 });
             })
             ->with(['units.unit', 'authorityContext', 'creator']);
 
-        return response()->json(['data' => MeetingRequestResource::collection($query->latest()->paginate(25))]);
+        return MeetingRequestResource::collection($query->orderByDesc('created_at')->orderByDesc('id')->paginate(min(max($request->integer('per_page', 25), 1), 50)))
+            ->additional(['success' => true, 'message' => 'فهرست درخواست‌های مقام عالی.'])
+            ->response();
     }
 
     private function ok(MeetingRequest $request): JsonResponse

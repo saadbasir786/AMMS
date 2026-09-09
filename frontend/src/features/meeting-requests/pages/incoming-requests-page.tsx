@@ -14,7 +14,8 @@ import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { api, apiPage, apiData } from '@/lib/api-client'
+import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { RequestsFilterBar } from '../components/requests-filter-bar'
 import { RequestsTable } from '../components/requests-table'
 import type { RequestRowItem } from '../types'
@@ -53,25 +54,25 @@ export function IncomingRequestsPage({
         const endpoint = isAuthority
           ? '/incoming-high-authority-decisions'
           : '/incoming-high-authority-office-meeting-requests'
-        const res = await api.get(endpoint, { params: { status: status || undefined } })
-        setData({ data: apiPage(res).data || [] })
+        const rows = await fetchAllPages<RequestRowItem>(endpoint, { status: status || undefined })
+        setData({ data: rows })
       } else if (inboxType === 'multi-high-authority') {
-        const res = await api.get('/incoming-high-authority-office-meeting-requests', {
-          params: { status: status || undefined },
-        }).catch(() => api.get('/incoming-meeting-requests'))
-        setData({ data: apiPage(res).data || [] })
+        const rows = await fetchAllPages<RequestRowItem>('/incoming-high-authority-office-meeting-requests', {
+          status: status || undefined,
+        }).catch(() => fetchAllPages<RequestRowItem>('/incoming-meeting-requests', { status: status || undefined }))
+        setData({ data: rows })
       } else if (inboxType === 'authority-initiated') {
-        const res = await api.get('/incoming-authority-initiated-meeting-requests', {
-          params: { status: status || undefined },
+        const rows = await fetchAllPages<RequestRowItem>('/incoming-authority-initiated-meeting-requests', {
+          status: status || undefined,
         })
-        setData({ data: apiPage(res).data || [] })
+        setData({ data: rows })
       } else {
         const [resSingle, resMulti] = await Promise.all([
-          api.get('/incoming-meeting-requests', { params: { status: status || undefined } }),
-          api.get('/incoming-multi-directorate-meeting-requests', { params: { status: status || undefined } }).catch(() => ({ data: { data: [] } })),
+          fetchAllPages<RequestRowItem>('/incoming-meeting-requests', { status: status || undefined }),
+          fetchAllPages<RequestRowItem>('/incoming-multi-directorate-meeting-requests', { status: status || undefined }).catch(() => []),
         ])
-        const left = apiPage(resSingle).data || []
-        const right = apiPage(resMulti).data || []
+        const left = resSingle
+        const right = resMulti
         const combined = [...left, ...right].sort((x: any, y: any) =>
           String(y.created_at || '').localeCompare(String(x.created_at || ''))
         )

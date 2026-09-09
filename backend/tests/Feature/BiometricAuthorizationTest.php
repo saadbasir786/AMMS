@@ -49,7 +49,10 @@ class BiometricAuthorizationTest extends TestCase
         app(ScopedCapabilityManager::class)->grant($actor, SpecialCapability::BIOMETRIC_ENROLLMENT, $tech, $grantor);
 
         $response = $this->actingAs($actor, 'sanctum')->getJson('/api/employees/'.$employee->id.'/biometrics');
-        $response->assertOk()->assertJsonMissingPath('data.templates.0.template_data');
+        $response->assertOk()
+            ->assertJsonMissingPath('data.templates.0.template_data')
+            ->assertJsonPath('data.templates_meta.current_page', 1)
+            ->assertJsonPath('data.templates_meta.per_page', 25);
     }
 
     public function test_parent_directorate_capability_scope_covers_employee_subunit(): void

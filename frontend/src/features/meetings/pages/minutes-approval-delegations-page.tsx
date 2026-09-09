@@ -73,13 +73,25 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
   // Filters
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'EXPIRED' | 'REVOKED'>('ALL')
+  const [delegationsPage, setDelegationsPage] = useState(1)
+  const [delegationsMeta, setDelegationsMeta] = useState<any>(null)
+  const [delegationsStats, setDelegationsStats] = useState<any>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = apiData(await api.get('/minutes-approval-delegations'))
+      const data = apiData(await api.get('/minutes-approval-delegations', {
+        params: {
+          page: delegationsPage,
+          per_page: 15,
+          search: search.trim() || undefined,
+          status: statusFilter === 'ALL' ? undefined : statusFilter,
+        },
+      }))
       setDelegations(data?.delegations || [])
+      setDelegationsMeta(data?.delegations_meta || null)
+      setDelegationsStats(data?.stats || null)
       setDelegates(data?.delegates || [])
       setUnits(data?.units || [])
       setUnitId((current) => current || String(data?.units?.[0]?.id || ''))
@@ -91,7 +103,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [delegationsPage, search, statusFilter])
 
   useEffect(() => {
     loadData()
@@ -101,22 +113,30 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
     setDelegateUserId('')
   }, [unitId])
 
+  useEffect(() => {
+    setDelegationsPage(1)
+  }, [search, statusFilter])
+
   // KPIs
-  const activeCount = useMemo(
+  const fallbackActiveCount = useMemo(
     () => delegations.filter((d) => d.active).length,
     [delegations]
   )
-  const revokedCount = useMemo(
+  const fallbackRevokedCount = useMemo(
     () => delegations.filter((d) => !!d.revoked_at).length,
     [delegations]
   )
-  const expiredCount = useMemo(
+  const fallbackExpiredCount = useMemo(
     () => delegations.filter((d) => !d.active && !d.revoked_at).length,
     [delegations]
   )
+  const activeCount = delegationsStats?.active ?? fallbackActiveCount
+  const revokedCount = delegationsStats?.revoked ?? fallbackRevokedCount
+  const expiredCount = delegationsStats?.expired ?? fallbackExpiredCount
 
   // Filtered delegations
   const filteredDelegations = useMemo(() => {
+    if (delegationsStats) return delegations
     return delegations.filter((d) => {
       const q = search.trim().toLowerCase()
       const matchSearch =
@@ -138,7 +158,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
 
       return matchSearch && matchStatus
     })
-  }, [delegations, search, statusFilter])
+  }, [delegations, delegationsStats, search, statusFilter])
 
   const openCreateDialog = () => {
     setDelegateUserId('')
@@ -286,7 +306,7 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
               کل سوابق تفویض صورت‌جلسه
             </span>
             <strong className="text-lg font-bold text-foreground font-mono">
-              {delegations.length} مورد
+              {delegationsStats?.total ?? delegations.length} مورد
             </strong>
           </div>
         </div>
@@ -498,6 +518,32 @@ export function MinutesApprovalDelegationsPage({ embedded = false }: MinutesAppr
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {!loading && delegationsMeta && (delegationsMeta.last_page ?? 1) > 1 && (
+        <div className="flex items-center justify-center gap-3 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!delegationsMeta.current_page || delegationsMeta.current_page <= 1}
+            onClick={() => setDelegationsPage((page) => Math.max(1, page - 1))}
+            className="h-8 rounded-xl"
+          >
+            قبلی
+          </Button>
+          <span className="text-muted-foreground">
+            صفحه {delegationsMeta.current_page} از {delegationsMeta.last_page}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={delegationsMeta.current_page >= delegationsMeta.last_page}
+            onClick={() => setDelegationsPage((page) => page + 1)}
+            className="h-8 rounded-xl"
+          >
+            بعدی
+          </Button>
         </div>
       )}
 

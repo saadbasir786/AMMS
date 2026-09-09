@@ -10,7 +10,7 @@ class MeetingWorkspacePagination
 {
     public static function read($query, Request $request): array
     {
-        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer']]);
+        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:50']]);
         $paginator = $query->paginate(min(max($request->integer('per_page', 15), 1), 50));
 
         return JsonResource::collection($paginator)->response()->getData(true);

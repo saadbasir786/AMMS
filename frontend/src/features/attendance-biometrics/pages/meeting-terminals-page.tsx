@@ -38,6 +38,7 @@ export function MeetingTerminalsPage() {
 
   const [data, setData] = useState<MeetingTerminalsData | null>(null)
   const [capabilities, setCapabilities] = useState<MeetingActionCapabilities | null>(null)
+  const [assignmentsPage, setAssignmentsPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,13 +47,13 @@ export function MeetingTerminalsPage() {
   const [revokeTarget, setRevokeTarget] = useState<TerminalAssignment | null>(null)
   const [revokeReason, setRevokeReason] = useState('')
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (targetPage = assignmentsPage) => {
     if (!id) return
     setLoading(true)
     setError(null)
     try {
       const [res, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/terminals`),
+        api.get(`/meetings/${id}/terminals`, { params: { page: targetPage, per_page: 15 } }),
         fetchMeetingActionCapabilities(id),
       ])
       setData(apiData(res))
@@ -65,7 +66,7 @@ export function MeetingTerminalsPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, assignmentsPage])
 
   useEffect(() => {
     loadData()
@@ -81,7 +82,8 @@ export function MeetingTerminalsPage() {
     setError(null)
     try {
       await api.post(`/meetings/${id}/terminal-assignments`, formData)
-      await loadData()
+      setAssignmentsPage(1)
+      await loadData(1)
     } catch (err: any) {
       setError(err?.response?.data?.message || 'تخصیص ترمینال با خطا مواجه شد.')
     } finally {
@@ -95,7 +97,7 @@ export function MeetingTerminalsPage() {
     setError(null)
     try {
       await api.post(`/meetings/${id}/terminal-assignments/${assignment.id}/refresh`)
-      await loadData()
+      await loadData(assignmentsPage)
     } catch (err: any) {
       setError(err?.response?.data?.message || 'به‌روزرسانی مبنای تخصیص با خطا مواجه شد.')
     } finally {
@@ -117,7 +119,7 @@ export function MeetingTerminalsPage() {
       })
       setRevokeTarget(null)
       setRevokeReason('')
-      await loadData()
+      await loadData(assignmentsPage)
     } catch (err: any) {
       setError(err?.response?.data?.message || 'لغو تخصیص با خطا مواجه شد.')
     } finally {
@@ -179,7 +181,7 @@ export function MeetingTerminalsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadData}
+              onClick={() => loadData(assignmentsPage)}
               className="h-8 text-xs font-semibold gap-1.5 shrink-0"
             >
               <RotateCw className="size-3" />
@@ -197,7 +199,7 @@ export function MeetingTerminalsPage() {
           </div>
           <div>
             <span className="text-[10px] text-muted-foreground block font-medium">دستگاه‌های تخصیص‌یافته</span>
-            <strong className="text-base font-bold text-foreground font-mono">{assignments.length}</strong>
+            <strong className="text-base font-bold text-foreground font-mono">{data?.stats?.total ?? assignments.length}</strong>
           </div>
         </div>
 
@@ -373,6 +375,31 @@ export function MeetingTerminalsPage() {
                 </tbody>
               </table>
             </div>
+            {data?.assignments_meta && data.assignments_meta.last_page > 1 && (
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border/60 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={data.assignments_meta.current_page <= 1 || busy}
+                  onClick={() => setAssignmentsPage((page) => page - 1)}
+                  className="h-8 rounded-lg"
+                >
+                  قبلی
+                </Button>
+                <span className="text-muted-foreground">
+                  صفحهٔ {data.assignments_meta.current_page} از {data.assignments_meta.last_page} · {data.assignments_meta.total} تخصیص
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={data.assignments_meta.current_page >= data.assignments_meta.last_page || busy}
+                  onClick={() => setAssignmentsPage((page) => page + 1)}
+                  className="h-8 rounded-lg"
+                >
+                  بعدی
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

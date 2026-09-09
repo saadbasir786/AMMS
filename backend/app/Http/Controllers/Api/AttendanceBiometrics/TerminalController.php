@@ -11,7 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceBiometrics\StoreTerminalRequest;
 use App\Http\Requests\AttendanceBiometrics\TerminalRevokeRequest;
 use App\Http\Requests\AttendanceBiometrics\UpdateTerminalRequest;
-use App\Http\Resources\TerminalMeetingSessionResource;
+use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\TerminalResource;
 use App\Models\Terminal;
 use Illuminate\Http\JsonResponse;
@@ -19,10 +19,12 @@ use Illuminate\Http\Request;
 
 class TerminalController extends Controller
 {
-    public function index(Request $request)
+    public function index(PaginatedRequest $request)
     {
         $this->authorize('viewAny', Terminal::class);
-        $terminals = Terminal::query()->with(['organization', 'currentSession'])->withCount('assignments')->latest('id')->paginate(20);
+        $terminals = Terminal::query()->with(['organization', 'currentSession'])->withCount('assignments')
+            ->orderByDesc('id')->paginate(min(max($request->integer('per_page', 20), 1), 50));
+
         return TerminalResource::collection($terminals)->additional(['success' => true, 'message' => 'فهرست ترمینال‌ها.']);
     }
 
@@ -30,18 +32,21 @@ class TerminalController extends Controller
     {
         $this->authorize('register', Terminal::class);
         $terminal = $action->execute($request->user(), $request->validated());
+
         return (new TerminalResource($terminal))->additional(['success' => true, 'message' => 'ترمینال ثبت شد.'])->response()->setStatusCode(201);
     }
 
     public function show(Terminal $terminal): TerminalResource
     {
         $this->authorize('view', $terminal);
+
         return new TerminalResource($terminal->load(['organization', 'currentSession', 'activeCredential', 'assignments.meeting', 'assignments.sessions']));
     }
 
     public function update(UpdateTerminalRequest $request, Terminal $terminal, UpdateTerminal $action): TerminalResource
     {
         $this->authorize('manage', $terminal);
+
         return new TerminalResource($action->execute($request->user(), $terminal, $request->validated()));
     }
 
@@ -49,6 +54,7 @@ class TerminalController extends Controller
     {
         $this->authorize('manage', $terminal);
         $issued = $action->execute($request->user(), $terminal);
+
         return response()->json([
             'success' => true,
             'message' => 'اعتبارنامه صادر شد. این کلید فقط یک‌بار نمایش داده می‌شود.',
@@ -60,6 +66,7 @@ class TerminalController extends Controller
     {
         $this->authorize('rotateCredential', $terminal);
         $issued = $action->execute($request->user(), $terminal);
+
         return response()->json([
             'success' => true,
             'message' => 'اعتبارنامه تعویض شد. این کلید فقط یک‌بار نمایش داده می‌شود.',
@@ -70,6 +77,7 @@ class TerminalController extends Controller
     public function revoke(TerminalRevokeRequest $request, Terminal $terminal, RevokeTerminal $action): TerminalResource
     {
         $this->authorize('revoke', $terminal);
+
         return new TerminalResource($action->execute($request->user(), $terminal, $request->validated()['reason']));
     }
 }

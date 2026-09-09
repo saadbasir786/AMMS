@@ -113,6 +113,14 @@ export type ActionItemPageMeta = {
   total: number
 }
 
+export type ActionItemPageStats = {
+  total: number
+  in_progress: number
+  pending_verification: number
+  completed: number
+  overdue: number
+}
+
 export type ActionItemCapabilities = {
   view: boolean
   start: boolean
@@ -139,6 +147,24 @@ export type FollowUpDecision = {
   responsible_employee_id?: number
   target_date?: string
   reason?: string
+  action_items?: ActionItem[]
+}
+
+export type MeetingFollowUp = {
+  id: number
+  decision_id: number
+  decision_number: string
+  decision?: {
+    id: number
+    decision_number: string
+    decision_text: string
+    responsible_unit_id?: number
+    responsible_employee_id?: number
+    target_date?: string
+  } | null
+  classification: 'UNCLASSIFIED' | 'NO_ACTION_REQUIRED' | 'ACTION_REQUIRED'
+  status: 'ACTIVE' | 'CLOSED' | string
+  no_action_reason?: string | null
   action_items?: ActionItem[]
 }
 
@@ -169,5 +195,12 @@ export type MeetingFollowUpData = {
   decision_count: number
   followup_initialized: boolean
   summary?: MeetingFollowUpSummary
-  decisions?: FollowUpDecision[]
+  followups?: MeetingFollowUp[]
+  followups_meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+  followups_links?: { first?: string | null; last?: string | null; prev?: string | null; next?: string | null }
 }

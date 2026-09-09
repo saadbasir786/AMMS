@@ -52,6 +52,7 @@ type ReportsDataTableProps = {
   meta: any
   loading: boolean
   busy: boolean
+  onPageChange?: (page: number) => void
   onExportPdf: () => void
   onExportXlsx: () => void
 }
@@ -62,6 +63,7 @@ export function ReportsDataTable({
   meta,
   loading,
   busy,
+  onPageChange,
   onExportPdf,
   onExportXlsx,
 }: ReportsDataTableProps) {
@@ -178,6 +180,34 @@ export function ReportsDataTable({
             </tbody>
           </table>
         </div>
+
+        {meta?.last_page > 1 && onPageChange && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border/60 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page <= 1 || loading}
+              onClick={() => onPageChange(meta.current_page - 1)}
+              className="h-8 rounded-lg gap-1"
+            >
+              <ChevronRight className="size-3.5" />
+              <span>صفحه قبل</span>
+            </Button>
+            <span className="text-muted-foreground">
+              صفحهٔ {meta.current_page} از {meta.last_page} · {meta.total} رکورد
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page >= meta.last_page || loading}
+              onClick={() => onPageChange(meta.current_page + 1)}
+              className="h-8 rounded-lg gap-1"
+            >
+              <span>صفحه بعد</span>
+              <ChevronLeft className="size-3.5" />
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

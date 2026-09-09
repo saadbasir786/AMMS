@@ -6,7 +6,8 @@ export async function fetchAllAdminPages<T>(path: string): Promise<T[]> {
   let lastPage = 1
 
   do {
-    const response = await api.get(path, { params: { page, per_page: 100 } })
+    // Admin list endpoints defensively cap per_page at 50.
+    const response = await api.get(path, { params: { page, per_page: 50 } })
     const payload = apiPage(response)
     items.push(...(payload?.data || []))
     lastPage = Number(payload?.meta?.last_page || 1)

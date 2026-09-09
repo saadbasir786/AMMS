@@ -24,6 +24,7 @@ export function MeetingAttendancePage() {
   const navigate = useNavigate()
 
   const [data, setData] = useState<MeetingAttendanceData | null>(null)
+  const [recordsPage, setRecordsPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +34,7 @@ export function MeetingAttendancePage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/meetings/${id}/attendance`)
+      const res = await api.get(`/meetings/${id}/attendance`, { params: { page: recordsPage, per_page: 25 } })
       setData(apiData(res))
     } catch (err: any) {
       setError(
@@ -43,7 +44,7 @@ export function MeetingAttendancePage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, recordsPage])
 
   useEffect(() => {
     loadData()
@@ -69,9 +70,10 @@ export function MeetingAttendancePage() {
   const records = data?.records || []
   const meeting = data?.meeting
 
-  const totalCount = records.length
-  const biometricCount = records.filter((r) => r.attendance_method === 'FINGERPRINT').length
-  const manualCount = records.filter((r) => r.attendance_method !== 'FINGERPRINT').length
+  const totalCount = data?.stats?.total ?? data?.official_count ?? records.length
+  const biometricCount = data?.stats?.biometric ?? records.filter((r) => r.attendance_method === 'FINGERPRINT').length
+  const manualCount = data?.stats?.manual ?? records.filter((r) => r.attendance_method !== 'FINGERPRINT').length
+  const recordsMeta = data?.records_meta
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -202,6 +204,13 @@ export function MeetingAttendancePage() {
             فهرست رکوردهای رسمی حضور در جلسه
           </h3>
           <AttendanceRecordsTable records={records} />
+          {recordsMeta && recordsMeta.last_page > 1 && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-xs">
+              <Button variant="outline" size="sm" disabled={recordsMeta.current_page <= 1} onClick={() => setRecordsPage((page) => page - 1)}>قبلی</Button>
+              <span>صفحهٔ {recordsMeta.current_page} از {recordsMeta.last_page} · {recordsMeta.total} رکورد</span>
+              <Button variant="outline" size="sm" disabled={recordsMeta.current_page >= recordsMeta.last_page} onClick={() => setRecordsPage((page) => page + 1)}>بعدی</Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { MinutesFormCard } from '../components/minutes-form-card'
 import { MinutesReviewsCard } from '../components/minutes-reviews-card'
 import { MeetingActionsCard } from '../components/meeting-actions-card'
@@ -76,14 +77,14 @@ export function MeetingMinutesPage() {
         api.get(`/meetings/${id}`),
         fetchMeetingActionCapabilities(id),
         api.get('/organizational-units').catch(() => ({ data: [] })),
-        api.get('/employees').catch(() => ({ data: [] })),
+        fetchAllPages<Employee>('/employees').catch(() => []),
       ])
       const minData = apiData(minRes)
       const meetData = apiData(meetRes)
       setMinutes(minData)
       setMeeting({ ...meetData, action_capabilities: capabilities })
       setOrganizationalUnits(apiData(unitsRes) || [])
-      setEmployees(apiData(employeesRes) || [])
+      setEmployees(employeesRes)
 
       const version = minData?.current_version
       if (version) {

@@ -77,6 +77,7 @@ export function MeetingFollowUpPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [followupsPage, setFollowupsPage] = useState(1)
 
   // Dialog states
   const [selectedDecision, setSelectedDecision] = useState<FollowUpDecision | null>(null)
@@ -97,7 +98,9 @@ export function MeetingFollowUpPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/meetings/${id}/follow-up`)
+      const res = await api.get(`/meetings/${id}/follow-up`, {
+        params: { page: followupsPage, per_page: 25 },
+      })
       setData(apiData(res))
     } catch (err: any) {
       setError(
@@ -107,7 +110,7 @@ export function MeetingFollowUpPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, followupsPage])
 
   useEffect(() => {
     loadData()
@@ -202,7 +205,18 @@ export function MeetingFollowUpPage() {
   }
 
   const summary = data?.summary
-  const decisions = data?.decisions || []
+  const decisions: FollowUpDecision[] = (data?.followups || []).map((followup) => ({
+    id: followup.decision?.id || followup.decision_id,
+    decision_number: followup.decision?.decision_number || followup.decision_number,
+    decision_text: followup.decision?.decision_text || '',
+    classification: followup.classification,
+    status: followup.status === 'CLOSED' ? 'CLOSED' : 'ACTIVE',
+    responsible_unit_id: followup.decision?.responsible_unit_id,
+    responsible_employee_id: followup.decision?.responsible_employee_id,
+    target_date: followup.decision?.target_date,
+    reason: followup.no_action_reason || undefined,
+    action_items: followup.action_items || [],
+  }))
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -469,6 +483,32 @@ export function MeetingFollowUpPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {!loading && data?.followups_meta && data.followups_meta.last_page > 1 && (
+        <div className="flex items-center justify-center gap-3 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={data.followups_meta.current_page <= 1}
+            onClick={() => setFollowupsPage((page) => Math.max(1, page - 1))}
+            className="h-8 rounded-xl"
+          >
+            قبلی
+          </Button>
+          <span className="text-muted-foreground">
+            صفحه {data.followups_meta.current_page} از {data.followups_meta.last_page}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={data.followups_meta.current_page >= data.followups_meta.last_page}
+            onClick={() => setFollowupsPage((page) => page + 1)}
+            className="h-8 rounded-xl"
+          >
+            بعدی
+          </Button>
+        </div>
       )}
 
       {/* Classify Dialog */}

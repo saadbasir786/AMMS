@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatSolarDate, formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData, apiPage } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { ReportsFilterBar, REPORT_CONFIGS } from '../components/reports-filter-bar'
 import { ReportsKpiGrid } from '../components/reports-kpi-grid'
 import { ReportsChartCard } from '../components/reports-chart-card'
@@ -63,6 +64,7 @@ export function ReportsPage({ user, exportsOnly = false }: ReportsPageProps) {
   const [dashboardData, setDashboardData] = useState<DashboardReportData | null>(null)
   const [rows, setRows] = useState<any[]>([])
   const [meta, setMeta] = useState<any>({})
+  const [reportPage, setReportPage] = useState(1)
   const [exportsList, setExportsList] = useState<ExportJob[]>([])
 
   const [loading, setLoading] = useState(false)
@@ -80,9 +82,10 @@ export function ReportsPage({ user, exportsOnly = false }: ReportsPageProps) {
       to: range.to,
       search: search.trim() || undefined,
       meeting_status: meetingStatus || undefined,
+      page: reportPage,
       per_page: 25,
     }),
-    [range, search, meetingStatus]
+    [range, search, meetingStatus, reportPage]
   )
 
   const loadDashboard = useCallback(async () => {
@@ -121,8 +124,8 @@ export function ReportsPage({ user, exportsOnly = false }: ReportsPageProps) {
 
   const loadExports = useCallback(async () => {
     try {
-      const res = await api.get('/reporting/exports')
-      setExportsList(apiPage(res).data || [])
+      const exports = await fetchAllPages<ExportJob>('/reporting/exports')
+      setExportsList(exports)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -130,6 +133,10 @@ export function ReportsPage({ user, exportsOnly = false }: ReportsPageProps) {
       )
     }
   }, [])
+
+  useEffect(() => {
+    setReportPage(1)
+  }, [reportType, range.from, range.to, search, meetingStatus])
 
   useEffect(() => {
     if (activeTab === 'dashboard') loadDashboard()
@@ -322,6 +329,7 @@ export function ReportsPage({ user, exportsOnly = false }: ReportsPageProps) {
           meta={meta}
           loading={loading}
           busy={busy}
+          onPageChange={setReportPage}
           onExportPdf={() => handleCreateExport('PDF')}
           onExportXlsx={() => handleCreateExport('XLSX')}
         />

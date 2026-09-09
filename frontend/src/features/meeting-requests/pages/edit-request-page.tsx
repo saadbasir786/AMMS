@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { TimePicker } from '@/components/ui/time-picker'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import type { OrganizationalUnit, EmployeeItem } from '../types'
 
 type EditRequestPageProps = {
@@ -70,13 +71,13 @@ export function EditRequestPage({
     Promise.all([
       api.get(`/meeting-requests/${id}`),
       api.get('/organizational-units'),
-      api.get('/employees'),
+      fetchAllPages<EmployeeItem>('/employees'),
     ])
       .then(([reqRes, unitsRes, empRes]) => {
         const r = apiData(reqRes)
         setRequest(r)
         setUnits(apiData(unitsRes) || [])
-        setEmployees(apiData(empRes) || [])
+        setEmployees(empRes)
         setForm({
           subject: r.subject || '',
           purpose: r.purpose || 'COORDINATION',

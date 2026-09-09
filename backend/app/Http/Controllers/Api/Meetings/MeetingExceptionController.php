@@ -21,21 +21,20 @@ use App\Http\Requests\Meetings\CreateMeetingExceptionCaseRequest;
 use App\Http\Requests\Meetings\MeetingExceptionDecisionRequest;
 use App\Http\Requests\Meetings\ResumePostponedMeetingRequest;
 use App\Http\Requests\Meetings\UpdateMeetingExceptionDraftRequest;
+use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\MeetingExceptionCaseResource;
 use App\Http\Resources\MeetingExceptionReviewResource;
 use App\Models\Meeting;
 use App\Models\MeetingExceptionCase;
 use App\Models\MeetingExceptionReview;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class MeetingExceptionController extends Controller
 {
-    public function index(Request $request, Meeting $meeting)
+    public function index(PaginatedRequest $request, Meeting $meeting)
     {
         Gate::authorize('viewMeeting', [MeetingExceptionCase::class, $meeting]);
-        $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer']]);
         $cases = $meeting->exceptionCases()->with(['meeting.request', 'meeting.units', 'meeting.authorityContext', 'currentVersion.reviews.organizationalUnit', 'currentVersion.reviews.version.exceptionCase.meeting'])
             ->latest('id')->paginate(min(max($request->integer('per_page', 15), 1), 50));
         $meeting->loadMissing(['request', 'currentScheduleVersion']);

@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { api, apiData, apiError } from '@/lib/api-client'
+import { api, apiError } from '@/lib/api-client'
 import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
 import { EmployeesTable } from '../components/employees-table'
 import type { Employee, EmployeePosition, OrganizationalUnit } from '../types'
@@ -80,11 +80,11 @@ export function EmployeesPage({ embedded = false }: EmployeesPageProps) {
     try {
       const [loadedEmployees, unitResponse, loadedPositions] = await Promise.all([
         fetchAllAdminPages<Employee>('/admin/employees'),
-        api.get('/admin/organizational-units'),
+        fetchAllAdminPages<OrganizationalUnit>('/admin/organizational-units'),
         fetchAllAdminPages<EmployeePosition>('/admin/positions'),
       ])
       setEmployees(loadedEmployees)
-      setUnits(apiData(unitResponse) || [])
+      setUnits(unitResponse)
       setPositions(loadedPositions)
     } catch (err) {
       setError(apiError(err))
