@@ -75,21 +75,34 @@ class CanonicalOrganizationSeederTest extends TestCase
         $this->assertSame($deputyPresidency->id, $finance->parent_id);
         $this->assertSame($deputyPresidency->id, $hr->parent_id);
 
-        // Children of Technology Directorate
+        // Technology Directorate -> Technology Deputy Directorate
         $techDep = OrganizationalUnit::query()->where('code', 'TECH-DEP')->firstOrFail();
+        $this->assertSame($tech->id, $techDep->parent_id);
+        $this->assertSame('DEPUTY_DIRECTORATE', $techDep->unit_type);
+
+        // Subordinate operational units report through Deputy Directorate
         $techExec = OrganizationalUnit::query()->where('code', 'TECH-EXEC')->firstOrFail();
         $techAmirNet = OrganizationalUnit::query()->where('code', 'TECH-AMIR-NET')->firstOrFail();
         $techAmirSw = OrganizationalUnit::query()->where('code', 'TECH-AMIR-SW')->firstOrFail();
 
-        $this->assertSame($tech->id, $techDep->parent_id);
-        $this->assertSame($tech->id, $techExec->parent_id);
-        $this->assertSame($tech->id, $techAmirNet->parent_id);
-        $this->assertSame($tech->id, $techAmirSw->parent_id);
+        $this->assertSame($techDep->id, $techExec->parent_id);
+        $this->assertSame($techDep->id, $techAmirNet->parent_id);
+        $this->assertSame($techDep->id, $techAmirSw->parent_id);
 
-        $this->assertSame('DEPUTY_DIRECTORATE', $techDep->unit_type);
         $this->assertSame('GENERAL_MANAGEMENT', $techExec->unit_type);
         $this->assertSame('AMIRIATE', $techAmirNet->unit_type);
         $this->assertSame('AMIRIATE', $techAmirSw->unit_type);
+
+        // Finance & HR subordinate units also report through their Deputy Directorates
+        $finDep = OrganizationalUnit::query()->where('code', 'FIN-DEP')->firstOrFail();
+        $finExec = OrganizationalUnit::query()->where('code', 'FIN-EXEC')->firstOrFail();
+        $this->assertSame($finance->id, $finDep->parent_id);
+        $this->assertSame($finDep->id, $finExec->parent_id);
+
+        $hrDep = OrganizationalUnit::query()->where('code', 'HR-DEP')->firstOrFail();
+        $hrExec = OrganizationalUnit::query()->where('code', 'HR-EXEC')->firstOrFail();
+        $this->assertSame($hr->id, $hrDep->parent_id);
+        $this->assertSame($hrDep->id, $hrExec->parent_id);
 
         // Network branch (depth 4 and 5)
         $techInfra = OrganizationalUnit::query()->where('code', 'TECH-INFRA')->firstOrFail();

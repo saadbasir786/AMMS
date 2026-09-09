@@ -62,8 +62,8 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 5a. Technology Deputy Directorate
-        OrganizationalUnit::create([
+        // 5a. Technology Deputy Directorate (Subordinate operational units report through Deputy Directorate)
+        $techDep = OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $tech->id,
             'name' => 'معاونیت ریاست تکنالوژی',
@@ -72,20 +72,20 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 5b. Technology Executive General Management
+        // 5b. Technology Executive General Management (Reporting to Deputy Directorate)
         OrganizationalUnit::create([
             'organization_id' => $organization->id,
-            'parent_id' => $tech->id,
+            'parent_id' => $techDep->id,
             'name' => 'مدیریت عمومی اجرائیه تکنالوژی',
             'code' => 'TECH-EXEC',
             'unit_type' => 'GENERAL_MANAGEMENT',
             'status' => 'ACTIVE',
         ]);
 
-        // 5c. Network & Systems Amirate
+        // 5c. Network & Systems Amirate (Reporting to Deputy Directorate)
         $techAmirNet = OrganizationalUnit::create([
             'organization_id' => $organization->id,
-            'parent_id' => $tech->id,
+            'parent_id' => $techDep->id,
             'name' => 'آمریت شبکه و سیستم‌ها',
             'code' => 'TECH-AMIR-NET',
             'unit_type' => 'AMIRIATE',
@@ -112,10 +112,10 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 5d. Software Amirate
+        // 5d. Software Amirate (Reporting to Deputy Directorate)
         $techAmirSw = OrganizationalUnit::create([
             'organization_id' => $organization->id,
-            'parent_id' => $tech->id,
+            'parent_id' => $techDep->id,
             'name' => 'آمریت نرم‌افزار و سیستم‌ها',
             'code' => 'TECH-AMIR-SW',
             'unit_type' => 'AMIRIATE',
@@ -145,7 +145,7 @@ class OrganizationStructureSeeder extends Seeder
         ]);
 
         // 6a. Finance Deputy Directorate
-        OrganizationalUnit::create([
+        $financeDep = OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $finance->id,
             'name' => 'معاونیت ریاست مالی',
@@ -154,10 +154,10 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 6b. Finance Executive General Management
+        // 6b. Finance Executive General Management (Reporting to Deputy Directorate)
         OrganizationalUnit::create([
             'organization_id' => $organization->id,
-            'parent_id' => $finance->id,
+            'parent_id' => $financeDep->id,
             'name' => 'مدیریت عمومی اجرائیه مالی',
             'code' => 'FIN-EXEC',
             'unit_type' => 'GENERAL_MANAGEMENT',
@@ -177,7 +177,7 @@ class OrganizationStructureSeeder extends Seeder
         ]);
 
         // 7a. HR Deputy Directorate
-        OrganizationalUnit::create([
+        $hrDep = OrganizationalUnit::create([
             'organization_id' => $organization->id,
             'parent_id' => $hr->id,
             'name' => 'معاونیت ریاست منابع بشری',
@@ -186,10 +186,10 @@ class OrganizationStructureSeeder extends Seeder
             'status' => 'ACTIVE',
         ]);
 
-        // 7b. HR Executive General Management
+        // 7b. HR Executive General Management (Reporting to Deputy Directorate)
         OrganizationalUnit::create([
             'organization_id' => $organization->id,
-            'parent_id' => $hr->id,
+            'parent_id' => $hrDep->id,
             'name' => 'مدیریت عمومی اجرائیه منابع بشری',
             'code' => 'HR-EXEC',
             'unit_type' => 'GENERAL_MANAGEMENT',
