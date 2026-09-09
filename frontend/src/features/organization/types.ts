@@ -1,12 +1,47 @@
-export type OrganizationalUnitType = 'DIRECTORATE' | 'MANAGEMENT' | 'DEPARTMENT'
+export type OrganizationalUnitType =
+  | 'GENERAL_PRESIDENCY'
+  | 'DEPUTY_PRESIDENCY'
+  | 'GENERAL_DIRECTORATE'
+  | 'DIRECTORATE'
+  | 'ATTACHED_AGENCY'
+  | 'DEPUTY_DIRECTORATE'
+  | 'AMIRIATE'
+  | 'GENERAL_MANAGEMENT'
+  | 'MANAGEMENT'
+  | 'SECTION'
+  | 'OTHER'
+  | 'DEPARTMENT'
+  | 'OFFICE'
+  | 'HIGH_AUTHORITY'
+  | 'AUTHORITY_OFFICE'
+
+export type PositionType =
+  | 'DIRECTOR'
+  | 'DEPUTY_DIRECTOR'
+  | 'AMIR'
+  | 'GENERAL_MANAGER'
+  | 'EXPERT'
+  | 'MANAGER'
+  | 'EMPLOYEE'
+  | 'EXECUTIVE_MANAGEMENT'
+  | 'HIGH_AUTHORITY'
+  | 'AUTHORITY_OFFICE'
+  | 'EXECUTIVE_SECRETARY'
+  | 'OTHER'
 
 export type OrganizationalUnit = {
   id: number
+  organization_id?: number
   name: string
   code: string
   unit_type?: string
   status?: string
   parent_id?: number | null
+  parent?: {
+    id: number
+    name: string
+    code?: string
+  } | null
   description?: string
   head_employee_id?: number | null
   head_employee?: {
@@ -70,6 +105,17 @@ export type UserRoleScope = {
   unit?: { id: number; name: string } | null
 }
 
+export type CapabilityScope = {
+  id: number
+  user_id: number
+  capability: string
+  organizational_unit_id: number
+  unit?: { id: number; name: string } | null
+  granted_at?: string
+  expires_at?: string | null
+  grant_reason?: string | null
+}
+
 export type AdminUser = {
   id: number
   name: string
@@ -78,6 +124,7 @@ export type AdminUser = {
   employee_id?: number | null
   employee?: Employee | null
   roles?: UserRoleScope[]
+  capabilities?: CapabilityScope[]
 }
 
 export type UserAccessAudit = {

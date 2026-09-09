@@ -15,6 +15,7 @@ class PositionResource extends JsonResource
             'title' => $this->title,
             'code' => $this->code,
             'position_type' => $this->position_type,
+            'seniority_level' => $this->seniority_level,
             'status' => $this->status,
             'employees_count' => $this->employees_count ?? null,
             'unit' => new OrganizationalUnitResource($this->whenLoaded('unit')),

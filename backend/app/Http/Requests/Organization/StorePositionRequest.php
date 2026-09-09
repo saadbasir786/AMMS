@@ -22,15 +22,7 @@ class StorePositionRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:50'],
             'position_type' => [
                 'nullable',
-                Rule::in([
-                    'DIRECTOR',
-                    'DEPUTY_DIRECTOR',
-                    'EXECUTIVE_MANAGEMENT',
-                    'EMPLOYEE',
-                    'HIGH_AUTHORITY',
-                    'AUTHORITY_OFFICE',
-                    'EXECUTIVE_SECRETARY',
-                ]),
+                Rule::in(\App\Models\Position::POSITION_TYPES),
             ],
             'status' => ['sometimes', Rule::in(['ACTIVE', 'INACTIVE'])],
         ];

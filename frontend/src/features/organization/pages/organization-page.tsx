@@ -8,7 +8,8 @@ import {
   Search,
   Layers,
   BriefcaseBusiness,
-  Users
+  Users,
+  Plus,
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { api, apiData } from '@/lib/api-client'
 import { OrganizationTreeCard } from '../components/organization-tree-card'
+import { OrganizationalUnitDialog } from '../components/organizational-unit-dialog'
 import { PositionsPage } from './positions-page'
 import { EmployeesPage } from './employees-page'
 import type { OrganizationalUnit } from '../types'
@@ -37,6 +39,11 @@ export function OrganizationPage({ initialTab }: OrganizationPageProps) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Dialog state for creating and editing units
+  const [unitDialogOpen, setUnitDialogOpen] = useState(false)
+  const [editingUnit, setEditingUnit] = useState<OrganizationalUnit | null>(null)
+  const [defaultParentId, setDefaultParentId] = useState<number | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -149,16 +156,31 @@ export function OrganizationPage({ initialTab }: OrganizationPageProps) {
                 مشاهده و نظارت بر ساختار ریاست‌های اصلی، دیپارتمنت‌ها و مدیریت‌های تابعه
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadData}
-              disabled={loading}
-              className="h-8.5 text-xs font-semibold rounded-xl gap-1.5"
-            >
-              <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>تازه‌سازی چارت</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  setEditingUnit(null)
+                  setDefaultParentId(null)
+                  setUnitDialogOpen(true)
+                }}
+                className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                <span>ثبت واحد یا ریاست جدید</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                disabled={loading}
+                className="h-8.5 text-xs font-semibold rounded-xl gap-1.5"
+              >
+                <RotateCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>تازه‌سازی چارت</span>
+              </Button>
+            </div>
           </div>
 
           {/* Error Alert */}
@@ -270,7 +292,17 @@ export function OrganizationPage({ initialTab }: OrganizationPageProps) {
                     <OrganizationTreeCard
                       key={root.id}
                       rootUnit={root}
-                      childUnits={children}
+                      allUnits={units}
+                      onEditUnit={(unit) => {
+                        setEditingUnit(unit)
+                        setDefaultParentId(null)
+                        setUnitDialogOpen(true)
+                      }}
+                      onAddSubUnit={(parentUnit) => {
+                        setEditingUnit(null)
+                        setDefaultParentId(parentUnit.id)
+                        setUnitDialogOpen(true)
+                      }}
                     />
                   )
                 })
@@ -285,6 +317,16 @@ export function OrganizationPage({ initialTab }: OrganizationPageProps) {
 
       {/* Tab 3: Employees View */}
       {activeTab === 'employees' && <EmployeesPage embedded={true} />}
+
+      {/* Dialog for Creating and Editing Units */}
+      <OrganizationalUnitDialog
+        open={unitDialogOpen}
+        onOpenChange={setUnitDialogOpen}
+        unit={editingUnit}
+        defaultParentId={defaultParentId}
+        allUnits={units}
+        onSuccess={loadData}
+      />
     </div>
   )
 }

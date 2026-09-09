@@ -45,13 +45,18 @@ const emptyForm: PositionForm = {
 }
 
 const positionTypeLabels: Record<string, string> = {
-  DIRECTOR: 'رئیس ریاست',
+  DIRECTOR: 'رئیس',
   DEPUTY_DIRECTOR: 'معاون ریاست',
-  EXECUTIVE_MANAGEMENT: 'مدیر اجرائیه',
-  EMPLOYEE: 'کارمند اداری / فنی',
+  AMIR: 'آمر',
+  GENERAL_MANAGER: 'مدیر عمومی',
+  EXPERT: 'کارشناس / متخصص',
+  MANAGER: 'مدیر',
+  EMPLOYEE: 'کارمند اداری / مسلکی',
+  EXECUTIVE_MANAGEMENT: 'مدیریت اجرائیه',
   HIGH_AUTHORITY: 'مقام عالی',
   AUTHORITY_OFFICE: 'ریاست دفتر مقام',
   EXECUTIVE_SECRETARY: 'سکرتر اجرائیوی',
+  OTHER: 'سایر بست‌ها',
 }
 
 type PositionsPageProps = {

@@ -30,6 +30,7 @@ use App\Services\ScopedCapabilityManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class AdminController extends Controller
@@ -272,12 +273,199 @@ class AdminController extends Controller
         return OrganizationalUnitResource::collection($units)->additional(['success' => true, 'message' => 'مدیریت واحدهای تشکیلاتی.']);
     }
 
+    public const ALLOWED_UNIT_TYPES = [
+        'GENERAL_PRESIDENCY',
+        'DEPUTY_PRESIDENCY',
+        'GENERAL_DIRECTORATE',
+        'DIRECTORATE',
+        'ATTACHED_AGENCY',
+        'DEPUTY_DIRECTORATE',
+        'AMIRIATE',
+        'GENERAL_MANAGEMENT',
+        'MANAGEMENT',
+        'SECTION',
+        'OTHER',
+        // Backwards compatibility
+        'DEPARTMENT',
+        'OFFICE',
+        'HIGH_AUTHORITY',
+        'AUTHORITY_OFFICE',
+    ];
+
     public function storeUnit(Request $request)
     {
         $this->admin($request);
-        $data = $request->validate(['organization_id' => ['required', 'integer', 'exists:organizations,id'], 'parent_id' => ['nullable', 'integer', 'exists:organizational_units,id'], 'name' => ['required', 'string', 'max:255'], 'code' => ['nullable', 'string', 'max:50'], 'unit_type' => ['required', 'in:DIRECTORATE,DEPARTMENT,MANAGEMENT,OFFICE,OTHER'], 'status' => ['sometimes', 'in:ACTIVE,INACTIVE']]);
 
-        return (new OrganizationalUnitResource(OrganizationalUnit::create($data)))->additional(['success' => true, 'message' => 'واحد تشکیلاتی ایجاد شد.'])->response()->setStatusCode(201);
+        $parentId = $request->filled('parent_id') ? (int) $request->input('parent_id') : null;
+
+        $orgId = (int) ($request->input('organization_id')
+            ?? ($parentId ? OrganizationalUnit::query()->where('id', $parentId)->value('organization_id') : null)
+            ?? OrganizationalUnit::query()->value('organization_id')
+            ?? Organization::query()->value('id')
+            ?? 1);
+
+        $nameRule = Rule::unique('organizational_units', 'name')
+            ->where('organization_id', $orgId);
+        if ($parentId !== null) {
+            $nameRule->where('parent_id', $parentId);
+        } else {
+            $nameRule->whereNull('parent_id');
+        }
+
+        $codeRule = Rule::unique('organizational_units', 'code')
+            ->where('organization_id', $orgId);
+
+        $data = $request->validate([
+            'organization_id' => ['sometimes', 'integer', 'exists:organizations,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:organizational_units,id'],
+            'name' => ['required', 'string', 'max:255', $nameRule],
+            'code' => ['nullable', 'string', 'max:50', $codeRule],
+            'unit_type' => ['required', 'string', Rule::in(self::ALLOWED_UNIT_TYPES)],
+            'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
+        ], [
+            'name.unique' => 'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.',
+            'code.unique' => 'کد اداری واردشده در این سازمان تکراری است. لطفاً کد دیگری وارد فرمایید.',
+        ]);
+
+        $data['organization_id'] = $orgId;
+        $data['parent_id'] = $parentId;
+
+        $unit = DB::transaction(function () use ($data, $parentId, $orgId) {
+            // Concurrency protection: lock and verify sibling uniqueness
+            $query = OrganizationalUnit::query()
+                ->where('organization_id', $orgId)
+                ->where('name', $data['name']);
+            if ($parentId !== null) {
+                $query->where('parent_id', $parentId);
+            } else {
+                $query->whereNull('parent_id');
+            }
+            abort_if(
+                $query->lockForUpdate()->exists(),
+                422,
+                'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.'
+            );
+
+            // Same Organization Guard
+            if ($parentId !== null) {
+                $parent = OrganizationalUnit::query()->lockForUpdate()->findOrFail($parentId);
+                abort_unless(
+                    (int) $parent->organization_id === (int) $orgId,
+                    422,
+                    'واحد مافوق باید متعلق به همین سازمان باشد.'
+                );
+            }
+
+            return OrganizationalUnit::create($data);
+        });
+
+        return (new OrganizationalUnitResource($unit->load(['parent', 'children'])))
+            ->additional(['success' => true, 'message' => 'واحد تشکیلاتی با موفقیت ایجاد شد.'])
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function updateUnit(Request $request, OrganizationalUnit $unit)
+    {
+        $this->admin($request);
+
+        $orgId = (int) ($request->input('organization_id', $unit->organization_id));
+        $newParentId = array_key_exists('parent_id', $request->all())
+            ? ($request->filled('parent_id') ? (int) $request->input('parent_id') : null)
+            : $unit->parent_id;
+
+        $nameRule = Rule::unique('organizational_units', 'name')
+            ->where('organization_id', $orgId);
+        if ($newParentId !== null) {
+            $nameRule->where('parent_id', $newParentId);
+        } else {
+            $nameRule->whereNull('parent_id');
+        }
+        $nameRule->ignore($unit->id);
+
+        $codeRule = Rule::unique('organizational_units', 'code')
+            ->where('organization_id', $orgId)
+            ->ignore($unit->id);
+
+        $data = $request->validate([
+            'organization_id' => ['sometimes', 'integer', 'exists:organizations,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:organizational_units,id'],
+            'name' => ['required', 'string', 'max:255', $nameRule],
+            'code' => ['nullable', 'string', 'max:50', $codeRule],
+            'unit_type' => ['required', 'string', Rule::in(self::ALLOWED_UNIT_TYPES)],
+            'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
+        ], [
+            'name.unique' => 'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.',
+            'code.unique' => 'کد اداری واردشده در این سازمان تکراری است. لطفاً کد دیگری وارد فرمایید.',
+        ]);
+
+        $data['organization_id'] = $orgId;
+        if (array_key_exists('parent_id', $request->all())) {
+            $data['parent_id'] = $newParentId;
+        }
+
+        $freshUnit = DB::transaction(function () use ($unit, $data, $newParentId, $orgId) {
+            // Concurrency protection: lock and verify sibling uniqueness
+            $query = OrganizationalUnit::query()
+                ->where('organization_id', $orgId)
+                ->where('id', '!=', $unit->id)
+                ->where('name', $data['name']);
+            if ($newParentId !== null) {
+                $query->where('parent_id', $newParentId);
+            } else {
+                $query->whereNull('parent_id');
+            }
+            abort_if(
+                $query->lockForUpdate()->exists(),
+                422,
+                'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.'
+            );
+
+            // Hierarchy cycle prevention
+            if ($newParentId !== null) {
+                abort_if(
+                    $newParentId === (int) $unit->id,
+                    422,
+                    'واحد سازمانی نمی‌تواند مافوق خودش باشد.'
+                );
+
+                abort_if(
+                    $unit->isWithinScope($newParentId),
+                    422,
+                    'نمی‌توان یک واحد زیرمجموعه را به عنوان مافوق تعیین نمود.'
+                );
+
+                // Same Organization Guard
+                $parent = OrganizationalUnit::query()->lockForUpdate()->findOrFail($newParentId);
+                abort_unless(
+                    (int) $parent->organization_id === (int) $orgId,
+                    422,
+                    'واحد مافوق باید متعلق به همین سازمان باشد.'
+                );
+            }
+
+            // Deactivation checks
+            if (isset($data['status']) && $data['status'] === 'INACTIVE' && $unit->status === 'ACTIVE') {
+                abort_if(
+                    $unit->children()->where('status', 'ACTIVE')->exists(),
+                    422,
+                    'این واحد دارای واحدهای تابعه فعال می‌باشد. لطفاً ابتدا وضعیت واحدهای زیرمجموعه را مشخص نمایید.'
+                );
+
+                abort_if(
+                    $unit->employees()->where('status', 'ACTIVE')->exists(),
+                    422,
+                    'این واحد دارای کارمندان فعال می‌باشد. لطفاً ابتدا وضعیت کارمندان را تعیین تکلیف فرمایید.'
+                );
+            }
+
+            $unit->update($data);
+
+            return $unit->fresh(['parent', 'children']);
+        });
+
+        return (new OrganizationalUnitResource($freshUnit))
+            ->additional(['success' => true, 'message' => 'واحد تشکیلاتی با موفقیت اصلاح شد.']);
     }
 
     public function positions(PaginatedRequest $request)

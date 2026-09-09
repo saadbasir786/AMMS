@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/organizations', [AdminController::class, 'organizations']);
     Route::get('/admin/organizational-units', [AdminController::class, 'units']);
     Route::post('/admin/organizational-units', [AdminController::class, 'storeUnit']);
+    Route::put('/admin/organizational-units/{unit}', [AdminController::class, 'updateUnit']);
     Route::get('/admin/positions', [AdminController::class, 'positions']);
     Route::post('/admin/positions', [AdminController::class, 'storePosition']);
     Route::put('/admin/positions/{position}', [AdminController::class, 'updatePosition']);
