@@ -80,6 +80,11 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             ->assertCreated();
 
         $scopeId = $grant->json('data.id');
+        $this->assertDatabaseHas('amms_notifications', [
+            'user_id' => $executive->id,
+            'type' => 'DELEGATION_GRANTED',
+        ]);
+
         $this->actingAs($director, 'sanctum')
             ->postJson('/api/internal-meeting-approval-delegations', [
                 'organizational_unit_id' => $finance->id,
@@ -93,6 +98,11 @@ class InternalMeetingApprovalDelegationTest extends TestCase
             ->deleteJson("/api/internal-meeting-approval-delegations/{$scopeId}", ['reason' => 'پایان ماموریت.'])
             ->assertOk()
             ->assertJsonPath('data.active', false);
+
+        $this->assertDatabaseHas('amms_notifications', [
+            'user_id' => $executive->id,
+            'type' => 'DELEGATION_REVOKED',
+        ]);
 
         $request = $this->createAndSubmitInternalRequest($executive, $tech);
         $this->actingAs($executive, 'sanctum')

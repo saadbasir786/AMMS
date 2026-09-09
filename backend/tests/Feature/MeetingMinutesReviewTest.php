@@ -165,6 +165,11 @@ class MeetingMinutesReviewTest extends TestCase
             'reason' => 'تفویض صلاحیت بررسی و تأیید مینوت به مدیر اجرائیه.',
         ])->assertCreated()->assertJsonPath('data.active', true);
 
+        $this->assertDatabaseHas('amms_notifications', [
+            'user_id' => $exec->id,
+            'type' => 'DELEGATION_GRANTED',
+        ]);
+
         $this->assertTrue($exec->fresh()->can('meeting.minutes.review'));
         $this->assertTrue($exec->fresh()->can('meeting.minutes.review-delegated'));
         $this->assertTrue(Gate::forUser($exec->fresh())->allows('minutesReviewUnit', [Meeting::query()->findOrFail($meeting->id), $unit->id]));

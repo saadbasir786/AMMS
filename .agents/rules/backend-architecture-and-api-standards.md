@@ -196,10 +196,12 @@ No backend feature or bug fix is complete without automated regression coverage:
    - For lists: lower/upper pagination bounds, empty/out-of-range pages, stable order, grouped search, foreign-scope exclusion and authoritative aggregates across pages/filters.
    - Match the established endpoint contract where a scoped lookup deliberately returns `404` instead of `403`; never broaden visibility just to satisfy a generic test expectation.
 
-3. **Verification Command**:
+3. **Targeted Verification Command & Fast Feedback Loop**:
    ```bash
-   php artisan test tests/Feature/<FeatureName>Test.php
+   php artisan test tests/Feature/<FeatureName>Test.php --filter=<method_name>
    ```
+   - When verifying incremental changes, bug fixes, or new endpoints, **strictly use `--filter` to run only the specific test methods or class** directly affected by the change.
+   - **Never run large, unrelated test suites blindly** during incremental feature development, as full database resets and unrelated heavy integration suites (such as PDF generators or complete workflow runs) cause severe, unnecessary delays.
    - Run from `backend/` with an isolated testing database. Check `phpunit.xml`, test environment and cached configuration before commands that reset data; never point `RefreshDatabase`, migrations or seeders at a development/production database.
    - Fake external mail, storage and network effects as appropriate. Use deterministic fixtures and controlled time. Locking/concurrency guarantees require checks on the supported database engine; SQLite-only tests cannot establish them.
    - Run affected suites and broaden to related/full backend suites for shared authorization, schema or workflow changes. Run frontend checks when API consumers change. Report actual results and environment failures separately; do not call an incomplete or failed run green.

@@ -12,9 +12,11 @@ use App\Http\Resources\CapabilityScopeResource;
 use App\Models\AmmsCapabilityScope;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Models\AmmsNotification;
 use App\Services\ScopedCapabilityManager;
 use App\Support\SpecialCapability;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class InternalMeetingApprovalDelegationController extends Controller
 {
@@ -132,16 +134,35 @@ class InternalMeetingApprovalDelegationController extends Controller
             'فرد منتخب باید مدیر اجرائیه یا معاون همان ریاست باشد.'
         );
 
-        $scope = $manager->grant(
-            $delegate,
-            SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL,
-            $unit,
-            $actor,
-            [
-                'expires_at' => $request->date('expires_at')->endOfDay(),
-                'grant_reason' => $request->string('reason')->trim()->toString(),
-            ],
-        );
+        $scope = DB::transaction(function () use ($actor, $delegate, $manager, $request, $unit) {
+            $scope = $manager->grant(
+                $delegate,
+                SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL,
+                $unit,
+                $actor,
+                [
+                    'expires_at' => $request->date('expires_at')->endOfDay(),
+                    'grant_reason' => $request->string('reason')->trim()->toString(),
+                ],
+            );
+
+            AmmsNotification::create([
+                'user_id' => $delegate->id,
+                'type' => 'DELEGATION_GRANTED',
+                'title' => 'ابلاغ تفویض صلاحیت تأیید جلسات داخلی',
+                'message' => "صلاحیت تأیید درخواست‌های جلسات داخلی اداره {$unit->name} از سوی ریاست به شما تفویض شد.",
+                'data' => [
+                    'capability' => SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL,
+                    'organizational_unit_id' => $unit->id,
+                    'expires_at' => $scope->expires_at?->toIso8601String(),
+                    'grant_reason' => $scope->grant_reason,
+                    'granted_by_id' => $actor->id,
+                    'action_url' => '/approvals',
+                ],
+            ]);
+
+            return $scope;
+        });
 
         return (new CapabilityScopeResource($scope->load(['user.employee.unit', 'unit', 'grantedBy'])))
             ->additional(['success' => true, 'message' => 'صلاحیت تأیید درخواست‌های داخلی تفویض شد.'])
@@ -154,11 +175,31 @@ class InternalMeetingApprovalDelegationController extends Controller
         abort_unless($capabilityScope->capability === SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL, 404);
         $this->assertDirectorForUnit($request->user(), (int) $capabilityScope->organizational_unit_id);
 
-        return new CapabilityScopeResource($manager->revoke(
-            $capabilityScope,
-            $request->user(),
-            $request->string('reason')->trim()->toString(),
-        ));
+        $revoked = DB::transaction(function () use ($capabilityScope, $manager, $request) {
+            $reason = $request->string('reason')->trim()->toString();
+            $revoked = $manager->revoke(
+                $capabilityScope,
+                $request->user(),
+                $reason,
+            );
+
+            AmmsNotification::create([
+                'user_id' => $capabilityScope->user_id,
+                'type' => 'DELEGATION_REVOKED',
+                'title' => 'لغو تفویض صلاحیت تأیید جلسات داخلی',
+                'message' => "صلاحیت تفویض‌شده تأیید درخواست‌های جلسات داخلی از سوی ریاست لغو گردید. دلیل: {$reason}",
+                'data' => [
+                    'capability' => SpecialCapability::INTERNAL_MEETING_REQUEST_APPROVAL,
+                    'organizational_unit_id' => $capabilityScope->organizational_unit_id,
+                    'revoked_by_id' => $request->user()->id,
+                    'revocation_reason' => $reason,
+                ],
+            ]);
+
+            return $revoked;
+        });
+
+        return new CapabilityScopeResource($revoked);
     }
 
     /** @return array<int, int> */

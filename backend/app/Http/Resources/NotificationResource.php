@@ -15,6 +15,10 @@ class NotificationResource extends JsonResource
             $actionUrl = '/meetings/' . $data['meeting_id'];
         } elseif (!empty($data['action_item_id'])) {
             $actionUrl = '/action-items/' . $data['action_item_id'];
+        } elseif (!empty($data['action_url'])) {
+            $actionUrl = $data['action_url'];
+        } elseif (!empty($data['link'])) {
+            $actionUrl = $data['link'];
         }
 
         return [

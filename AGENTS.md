@@ -38,7 +38,7 @@ Welcome to the Afghanistan Meetings Management System (AMMS) codebase. All devel
      - Concurrency protection and defined retry behavior for competing workflow writes; external side effects after commit
      - Forward migrations, historical data preservation, private file access and safe error/logging contracts
      - Preserve existing API consumers and follow the backend module-development checklist for new and edited modules
-     - Mandatory automated Feature Tests in `backend/tests/Feature/` covering happy path, 401, 403, and user isolation
+     - Mandatory automated Feature Tests in `backend/tests/Feature/` covering happy path, 401, 403, and user isolation; strictly execute targeted tests using `--filter` to verify incremental changes quickly without running unrelated, time-consuming test suites
 
 4. **Autonomous Rule Evolution Directive (AI Self-Evolution)**
    - AI assistants may autonomously evolve implementation conventions such as UI consistency, reusable component patterns, and non-domain architecture guidance.
