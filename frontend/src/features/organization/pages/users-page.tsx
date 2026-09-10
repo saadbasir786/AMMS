@@ -39,6 +39,7 @@ import {
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiError } from '@/lib/api-client'
 import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
+import { useAmmsMetadata } from '../lib/amms-metadata'
 import type {
   AdminUser,
   Employee,
@@ -46,17 +47,6 @@ import type {
   UserAccessAudit,
   UserRoleScope,
 } from '../types'
-
-const roleLabels: Record<string, string> = {
-  SYSTEM_ADMIN: 'مدیر سیستم (فنی)',
-  EMPLOYEE: 'کارمند',
-  DIRECTOR: 'رئیس اداره',
-  DEPUTY_DIRECTOR: 'معاون اداره',
-  EXECUTIVE_MANAGEMENT: 'مدیریت اجرائیه',
-  AUTHORITY_OFFICE: 'دفتر مقام عالی',
-  EXECUTIVE_SECRETARY: 'سکرتریت مقام عالی',
-  HIGH_AUTHORITY: 'مقام عالی',
-}
 
 const auditLabels: Record<string, string> = {
   ACCOUNT_CREATED: 'ایجاد حساب کاربری',
@@ -87,6 +77,7 @@ const emptyForm: AccountForm = {
 }
 
 export function UsersPage() {
+  const metadata = useAmmsMetadata()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
@@ -204,11 +195,11 @@ export function UsersPage() {
     const positionRole = selectedUser.employee.position?.position_type
     return [
       'EMPLOYEE',
-      ...(positionRole && positionRole !== 'EMPLOYEE' && roleLabels[positionRole]
+      ...(positionRole && positionRole !== 'EMPLOYEE' && metadata.roles.includes(positionRole)
         ? [positionRole]
         : []),
     ]
-  }, [selectedUser])
+  }, [metadata.roles, selectedUser])
 
   const selectableUnits = useMemo(() => {
     const scopeIds = new Set(selectedUser?.employee?.unit_scope_ids || [])
@@ -494,9 +485,9 @@ export function UsersPage() {
             className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-background px-3 text-foreground"
           >
             <option value="">همه نقش‌های سیستمی</option>
-            {Object.entries(roleLabels).map(([key, label]) => (
+            {metadata.roles.map((key) => (
               <option key={key} value={key}>
-                {label}
+                {metadata.labels.roles[key] || key}
               </option>
             ))}
           </select>
@@ -619,7 +610,7 @@ export function UsersPage() {
                                 variant="secondary"
                                 className="rounded-lg text-[10px] font-normal py-0.5"
                               >
-                                <span>{roleLabels[scope.role] || scope.role}</span>
+                                <span>{metadata.labels.roles[scope.role] || scope.role}</span>
                                 {scope.unit && (
                                   <span className="text-muted-foreground mr-1 text-[9px]">
                                     ({scope.unit.name})
@@ -976,7 +967,7 @@ export function UsersPage() {
                     >
                       <div>
                         <strong className="text-foreground">
-                          {roleLabels[scope.role] || scope.role}
+                          {metadata.labels.roles[scope.role] || scope.role}
                         </strong>
                         <span className="text-muted-foreground mr-1.5 text-[11px]">
                           {scope.unit ? `· حوزه: ${scope.unit.name}` : '· دسترسی سراسری'}
@@ -1018,7 +1009,7 @@ export function UsersPage() {
                 >
                   {selectableRoles.map((r) => (
                     <option key={r} value={r}>
-                      {roleLabels[r] || r}
+                      {metadata.labels.roles[r] || r}
                     </option>
                   ))}
                 </select>
@@ -1116,7 +1107,7 @@ export function UsersPage() {
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {audit.role
-                      ? `${roleLabels[audit.role] || audit.role}${
+                      ? `${metadata.labels.roles[audit.role] || audit.role}${
                           audit.unit ? ` · ${audit.unit.name}` : ''
                         }`
                       : audit.unit?.name || 'ویرایش مشخصات حساب'}{' '}

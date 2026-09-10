@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/admin-capabilities.php'));
         },
     )
+    ->withCommands([__DIR__.'/../app/Console/Commands'])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias(['terminal.auth' => AuthenticateTerminal::class, 'terminal.session.auth' => AuthenticateTerminalSession::class]);
     })

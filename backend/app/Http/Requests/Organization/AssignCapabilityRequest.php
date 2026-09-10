@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Organization;
 
 use App\Support\SpecialCapability;
+use App\Support\AmmsRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class AssignCapabilityRequest extends FormRequest
     {
         $user = $this->user();
         return $user?->isActive() === true
-            && $user->hasScopedRole('SYSTEM_ADMIN')
+            && $user->hasScopedRole(AmmsRole::SYSTEM_ADMIN)
             && $user->can('role.manage');
     }
 

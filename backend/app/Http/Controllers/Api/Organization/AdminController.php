@@ -27,6 +27,9 @@ use App\Models\User as UserModel;
 use App\Models\UserAccessAudit;
 use App\Models\UserRole;
 use App\Services\ScopedCapabilityManager;
+use App\Support\AmmsRole;
+use App\Support\OrganizationalUnitType;
+use App\Support\RolePositionCompatibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,16 +38,17 @@ use Spatie\Permission\Models\Role;
 
 class AdminController extends Controller
 {
-    private const BUSINESS_ROLES = ['EMPLOYEE', 'DIRECTOR', 'DEPUTY_DIRECTOR', 'EXECUTIVE_MANAGEMENT', 'AUTHORITY_OFFICE', 'EXECUTIVE_SECRETARY', 'HIGH_AUTHORITY'];
+    /** @deprecated Use OrganizationalUnitType::all(). */
+    public const ALLOWED_UNIT_TYPES = OrganizationalUnitType::ALL;
 
     private function admin(Request $request): void
     {
-        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && ($request->user()->can('organization.manage') || $request->user()->can('user.manage') || $request->user()->can('role.manage')), 403, 'FORBIDDEN');
+        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && ($request->user()->can('organization.manage') || $request->user()->can('user.manage') || $request->user()->can('role.manage')), 403, 'FORBIDDEN');
     }
 
     private function organizationAdmin(Request $request): void
     {
-        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('organization.manage'), 403, 'FORBIDDEN');
+        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && $request->user()->can('organization.manage'), 403, 'FORBIDDEN');
     }
 
     public function users(PaginatedRequest $request)
@@ -159,11 +163,11 @@ class AdminController extends Controller
     public function revokeRole(Request $request, UserModel $user, AmmsRoleScope $roleScope)
     {
         $this->authorize('update', $user);
-        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('role.manage'), 403, 'FORBIDDEN');
+        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && $request->user()->can('role.manage'), 403, 'FORBIDDEN');
         abort_unless((int) $roleScope->user_id === (int) $user->id, 404);
         $roleScope->load('role');
         $roleName = (string) $roleScope->role->name;
-        abort_if($roleName === 'SYSTEM_ADMIN' && AmmsRoleScope::query()->whereHas('role', fn ($query) => $query->where('name', 'SYSTEM_ADMIN'))->whereHas('user', fn ($query) => $query->where('status', 'ACTIVE'))->count() <= 1, 422, 'LAST_SYSTEM_ADMIN_ROLE');
+        abort_if($roleName === AmmsRole::SYSTEM_ADMIN && AmmsRoleScope::query()->whereHas('role', fn ($query) => $query->where('name', AmmsRole::SYSTEM_ADMIN))->whereHas('user', fn ($query) => $query->where('status', 'ACTIVE'))->count() <= 1, 422, 'LAST_SYSTEM_ADMIN_ROLE');
 
         DB::transaction(function () use ($user, $request, $roleScope, $roleName): void {
             UserRole::query()->where('user_id', $user->id)->where('role', $roleName)->where('organizational_unit_id', $roleScope->organizational_unit_id)->delete();
@@ -195,7 +199,7 @@ class AdminController extends Controller
     public function revokeCapability(Request $request, UserModel $user, AmmsCapabilityScope $capabilityScope, ScopedCapabilityManager $manager)
     {
         $this->authorize('update', $user);
-        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('role.manage'), 403, 'FORBIDDEN');
+        abort_unless($request->user()->isActive() && $request->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && $request->user()->can('role.manage'), 403, 'FORBIDDEN');
         abort_unless((int) $capabilityScope->user_id === (int) $user->id, 404);
         $scope = $manager->revoke($capabilityScope, $request->user());
         $this->recordAccessAudit($user, $request->user(), 'CAPABILITY_REVOKED', null, $scope->organizational_unit_id, ['capability' => $scope->capability]);
@@ -205,7 +209,7 @@ class AdminController extends Controller
 
     public function employees(PaginatedRequest $request)
     {
-        abort_unless($request->user()->hasScopedRole('SYSTEM_ADMIN') && $request->user()->can('employee.manage'), 403, 'FORBIDDEN');
+        abort_unless($request->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && $request->user()->can('employee.manage'), 403, 'FORBIDDEN');
         $this->authorize('viewAny', Employee::class);
         $query = Employee::with(['unit', 'position'])->orderByDesc('created_at')->orderByDesc('id');
 
@@ -295,25 +299,6 @@ class AdminController extends Controller
         ]);
     }
 
-    public const ALLOWED_UNIT_TYPES = [
-        'GENERAL_PRESIDENCY',
-        'DEPUTY_PRESIDENCY',
-        'GENERAL_DIRECTORATE',
-        'DIRECTORATE',
-        'ATTACHED_AGENCY',
-        'DEPUTY_DIRECTORATE',
-        'AMIRIATE',
-        'GENERAL_MANAGEMENT',
-        'MANAGEMENT',
-        'SECTION',
-        'OTHER',
-        // Backwards compatibility
-        'DEPARTMENT',
-        'OFFICE',
-        'HIGH_AUTHORITY',
-        'AUTHORITY_OFFICE',
-    ];
-
     public function storeUnit(Request $request)
     {
         $this->admin($request);
@@ -339,7 +324,7 @@ class AdminController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:organizational_units,id'],
             'name' => ['required', 'string', 'max:255', $nameRule],
             'code' => ['nullable', 'string', 'max:50', $codeRule],
-            'unit_type' => ['required', 'string', Rule::in(self::ALLOWED_UNIT_TYPES)],
+            'unit_type' => ['required', 'string', Rule::in(OrganizationalUnitType::all())],
             'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
         ], [
             'name.unique' => 'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.',
@@ -406,7 +391,7 @@ class AdminController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:organizational_units,id'],
             'name' => ['required', 'string', 'max:255', $nameRule],
             'code' => ['nullable', 'string', 'max:50', $codeRule],
-            'unit_type' => ['required', 'string', Rule::in(self::ALLOWED_UNIT_TYPES)],
+            'unit_type' => ['required', 'string', Rule::in(OrganizationalUnitType::all())],
             'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
         ], [
             'name.unique' => 'عنوان واحد سازمانی در میان واحدهای هم‌ردهٔ این بخش تکراری است. لطفاً عنوان دیگری انتخاب نمایید.',
@@ -547,11 +532,11 @@ class AdminController extends Controller
     private function assertRoleAssignmentIsValid(UserModel $user, string $roleName, ?OrganizationalUnit $unit): void
     {
         $user->loadMissing('employee.position');
-        $hasSystemAdminRole = $user->hasRole('SYSTEM_ADMIN', 'sanctum');
+        $hasSystemAdminRole = $user->hasRole(AmmsRole::SYSTEM_ADMIN, 'sanctum');
 
-        if ($roleName === 'SYSTEM_ADMIN') {
+        if ($roleName === AmmsRole::SYSTEM_ADMIN) {
             abort_if($unit !== null, 422, 'SYSTEM_ADMIN_MUST_BE_UNSCOPED');
-            abort_if($user->roleScopes()->whereHas('role', fn ($query) => $query->whereIn('name', self::BUSINESS_ROLES))->exists(), 422, 'SYSTEM_ADMIN_CANNOT_HAVE_BUSINESS_ROLE');
+            abort_if($user->roleScopes()->whereHas('role', fn ($query) => $query->whereIn('name', AmmsRole::businessRoles()))->exists(), 422, 'SYSTEM_ADMIN_CANNOT_HAVE_BUSINESS_ROLE');
 
             return;
         }
@@ -561,31 +546,18 @@ class AdminController extends Controller
         abort_unless($user->isActive() && $user->employee && $user->employee->position?->status === 'ACTIVE', 422, 'BUSINESS_ROLE_REQUIRES_ACTIVE_EMPLOYEE');
         abort_unless($unit->isWithinScope((int) $user->employee->organizational_unit_id), 422, 'ROLE_SCOPE_OUTSIDE_EMPLOYEE_ORGANIZATION');
 
-        abort_unless($this->positionMatchesRole($roleName, $user->employee->position?->position_type), 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
-    }
-
-    private function positionMatchesRole(string $roleName, ?string $positionType): bool
-    {
-        if ($roleName === 'EMPLOYEE') {
-            return true;
-        }
-
-        if ($roleName === 'EXECUTIVE_MANAGEMENT') {
-            return in_array($positionType, ['EXECUTIVE_MANAGEMENT', 'GENERAL_MANAGER'], true);
-        }
-
-        return $positionType === $roleName;
+        abort_unless(RolePositionCompatibility::matches($roleName, $user->employee->position?->position_type), 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
     }
 
     private function assertNotDeactivatingLastSystemAdmin(UserModel $user, bool $isBeingDeactivated): void
     {
-        if (! $isBeingDeactivated || ! $user->hasRole('SYSTEM_ADMIN', 'sanctum')) {
+        if (! $isBeingDeactivated || ! $user->hasRole(AmmsRole::SYSTEM_ADMIN, 'sanctum')) {
             return;
         }
 
         $activeSystemAdminCount = UserModel::query()
             ->where('status', 'ACTIVE')
-            ->whereHas('roleScopes.role', fn ($query) => $query->where('name', 'SYSTEM_ADMIN'))
+            ->whereHas('roleScopes.role', fn ($query) => $query->where('name', AmmsRole::SYSTEM_ADMIN))
             ->count();
         abort_if($activeSystemAdminCount <= 1, 422, 'LAST_SYSTEM_ADMIN_ACCOUNT');
     }
@@ -623,10 +595,10 @@ class AdminController extends Controller
 
         foreach ($user->roleScopes as $scope) {
             $roleName = (string) $scope->role->name;
-            if ($roleName === 'SYSTEM_ADMIN') {
+            if ($roleName === AmmsRole::SYSTEM_ADMIN) {
                 continue;
             }
-            $positionMatches = $this->positionMatchesRole($roleName, $employee?->position?->position_type);
+            $positionMatches = RolePositionCompatibility::matches($roleName, $employee?->position?->position_type);
             $scopeMatches = $employee && $scope->unit?->status === 'ACTIVE' && $scope->unit->isWithinScope((int) $employee->organizational_unit_id);
             if ($user->isActive() && $employee?->position?->status === 'ACTIVE' && $positionMatches && $scopeMatches) {
                 continue;

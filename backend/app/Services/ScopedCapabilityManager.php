@@ -6,6 +6,7 @@ use App\Models\AmmsCapabilityScope;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
 use App\Support\SpecialCapability;
+use App\Support\AmmsRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
@@ -89,7 +90,7 @@ class ScopedCapabilityManager
             ]);
         }
 
-        if ($user->hasRole('SYSTEM_ADMIN', 'sanctum')) {
+        if ($user->hasRole(AmmsRole::SYSTEM_ADMIN, 'sanctum')) {
             throw ValidationException::withMessages([
                 'user' => ['نقش SYSTEM_ADMIN صرفاً فنی است و نمی‌تواند صلاحیت عملیاتی ویژه دریافت کند.'],
             ]);

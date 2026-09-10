@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\OrganizationalUnitType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,15 +16,8 @@ class OrganizationalUnit extends Model
      * Note: unit_type is classification metadata; actual authorization depends on
      * scoped roles, capabilities, delegations, and workflow rules.
      */
-    public const FORMAL_GOVERNANCE_UNIT_TYPES = [
-        'GENERAL_PRESIDENCY',
-        'DEPUTY_PRESIDENCY',
-        'GENERAL_DIRECTORATE',
-        'DIRECTORATE',
-        'ATTACHED_AGENCY',
-        'DEPUTY_DIRECTORATE',
-    ];
-
+    /** @deprecated Use OrganizationalUnitType::formalGovernance(). */
+    public const FORMAL_GOVERNANCE_UNIT_TYPES = OrganizationalUnitType::FORMAL_GOVERNANCE;
     protected $fillable = ['organization_id', 'parent_id', 'name', 'code', 'unit_type', 'status'];
 
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
@@ -45,7 +39,7 @@ class OrganizationalUnit extends Model
      */
     public function isFormalGovernanceUnit(): bool
     {
-        return in_array($this->unit_type, self::FORMAL_GOVERNANCE_UNIT_TYPES, true);
+        return $this->unit_type !== null && OrganizationalUnitType::isFormalGovernance($this->unit_type);
     }
 
     /**
@@ -68,6 +62,6 @@ class OrganizationalUnit extends Model
 
     public function scopeFormalGovernance(Builder $query): Builder
     {
-        return $query->whereIn('unit_type', self::FORMAL_GOVERNANCE_UNIT_TYPES);
+        return $query->whereIn('unit_type', OrganizationalUnitType::formalGovernance());
     }
 }

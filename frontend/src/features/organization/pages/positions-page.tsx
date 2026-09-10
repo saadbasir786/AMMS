@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { api, apiError } from '@/lib/api-client'
 import { fetchAllAdminPages } from '../lib/fetch-all-admin-pages'
+import { useAmmsMetadata } from '../lib/amms-metadata'
 import type { EmployeePosition, OrganizationalUnit } from '../types'
 
 type PositionForm = {
@@ -44,26 +45,12 @@ const emptyForm: PositionForm = {
   status: 'ACTIVE',
 }
 
-const positionTypeLabels: Record<string, string> = {
-  DIRECTOR: 'رئیس',
-  DEPUTY_DIRECTOR: 'معاون ریاست',
-  AMIR: 'آمر',
-  GENERAL_MANAGER: 'مدیر عمومی',
-  EXPERT: 'کارشناس / متخصص',
-  MANAGER: 'مدیر',
-  EMPLOYEE: 'کارمند اداری / مسلکی',
-  EXECUTIVE_MANAGEMENT: 'مدیریت اجرائیه',
-  HIGH_AUTHORITY: 'مقام عالی',
-  AUTHORITY_OFFICE: 'ریاست دفتر مقام',
-  EXECUTIVE_SECRETARY: 'سکرتر اجرائیوی',
-  OTHER: 'سایر بست‌ها',
-}
-
 type PositionsPageProps = {
   embedded?: boolean
 }
 
 export function PositionsPage({ embedded = false }: PositionsPageProps) {
+  const metadata = useAmmsMetadata()
   const [positions, setPositions] = useState<EmployeePosition[]>([])
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
   const [form, setForm] = useState<PositionForm>(emptyForm)
@@ -376,9 +363,9 @@ export function PositionsPage({ embedded = false }: PositionsPageProps) {
             className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-background px-3 text-foreground"
           >
             <option value="">همه رده‌های سازمانی</option>
-            {Object.entries(positionTypeLabels).map(([key, label]) => (
+            {metadata.position_types.map((key) => (
               <option key={key} value={key}>
-                {label}
+                {metadata.labels.position_types[key] || key}
               </option>
             ))}
           </select>
@@ -473,7 +460,7 @@ export function PositionsPage({ embedded = false }: PositionsPageProps) {
                       </td>
                       <td className="py-3.5 px-4">
                         <Badge variant="secondary" className="rounded-lg text-[10px] font-normal">
-                          {positionTypeLabels[pos.position_type || 'EMPLOYEE'] ||
+                          {metadata.labels.position_types[pos.position_type || 'EMPLOYEE'] ||
                             pos.position_type ||
                             'کارمند'}
                         </Badge>
@@ -584,9 +571,9 @@ export function PositionsPage({ embedded = false }: PositionsPageProps) {
                   }
                   className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
                 >
-                  {Object.entries(positionTypeLabels).map(([key, label]) => (
+                  {metadata.position_types.map((key) => (
                     <option key={key} value={key}>
-                      {label}
+                      {metadata.labels.position_types[key] || key}
                     </option>
                   ))}
                 </select>

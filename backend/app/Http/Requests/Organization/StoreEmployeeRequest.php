@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Organization;
 
+use App\Support\AmmsRole;
 use App\Models\Position;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,7 @@ class StoreEmployeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isActive() === true && $this->user()->hasScopedRole('SYSTEM_ADMIN') && $this->user()->can('employee.manage');
+        return $this->user()?->isActive() === true && $this->user()->hasScopedRole(AmmsRole::SYSTEM_ADMIN) && $this->user()->can('employee.manage');
     }
 
     public function rules(): array

@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Organization;
 use App\Models\OrganizationalUnit;
+use App\Support\OrganizationalUnitType;
 use Illuminate\Database\Seeder;
 
 class OrganizationStructureSeeder extends Seeder
@@ -26,7 +27,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => null,
             'name' => 'مقام ریاست عمومی',
             'code' => 'AUTHORITY',
-            'unit_type' => 'GENERAL_PRESIDENCY',
+            'unit_type' => OrganizationalUnitType::GENERAL_PRESIDENCY,
             'status' => 'ACTIVE',
         ]);
 
@@ -36,7 +37,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $authoritySeat->id,
             'name' => 'ریاست دفتر مقام',
             'code' => 'AUTH-OFFICE',
-            'unit_type' => 'AUTHORITY_OFFICE',
+            'unit_type' => OrganizationalUnitType::AUTHORITY_OFFICE,
             'status' => 'ACTIVE',
         ]);
 
@@ -46,7 +47,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $authoritySeat->id,
             'name' => 'معاونیت مالی و اداری',
             'code' => 'DEP-PRES-FIN',
-            'unit_type' => 'DEPUTY_PRESIDENCY',
+            'unit_type' => OrganizationalUnitType::DEPUTY_PRESIDENCY,
             'status' => 'ACTIVE',
         ]);
 
@@ -58,7 +59,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $deputyPresidency->id,
             'name' => 'ریاست تکنالوژی معلوماتی',
             'code' => 'TECH',
-            'unit_type' => 'DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -68,7 +69,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $tech->id,
             'name' => 'معاونیت ریاست تکنالوژی',
             'code' => 'TECH-DEP',
-            'unit_type' => 'DEPUTY_DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DEPUTY_DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -78,7 +79,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techDep->id,
             'name' => 'مدیریت عمومی اجرائیه تکنالوژی',
             'code' => 'TECH-EXEC',
-            'unit_type' => 'GENERAL_MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::GENERAL_MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
 
@@ -88,7 +89,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techDep->id,
             'name' => 'آمریت شبکه و سیستم‌ها',
             'code' => 'TECH-AMIR-NET',
-            'unit_type' => 'AMIRIATE',
+            'unit_type' => OrganizationalUnitType::AMIRIATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -98,7 +99,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techAmirNet->id,
             'name' => 'مدیریت عمومی شبکه',
             'code' => 'TECH-INFRA',
-            'unit_type' => 'GENERAL_MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::GENERAL_MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
 
@@ -108,7 +109,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techInfra->id,
             'name' => 'مدیریت شبکه',
             'code' => 'TECH-MGT-NET',
-            'unit_type' => 'MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
 
@@ -118,7 +119,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techDep->id,
             'name' => 'آمریت نرم‌افزار',
             'code' => 'TECH-AMIR-SW',
-            'unit_type' => 'AMIRIATE',
+            'unit_type' => OrganizationalUnitType::AMIRIATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -128,7 +129,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $techAmirSw->id,
             'name' => 'مدیریت عمومی نرم‌افزار',
             'code' => 'TECH-SW',
-            'unit_type' => 'GENERAL_MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::GENERAL_MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
 
@@ -140,7 +141,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $deputyPresidency->id,
             'name' => 'ریاست مالی و حسابی',
             'code' => 'FIN',
-            'unit_type' => 'DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -150,7 +151,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $finance->id,
             'name' => 'معاونیت ریاست مالی',
             'code' => 'FIN-DEP',
-            'unit_type' => 'DEPUTY_DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DEPUTY_DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -160,7 +161,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $financeDep->id,
             'name' => 'مدیریت عمومی اجرائیه مالی',
             'code' => 'FIN-EXEC',
-            'unit_type' => 'GENERAL_MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::GENERAL_MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
 
@@ -172,7 +173,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $deputyPresidency->id,
             'name' => 'ریاست منابع بشری',
             'code' => 'HR',
-            'unit_type' => 'DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -182,7 +183,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $hr->id,
             'name' => 'معاونیت ریاست منابع بشری',
             'code' => 'HR-DEP',
-            'unit_type' => 'DEPUTY_DIRECTORATE',
+            'unit_type' => OrganizationalUnitType::DEPUTY_DIRECTORATE,
             'status' => 'ACTIVE',
         ]);
 
@@ -192,7 +193,7 @@ class OrganizationStructureSeeder extends Seeder
             'parent_id' => $hrDep->id,
             'name' => 'مدیریت عمومی اجرائیه منابع بشری',
             'code' => 'HR-EXEC',
-            'unit_type' => 'GENERAL_MANAGEMENT',
+            'unit_type' => OrganizationalUnitType::GENERAL_MANAGEMENT,
             'status' => 'ACTIVE',
         ]);
     }

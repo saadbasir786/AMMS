@@ -4,6 +4,7 @@ namespace App\Http\Requests\Organization;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\PositionType;
 
 class StorePositionRequest extends FormRequest
 {
@@ -22,7 +23,7 @@ class StorePositionRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:50'],
             'position_type' => [
                 'nullable',
-                Rule::in(\App\Models\Position::POSITION_TYPES),
+                Rule::in(PositionType::all()),
             ],
             'status' => ['sometimes', Rule::in(['ACTIVE', 'INACTIVE'])],
         ];

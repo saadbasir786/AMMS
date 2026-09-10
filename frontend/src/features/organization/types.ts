@@ -1,3 +1,5 @@
+import { fallbackAmmsMetadata } from './lib/amms-metadata'
+
 export type OrganizationalUnitType =
   | 'GENERAL_PRESIDENCY'
   | 'DEPUTY_PRESIDENCY'
@@ -15,14 +17,7 @@ export type OrganizationalUnitType =
   | 'HIGH_AUTHORITY'
   | 'AUTHORITY_OFFICE'
 
-export const FORMAL_GOVERNANCE_UNIT_TYPES = [
-  'GENERAL_PRESIDENCY',
-  'DEPUTY_PRESIDENCY',
-  'GENERAL_DIRECTORATE',
-  'DIRECTORATE',
-  'ATTACHED_AGENCY',
-  'DEPUTY_DIRECTORATE',
-] as const
+export const FORMAL_GOVERNANCE_UNIT_TYPES = fallbackAmmsMetadata.formal_governance_unit_types
 
 export function isFormalGovernanceUnit(unit: { unit_type?: string } | null | undefined): boolean {
   return !!unit?.unit_type && (FORMAL_GOVERNANCE_UNIT_TYPES as readonly string[]).includes(unit.unit_type)

@@ -12,6 +12,7 @@ use App\Models\OrganizationalUnit;
 use App\Models\Position;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Support\AmmsRole;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -80,11 +81,11 @@ class UserAccessSeeder extends Seeder
 
         UserRole::create([
             'user_id' => $system->id,
-            'role' => 'SYSTEM_ADMIN',
+            'role' => AmmsRole::SYSTEM_ADMIN,
             'organizational_unit_id' => null,
         ]);
 
-        $systemRole = Role::firstOrCreate(['name' => 'SYSTEM_ADMIN', 'guard_name' => 'sanctum']);
+        $systemRole = Role::firstOrCreate(['name' => AmmsRole::SYSTEM_ADMIN, 'guard_name' => 'sanctum']);
         $system->assignRole($systemRole);
 
         AmmsRoleScope::create([
@@ -94,24 +95,24 @@ class UserAccessSeeder extends Seeder
         ]);
 
         // 3. Technology Users
-        $makeUser('مدیریت اجرائیه تکنالوژی', 'tech.exec@example.test', $employeesByNum['EMP-TECH-002'], 'EXECUTIVE_MANAGEMENT', $tech->id);
-        $makeUser('رئیس ریاست تکنالوژی', 'tech.director@example.test', $employeesByNum['EMP-TECH-001'], 'DIRECTOR', $tech->id);
-        $makeUser('معاون ریاست تکنالوژی', 'tech.deputy@example.test', $employeesByNum['EMP-TECH-005'], 'DEPUTY_DIRECTOR', $tech->id);
+        $makeUser('مدیریت اجرائیه تکنالوژی', 'tech.exec@example.test', $employeesByNum['EMP-TECH-002'], AmmsRole::EXECUTIVE_MANAGEMENT, $tech->id);
+        $makeUser('رئیس ریاست تکنالوژی', 'tech.director@example.test', $employeesByNum['EMP-TECH-001'], AmmsRole::DIRECTOR, $tech->id);
+        $makeUser('معاون ریاست تکنالوژی', 'tech.deputy@example.test', $employeesByNum['EMP-TECH-005'], AmmsRole::DEPUTY_DIRECTOR, $tech->id);
 
         // 4. Finance Users
-        $makeUser('مدیریت اجرائیه مالی', 'finance.exec@example.test', $employeesByNum['EMP-FIN-002'], 'EXECUTIVE_MANAGEMENT', $finance->id);
-        $makeUser('رئیس ریاست مالی', 'finance.director@example.test', $employeesByNum['EMP-FIN-001'], 'DIRECTOR', $finance->id);
+        $makeUser('مدیریت اجرائیه مالی', 'finance.exec@example.test', $employeesByNum['EMP-FIN-002'], AmmsRole::EXECUTIVE_MANAGEMENT, $finance->id);
+        $makeUser('رئیس ریاست مالی', 'finance.director@example.test', $employeesByNum['EMP-FIN-001'], AmmsRole::DIRECTOR, $finance->id);
 
         // 5. Human Resources Users
-        $makeUser('مدیریت اجرائیه منابع بشری', 'hr.exec@example.test', $employeesByNum['EMP-HR-002'], 'EXECUTIVE_MANAGEMENT', $hr->id);
-        $makeUser('رئیس ریاست منابع بشری', 'hr.director@example.test', $employeesByNum['EMP-HR-101'], 'DIRECTOR', $hr->id);
+        $makeUser('مدیریت اجرائیه منابع بشری', 'hr.exec@example.test', $employeesByNum['EMP-HR-002'], AmmsRole::EXECUTIVE_MANAGEMENT, $hr->id);
+        $makeUser('رئیس ریاست منابع بشری', 'hr.director@example.test', $employeesByNum['EMP-HR-101'], AmmsRole::DIRECTOR, $hr->id);
 
         // 6. Regular Employee
-        $makeUser('کارمند تکنالوژی', 'employee.a@example.test', $employeesByNum['EMP-TECH-003'], 'EMPLOYEE', $techSw->id);
+        $makeUser('کارمند تکنالوژی', 'employee.a@example.test', $employeesByNum['EMP-TECH-003'], AmmsRole::EMPLOYEE, $techSw->id);
 
         // 7. Authority Office & High Authority
-        $makeUser('بررسی‌کننده دفتر مقام', 'authority.office@example.test', $employeesByNum['EMP-AUTH-OFFICE-001'], 'AUTHORITY_OFFICE', $authorityOffice->id);
-        $makeUser('سکرتر اجرائیوی مقام', 'executive.secretary@example.test', $employeesByNum['EMP-AUTH-SEC-001'], 'EXECUTIVE_SECRETARY', $authorityOffice->id);
-        $makeUser('رئیس عمومی', 'high.authority@example.test', $employeesByNum['EMP-AUTH-001'], 'HIGH_AUTHORITY', $authoritySeat->id);
+        $makeUser('بررسی‌کننده دفتر مقام', 'authority.office@example.test', $employeesByNum['EMP-AUTH-OFFICE-001'], AmmsRole::AUTHORITY_OFFICE, $authorityOffice->id);
+        $makeUser('سکرتر اجرائیوی مقام', 'executive.secretary@example.test', $employeesByNum['EMP-AUTH-SEC-001'], AmmsRole::EXECUTIVE_SECRETARY, $authorityOffice->id);
+        $makeUser('رئیس عمومی', 'high.authority@example.test', $employeesByNum['EMP-AUTH-001'], AmmsRole::HIGH_AUTHORITY, $authoritySeat->id);
     }
 }

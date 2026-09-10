@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\OrganizationalUnit;
 use App\Models\Position;
+use App\Support\PositionType;
 use Illuminate\Database\Seeder;
 
 class PositionSeeder extends Seeder
@@ -19,7 +20,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['AUTHORITY'],
             'title' => 'رئیس عمومی',
             'code' => 'HIGH-AUTHORITY',
-            'position_type' => 'HIGH_AUTHORITY',
+            'position_type' => PositionType::HIGH_AUTHORITY,
             'status' => 'ACTIVE',
         ]);
 
@@ -27,7 +28,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['AUTH-OFFICE'],
             'title' => 'رئیس دفتر مقام',
             'code' => 'AUTH-OFFICE-DIRECTOR',
-            'position_type' => 'AUTHORITY_OFFICE',
+            'position_type' => PositionType::AUTHORITY_OFFICE,
             'status' => 'ACTIVE',
         ]);
 
@@ -35,7 +36,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['AUTH-OFFICE'],
             'title' => 'سکرتر اجرائیوی مقام',
             'code' => 'EXEC-SECRETARY',
-            'position_type' => 'EXECUTIVE_SECRETARY',
+            'position_type' => PositionType::EXECUTIVE_SECRETARY,
             'status' => 'ACTIVE',
         ]);
 
@@ -44,7 +45,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['DEP-PRES-FIN'],
             'title' => 'معاون مالی و اداری',
             'code' => 'DEP-PRES-FIN-POS',
-            'position_type' => 'DEPUTY_DIRECTOR',
+            'position_type' => PositionType::DEPUTY_DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -53,7 +54,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH'],
             'title' => 'رئیس تکنالوژی معلوماتی',
             'code' => 'TECH-DIR-POS',
-            'position_type' => 'DIRECTOR',
+            'position_type' => PositionType::DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -62,7 +63,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-DEP'],
             'title' => 'معاون ریاست تکنالوژی',
             'code' => 'TECH-DEP-POS',
-            'position_type' => 'DEPUTY_DIRECTOR',
+            'position_type' => PositionType::DEPUTY_DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -70,7 +71,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-EXEC'],
             'title' => 'مدیر عمومی اجرائیه',
             'code' => 'TECH-EXEC-POS',
-            'position_type' => 'GENERAL_MANAGER',
+            'position_type' => PositionType::GENERAL_MANAGER,
             'status' => 'ACTIVE',
         ]);
 
@@ -78,7 +79,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-AMIR-NET'],
             'title' => 'آمر شبکه و سیستم‌ها',
             'code' => 'TECH-AMIR-NET-POS',
-            'position_type' => 'AMIR',
+            'position_type' => PositionType::AMIR,
             'status' => 'ACTIVE',
         ]);
 
@@ -86,7 +87,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-INFRA'],
             'title' => 'مدیر عمومی شبکه',
             'code' => 'TECH-GM-NET-POS',
-            'position_type' => 'GENERAL_MANAGER',
+            'position_type' => PositionType::GENERAL_MANAGER,
             'status' => 'ACTIVE',
         ]);
 
@@ -94,7 +95,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-MGT-NET'],
             'title' => 'مدیر شبکه',
             'code' => 'TECH-MGT-NET-POS',
-            'position_type' => 'MANAGER',
+            'position_type' => PositionType::MANAGER,
             'status' => 'ACTIVE',
         ]);
 
@@ -102,7 +103,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-AMIR-SW'],
             'title' => 'آمر نرم‌افزار',
             'code' => 'TECH-AMIR-SW-POS',
-            'position_type' => 'AMIR',
+            'position_type' => PositionType::AMIR,
             'status' => 'ACTIVE',
         ]);
 
@@ -110,7 +111,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-SW'],
             'title' => 'انجنیر نرم‌افزار',
             'code' => 'TECH-SW-ENG-POS',
-            'position_type' => 'EMPLOYEE',
+            'position_type' => PositionType::EMPLOYEE,
             'status' => 'ACTIVE',
         ]);
 
@@ -118,7 +119,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['TECH-EXEC'],
             'title' => 'مسؤول اداری',
             'code' => 'TECH-ADMIN-POS',
-            'position_type' => 'EMPLOYEE',
+            'position_type' => PositionType::EMPLOYEE,
             'status' => 'ACTIVE',
         ]);
 
@@ -127,7 +128,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['FIN'],
             'title' => 'رئیس مالی و حسابی',
             'code' => 'FIN-DIR-POS',
-            'position_type' => 'DIRECTOR',
+            'position_type' => PositionType::DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -135,7 +136,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['FIN-DEP'],
             'title' => 'معاون ریاست مالی',
             'code' => 'FIN-DEP-POS',
-            'position_type' => 'DEPUTY_DIRECTOR',
+            'position_type' => PositionType::DEPUTY_DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -143,7 +144,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['FIN-EXEC'],
             'title' => 'مدیر عمومی اجرائیه',
             'code' => 'FIN-EXEC-POS',
-            'position_type' => 'GENERAL_MANAGER',
+            'position_type' => PositionType::GENERAL_MANAGER,
             'status' => 'ACTIVE',
         ]);
 
@@ -152,7 +153,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['HR'],
             'title' => 'رئیس منابع بشری',
             'code' => 'HR-DIR-POS',
-            'position_type' => 'DIRECTOR',
+            'position_type' => PositionType::DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -160,7 +161,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['HR-DEP'],
             'title' => 'معاون ریاست منابع بشری',
             'code' => 'HR-DEP-POS',
-            'position_type' => 'DEPUTY_DIRECTOR',
+            'position_type' => PositionType::DEPUTY_DIRECTOR,
             'status' => 'ACTIVE',
         ]);
 
@@ -168,7 +169,7 @@ class PositionSeeder extends Seeder
             'organizational_unit_id' => $unitByCode['HR-EXEC'],
             'title' => 'مدیر عمومی اجرائیه',
             'code' => 'HR-EXEC-POS',
-            'position_type' => 'GENERAL_MANAGER',
+            'position_type' => PositionType::GENERAL_MANAGER,
             'status' => 'ACTIVE',
         ]);
     }

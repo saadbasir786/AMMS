@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Api\Organization\AdminController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
+use App\Http\Controllers\Api\Organization\MetadataController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/meta/amms', [MetadataController::class, 'amms']);
     // Directory & Workspace Hub
     Route::get('/dashboard', [DirectoryController::class, 'dashboard']);
     Route::get('/approvals', [DirectoryController::class, 'approvals']);

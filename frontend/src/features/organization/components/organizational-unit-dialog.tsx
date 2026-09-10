@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
+import { useAmmsMetadata } from '../lib/amms-metadata'
 import type { OrganizationalUnit } from '../types'
 
 type OrganizationalUnitDialogProps = {
@@ -30,20 +31,6 @@ type OrganizationalUnitDialogProps = {
   onSuccess: () => void
 }
 
-const UNIT_TYPE_OPTIONS: Array<{ value: string; label: string; description: string }> = [
-  { value: 'GENERAL_PRESIDENCY', label: 'ریاست عمومی (مقام عالی اداره)', description: 'ریاست عمومی و مراجع عالی اداره' },
-  { value: 'DEPUTY_PRESIDENCY', label: 'معاونیت ریاست عمومی', description: 'معاونیت‌های عالی مقام اداره' },
-  { value: 'GENERAL_DIRECTORATE', label: 'ریاست عمومی (بخشی)', description: 'ریاست‌های عمومی بخشی و سکتوری' },
-  { value: 'DIRECTORATE', label: 'ریاست', description: 'ریاست‌های اصلی و اداری' },
-  { value: 'ATTACHED_AGENCY', label: 'اداره تابعه', description: 'ادارات و واحدهای تابعه' },
-  { value: 'DEPUTY_DIRECTORATE', label: 'معاونیت ریاست', description: 'معاونیت‌های تخصصی ریاست‌ها' },
-  { value: 'AMIRIATE', label: 'آمریت', description: 'آمریت‌های زیرمجموعه ریاست‌ها' },
-  { value: 'GENERAL_MANAGEMENT', label: 'مدیریت عمومی', description: 'مدیریت‌های عمومی هماهنگی و تخصصی' },
-  { value: 'MANAGEMENT', label: 'مدیریت', description: 'مدیریت‌های اجرایی و دفتری' },
-  { value: 'SECTION', label: 'شعبه', description: 'شعبات تخصصی و اداری' },
-  { value: 'OTHER', label: 'سایر بخش‌ها', description: 'واحدهای پشتیبانی، خدمات و سایر موارد' },
-]
-
 export function OrganizationalUnitDialog({
   open,
   onOpenChange,
@@ -52,6 +39,7 @@ export function OrganizationalUnitDialog({
   allUnits,
   onSuccess,
 }: OrganizationalUnitDialogProps) {
+  const metadata = useAmmsMetadata()
   const isEditing = Boolean(unit)
 
   const [name, setName] = useState('')
@@ -229,9 +217,9 @@ export function OrganizationalUnitDialog({
               onChange={(e) => setUnitType(e.target.value)}
               className="h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-xs"
             >
-              {UNIT_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label} — {opt.description}
+              {metadata.organizational_unit_types.map((type) => (
+                <option key={type} value={type}>
+                  {metadata.labels.organizational_unit_types[type] || type}
                 </option>
               ))}
             </select>
