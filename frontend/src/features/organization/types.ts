@@ -113,6 +113,28 @@ export type UserRoleScope = {
   unit?: { id: number; name: string } | null
 }
 
+export type AmmsRoleDefinition = {
+  id: number
+  name: string
+  label: string
+  description?: string | null
+  role_kind: 'SYSTEM' | 'CUSTOM'
+  status: 'ACTIVE' | 'INACTIVE'
+  permissions: string[]
+  assigned_user_count: number
+  created_at?: string
+  updated_at?: string
+}
+
+export type AmmsRoleAudit = {
+  id: number
+  role_id: number | null
+  action: string
+  metadata?: Record<string, unknown> | null
+  actor?: { id: number; name: string; email: string } | null
+  created_at: string
+}
+
 export type CapabilityScope = {
   id: number
   user_id: number

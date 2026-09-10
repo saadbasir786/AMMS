@@ -6,12 +6,23 @@ export type AmmsMetadata = {
   formal_governance_unit_types: string[]
   position_types: string[]
   roles: string[]
+  system_roles?: string[]
+  custom_roles?: { name: string; label: string }[]
+  permissions?: AmmsPermissionMetadata[]
   special_capabilities: string[]
   labels: {
     organizational_unit_types: Record<string, string>
     position_types: Record<string, string>
     roles: Record<string, string>
   }
+}
+
+export type AmmsPermissionMetadata = {
+  name: string
+  category: string
+  custom_role_assignable: boolean
+  protected: boolean
+  delegatable: boolean
 }
 
 export const fallbackAmmsMetadata: AmmsMetadata = {
@@ -34,6 +45,7 @@ export const fallbackAmmsMetadata: AmmsMetadata = {
     'SYSTEM_ADMIN', 'EMPLOYEE', 'DIRECTOR', 'DEPUTY_DIRECTOR', 'EXECUTIVE_MANAGEMENT',
     'AUTHORITY_OFFICE', 'EXECUTIVE_SECRETARY', 'HIGH_AUTHORITY',
   ],
+  permissions: [],
   special_capabilities: [
     'BIOMETRIC_ENROLLMENT', 'INTERNAL_MEETING_REQUEST_APPROVAL',
     'DIRECTORATE_MINUTES_APPROVAL',

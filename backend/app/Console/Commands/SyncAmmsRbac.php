@@ -18,6 +18,9 @@ final class SyncAmmsRbac extends Command
         $result = $synchronizer->synchronize();
         $this->info("Synchronized {$result['roles']} roles and {$result['permissions']} permissions.");
         $this->line("Created roles: {$result['roles_created']}.");
+        if ($result['unknown_system_permissions'] !== []) {
+            $this->warn('Unknown permissions on canonical roles were preserved and reported: '.json_encode($result['unknown_system_permissions'], JSON_UNESCAPED_UNICODE));
+        }
 
         return self::SUCCESS;
     }

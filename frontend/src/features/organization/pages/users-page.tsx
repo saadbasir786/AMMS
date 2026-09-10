@@ -56,6 +56,8 @@ const auditLabels: Record<string, string> = {
   PASSWORD_CHANGED: 'تغییر رمز عبور',
   ROLE_ASSIGNED: 'واگذاری نقش سازمانی',
   ROLE_REVOKED: 'لغو نقش سازمانی',
+  CUSTOM_ROLE_ASSIGNED: 'واگذاری نقش سفارشی',
+  CUSTOM_ROLE_REVOKED: 'لغو نقش سفارشی',
   CAPABILITY_GRANTED: 'اعطای صلاحیت تفویض‌شده',
   CAPABILITY_REVOKED: 'لغو صلاحیت تفویض‌شده',
 }
@@ -198,8 +200,9 @@ export function UsersPage() {
       ...(positionRole && positionRole !== 'EMPLOYEE' && metadata.roles.includes(positionRole)
         ? [positionRole]
         : []),
+      ...(metadata.custom_roles || []).map((role) => role.name),
     ]
-  }, [metadata.roles, selectedUser])
+  }, [metadata.custom_roles, metadata.roles, selectedUser])
 
   const selectableUnits = useMemo(() => {
     const scopeIds = new Set(selectedUser?.employee?.unit_scope_ids || [])
@@ -485,7 +488,7 @@ export function UsersPage() {
             className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-background px-3 text-foreground"
           >
             <option value="">همه نقش‌های سیستمی</option>
-            {metadata.roles.map((key) => (
+            {[...metadata.roles, ...(metadata.custom_roles || []).map((role) => role.name)].map((key) => (
               <option key={key} value={key}>
                 {metadata.labels.roles[key] || key}
               </option>

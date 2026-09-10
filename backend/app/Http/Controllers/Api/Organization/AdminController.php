@@ -19,6 +19,7 @@ use App\Http\Resources\UserResource;
 use App\Http\Resources\UserRoleResource;
 use App\Models\AmmsCapabilityScope;
 use App\Models\AmmsRoleScope;
+use App\Models\AmmsRoleDefinition;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationalUnit;
@@ -146,12 +147,13 @@ class AdminController extends Controller
         $this->assertRoleAssignmentIsValid($user, $roleName, $unit);
 
         $scope = DB::transaction(function () use ($user, $request, $roleName, $unitId) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'sanctum']);
+            $role = Role::query()->where('name', $roleName)->where('guard_name', 'sanctum')->firstOrFail();
+            $isCustom = AmmsRoleDefinition::query()->where('role_id', $role->id)->where('role_kind', AmmsRoleDefinition::CUSTOM)->exists();
             $user->assignRole($role);
             UserRole::updateOrCreate(['user_id' => $user->id, 'role' => $roleName, 'organizational_unit_id' => $unitId]);
             $scope = AmmsRoleScope::firstOrCreate(['user_id' => $user->id, 'role_id' => $role->id, 'organizational_unit_id' => $unitId]);
             if ($scope->wasRecentlyCreated) {
-                $this->recordAccessAudit($user, $request->user(), 'ROLE_ASSIGNED', $roleName, $unitId);
+                $this->recordAccessAudit($user, $request->user(), $isCustom ? 'CUSTOM_ROLE_ASSIGNED' : 'ROLE_ASSIGNED', $roleName, $unitId);
             }
 
             return $scope;
@@ -170,12 +172,13 @@ class AdminController extends Controller
         abort_if($roleName === AmmsRole::SYSTEM_ADMIN && AmmsRoleScope::query()->whereHas('role', fn ($query) => $query->where('name', AmmsRole::SYSTEM_ADMIN))->whereHas('user', fn ($query) => $query->where('status', 'ACTIVE'))->count() <= 1, 422, 'LAST_SYSTEM_ADMIN_ROLE');
 
         DB::transaction(function () use ($user, $request, $roleScope, $roleName): void {
+            $isCustom = ! AmmsRole::isValid($roleName);
             UserRole::query()->where('user_id', $user->id)->where('role', $roleName)->where('organizational_unit_id', $roleScope->organizational_unit_id)->delete();
             $roleScope->delete();
             if (! $user->roleScopes()->where('role_id', $roleScope->role_id)->exists()) {
                 $user->removeRole($roleScope->role);
             }
-            $this->recordAccessAudit($user, $request->user(), 'ROLE_REVOKED', $roleName, $roleScope->organizational_unit_id);
+            $this->recordAccessAudit($user, $request->user(), $isCustom ? 'CUSTOM_ROLE_REVOKED' : 'ROLE_REVOKED', $roleName, $roleScope->organizational_unit_id);
         });
 
         return response()->json(['success' => true, 'message' => 'نقش و حوزهٔ کاربر لغو شد.']);
@@ -533,20 +536,25 @@ class AdminController extends Controller
     {
         $user->loadMissing('employee.position');
         $hasSystemAdminRole = $user->hasRole(AmmsRole::SYSTEM_ADMIN, 'sanctum');
+        $role = Role::query()->where('name', $roleName)->where('guard_name', 'sanctum')->first();
+        $definition = $role ? AmmsRoleDefinition::query()->where('role_id', $role->id)->first() : null;
 
         if ($roleName === AmmsRole::SYSTEM_ADMIN) {
             abort_if($unit !== null, 422, 'SYSTEM_ADMIN_MUST_BE_UNSCOPED');
-            abort_if($user->roleScopes()->whereHas('role', fn ($query) => $query->whereIn('name', AmmsRole::businessRoles()))->exists(), 422, 'SYSTEM_ADMIN_CANNOT_HAVE_BUSINESS_ROLE');
+            abort_if($user->roleScopes()->whereHas('role', fn ($query) => $query->where('name', '<>', AmmsRole::SYSTEM_ADMIN))->exists(), 422, 'SYSTEM_ADMIN_CANNOT_HAVE_BUSINESS_ROLE');
 
             return;
         }
 
+        abort_unless(AmmsRole::isValid($roleName) || ($definition?->isCustom() && $definition->isActive()), 422, 'ROLE_NOT_ASSIGNABLE');
         abort_if($hasSystemAdminRole, 422, 'SYSTEM_ADMIN_CANNOT_HAVE_BUSINESS_ROLE');
         abort_unless($unit?->status === 'ACTIVE', 422, 'ROLE_SCOPE_UNIT_MUST_BE_ACTIVE');
         abort_unless($user->isActive() && $user->employee && $user->employee->position?->status === 'ACTIVE', 422, 'BUSINESS_ROLE_REQUIRES_ACTIVE_EMPLOYEE');
         abort_unless($unit->isWithinScope((int) $user->employee->organizational_unit_id), 422, 'ROLE_SCOPE_OUTSIDE_EMPLOYEE_ORGANIZATION');
 
-        abort_unless(RolePositionCompatibility::matches($roleName, $user->employee->position?->position_type), 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
+        if (AmmsRole::isValid($roleName)) {
+            abort_unless(RolePositionCompatibility::matches($roleName, $user->employee->position?->position_type), 422, 'ROLE_DOES_NOT_MATCH_EMPLOYEE_POSITION');
+        }
     }
 
     private function assertNotDeactivatingLastSystemAdmin(UserModel $user, bool $isBeingDeactivated): void
@@ -598,9 +606,11 @@ class AdminController extends Controller
             if ($roleName === AmmsRole::SYSTEM_ADMIN) {
                 continue;
             }
-            $positionMatches = RolePositionCompatibility::matches($roleName, $employee?->position?->position_type);
+            $isCustom = ! AmmsRole::isValid($roleName);
+            $positionMatches = $isCustom || RolePositionCompatibility::matches($roleName, $employee?->position?->position_type);
+            $customRoleActive = ! $isCustom || AmmsRoleDefinition::query()->where('role_id', $scope->role_id)->where('role_kind', AmmsRoleDefinition::CUSTOM)->where('status', AmmsRoleDefinition::ACTIVE)->exists();
             $scopeMatches = $employee && $scope->unit?->status === 'ACTIVE' && $scope->unit->isWithinScope((int) $employee->organizational_unit_id);
-            if ($user->isActive() && $employee?->position?->status === 'ACTIVE' && $positionMatches && $scopeMatches) {
+            if ($user->isActive() && $employee?->position?->status === 'ACTIVE' && $positionMatches && $scopeMatches && $customRoleActive) {
                 continue;
             }
 
@@ -611,7 +621,7 @@ class AdminController extends Controller
             if (! $user->roleScopes()->where('role_id', $roleId)->exists()) {
                 $user->removeRole($roleName);
             }
-            $this->recordAccessAudit($user, $actor, 'ROLE_REVOKED', $roleName, $unitId, ['reason' => 'EMPLOYEE_PROFILE_CHANGED']);
+            $this->recordAccessAudit($user, $actor, $isCustom ? 'CUSTOM_ROLE_REVOKED' : 'ROLE_REVOKED', $roleName, $unitId, ['reason' => 'EMPLOYEE_PROFILE_CHANGED']);
         }
 
         foreach ($user->capabilityScopes->filter->isActive() as $scope) {

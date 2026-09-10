@@ -16,6 +16,8 @@ final class MetadataController extends Controller
     public function amms(Request $request)
     {
         abort_unless($request->user()?->isActive() === true, 401, 'UNAUTHORIZED');
+        $customRoles = \App\Models\AmmsRoleDefinition::query()->with('role')->where('role_kind', 'CUSTOM')->where('status', 'ACTIVE')->get();
+        $roleLabels = array_merge(AmmsRole::labels(), $customRoles->mapWithKeys(fn ($definition) => [$definition->role->name => $definition->label])->all());
 
         return response()->json([
             'success' => true,
@@ -24,11 +26,13 @@ final class MetadataController extends Controller
                 'formal_governance_unit_types' => OrganizationalUnitType::formalGovernance(),
                 'position_types' => PositionType::all(),
                 'roles' => AmmsRole::all(),
+                'system_roles' => AmmsRole::all(),
+                'custom_roles' => $customRoles->map(fn ($definition) => ['name' => $definition->role->name, 'label' => $definition->label])->values()->all(),
                 'special_capabilities' => SpecialCapability::all(),
                 'labels' => [
                     'organizational_unit_types' => OrganizationalUnitType::labels(),
                     'position_types' => PositionType::labels(),
-                    'roles' => AmmsRole::labels(),
+                    'roles' => $roleLabels,
                 ],
             ],
         ]);

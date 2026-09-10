@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Organization\AdminController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
 use App\Http\Controllers\Api\Organization\MetadataController;
+use App\Http\Controllers\Api\Organization\RoleManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -19,6 +20,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/employees', [DirectoryController::class, 'employees']);
 
     // Admin & Organizational Structure Management
+    Route::get('/admin/permissions', [RoleManagementController::class, 'permissions']);
+    Route::get('/admin/roles', [RoleManagementController::class, 'index']);
+    Route::post('/admin/roles', [RoleManagementController::class, 'store']);
+    Route::get('/admin/roles/{role}', [RoleManagementController::class, 'show']);
+    Route::get('/admin/roles/{role}/audits', [RoleManagementController::class, 'audits']);
+    Route::put('/admin/roles/{role}', [RoleManagementController::class, 'update']);
+    Route::post('/admin/roles/{role}/permissions', [RoleManagementController::class, 'permissionsUpdate']);
+    Route::post('/admin/roles/{role}/activate', [RoleManagementController::class, 'activate']);
+    Route::post('/admin/roles/{role}/deactivate', [RoleManagementController::class, 'deactivate']);
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::post('/admin/users', [AdminController::class, 'storeUser']);
     Route::put('/admin/users/{user}', [AdminController::class, 'updateUser']);

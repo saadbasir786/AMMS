@@ -12,24 +12,28 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class ReportingScopeResolver
 {
+    private ?string $permission = null;
+
     public function __construct(private readonly User $user) {}
 
     public function user(): User { return $this->user; }
 
     public function requirePermission(string $permission): void
     {
+        $this->permission = $permission;
         abort_unless($this->user->isActive(), 401, 'UNAUTHORIZED');
-        abort_unless($this->user->can($permission), 403, 'REPORTING_PERMISSION_DENIED');
+        abort_unless($this->user->hasScopedPermission($permission), 403, 'REPORTING_PERMISSION_DENIED');
     }
 
     public function unitIds(): array
     {
+        $permissionUnitIds = $this->permission ? $this->user->scopedPermissionUnitIds($this->permission) : [];
         return array_values(array_unique(array_merge(
             $this->user->scopedRoleUnitIds('DIRECTOR'),
             $this->user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
-            $this->user->scopedRoleUnitIds('EXECUTIVE_MANAGEMENT'),
             $this->user->scopedRoleUnitIds('AUTHORITY_OFFICE'),
             $this->user->scopedRoleUnitIds('EXECUTIVE_SECRETARY'),
+            $permissionUnitIds,
         )));
     }
 

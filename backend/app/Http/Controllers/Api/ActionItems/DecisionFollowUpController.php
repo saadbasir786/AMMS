@@ -140,6 +140,7 @@ class DecisionFollowUpController extends Controller
             $q->where('assigned_employee_id', $actor->employee_id ?: 0);
             $managedUnitIds = collect(['DIRECTOR', 'EXECUTIVE_MANAGEMENT'])
                 ->flatMap(fn (string $role): array => $actor->scopedRoleUnitIds($role))
+                ->merge($actor->scopedPermissionUnitIds('action-item.view'))
                 ->map(static fn ($id): int => (int) $id)
                 ->unique()
                 ->values()

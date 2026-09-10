@@ -79,4 +79,50 @@ final class AmmsPermissionRegistry
     {
         return self::rolePermissions()[$role] ?? [];
     }
+
+    /**
+     * Every permission is classified here. The assignable list is deliberately
+     * small: custom roles can only receive read/reporting permissions whose
+     * downstream policies and reporting scope resolver still enforce scope.
+     */
+    public static function metadata(): array
+    {
+        $assignable = [
+            'meeting-request.attachment-download', 'meeting.view',
+            'meeting.minutes.view', 'meeting.minutes.document.view', 'decision.followup.view',
+            'action-item.view', 'action-item.evidence.view', 'attendance.view',
+            'notification.view', 'notification.mark-read', 'reporting.dashboard.personal',
+            'reporting.meetings.view', 'reporting.requests.view', 'reporting.attendance.summary',
+            'reporting.decisions.view', 'reporting.action-items.view', 'reporting.exceptions.view',
+        ];
+
+        $protected = [
+            'role.manage', 'user.manage', 'organization.manage', 'employee.manage',
+            'authority-request.decide', 'authority-request.approve', 'meeting-request.approve',
+            'meeting-request.approve-target', 'meeting-request.approve-delegated',
+            'meeting.minutes.approve_authority', 'meeting.minutes.review-delegated',
+            'biometric.enroll', 'biometric.reenroll', 'biometric.revoke',
+        ];
+
+        $delegatable = collect(SpecialCapability::all())
+            ->flatMap(static fn (string $capability): array => SpecialCapability::permissions($capability))
+            ->unique()
+            ->all();
+
+        return collect(self::allPermissions())->mapWithKeys(function (string $permission) use ($assignable, $protected, $delegatable): array {
+            $category = str_contains($permission, '.') ? explode('.', $permission, 2)[0] : $permission;
+            return [$permission => [
+                'name' => $permission,
+                'category' => $category,
+                'custom_role_assignable' => in_array($permission, $assignable, true),
+                'protected' => in_array($permission, $protected, true) || !in_array($permission, $assignable, true),
+                'delegatable' => in_array($permission, $delegatable, true),
+            ]];
+        })->all();
+    }
+
+    public static function customRoleAssignablePermissions(): array
+    {
+        return array_values(array_keys(array_filter(self::metadata(), static fn (array $item): bool => $item['custom_role_assignable'])));
+    }
 }
