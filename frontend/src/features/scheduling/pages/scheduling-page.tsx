@@ -42,6 +42,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
     chairperson_employee_id: '',
     participant_ids: [],
     agenda: '',
+    agenda_items: [{ title: '', description: '' }],
   })
 
   const loadData = useCallback(async () => {
@@ -128,6 +129,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
             ? proposedIds
             : prev.participant_ids,
         agenda: prev.agenda || '',
+        agenda_items: prev.agenda_items?.length ? prev.agenda_items : [{ title: '', description: '' }],
       }))
     } catch (err: any) {
       setError(
@@ -298,7 +300,10 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         venue_type: request.scheduled_venue_type || form.venue_type,
         venue_id: request.scheduled_venue_id || form.venue_id || undefined,
         chairperson_employee_id: Number(request.scheduled_chairperson_employee_id || form.chairperson_employee_id),
-        agenda: form.agenda,
+        agenda: form.agenda || form.agenda_items.map((item, index) => `${index + 1}. ${item.title}`).filter(Boolean).join('\n'),
+        agenda_items: form.agenda_items
+          .map((item) => ({ title: item.title.trim(), description: item.description.trim() }))
+          .filter((item) => item.title),
       })
       navigate(`/meeting-requests/${id}`)
     } catch (err: any) {
@@ -312,7 +317,10 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
   }
 
   const isConfirmed = request?.status === 'SCHEDULE_CONFIRMED'
-  const hasProposals = (request?.schedule_proposals || []).length > 0 || request?.flow_type !== 'STANDARD'
+  const isInternalDirectorate = request?.flow_type === 'INTERNAL_DIRECTORATE'
+  const hasProposals = !isInternalDirectorate && (
+    (request?.schedule_proposals || []).length > 0 || request?.flow_type !== 'STANDARD'
+  )
 
   const requestUnits = request?.units?.map((u: any) => ({
     id: u.organizational_unit_id || u.unit?.id,
@@ -432,8 +440,8 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
                 request={request}
                 employees={employees}
                 finalParticipants={finalParticipants}
-                agenda={form.agenda}
-                onAgendaChange={(ag) => handleFieldChange('agenda', ag)}
+                agendaItems={form.agenda_items}
+                onAgendaItemsChange={(items) => handleFieldChange('agenda_items', items)}
                 endTime={endTime}
                 busy={busy}
                 onFinalize={handleFinalize}

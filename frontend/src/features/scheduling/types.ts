@@ -8,6 +8,7 @@ export type SchedulingFormValues = {
   chairperson_employee_id: string | number
   participant_ids: number[]
   agenda: string
+  agenda_items: Array<{ title: string; description: string }>
 }
 
 export type SchedulingStage = 'requested' | 'scheduling' | 'confirmed'

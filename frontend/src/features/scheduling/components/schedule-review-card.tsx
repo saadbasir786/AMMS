@@ -13,6 +13,7 @@ import {
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatSolarDate } from '@/lib/calendar-utils'
 import type { EmployeeItem } from '@/shared/types'
@@ -21,8 +22,8 @@ type ScheduleReviewCardProps = {
   request: any
   employees: EmployeeItem[]
   finalParticipants: any[]
-  agenda: string
-  onAgendaChange: (agenda: string) => void
+  agendaItems: Array<{ title: string; description: string }>
+  onAgendaItemsChange: (items: Array<{ title: string; description: string }>) => void
   endTime: string
   busy: boolean
   onFinalize: () => Promise<void>
@@ -32,8 +33,8 @@ export function ScheduleReviewCard({
   request,
   employees,
   finalParticipants,
-  agenda,
-  onAgendaChange,
+  agendaItems,
+  onAgendaItemsChange,
   endTime,
   busy,
   onFinalize,
@@ -128,19 +129,63 @@ export function ScheduleReviewCard({
           </div>
         </div>
 
-        {/* Agenda Input */}
+        {/* Structured official agenda */}
         <div className="space-y-1.5 pt-2 border-t border-border/50">
           <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
             <FileText className="size-4 text-primary" />
             آجندا و دستور کار رسمی جلسه
           </label>
-          <Textarea
-            rows={4}
-            value={agenda}
-            onChange={(e) => onAgendaChange(e.target.value)}
-            placeholder="عناوین، مواد آجندا و محورهای اصلی جلسه رسمی را درج نمایید..."
-            className="text-xs rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 resize-y leading-relaxed"
-          />
+          <p className="text-[11px] text-muted-foreground">موضوعات جلسه را به‌صورت بندهای جداگانه ثبت کنید تا در صورت‌جلسه نیز قابل استفاده باشند.</p>
+          <div className="space-y-3">
+            {agendaItems.map((item, index) => (
+              <div key={index} className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-muted-foreground">بند شماره {index + 1}</span>
+                  {agendaItems.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onAgendaItemsChange(agendaItems.filter((_, itemIndex) => itemIndex !== index))}
+                      className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive rounded-lg"
+                    >
+                      حذف بند
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  value={item.title}
+                  onChange={(e) => {
+                    const next = [...agendaItems]
+                    next[index] = { ...next[index], title: e.target.value }
+                    onAgendaItemsChange(next)
+                  }}
+                  placeholder="عنوان بند آجندا..."
+                  className="h-9 text-xs rounded-xl"
+                />
+                <Textarea
+                  rows={2}
+                  value={item.description}
+                  onChange={(e) => {
+                    const next = [...agendaItems]
+                    next[index] = { ...next[index], description: e.target.value }
+                    onAgendaItemsChange(next)
+                  }}
+                  placeholder="توضیح یا هدف بررسی این بند (اختیاری)..."
+                  className="text-xs rounded-xl resize-y leading-relaxed"
+                />
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAgendaItemsChange([...agendaItems, { title: '', description: '' }])}
+            className="h-8 text-xs font-semibold rounded-xl"
+          >
+            افزودن بند آجندا
+          </Button>
         </div>
 
         {/* Finalize Button */}

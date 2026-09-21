@@ -25,4 +25,5 @@ class Meeting extends Model { protected $fillable = ['meeting_request_id','meeti
     public function attendanceInvalidations(): HasMany { return $this->hasMany(MeetingAttendanceInvalidation::class); }
     public function executionSession(): HasOne { return $this->hasOne(MeetingExecutionSession::class); }
     public function minutes(): HasOne { return $this->hasOne(MeetingMinutes::class); }
+    public function agendaItems(): HasMany { return $this->hasMany(MeetingAgendaItem::class)->orderBy('sequence_number'); }
 }

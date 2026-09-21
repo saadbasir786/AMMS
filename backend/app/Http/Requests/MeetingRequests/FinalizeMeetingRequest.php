@@ -19,6 +19,9 @@ class FinalizeMeetingRequest extends FormRequest
             'venue_id' => ['nullable', 'integer', 'exists:meeting_venues,id'],
             'chairperson_employee_id' => ['required', 'integer', 'exists:employees,id'],
             'agenda' => ['nullable', 'string', 'max:10000'],
+            'agenda_items' => ['nullable', 'array', 'max:100'],
+            'agenda_items.*.title' => ['required', 'string', 'max:500'],
+            'agenda_items.*.description' => ['nullable', 'string', 'max:10000'],
         ];
     }
 }

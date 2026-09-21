@@ -50,13 +50,25 @@ class InternalMeetingRequestTest extends TestCase
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk()->assertJsonPath('data.status','SCHEDULING');
         $schedule = ['meeting_date'=>now()->addWeek()->format('Y-m-d'),'start_time'=>'09:00','duration_minutes'=>60,'location'=>'اتاق جلسات تکنالوژی','chairperson_employee_id'=>$employees[0],'participant_ids'=>$employees];
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule",$schedule)->assertOk()->assertJsonPath('data.status','SCHEDULE_CONFIRMED');
-        $finalize = ['meeting_date'=>$schedule['meeting_date'],'start_time'=>'09:00','end_time'=>'10:00','location'=>$schedule['location'],'chairperson_employee_id'=>$employees[0],'agenda'=>'بررسی پلان توسعه سیستم‌ها'];
+        $finalize = [
+            'meeting_date'=>$schedule['meeting_date'],
+            'start_time'=>'09:00',
+            'end_time'=>'10:00',
+            'location'=>$schedule['location'],
+            'chairperson_employee_id'=>$employees[0],
+            'agenda_items'=>[
+                ['title'=>'بررسی پلان توسعه سیستم‌ها','description'=>'بررسی وضعیت پیشرفت و اقدامات بعدی.'],
+                ['title'=>'تصمیم‌گیری درباره زمان‌بندی اجرا','description'=>'تعیین مسئولیت‌ها و مهلت‌های اجرایی.'],
+            ],
+        ];
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertOk();
         $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize",$finalize)->assertForbidden();
         $this->assertSame(1, Meeting::where('meeting_request_id',$request->id)->count());
         $this->assertSame('MT-'.now()->format('Y').'-00001', Meeting::where('meeting_request_id',$request->id)->firstOrFail()->meeting_number);
         $this->assertSame('CONVERTED_TO_MEETING', $request->fresh()->status);
         $meeting = Meeting::where('meeting_request_id',$request->id)->firstOrFail();
+        $this->assertDatabaseHas('meeting_agenda_items', ['meeting_id' => $meeting->id, 'sequence_number' => 1, 'title' => 'بررسی پلان توسعه سیستم‌ها']);
+        $this->assertDatabaseHas('meeting_agenda_items', ['meeting_id' => $meeting->id, 'sequence_number' => 2, 'title' => 'تصمیم‌گیری درباره زمان‌بندی اجرا']);
         $this->assertNotNull($meeting->current_schedule_version_id);
         $this->assertDatabaseHas('meeting_units', [
             'meeting_id' => $meeting->id,
@@ -70,6 +82,57 @@ class InternalMeetingRequestTest extends TestCase
         $this->assertSame('MR-'.now()->format('Y').'-00001', $request->fresh()->request_number);
         $this->assertGreaterThanOrEqual(5, $request->actions()->count());
         $this->assertGreaterThanOrEqual(1, $director->fresh()->notifications()->where('title','جلسه ایجاد شد')->count());
+    }
+
+    public function test_internal_conversion_persists_structured_agenda_items(): void
+    {
+        $exec = User::where('email', 'tech.exec@example.test')->firstOrFail();
+        $director = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $tech = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+        $employees = Employee::whereIn('employee_number', ['EMP-TECH-003', 'EMP-TECH-004'])->pluck('id')->all();
+
+        $this->actingAs($exec, 'sanctum')->postJson('/api/meeting-requests', [
+            'requesting_unit_id' => $tech->id,
+            'subject' => 'آزمون آجندای ساختاریافته',
+            'purpose' => 'COORDINATION',
+            'priority' => 'NORMAL',
+            'participant_ids' => $employees,
+        ])->assertCreated();
+        $request = MeetingRequest::latest('id')->firstOrFail();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/submit")->assertOk();
+        $this->actingAs($director, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/approve")->assertOk();
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/start-scheduling")->assertOk();
+
+        $schedule = [
+            'meeting_date' => now()->addWeeks(2)->format('Y-m-d'),
+            'start_time' => '11:00',
+            'duration_minutes' => 60,
+            'location' => 'اتاق جلسات تکنالوژی',
+            'chairperson_employee_id' => $employees[0],
+            'participant_ids' => $employees,
+        ];
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/confirm-schedule", $schedule)->assertOk();
+
+        $finalize = [
+            'meeting_date' => $schedule['meeting_date'],
+            'start_time' => '11:00',
+            'end_time' => '12:00',
+            'location' => $schedule['location'],
+            'chairperson_employee_id' => $employees[0],
+            'agenda_items' => [
+                ['title' => 'گزارش پیشرفت پروژه', 'description' => 'مرور وضعیت فعلی پروژه.'],
+                ['title' => 'تعیین اقدامات بعدی', 'description' => null],
+            ],
+        ];
+        $this->actingAs($exec, 'sanctum')->postJson("/api/meeting-requests/{$request->id}/finalize", $finalize)->assertOk();
+
+        $meeting = Meeting::where('meeting_request_id', $request->id)->firstOrFail();
+        $this->assertSame(['گزارش پیشرفت پروژه', 'تعیین اقدامات بعدی'], $meeting->agendaItems()->pluck('title')->all());
+        $this->assertSame("1. گزارش پیشرفت پروژه\n2. تعیین اقدامات بعدی", $meeting->agenda);
+        $this->actingAs($exec, 'sanctum')->getJson("/api/meetings/{$meeting->id}")
+            ->assertOk()
+            ->assertJsonPath('data.agenda_items.0.title', 'گزارش پیشرفت پروژه')
+            ->assertJsonPath('data.agenda_items.1.description', null);
     }
 
     public function test_schedule_cannot_be_confirmed_before_scheduling_starts(): void

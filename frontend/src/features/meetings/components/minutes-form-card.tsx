@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-picker'
 import { formatSolarDate } from '@/lib/calendar-utils'
-import type { MeetingMinutes, MinutesItem, MinutesDecision } from '../types'
+import type { MeetingAgendaItem, MeetingMinutes, MinutesItem, MinutesDecision } from '../types'
 import type { Employee, OrganizationalUnit } from '@/features/organization/types'
 import {
   Select,
@@ -44,6 +44,8 @@ type MinutesFormCardProps = {
   onSubmit: () => Promise<void>
   canPrepare?: boolean
   canSubmit?: boolean
+  plannedAgendaItems?: MeetingAgendaItem[]
+  onCopyPlannedAgenda?: () => void
 }
 
 export function MinutesFormCard({
@@ -57,6 +59,8 @@ export function MinutesFormCard({
   onSubmit,
   canPrepare = false,
   canSubmit = false,
+  plannedAgendaItems = [],
+  onCopyPlannedAgenda,
 }: MinutesFormCardProps) {
   const version = minutes?.current_version
   const editable = canPrepare && (!minutes || ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(minutes.status))
@@ -174,16 +178,29 @@ export function MinutesFormCard({
                   <BookmarkCheck className="size-3.5 text-primary" />
                   بررسی بندهای آجندا و مباحث تخصصی
                 </h4>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={addItem}
-                  className="h-8 text-xs font-semibold rounded-xl gap-1.5"
-                >
-                  <Plus className="size-3.5" />
-                  <span>افزودن بند آجندا</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {editable && plannedAgendaItems.length > 0 && onCopyPlannedAgenda && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={onCopyPlannedAgenda}
+                      className="h-8 text-xs font-semibold rounded-xl"
+                    >
+                      استفاده از آجندای رسمی
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={addItem}
+                    className="h-8 text-xs font-semibold rounded-xl gap-1.5"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>افزودن بند آجندا</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-3">

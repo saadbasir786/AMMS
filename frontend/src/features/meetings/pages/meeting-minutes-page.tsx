@@ -23,7 +23,7 @@ import type {
   MeetingMinutes,
   MinutesItem,
   MinutesDecision,
-  MinutesReview
+  MinutesReview,
 } from '../types'
 import type { Employee, OrganizationalUnit } from '@/features/organization/types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
@@ -184,6 +184,21 @@ export function MeetingMinutesPage() {
 
   const handleFinalize = () => runAction(() => api.post(`/meetings/${id}/minutes/finalize`))
 
+  const handleCopyPlannedAgenda = () => {
+    if (!meeting?.agenda_items?.length) return
+    const existingTitles = new Set(form.items.map((item) => item.agenda_title.trim()).filter(Boolean))
+    const plannedItems = meeting.agenda_items
+      .filter((item) => !existingTitles.has(item.title.trim()))
+      .map((item) => ({ agenda_title: item.title, discussion_summary: '' }))
+
+    if (plannedItems.length === 0) return
+    const hasOnlyBlankItem = form.items.length === 1 && !form.items[0].agenda_title && !form.items[0].discussion_summary
+    setForm({
+      ...form,
+      items: hasOnlyBlankItem ? plannedItems : [...form.items, ...plannedItems],
+    })
+  }
+
   const handleDownloadPdf = async () => {
     if (!id) return
     setBusy(true)
@@ -337,6 +352,8 @@ export function MeetingMinutesPage() {
               onSubmit={handleSubmit}
               canPrepare={meeting.action_capabilities?.minutes.prepare === true}
               canSubmit={meeting.action_capabilities?.minutes.submit === true}
+              plannedAgendaItems={meeting.agenda_items || []}
+              onCopyPlannedAgenda={handleCopyPlannedAgenda}
             />
           </section>
 

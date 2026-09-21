@@ -12,6 +12,7 @@ export type MeetingItem = {
   title: string
   description?: string
   agenda?: string
+  agenda_items?: MeetingAgendaItem[]
   meeting_date: string
   start_time: string
   end_time: string
@@ -364,6 +365,13 @@ export type MeetingExceptionData = {
   }
   data?: ExceptionCase[]
   meta?: PaginationMeta
+}
+
+export type MeetingAgendaItem = {
+  id: number
+  sequence_number: number
+  title: string
+  description?: string | null
 }
 
 export type WorkspaceAuditItem = {

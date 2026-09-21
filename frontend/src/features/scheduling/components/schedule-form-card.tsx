@@ -138,7 +138,11 @@ export function ScheduleFormCard({
             <label className="text-xs font-bold text-foreground block">نوع محل برگزاری</label>
             <select
               value={form.venue_type || 'EXTERNAL_LOCATION'}
-              onChange={(e) => onChange('venue_type', e.target.value)}
+              onChange={(e) => {
+                const venueType = e.target.value
+                onChange('venue_type', venueType)
+                if (venueType !== 'INTERNAL_VENUE') onChange('venue_id', null)
+              }}
               className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5"
             >
               <option value="INTERNAL_VENUE">محل داخلی مدیریت‌شده</option>
@@ -193,7 +197,7 @@ export function ScheduleFormCard({
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <Users2 className="size-4 text-primary" />
-              اشتراک‌کنندگان نهایی جلسه
+              اشتراک‌کنندگان نهایی جلسه <span className="text-destructive">*</span>
             </label>
             <span className="text-[11px] text-muted-foreground">
               {form.participant_ids.length} نفر انتخاب شده
@@ -213,7 +217,14 @@ export function ScheduleFormCard({
           <Button
             type="button"
             className="h-9.5 px-5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
-            disabled={busy || !form.meeting_date || !form.start_time || (form.venue_type === 'INTERNAL_VENUE' ? !form.venue_id : !form.location)}
+            disabled={
+              busy ||
+              !form.meeting_date ||
+              !form.start_time ||
+              !form.chairperson_employee_id ||
+              form.participant_ids.length < 1 ||
+              (form.venue_type === 'INTERNAL_VENUE' ? !form.venue_id : !form.location)
+            }
             onClick={onSubmit}
           >
             {busy ? (

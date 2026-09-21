@@ -29,6 +29,7 @@ class MeetingResource extends JsonResource
             'venue_id' => $this->venue_id,
             'venue_snapshot' => $this->venue_snapshot,
             'agenda' => $this->agenda,
+            'agenda_items' => MeetingAgendaItemResource::collection($this->whenLoaded('agendaItems')),
             'status' => $this->status,
             'current_schedule_version_id' => $this->current_schedule_version_id,
             'active_reschedule_case_id' => $this->active_reschedule_case_id,

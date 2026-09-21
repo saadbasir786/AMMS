@@ -205,9 +205,16 @@ class MeetingRequestService
                 'venue_type' => $storedSchedule['venue_type'],
                 'venue_id' => $storedSchedule['venue_id'],
                 'venue_snapshot' => $storedSchedule['venue_snapshot'],
-                'agenda' => $data['agenda'] ?? null,
+                'agenda' => $this->agendaText($data),
                 'status' => 'SCHEDULED',
             ]);
+            foreach ($this->agendaItems($data) as $index => $item) {
+                $meeting->agendaItems()->create([
+                    'sequence_number' => $index + 1,
+                    'title' => $item['title'],
+                    'description' => $item['description'],
+                ]);
+            }
             $meeting->units()->create([
                 'organizational_unit_id' => $locked->requesting_unit_id,
                 'role' => 'REQUESTING',
@@ -262,6 +269,32 @@ class MeetingRequestService
         }
         $sequence->increment('value');
         return $prefix.'-'.now()->format('Y').'-'.str_pad((string) $sequence->fresh()->value, 5, '0', STR_PAD_LEFT);
+    }
+
+    private function agendaItems(array $data): array
+    {
+        $items = collect($data['agenda_items'] ?? [])
+            ->map(fn (array $item): array => [
+                'title' => trim((string) ($item['title'] ?? '')),
+                'description' => filled($item['description'] ?? null) ? trim((string) $item['description']) : null,
+            ])
+            ->filter(fn (array $item): bool => $item['title'] !== '')
+            ->values()
+            ->all();
+
+        if ($items === [] && filled($data['agenda'] ?? null)) {
+            $items[] = ['title' => trim((string) $data['agenda']), 'description' => null];
+        }
+
+        return $items;
+    }
+
+    private function agendaText(array $data): ?string
+    {
+        if (filled($data['agenda'] ?? null)) return trim((string) $data['agenda']);
+
+        $titles = collect($this->agendaItems($data))->pluck('title')->all();
+        return $titles === [] ? null : implode("\n", array_map(fn (string $title, int $index): string => ($index + 1).'. '.$title, $titles, array_keys($titles)));
     }
 
     private function action(MeetingRequest $request, User $actor, string $action, ?string $from, ?string $to, ?string $comment = null, array $metadata = []): void
