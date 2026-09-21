@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\MeetingVenue;
+use Carbon\CarbonImmutable;
+
 class ScheduleVenueService
 {
     public const INTERNAL = 'INTERNAL_VENUE';
@@ -22,6 +24,14 @@ class ScheduleVenueService
 
         if ($type === self::INTERNAL) {
             abort_unless($venueId, 422, 'INTERNAL_VENUE_REQUIRED');
+
+            // A venue that was already formally confirmed remains valid for that exact
+            // stored schedule even if an administrator later deactivates or renames it.
+            // This preserves the reservation and immutable historical snapshot while
+            // still preventing the inactive venue from being selected for any new time.
+            $stored = $this->storedConfirmedVenue($context, $venueId, $data);
+            if ($stored !== null) return $stored;
+
             $venue = MeetingVenue::query()->whereKey($venueId)->where('status', 'ACTIVE')->first();
             abort_unless($venue, 422, 'INTERNAL_VENUE_UNAVAILABLE');
             $this->assertSameOrganization($venue, $context);
@@ -52,6 +62,68 @@ class ScheduleVenueService
             'venue_snapshot' => $snapshot ?: ['type' => $type, 'location' => $location],
             'location' => trim((string) $location),
         ];
+    }
+
+    private function storedConfirmedVenue(Meeting|MeetingRequest|null $context, int $venueId, array $data): ?array
+    {
+        if ($context instanceof MeetingRequest) {
+            if ($context->status !== 'SCHEDULE_CONFIRMED'
+                || (string) $context->scheduled_venue_type !== self::INTERNAL
+                || (int) $context->scheduled_venue_id !== $venueId
+                || !$context->scheduled_date
+                || !$context->scheduled_start_time
+                || !$context->scheduled_duration_minutes) {
+                return null;
+            }
+
+            $start = substr((string) $context->scheduled_start_time, 0, 5);
+            $end = CarbonImmutable::createFromFormat('H:i', $start)
+                ->addMinutes((int) $context->scheduled_duration_minutes)
+                ->format('H:i');
+            if (!$this->sameStoredSlot($data, $context->scheduled_date->toDateString(), $start, $end)) return null;
+
+            $venue = MeetingVenue::query()->find($venueId);
+            abort_unless($venue, 422, 'INTERNAL_VENUE_UNAVAILABLE');
+            $this->assertSameOrganization($venue, $context);
+
+            return $this->fromStored(
+                $context->scheduled_venue_type,
+                $context->scheduled_venue_id,
+                $context->scheduled_venue_snapshot,
+                $context->scheduled_location,
+            );
+        }
+
+        if ($context instanceof Meeting) {
+            if ((string) $context->venue_type !== self::INTERNAL
+                || (int) $context->venue_id !== $venueId
+                || !$context->meeting_date
+                || !$this->sameStoredSlot(
+                    $data,
+                    $context->meeting_date->toDateString(),
+                    substr((string) $context->start_time, 0, 5),
+                    substr((string) $context->end_time, 0, 5),
+                )) {
+                return null;
+            }
+
+            $venue = MeetingVenue::query()->find($venueId);
+            abort_unless($venue, 422, 'INTERNAL_VENUE_UNAVAILABLE');
+            $this->assertSameOrganization($venue, $context);
+
+            return $this->fromStored($context->venue_type, $context->venue_id, $context->venue_snapshot, $context->location);
+        }
+
+        return null;
+    }
+
+    private function sameStoredSlot(array $data, string $date, string $start, string $end): bool
+    {
+        if (!isset($data['meeting_date'], $data['start_time'], $data['end_time'])) return false;
+
+        return (string) $data['meeting_date'] === $date
+            && substr((string) $data['start_time'], 0, 5) === $start
+            && substr((string) $data['end_time'], 0, 5) === $end;
     }
 
     private function assertSameOrganization(MeetingVenue $venue, Meeting|MeetingRequest|null $context): void
