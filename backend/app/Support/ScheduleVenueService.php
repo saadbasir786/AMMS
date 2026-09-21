@@ -97,13 +97,17 @@ class ScheduleVenueService
         if ($context instanceof Meeting) {
             if ((string) $context->venue_type !== self::INTERNAL
                 || (int) $context->venue_id !== $venueId
-                || !$context->meeting_date
-                || !$this->sameStoredSlot(
-                    $data,
-                    $context->meeting_date->toDateString(),
-                    substr((string) $context->start_time, 0, 5),
-                    substr((string) $context->end_time, 0, 5),
-                )) {
+                || !$context->meeting_date) {
+                return null;
+            }
+
+            $hasExplicitSlot = isset($data['meeting_date'], $data['start_time'], $data['end_time']);
+            if ($hasExplicitSlot && !$this->sameStoredSlot(
+                $data,
+                $context->meeting_date->toDateString(),
+                substr((string) $context->start_time, 0, 5),
+                substr((string) $context->end_time, 0, 5),
+            )) {
                 return null;
             }
 
