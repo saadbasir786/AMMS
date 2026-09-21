@@ -29,6 +29,7 @@ import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 import type { MeetingActionCapabilities } from '../types'
 import { WorkspacePagination } from '../components/workspace-pagination'
 import { WorkspaceAuditCard } from '../components/workspace-audit-card'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 
 export function MeetingReschedulePage() {
   const { id } = useParams<{ id: string }>()
@@ -213,6 +214,8 @@ export function MeetingReschedulePage() {
           </div>
         }
       />
+
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
 
       {/* Error Alert */}
       {error && (

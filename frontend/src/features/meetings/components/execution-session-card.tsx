@@ -5,7 +5,6 @@ import {
   Clock,
   FileText,
   LockKeyhole,
-  CheckCircle2,
   AlertOctagon
 } from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
@@ -21,7 +20,6 @@ type ExecutionSessionCardProps = {
   busy: boolean
   onStart: (notes: string) => Promise<void>
   onEnd: (notes: string) => Promise<void>
-  onGoToMinutes?: () => void
   canStart?: boolean
   canEnd?: boolean
 }
@@ -31,7 +29,6 @@ export function ExecutionSessionCard({
   busy,
   onStart,
   onEnd,
-  onGoToMinutes,
   canStart = false,
   canEnd = false,
 }: ExecutionSessionCardProps) {
@@ -158,15 +155,6 @@ export function ExecutionSessionCard({
             </Button>
           )}
 
-          {isHeldOrCompleted && onGoToMinutes && (
-            <Button
-              onClick={onGoToMinutes}
-              className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-            >
-              <CheckCircle2 className="size-3.5" />
-              <span>ورود به تنظیم صورت‌جلسه رسمی</span>
-            </Button>
-          )}
         </div>
 
         {/* Governance Notice */}

@@ -5,7 +5,6 @@ import {
   RotateCw,
   AlertCircle,
   Play,
-  CheckCircle2,
   Users,
   FileText,
   Clock
@@ -16,10 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api, apiData } from '@/lib/api-client'
-import { MeetingDetailSummary } from '../components/meeting-detail-summary'
 import { ExecutionSessionCard } from '../components/execution-session-card'
 import { MeetingActionsCard } from '../components/meeting-actions-card'
 import { MeetingParticipantsCard } from '../components/meeting-participants-card'
+import { MeetingWorkspaceSummary } from '../components/meeting-workspace-summary'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import type { MeetingItem, MeetingExecutionState } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
@@ -114,6 +114,8 @@ export function MeetingExecutionPage() {
         }
       />
 
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
+
       {/* Error Alert */}
       {error && (
         <Alert variant="destructive" className="rounded-2xl p-4">
@@ -151,24 +153,23 @@ export function MeetingExecutionPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           {/* Main Column */}
           <section className="space-y-6">
+            <MeetingWorkspaceSummary meeting={meeting} />
             <ExecutionSessionCard
               state={state}
               busy={busy}
               onStart={handleStart}
               onEnd={handleEnd}
-              onGoToMinutes={() => navigate(`/meetings/${id}/minutes`)}
               canStart={meeting.action_capabilities?.execution.start === true}
               canEnd={meeting.action_capabilities?.execution.end === true}
             />
 
             <MeetingParticipantsCard meeting={meeting} participants={meeting.participants} />
 
-            <MeetingDetailSummary meeting={meeting} />
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <MeetingActionsCard meeting={meeting} />
+            <MeetingActionsCard meeting={meeting} activeWorkspace="execution" />
           </aside>
         </div>
       )}

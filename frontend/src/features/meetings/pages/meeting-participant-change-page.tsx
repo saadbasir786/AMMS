@@ -28,6 +28,7 @@ import type { MeetingActionCapabilities } from '../types'
 import { participantRoleLabels } from '../lib/workspace-labels'
 import { WorkspacePagination } from '../components/workspace-pagination'
 import { WorkspaceAuditCard } from '../components/workspace-audit-card'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import { isParticipantBaselineStale } from '../lib/workspace-contracts'
 
 export function MeetingParticipantChangePage() {
@@ -213,6 +214,8 @@ export function MeetingParticipantChangePage() {
           </div>
         }
       />
+
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
 
       {/* Error Alert */}
       {error && (

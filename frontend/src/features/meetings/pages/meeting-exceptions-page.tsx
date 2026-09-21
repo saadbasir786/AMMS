@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { StatusBadge } from '@/components/amms/status-badge'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
@@ -207,6 +208,8 @@ export function MeetingExceptionsPage() {
           </div>
         }
       />
+
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
 
       {/* Error Alert */}
       {error && (

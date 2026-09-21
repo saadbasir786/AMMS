@@ -17,6 +17,7 @@ import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { MinutesFormCard } from '../components/minutes-form-card'
 import { MinutesReviewsCard } from '../components/minutes-reviews-card'
 import { MeetingActionsCard } from '../components/meeting-actions-card'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import type {
   MeetingItem,
   MeetingMinutes,
@@ -248,6 +249,8 @@ export function MeetingMinutesPage() {
         }
       />
 
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
+
       {/* Error Alert */}
       {error && (
         <Alert variant="destructive" className="rounded-2xl p-4">
@@ -356,7 +359,7 @@ export function MeetingMinutesPage() {
               canDocument={meeting.action_capabilities?.minutes.document === true}
             />
 
-            <MeetingActionsCard meeting={meeting} />
+            <MeetingActionsCard meeting={meeting} activeWorkspace="minutes" />
           </aside>
         </div>
       )}

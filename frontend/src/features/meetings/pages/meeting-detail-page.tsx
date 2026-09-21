@@ -18,6 +18,7 @@ import { MeetingDetailSummary } from '../components/meeting-detail-summary'
 import { MeetingParticipantsCard } from '../components/meeting-participants-card'
 import { MeetingActionsCard } from '../components/meeting-actions-card'
 import { MeetingTimelineCard } from '../components/meeting-timeline-card'
+import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import type { MeetingItem } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 
@@ -95,6 +96,8 @@ export function MeetingDetailPage() {
           </div>
         }
       />
+
+      {meeting && <MeetingLifecycleBar status={meeting.status} />}
 
       {/* Loading Skeleton */}
       {loading && (
