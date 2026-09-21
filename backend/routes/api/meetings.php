@@ -42,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meetings/{meeting}/reschedule-cases', [MeetingRescheduleController::class, 'createCase']);
     Route::post('/meetings/{meeting}/reschedule/proposals', [MeetingRescheduleController::class, 'peerProposal']);
     Route::post('/meetings/{meeting}/reschedule/authority-proposals', [MeetingRescheduleController::class, 'authorityProposal']);
+    Route::put('/meetings/{meeting}/reschedule/proposals/{proposal}/draft', [MeetingRescheduleController::class, 'updateInternalProposal']);
+    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/submit', [MeetingRescheduleController::class, 'submitInternalProposal']);
+    Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/return', [MeetingRescheduleController::class, 'returnInternalProposal']);
     Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/acknowledge', [MeetingRescheduleController::class, 'acknowledge']);
     Route::post('/meetings/{meeting}/reschedule/proposals/{proposal}/request-alternative', [MeetingRescheduleController::class, 'requestAlternative']);
     Route::post('/meetings/{meeting}/reschedule/alternative-requests/{alternative}/resolve', [MeetingRescheduleController::class, 'resolveAlternative']);

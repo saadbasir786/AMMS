@@ -56,6 +56,16 @@ class MeetingGovernancePolicy extends MeetingPolicy
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
         if (!in_array($governance['mode'], ['INTERNAL_SINGLE_UNIT', 'PEER_MULTI_UNIT'], true)) return false;
 
+        if ($governance['mode'] === 'INTERNAL_SINGLE_UNIT') {
+            $unitId = (int) ($governance['required_unit_ids'][0] ?? 0);
+            $proposal = $this->internalProposal($meeting);
+
+            return $unitId > 0
+                && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+                && (!$proposal || ((int) $proposal->proposed_by_user_id === (int) $user->id
+                    && in_array($proposal->status, ['DRAFT', 'RETURNED_FOR_CORRECTION'], true)));
+        }
+
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT']);
     }
 
@@ -72,7 +82,47 @@ class MeetingGovernancePolicy extends MeetingPolicy
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.acknowledge')) return false;
         $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
+
+        if ($governance['mode'] === 'INTERNAL_SINGLE_UNIT') {
+            $proposal = $this->internalProposal($meeting);
+            $unitId = (int) ($governance['required_unit_ids'][0] ?? 0);
+
+            return $unitId > 0
+                && in_array($proposal?->status, ['SUBMITTED', 'ACTIVE'], true)
+                && (int) $proposal->proposed_by_user_id !== (int) $user->id
+                && $user->hasScopedRole('DIRECTOR', $unitId);
+        }
+
         return $this->hasFormalRole($user, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT', 'DIRECTOR']);
+    }
+
+    public function meetingRescheduleSubmit(User $user, Meeting $meeting): bool
+    {
+        if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.propose')) return false;
+        $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
+        $proposal = $this->internalProposal($meeting);
+        $unitId = (int) ($governance['required_unit_ids'][0] ?? 0);
+
+        return $governance['mode'] === 'INTERNAL_SINGLE_UNIT'
+            && $proposal
+            && in_array($proposal->status, ['DRAFT', 'RETURNED_FOR_CORRECTION'], true)
+            && (int) $proposal->proposed_by_user_id === (int) $user->id
+            && $unitId > 0
+            && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+    }
+
+    public function meetingRescheduleReturn(User $user, Meeting $meeting): bool
+    {
+        if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.acknowledge')) return false;
+        $governance = app(ScheduleGovernanceResolver::class)->resolve($meeting);
+        $proposal = $this->internalProposal($meeting);
+        $unitId = (int) ($governance['required_unit_ids'][0] ?? 0);
+
+        return $governance['mode'] === 'INTERNAL_SINGLE_UNIT'
+            && in_array($proposal?->status, ['SUBMITTED', 'ACTIVE'], true)
+            && $unitId > 0
+            && $user->hasScopedRole('DIRECTOR', $unitId)
+            && (int) $proposal->proposed_by_user_id !== (int) $user->id;
     }
 
     public function meetingRescheduleRequestAlternative(User $user, Meeting $meeting): bool
@@ -98,7 +148,26 @@ class MeetingGovernancePolicy extends MeetingPolicy
         }
 
         $leadUnitId = (int) ($meeting->units()->where('role', 'REQUESTING')->value('organizational_unit_id') ?: ($governance['required_unit_ids'][0] ?? 0));
+        if ($governance['mode'] === 'INTERNAL_SINGLE_UNIT') {
+            $proposal = $this->internalProposal($meeting);
+
+            return $leadUnitId > 0
+                && $proposal?->status === 'APPROVED'
+                && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $leadUnitId);
+        }
+
         return $leadUnitId > 0 && $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $leadUnitId);
+    }
+
+    private function internalProposal(Meeting $meeting): ?\App\Models\MeetingRescheduleProposal
+    {
+        $case = $meeting->activeRescheduleCase()->first();
+        if (!$case) return null;
+
+        return $case->proposals()
+            ->whereIn('status', ['ACTIVE', 'DRAFT', 'SUBMITTED', 'RETURNED_FOR_CORRECTION', 'APPROVED'])
+            ->latest('id')
+            ->first();
     }
 
     private function hasFormalRole(User $user, array $unitIds, array $roles): bool

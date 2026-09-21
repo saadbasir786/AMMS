@@ -28,8 +28,12 @@ class ConfirmMeetingReschedule
             $this->assertActorCanConfirm($actor, $locked, $governance);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_unless((int) $current->id === (int) $case->baseline_schedule_version_id, 422, 'SCHEDULE_BASELINE_CHANGED');
-            $proposal = $case->proposals()->where('status', 'ACTIVE')->with('acknowledgements')->latest('id')->first();
+            $proposal = $this->activeProposal($case);
+            $proposal?->load('acknowledgements');
             abort_unless($proposal, 422, 'RESCHEDULE_PROPOSAL_REQUIRED');
+            if ($governance['mode'] === 'INTERNAL_SINGLE_UNIT') {
+                abort_unless($proposal->status === 'APPROVED', 422, 'RESCHEDULE_DIRECTOR_APPROVAL_REQUIRED');
+            }
             $required = collect($governance['required_unit_ids'])->map(fn ($id): int => (int) $id);
             $acknowledged = $proposal->acknowledgements->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id);
             abort_unless($required->diff($acknowledged)->isEmpty(), 422, 'ALL_RESCHEDULE_ACKNOWLEDGEMENTS_REQUIRED');
@@ -60,7 +64,7 @@ class ConfirmMeetingReschedule
                 'confirmed_at' => now()->toISOString(),
             ];
             $this->recordMeetingAction($locked, $actor, 'MEETING_RESCHEDULED', $case->reason, $metadata);
-            $this->notifyUsers($this->meetingNotificationUserIds($locked, $governance['required_unit_ids']), 'MEETING_RESCHEDULE', 'زمان جلسه تغییر کرد', 'زمان‌بندی رسمی جلسه با موفقیت تغییر یافت.', $metadata);
+            $this->notifyUsers($this->meetingNotificationUserIds($locked, $governance['required_unit_ids']), 'MEETING_RESCHEDULE', 'زمان جلسه تغییر کرد', 'زمان‌بندی رسمی جلسه با موفقیت تغییر یافت.', ['meeting_id' => $locked->id] + $metadata);
             return $locked->fresh(['request', 'currentScheduleVersion', 'scheduleVersions', 'activeRescheduleCase', 'rescheduleActions']);
         });
     }

@@ -9,7 +9,9 @@ class NotificationResource extends JsonResource
         $data = (array) ($this->data ?? []);
         $actionUrl = null;
 
-        if (!empty($data['meeting_request_id'])) {
+        if (($this->type ?? null) === 'MEETING_RESCHEDULE' && !empty($data['meeting_id'])) {
+            $actionUrl = '/meetings/' . $data['meeting_id'] . '/reschedule';
+        } elseif (!empty($data['meeting_request_id'])) {
             $actionUrl = '/meeting-requests/' . $data['meeting_request_id'];
         } elseif (!empty($data['meeting_id'])) {
             $actionUrl = '/meetings/' . $data['meeting_id'];

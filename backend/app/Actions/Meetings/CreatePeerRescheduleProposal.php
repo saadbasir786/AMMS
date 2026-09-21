@@ -17,6 +17,10 @@ class CreatePeerRescheduleProposal
 
     public function __invoke(User $actor, Meeting $meeting, MeetingRescheduleCase $case, array $data): MeetingRescheduleProposal
     {
+        if ($this->resolver($meeting)['mode'] === 'INTERNAL_SINGLE_UNIT') {
+            return app(CreateInternalRescheduleProposal::class)($actor, $meeting, $case, $data);
+        }
+
         return DB::transaction(function () use ($actor, $meeting, $case, $data): MeetingRescheduleProposal {
             $locked = $this->lockMeeting($meeting);
             $this->ensureReschedulable($locked);

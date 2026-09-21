@@ -74,7 +74,9 @@ export type MeetingActionCapabilities = {
     view: boolean
     create: boolean
     propose: boolean
+    submit: boolean
     acknowledge: boolean
+    return_for_correction: boolean
     request_alternative: boolean
     confirm: boolean
     resolve_alternative: boolean
@@ -209,7 +211,7 @@ export type RescheduleAlternative = {
 
 export type RescheduleProposal = {
   id: number
-  status: 'ACTIVE' | 'SUPERSEDED'
+  status: 'ACTIVE' | 'DRAFT' | 'SUBMITTED' | 'RETURNED_FOR_CORRECTION' | 'APPROVED' | 'ACCEPTED' | 'SUPERSEDED'
   meeting_date: string
   start_time: string
   end_time: string
@@ -359,6 +361,7 @@ export type WorkspaceAuditItem = {
   id: number
   action: string
   comment?: string | null
+  metadata?: Record<string, unknown> | null
   created_at?: string
   actor?: { name?: string } | null
 }

@@ -129,6 +129,123 @@ class MeetingRescheduleTest extends TestCase
         $this->assertSame(1, $meeting->fresh()->scheduleVersions()->count());
     }
 
+    public function test_internal_reschedule_uses_one_draft_requires_director_approval_and_enables_confirmation(): void
+    {
+        [$meeting, $users, $unit] = $this->internalMeeting();
+        $future = $this->futureSchedule('تالار داخلی');
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule-cases", ['reason' => 'تغییر برنامه اداره'])
+            ->assertCreated();
+
+        $created = $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals", $future)
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'DRAFT');
+        $proposalId = $created->json('data.id');
+        $workspace = $this->actingAs($users['exec'], 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/reschedule")
+            ->assertOk()
+            ->assertJsonPath('data.active_reschedule_case.proposals.0.id', $proposalId)
+            ->assertJsonPath('data.active_reschedule_case.proposals.0.location', $future['location']);
+        $this->assertSame($future['location'], $workspace->json('data.actions.0.metadata.proposed_schedule.location'));
+        $workspaceProposalDate = $workspace->json('data.active_reschedule_case.proposals.0.meeting_date');
+        $this->assertStringStartsWith($future['meeting_date'], $workspaceProposalDate);
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals", $this->futureSchedule('نسخه دوم'))
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'RESCHEDULE_PROPOSAL_ALREADY_EXISTS');
+
+        $updated = $this->actingAs($users['exec'], 'sanctum')
+            ->putJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposalId}/draft", $this->futureSchedule('تالار داخلی اصلاح‌شده'))
+            ->assertOk()
+            ->assertJsonPath('data.id', $proposalId)
+            ->assertJsonPath('data.status', 'DRAFT');
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.reschedule.submit', true)
+            ->assertJsonPath('data.reschedule.acknowledge', false)
+            ->assertJsonPath('data.reschedule.confirm', false);
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposalId}/submit")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'SUBMITTED');
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->putJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposalId}/draft", $future)
+            ->assertForbidden();
+        $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposalId}/acknowledge")
+            ->assertForbidden();
+
+        $this->actingAs($users['director'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposalId}/acknowledge")
+            ->assertOk();
+
+        $this->assertDatabaseHas('meeting_reschedule_proposals', ['id' => $proposalId, 'status' => 'APPROVED']);
+        $this->assertDatabaseHas('meeting_reschedule_acknowledgements', [
+            'proposal_id' => $proposalId,
+            'organizational_unit_id' => $unit->id,
+            'acknowledged_by_user_id' => $users['director']->id,
+        ]);
+        $notifications = $this->actingAs($users['exec'], 'sanctum')
+            ->getJson('/api/notifications')
+            ->assertOk()
+            ->json('data');
+        $approvalNotification = collect($notifications)->first(fn (array $notification): bool =>
+            ($notification['type'] ?? null) === 'MEETING_RESCHEDULE'
+            && (int) (($notification['data']['proposal_id'] ?? 0)) === (int) $proposalId
+            && str_contains((string) ($notification['message'] ?? ''), 'تأیید')
+        );
+        $this->assertNotNull($approvalNotification);
+        $this->assertSame("/meetings/{$meeting->id}/reschedule", $approvalNotification['action_url']);
+        $this->actingAs($users['exec'], 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/action-capabilities")
+            ->assertOk()
+            ->assertJsonPath('data.reschedule.confirm', true);
+        $this->actingAs($users['director'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/confirm")
+            ->assertForbidden();
+
+        $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/confirm")
+            ->assertOk();
+        $confirmed = $meeting->fresh(['request', 'scheduleVersions', 'currentScheduleVersion']);
+        $this->assertSame(2, $confirmed->scheduleVersions->count());
+        $this->assertSame(2, $confirmed->currentScheduleVersion->version_number);
+        $this->assertSame($meeting->id, $confirmed->id);
+        $this->assertSame('ACCEPTED', $confirmed->rescheduleCases()->latest('id')->firstOrFail()->proposals()->findOrFail($proposalId)->status);
+    }
+
+    public function test_internal_reschedule_return_reuses_the_same_proposal_for_resubmission(): void
+    {
+        [$meeting, $users] = $this->internalMeeting('FLOW07-RETURN');
+        $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule-cases", ['reason' => 'بازبینی زمان'])->assertCreated();
+        $proposal = $this->actingAs($users['exec'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals", $this->futureSchedule('تالار داخلی'))
+            ->assertCreated()->json('data');
+
+        $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposal['id']}/submit")->assertOk();
+        $this->actingAs($users['director'], 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposal['id']}/return", ['reason' => 'ساعت پیشنهادی نیاز به اصلاح دارد.'])
+            ->assertOk();
+        $this->assertDatabaseHas('meeting_reschedule_proposals', ['id' => $proposal['id'], 'status' => 'RETURNED_FOR_CORRECTION']);
+
+        $revised = $this->actingAs($users['exec'], 'sanctum')
+            ->putJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposal['id']}/draft", $this->futureSchedule('تالار داخلی اصلاح‌شده', '11:00', '12:00'))
+            ->assertOk()->json('data');
+        $this->assertSame($proposal['id'], $revised['id']);
+        $this->assertSame(1, MeetingRescheduleCase::findOrFail($meeting->fresh()->active_reschedule_case_id)->proposals()->count());
+
+        $this->actingAs($users['exec'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposal['id']}/submit")->assertOk();
+        $this->actingAs($users['director'], 'sanctum')->postJson("/api/meetings/{$meeting->id}/reschedule/proposals/{$proposal['id']}/acknowledge")->assertOk();
+        $this->assertDatabaseHas('meeting_reschedule_proposals', ['id' => $proposal['id'], 'status' => 'APPROVED']);
+    }
+
     public function test_authority_conflict_is_rechecked_before_confirmation(): void
     {
         [$meeting, $users] = $this->officialMeeting();
@@ -178,5 +295,30 @@ class MeetingRescheduleTest extends TestCase
         ]);
         (new BackfillMeetingScheduleVersions)();
         return [$meeting->fresh(['request', 'units', 'participants', 'authorityContext', 'currentScheduleVersion']), $users, $units];
+    }
+
+    private function internalMeeting(string $suffix = 'FLOW07-INTERNAL'): array
+    {
+        $user = fn (string $email) => User::where('email', $email)->firstOrFail();
+        $unit = OrganizationalUnit::where('code', 'TECH')->firstOrFail();
+        $users = [
+            'exec' => $user('tech.exec@example.test'),
+            'director' => $user('tech.director@example.test'),
+        ];
+        $request = MeetingRequest::create([
+            'request_number' => $suffix.'-'.uniqid(), 'flow_type' => 'INTERNAL_DIRECTORATE', 'requesting_unit_id' => $unit->id,
+            'created_by' => $users['exec']->id, 'subject' => 'جلسه داخلی تغییر زمان', 'purpose' => 'COORDINATION',
+            'priority' => 'NORMAL', 'status' => 'CONVERTED_TO_MEETING',
+        ]);
+        $meeting = Meeting::create([
+            'meeting_request_id' => $request->id, 'meeting_number' => $suffix.'-MEETING-'.uniqid(), 'title' => $request->subject,
+            'description' => 'جلسه داخلی', 'organizing_unit_id' => $unit->id, 'coordinator_id' => $users['exec']->id,
+            'chairperson_employee_id' => $users['director']->employee_id, 'meeting_date' => now()->addDays(5)->format('Y-m-d'),
+            'start_time' => '09:00', 'end_time' => '10:00', 'location' => 'تالار اصلی', 'status' => 'SCHEDULED',
+        ]);
+        MeetingUnit::create(['meeting_id' => $meeting->id, 'organizational_unit_id' => $unit->id, 'role' => 'REQUESTING']);
+        (new BackfillMeetingScheduleVersions)();
+
+        return [$meeting->fresh(['request', 'units', 'currentScheduleVersion']), $users, $unit];
     }
 }

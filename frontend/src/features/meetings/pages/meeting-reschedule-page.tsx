@@ -43,7 +43,8 @@ export function MeetingReschedulePage() {
   // Form states
   const [caseReason, setCaseReason] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [page, setPage] = useState(1)
+  const [scheduleVersionsPage, setScheduleVersionsPage] = useState(1)
+  const [actionsPage, setActionsPage] = useState(1)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -51,7 +52,9 @@ export function MeetingReschedulePage() {
     setError(null)
     try {
       const [wsRes, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/reschedule`, { params: { page } }),
+        api.get(`/meetings/${id}/reschedule`, {
+          params: { schedule_versions_page: scheduleVersionsPage, actions_page: actionsPage },
+        }),
         fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
@@ -64,7 +67,7 @@ export function MeetingReschedulePage() {
     } finally {
       setLoading(false)
     }
-  }, [id, page])
+  }, [id, scheduleVersionsPage, actionsPage])
 
   useEffect(() => {
     loadData()
@@ -88,8 +91,11 @@ export function MeetingReschedulePage() {
   const meeting = workspace?.meeting
   const current = workspace?.current_schedule_version
   const activeCase = workspace?.active_reschedule_case
-  const activeProposal = activeCase?.proposals?.find((p) => p.status === 'ACTIVE')
+  const activeProposal = activeCase?.proposals?.find((p) =>
+    ['ACTIVE', 'DRAFT', 'SUBMITTED', 'RETURNED_FOR_CORRECTION', 'APPROVED'].includes(p.status)
+  )
   const flowType = meeting?.request?.flow_type
+  const internalDirectorate = flowType === 'INTERNAL_DIRECTORATE'
   const authorityControlled =
     ['DIRECTORATE_WITH_HIGH_AUTHORITY', 'MULTI_DIRECTORATE_WITH_HIGH_AUTHORITY', 'HIGH_AUTHORITY_INITIATED'].includes(
       flowType || ''
@@ -104,7 +110,9 @@ export function MeetingReschedulePage() {
 
   const canCreateCase = capabilities?.reschedule.create === true
   const canPropose = capabilities?.reschedule.propose === true
+  const canSubmitProposal = capabilities?.reschedule.submit === true
   const canAcknowledge = capabilities?.reschedule.acknowledge === true
+  const canReturnForCorrection = capabilities?.reschedule.return_for_correction === true
   const canRequestAlternative = capabilities?.reschedule.request_alternative === true
   const canConfirm = capabilities?.reschedule.confirm === true
   const canResolveAlternative = capabilities?.reschedule.resolve_alternative === true
@@ -132,9 +140,24 @@ export function MeetingReschedulePage() {
       )
     )
 
+  const handleSaveInternalDraft = (proposalData: any) =>
+    runCall(() => activeProposal
+      ? api.put(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/draft`, proposalData)
+      : api.post(`/meetings/${id}/reschedule/proposals`, proposalData))
+
+  const handleSubmitInternalProposal = () =>
+    activeProposal
+      ? runCall(() => api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/submit`))
+      : Promise.resolve(false)
+
   const handleAcknowledge = () =>
     activeProposal
       ? runCall(() => api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/acknowledge`))
+      : Promise.resolve(false)
+
+  const handleReturnForCorrection = (reason: string) =>
+    activeProposal
+      ? runCall(() => api.post(`/meetings/${id}/reschedule/proposals/${activeProposal.id}/return`, { reason }))
       : Promise.resolve(false)
 
   const handleRequestAlternative = (reasonText: string) =>
@@ -159,9 +182,9 @@ export function MeetingReschedulePage() {
       <PageHeader
         eyebrow={meeting?.meeting_number || undefined}
         title="فضای تغییر و مذاکره زمان جلسه"
-        description={
+        description={internalDirectorate ? 'تأیید زمان پیشنهادی در همین اداره' : (
           meeting ? `${meeting.title} • هماهنگی زمان‌بندی جدید میان تمامی ریاست‌های دخیل` : 'مدیریت تغییر زمان جلسه'
-        }
+        )}
         action={
           <div className="flex flex-wrap items-center gap-2">
             {activeCase && (
@@ -284,25 +307,35 @@ export function MeetingReschedulePage() {
             )}
 
             {/* Proposal Form */}
-            {activeCase && canPropose && (
+            {activeCase && canPropose && (!internalDirectorate || !activeProposal || ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(activeProposal.status)) && (
               <RescheduleProposalForm
-                initial={current}
-                onSubmit={handleSubmitProposal}
-                label={authorityControlled ? 'پیشنهاد رسمی دفتر مقام' : 'ثبت پیشنهاد تغییر زمان'}
+                initial={internalDirectorate ? (activeProposal || current) : current}
+                onSubmit={internalDirectorate ? handleSaveInternalDraft : handleSubmitProposal}
+                submitLabel={internalDirectorate ? 'ذخیره پیش‌نویس' : undefined}
+                label={authorityControlled ? 'پیشنهاد رسمی دفتر مقام' : internalDirectorate ? 'پیش‌نویس زمان پیشنهادی' : 'ثبت پیشنهاد تغییر زمان'}
                 busy={busy}
               />
             )}
 
-            {/* Acknowledgements Matrix */}
-            {activeProposal && (
+            {internalDirectorate && activeProposal && canSubmitProposal && ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(activeProposal.status) && (
+              <Button disabled={busy} onClick={handleSubmitInternalProposal} className="w-full h-9.5 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-white shadow-xs">
+                ارسال برای تأیید ریاست
+              </Button>
+            )}
+
+            {/* Approval status */}
+            {activeProposal && (!internalDirectorate || ['SUBMITTED', 'APPROVED'].includes(activeProposal.status)) && (
               <RescheduleAcknowledgementsCard
                 activeProposal={activeProposal}
                 requiredUnits={requiredUnits}
                 canAcknowledge={canAcknowledge}
-                canRequestAlternative={canRequestAlternative}
+                canRequestAlternative={internalDirectorate ? false : canRequestAlternative}
+                canReturnForCorrection={internalDirectorate && activeProposal.status === 'SUBMITTED' ? canReturnForCorrection : false}
+                singleDirectorate={internalDirectorate}
                 busy={busy}
                 onAcknowledge={handleAcknowledge}
                 onRequestAlternative={handleRequestAlternative}
+                onReturnForCorrection={handleReturnForCorrection}
               />
             )}
 
@@ -379,14 +412,13 @@ export function MeetingReschedulePage() {
                     )}
                   </div>
                 ))}
-                <WorkspacePagination meta={workspace.schedule_versions_meta} onChange={setPage} busy={busy || loading} />
+                <WorkspacePagination meta={workspace.schedule_versions_meta} onChange={setScheduleVersionsPage} busy={busy || loading} />
               </CardContent>
             </Card>
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <WorkspaceAuditCard actions={workspace.actions} meta={workspace.actions_meta} onPageChange={setPage} busy={busy || loading} />
             {/* Create Case Card */}
             {!activeCase && (
               <Card className="border border-border/70 shadow-xs">
@@ -458,6 +490,9 @@ export function MeetingReschedulePage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Workflow Audit */}
+            <WorkspaceAuditCard actions={workspace.actions} meta={workspace.actions_meta} onPageChange={setActionsPage} busy={busy || loading} />
           </aside>
         </div>
       )}

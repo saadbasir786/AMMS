@@ -14,6 +14,9 @@ export const governanceLabels: Record<string, string> = {
   INTERNAL_SINGLE_UNIT: 'داخل ریاست', PEER_MULTI_UNIT: 'میان ریاست‌ها', AUTHORITY_CONTROLLED: 'تحت مدیریت مقام',
 }
 
+workspaceStatusLabels.SUBMITTED = 'ارسال‌شده برای تأیید'
+workspaceStatusLabels.APPROVED = 'تأییدشده توسط ریاست'
+
 export const participantRoleLabels: Record<string, string> = {
   PARTICIPATING: 'اشتراک‌کننده', REQUESTING: 'نمایندهٔ ریاست درخواست‌کننده',
   CHAIRPERSON: 'رئیس جلسه', HIGH_AUTHORITY: 'مقام عالی', MEMBER: 'عضو',

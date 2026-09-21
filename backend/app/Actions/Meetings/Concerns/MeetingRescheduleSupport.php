@@ -43,7 +43,25 @@ trait MeetingRescheduleSupport
 
     private function activeProposal(MeetingRescheduleCase $case): ?MeetingRescheduleProposal
     {
-        return $case->proposals()->where('status', 'ACTIVE')->latest('id')->first();
+        $query = $case->proposals()->latest('id');
+
+        if ($case->governance_mode === 'INTERNAL_SINGLE_UNIT') {
+            return $query->whereIn('status', [
+                'ACTIVE', 'DRAFT', 'SUBMITTED', 'RETURNED_FOR_CORRECTION', 'APPROVED',
+            ])->first();
+        }
+
+        return $query->where('status', 'ACTIVE')->first();
+    }
+
+    /**
+     * Internal-directorate proposals are edited in place until they are
+     * accepted or superseded by the completed reschedule. Peer proposals keep
+     * their existing replacement history and status semantics.
+     */
+    private function internalProposalStatuses(): array
+    {
+        return ['ACTIVE', 'DRAFT', 'SUBMITTED', 'RETURNED_FOR_CORRECTION', 'APPROVED'];
     }
 
     private function recordMeetingAction(Meeting $meeting, User $actor, string $action, ?string $comment = null, array $metadata = []): MeetingAction

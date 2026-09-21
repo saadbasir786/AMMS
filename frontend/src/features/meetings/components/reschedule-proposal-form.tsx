@@ -15,6 +15,7 @@ type RescheduleProposalFormProps = {
     location?: string
   } | null
   label?: string
+  submitLabel?: string
   busy: boolean
   onSubmit: (data: {
     meeting_date: string
@@ -28,6 +29,7 @@ type RescheduleProposalFormProps = {
 export function RescheduleProposalForm({
   initial,
   label = 'ثبت پیشنهاد زمان‌بندی جدید',
+  submitLabel = 'ثبت و ارسال پیشنهاد',
   busy,
   onSubmit,
 }: RescheduleProposalFormProps) {
@@ -159,7 +161,7 @@ export function RescheduleProposalForm({
             className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
           >
             <Send className="size-3.5" />
-            <span>{busy ? 'در حال ثبت…' : 'ثبت و ارسال پیشنهاد'}</span>
+            <span>{busy ? 'در حال ثبت…' : submitLabel}</span>
           </Button>
         </div>
       </CardContent>

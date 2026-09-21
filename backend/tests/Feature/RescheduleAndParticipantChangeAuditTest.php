@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Meeting;
+use App\Models\MeetingAction;
 use App\Models\MeetingAuthorityContext;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
@@ -135,6 +136,51 @@ class RescheduleAndParticipantChangeAuditTest extends TestCase
             ->assertJsonPath('data.current_schedule_version.id', $version->id);
         $this->actingAs($this->user('finance.exec@example.test'), 'sanctum')
             ->getJson("/api/meetings/{$meeting->id}/reschedule")->assertForbidden();
+    }
+
+    public function test_reschedule_workspace_exposes_only_reschedule_audit_with_independent_pagination(): void
+    {
+        [$meeting] = $this->internalMeeting();
+        $owner = $this->user('tech.exec@example.test');
+        $this->grant($owner, ['meeting.view']);
+
+        for ($i = 0; $i < 3; $i++) {
+            $version = app(ScheduleVersionService::class)->createNext($meeting, [
+                'meeting_date' => $meeting->meeting_date->format('Y-m-d'),
+                'start_time' => '09:00',
+                'end_time' => '10:00',
+                'location' => 'Audit Hall '.$i,
+            ], $owner->id);
+        }
+        app(ScheduleVersionService::class)->applyToMeeting($meeting, $version);
+
+        MeetingAction::create([
+            'meeting_id' => $meeting->id,
+            'actor_id' => $owner->id,
+            'action' => 'PARTICIPANT_CHANGE_CASE_CREATED',
+            'comment' => 'این رویداد نباید در گردش کار تغییر زمان دیده شود.',
+            'created_at' => now(),
+        ]);
+        foreach (['RESCHEDULE_CASE_CREATED', 'RESCHEDULE_PROPOSAL_SUBMITTED', 'MEETING_RESCHEDULED'] as $action) {
+            MeetingAction::create([
+                'meeting_id' => $meeting->id,
+                'actor_id' => $owner->id,
+                'action' => $action,
+                'metadata' => ['case_id' => 10],
+                'created_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($owner, 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/reschedule?schedule_versions_page=2&actions_page=2&per_page=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data.schedule_versions')
+            ->assertJsonPath('data.schedule_versions_meta.current_page', 2)
+            ->assertJsonPath('data.schedule_versions_meta.total', 3)
+            ->assertJsonCount(1, 'data.actions')
+            ->assertJsonPath('data.actions_meta.current_page', 2)
+            ->assertJsonPath('data.actions_meta.total', 3)
+            ->assertJsonMissing(['action' => 'PARTICIPANT_CHANGE_CASE_CREATED']);
     }
 
     private function peerMeeting(): array

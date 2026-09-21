@@ -52,13 +52,26 @@ export const statusLabels: Record<string, string> = {
 }
 
 export const meetingActionLabels: Record<string, string> = {
+  RESCHEDULE_CASE_CREATED: 'پرونده رسمی تغییر زمان ایجاد شد',
+  RESCHEDULE_PROPOSAL_CREATED: 'پیشنهاد زمان ثبت شد',
+  RESCHEDULE_COUNTER_PROPOSAL_CREATED: 'پیشنهاد جایگزین زمان ثبت شد',
+  RESCHEDULE_PROPOSAL_DRAFT_CREATED: 'پیش‌نویس زمان پیشنهادی ایجاد شد',
+  RESCHEDULE_PROPOSAL_DRAFT_UPDATED: 'پیش‌نویس زمان پیشنهادی ویرایش شد',
+  RESCHEDULE_PROPOSAL_SUBMITTED: 'پیشنهاد زمان برای تأیید ارسال شد',
+  RESCHEDULE_RETURNED_FOR_CORRECTION: 'پیشنهاد زمان برای اصلاح برگشت داده شد',
+  RESCHEDULE_DIRECTOR_APPROVED: 'پیشنهاد زمان توسط مدیر ریاست تأیید شد',
+  RESCHEDULE_READY_TO_CONFIRM: 'پیشنهاد زمان برای تأیید نهایی آماده شد',
+  RESCHEDULE_UNIT_ACKNOWLEDGED: 'تأیید ریاست ثبت شد',
+  RESCHEDULE_ALTERNATIVE_REQUESTED: 'درخواست زمان جایگزین ثبت شد',
+  RESCHEDULE_ALTERNATIVE_RESOLVED: 'درخواست زمان جایگزین بررسی شد',
+  MEETING_RESCHEDULED: 'زمان جلسه تغییر و نسخه جدید صادر شد',
   APPROVED_UNDER_DELEGATION: 'تأیید با صلاحیت تفویض‌شده',
   MINUTES_UNIT_ACKNOWLEDGED_UNDER_DELEGATION: 'تأیید صورت‌جلسه با صلاحیت تفویض‌شده',
   MINUTES_CORRECTION_REQUESTED_UNDER_DELEGATION: 'درخواست اصلاح صورت‌جلسه با صلاحیت تفویض‌شده',
 }
 
 export function meetingActionLabel(action: string): string {
-  return meetingActionLabels[action] || action
+  return meetingActionLabels[action] || 'ثبت اقدام اداری'
 }
 
 export const purposeLabels: Record<string, string> = {

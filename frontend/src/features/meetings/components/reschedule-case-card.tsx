@@ -22,7 +22,9 @@ export function RescheduleCaseCard({
   activeCase,
   requiredUnitCount,
 }: RescheduleCaseCardProps) {
-  const activeProposal = activeCase.proposals?.find((p) => p.status === 'ACTIVE')
+  const activeProposal = activeCase.proposals?.find((p) =>
+    ['ACTIVE', 'DRAFT', 'SUBMITTED', 'RETURNED_FOR_CORRECTION', 'APPROVED'].includes(p.status)
+  ) || activeCase.proposals?.[0]
   const ackCount = activeProposal?.acknowledgements?.length || 0
   const openAlternatives =
     activeCase.alternative_requests?.filter((a) => a.status === 'OPEN') || []

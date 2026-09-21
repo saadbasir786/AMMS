@@ -52,7 +52,9 @@ class MeetingActionCapabilities
                 'create' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleCreateCase', $meeting)),
                 'propose' => $this->allows(fn (): bool => $gate->allows('meetingReschedulePeerPropose', $meeting)
                     || $gate->allows('meetingRescheduleAuthorityPropose', $meeting)),
+                'submit' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleSubmit', $meeting)),
                 'acknowledge' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleAcknowledge', $meeting)),
+                'return_for_correction' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleReturn', $meeting)),
                 'request_alternative' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleRequestAlternative', $meeting)),
                 'confirm' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleConfirm', $meeting)),
                 'resolve_alternative' => $this->allows(fn (): bool => $gate->allows('meetingRescheduleResolveAlternative', $meeting)),

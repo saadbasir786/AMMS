@@ -47,7 +47,7 @@ class NotificationWorkflowTest extends TestCase
         // Check action_url dynamic calculation
         $urls = collect($data)->pluck('action_url')->all();
         $this->assertContains('/meeting-requests/99', $urls);
-        $this->assertContains('/meetings/55', $urls);
+        $this->assertContains('/meetings/55/reschedule', $urls);
     }
 
     public function test_user_can_filter_unread_notifications(): void
