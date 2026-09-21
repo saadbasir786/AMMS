@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Organization\AdminController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
 use App\Http\Controllers\Api\Organization\MetadataController;
+use App\Http\Controllers\Api\Organization\MeetingVenueController;
 use App\Http\Controllers\Api\Organization\RoleManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/organizational-units', [DirectoryController::class, 'units']);
     Route::get('/employees', [DirectoryController::class, 'employees']);
     Route::get('/meeting-venues', [DirectoryController::class, 'meetingVenues']);
+    Route::get('/admin/meeting-venues', [MeetingVenueController::class, 'index']);
+    Route::post('/admin/meeting-venues', [MeetingVenueController::class, 'store']);
+    Route::put('/admin/meeting-venues/{meetingVenue}', [MeetingVenueController::class, 'update']);
+    Route::post('/admin/meeting-venues/{meetingVenue}/activate', [MeetingVenueController::class, 'activate']);
+    Route::post('/admin/meeting-venues/{meetingVenue}/deactivate', [MeetingVenueController::class, 'deactivate']);
 
     // Admin & Organizational Structure Management
     Route::get('/admin/permissions', [RoleManagementController::class, 'permissions']);

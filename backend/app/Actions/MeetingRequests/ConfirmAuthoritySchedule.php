@@ -8,6 +8,7 @@ use App\Models\MeetingAuthorityScheduleAcknowledgement;
 use App\Models\MeetingRequest;
 use App\Models\MeetingScheduleProposal;
 use App\Models\User;
+use App\Support\CentralScheduleConflictService;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmAuthoritySchedule
@@ -42,6 +43,7 @@ class ConfirmAuthoritySchedule
                 'scheduled_venue_id' => $lockedProposal->venue_id,
                 'scheduled_venue_snapshot' => $lockedProposal->venue_snapshot,
             ]);
+            app(CentralScheduleConflictService::class)->assertRequestScheduleAvailable($locked);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, $locked->status, null, ['proposal_id' => $lockedProposal->id, 'proposal_type' => $lockedProposal->proposal_type]);
             $this->notifyUser($locked->created_by, 'زمان‌بندی رسمی مقام تأیید شد', 'زمان رسمی جلسه توسط منشی اجرائیه نهایی شد.', $locked);
             return $this->responseRequest($locked);

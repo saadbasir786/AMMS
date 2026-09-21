@@ -36,7 +36,7 @@ class ScheduleVenueService
             ];
         } else {
             abort_if($venueId, 422, 'VENUE_NOT_ALLOWED_FOR_LOCATION_TYPE');
-            abort_unless($location !== '', $type === self::ONLINE ? 'ONLINE_LOCATION_REQUIRED' : 'INVALID_SCHEDULE_LOCATION');
+            abort_unless($location !== '', 422, $type === self::ONLINE ? 'ONLINE_LOCATION_REQUIRED' : 'INVALID_SCHEDULE_LOCATION');
             $snapshot = ['type' => $type, 'location' => $location];
         }
 

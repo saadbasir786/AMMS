@@ -75,7 +75,7 @@ class CentralScheduleConflictService
             'venue_id' => (int) ($schedule['venue_id'] ?? 0),
         ];
 
-        return $this->evaluateCandidate($candidate, $schedule, null);
+        return $this->evaluateCandidate($candidate, $schedule, null, (int) $request->id);
     }
 
     public function assertNoBlocking(array $result): void
@@ -90,6 +90,30 @@ class CentralScheduleConflictService
     public function assertNoConflict(Meeting $meeting, array $schedule, ?\App\Models\User $actor = null): void
     {
         $this->assertNoBlocking($this->evaluateMeeting($meeting, $schedule, true));
+    }
+
+    public function assertRequestScheduleAvailable(MeetingRequest $request): void
+    {
+        abort_unless($request->scheduled_date && $request->scheduled_start_time && $request->scheduled_duration_minutes, 422, 'SCHEDULE_INCOMPLETE');
+        $start = substr((string) $request->scheduled_start_time, 0, 5);
+        $end = \Carbon\Carbon::createFromFormat('H:i', $start)
+            ->addMinutes((int) $request->scheduled_duration_minutes)
+            ->format('H:i');
+        $participantQuery = $request->participants();
+        $hasFinal = (clone $participantQuery)->where('participant_type', 'FINAL')->exists();
+        $participantIds = $participantQuery
+            ->where('participant_type', $hasFinal ? 'FINAL' : 'PROPOSED')
+            ->pluck('employee_id')
+            ->all();
+        $result = $this->evaluateRequest($request, [
+            'meeting_date' => $request->scheduled_date->toDateString(),
+            'start_time' => $start,
+            'end_time' => $end,
+            'location' => $request->scheduled_location,
+            'venue_type' => $request->scheduled_venue_type,
+            'venue_id' => $request->scheduled_venue_id,
+        ], (int) $request->scheduled_chairperson_employee_id, $participantIds, (int) ($request->authorityContext?->authority_employee_id ?? 0), true);
+        $this->assertNoBlocking($result);
     }
 
     public function lockDate(string $date): void
@@ -107,12 +131,12 @@ class CentralScheduleConflictService
         return $this->meetingEmployeeIds($meeting);
     }
 
-    private function evaluateCandidate(array $candidate, array $schedule, ?int $excludedMeetingId): array
+    private function evaluateCandidate(array $candidate, array $schedule, ?int $excludedMeetingId, ?int $excludedRequestId = null): array
     {
         $date = (string) $schedule['meeting_date'];
         $start = substr((string) $schedule['start_time'], 0, 5);
         $end = substr((string) $schedule['end_time'], 0, 5);
-        $others = Meeting::query()
+        $meetingCandidates = Meeting::query()
             ->whereIn('status', self::ACTIVE_STATUSES)
             ->when($excludedMeetingId, fn ($query) => $query->where('id', '<>', $excludedMeetingId))
             ->whereDate('meeting_date', $date)
@@ -121,11 +145,29 @@ class CentralScheduleConflictService
             ->with(['participants', 'units.unit.parent', 'organizingUnit.parent', 'authorityContext'])
             ->get();
 
+        $requestCandidates = MeetingRequest::query()
+            ->where('status', 'SCHEDULE_CONFIRMED')
+            ->whereDoesntHave('meeting')
+            ->when($excludedRequestId, fn ($query) => $query->where('id', '<>', $excludedRequestId))
+            ->whereDate('scheduled_date', $date)
+            ->whereNotNull('scheduled_start_time')
+            ->whereNotNull('scheduled_duration_minutes')
+            ->with(['participants', 'units.unit.parent', 'requestingUnit.parent', 'authorityContext'])
+            ->get()
+            ->filter(function (MeetingRequest $request) use ($start, $end): bool {
+                $requestStart = substr((string) $request->scheduled_start_time, 0, 5);
+                $requestEnd = \Carbon\Carbon::createFromFormat('H:i', $requestStart)
+                    ->addMinutes((int) $request->scheduled_duration_minutes)
+                    ->format('H:i');
+                return $requestStart < $end && $requestEnd > $start;
+            });
+
         $blocking = [];
         $warnings = [];
-        foreach ($others as $other) {
+        foreach ($meetingCandidates as $other) {
             $otherCandidate = [
                 'meeting_id' => (int) $other->id,
+                'request_id' => 0,
                 'employee_ids' => $this->meetingEmployeeIds($other),
                 'chairperson_id' => (int) $other->chairperson_employee_id,
                 'authority_id' => (int) ($other->authorityContext?->authority_employee_id ?? 0),
@@ -167,6 +209,55 @@ class CentralScheduleConflictService
             }
         }
 
+        foreach ($requestCandidates as $other) {
+            $otherStart = substr((string) $other->scheduled_start_time, 0, 5);
+            $otherEnd = \Carbon\Carbon::createFromFormat('H:i', $otherStart)
+                ->addMinutes((int) $other->scheduled_duration_minutes)
+                ->format('H:i');
+            $otherCandidate = [
+                'meeting_id' => 0,
+                'request_id' => (int) $other->id,
+                'employee_ids' => $this->requestEmployeeIds($other),
+                'chairperson_id' => (int) $other->scheduled_chairperson_employee_id,
+                'authority_id' => (int) ($other->authorityContext?->authority_employee_id ?? 0),
+                'formal_unit_ids' => $this->requestFormalUnitIds($other),
+                'venue_type' => (string) ($other->scheduled_venue_type ?? ScheduleVenueService::EXTERNAL),
+                'venue_id' => (int) ($other->scheduled_venue_id ?? 0),
+            ];
+            $sharedEmployees = array_values(array_intersect($candidate['employee_ids'], $otherCandidate['employee_ids']));
+
+            if ($sharedEmployees !== []) {
+                $type = in_array((int) $candidate['authority_id'], $sharedEmployees, true)
+                    || in_array((int) $otherCandidate['authority_id'], $sharedEmployees, true)
+                    ? 'HIGH_AUTHORITY_SCHEDULE_CONFLICT'
+                    : (in_array((int) $candidate['chairperson_id'], $sharedEmployees, true)
+                        || in_array((int) $otherCandidate['chairperson_id'], $sharedEmployees, true)
+                        ? 'CHAIRPERSON_SCHEDULE_CONFLICT'
+                        : 'PARTICIPANT_SCHEDULE_CONFLICT');
+                $blocking[] = $this->requestConflictDetail($type, $other);
+                continue;
+            }
+
+            if ($candidate['venue_type'] === ScheduleVenueService::INTERNAL
+                && $otherCandidate['venue_type'] === ScheduleVenueService::INTERNAL
+                && $candidate['venue_id'] > 0
+                && $candidate['venue_id'] === $otherCandidate['venue_id']) {
+                $blocking[] = $this->requestConflictDetail('INTERNAL_VENUE_SCHEDULE_CONFLICT', $other);
+                continue;
+            }
+
+            $sharedUnits = array_values(array_intersect($candidate['formal_unit_ids'], $otherCandidate['formal_unit_ids']));
+            if ($sharedUnits !== []) {
+                $warnings[] = [
+                    'type' => 'DIRECTORATE_SCHEDULE_OVERLAP',
+                    'organizational_unit_ids' => $sharedUnits,
+                    'date' => $date,
+                    'start_time' => $start,
+                    'end_time' => $end,
+                ];
+            }
+        }
+
         return ['blocking_conflicts' => $blocking, 'warnings' => $warnings];
     }
 
@@ -191,6 +282,22 @@ class CentralScheduleConflictService
         return $this->formalUnitIds($units);
     }
 
+    private function requestEmployeeIds(MeetingRequest $request): array
+    {
+        $participants = $request->relationLoaded('participants') ? $request->participants : $request->participants()->get();
+        $hasFinal = $participants->contains(fn ($participant): bool => $participant->participant_type === 'FINAL');
+        $participantIds = $participants
+            ->where('participant_type', $hasFinal ? 'FINAL' : 'PROPOSED')
+            ->pluck('employee_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        return array_values(array_unique(array_filter([
+            (int) $request->scheduled_chairperson_employee_id,
+            (int) ($request->authorityContext?->authority_employee_id ?? 0),
+            ...$participantIds,
+        ])));
+    }
+
     private function formalUnitIds(Collection $units): array
     {
         return $units->map(fn ($unit) => $unit->formalGovernanceUnit()?->id ?? ($unit->isFormalGovernanceUnit() ? $unit->id : null))
@@ -204,6 +311,20 @@ class CentralScheduleConflictService
             'date' => $other->meeting_date?->toDateString(),
             'start_time' => substr((string) $other->start_time, 0, 5),
             'end_time' => substr((string) $other->end_time, 0, 5),
+        ];
+    }
+
+    private function requestConflictDetail(string $type, MeetingRequest $other): array
+    {
+        $requestStart = substr((string) $other->scheduled_start_time, 0, 5);
+        $requestEnd = \Carbon\Carbon::createFromFormat('H:i', $requestStart)
+            ->addMinutes((int) $other->scheduled_duration_minutes)
+            ->format('H:i');
+        return [
+            'type' => $type,
+            'date' => $other->scheduled_date?->toDateString(),
+            'start_time' => $requestStart,
+            'end_time' => $requestEnd,
         ];
     }
 }

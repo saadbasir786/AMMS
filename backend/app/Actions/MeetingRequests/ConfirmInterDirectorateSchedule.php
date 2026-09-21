@@ -6,6 +6,7 @@ use App\Actions\MeetingRequests\Concerns\InterDirectorateWorkflowSupport;
 use App\Enums\MeetingRequestStatus;
 use App\Models\MeetingRequest;
 use App\Models\User;
+use App\Support\CentralScheduleConflictService;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmInterDirectorateSchedule
@@ -38,6 +39,7 @@ class ConfirmInterDirectorateSchedule
                 'schedule_confirmed_at' => now(),
                 'status' => MeetingRequestStatus::SCHEDULE_CONFIRMED->value,
             ]);
+            app(CentralScheduleConflictService::class)->assertRequestScheduleAvailable($locked);
             $this->record($locked, $actor, 'SCHEDULE_CONFIRMED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id]);
             return $this->responseRequest($locked);
         });

@@ -6,6 +6,7 @@ use App\Actions\MeetingRequests\Concerns\AuthorityInitiatedWorkflowSupport;
 use App\Enums\MeetingRequestStatus;
 use App\Models\MeetingRequest;
 use App\Models\User;
+use App\Support\CentralScheduleConflictService;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmAuthorityInitiatedSchedule
@@ -46,6 +47,7 @@ class ConfirmAuthorityInitiatedSchedule
                 'schedule_confirmed_by' => $actor->id,
                 'schedule_confirmed_at' => now(),
             ]);
+            app(CentralScheduleConflictService::class)->assertRequestScheduleAvailable($request);
             $this->recordAuthorityInitiated($request, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id]);
             return $this->responseAuthorityInitiated($request);
         });

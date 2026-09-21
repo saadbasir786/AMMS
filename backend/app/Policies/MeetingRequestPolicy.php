@@ -357,6 +357,21 @@ class MeetingRequestPolicy
         return $user->isActive() && $user->can('meeting.schedule') && in_array($request->status, ['APPROVED', 'SCHEDULING', 'SCHEDULE_CONFIRMED'], true) && ($request->created_by === $user->id || $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $request->requesting_unit_id));
     }
 
+    public function scheduleConflictPreview(User $user, MeetingRequest $request): bool
+    {
+        if (!$user->isActive()) return false;
+        if ($request->flow_type === 'INTERNAL_DIRECTORATE') return $this->schedule($user, $request);
+        if ($request->flow_type === 'INTER_DIRECTORATE') {
+            return $this->interDirectorateCoordinate($user, $request)
+                || ($user->can('meeting-schedule.accept') && $request->units()->pluck('organizational_unit_id')->contains(fn ($id) => $user->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $id) || $user->hasScopedRole('DIRECTOR', (int) $id)));
+        }
+        if ($request->flow_type === 'MULTI_DIRECTORATE') return $this->multiDirectorateCoordinate($user, $request);
+        return $this->schedule($user, $request)
+            || $this->highAuthorityScheduler($user, $request)
+            || $this->multiHighAuthoritySchedule($user, $request)
+            || $this->authorityInitiatedSchedule($user, $request);
+    }
+
     public function finalize(User $user, MeetingRequest $request): bool
     {
         return $user->isActive() && $user->can('meeting.create') && ($request->created_by === $user->id || $user->hasScopedRole('EXECUTIVE_MANAGEMENT', $request->requesting_unit_id));

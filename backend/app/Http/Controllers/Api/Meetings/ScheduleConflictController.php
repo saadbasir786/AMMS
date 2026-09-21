@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Meetings;
 
 use App\Models\Meeting;
 use App\Models\MeetingRequest;
+use App\Models\Employee;
+use App\Models\OrganizationalUnit;
 use App\Support\CentralScheduleConflictService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Http\Request;
@@ -13,7 +15,7 @@ class ScheduleConflictController
 {
     public function request(Request $httpRequest, MeetingRequest $meetingRequest, CentralScheduleConflictService $conflicts, ScheduleVersionService $versions)
     {
-        Gate::authorize('view', $meetingRequest);
+        Gate::authorize('scheduleConflictPreview', $meetingRequest);
         $data = $httpRequest->validate([
             'meeting_date' => ['nullable', 'date'], 'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'], 'venue_type' => ['nullable', 'in:INTERNAL_VENUE,EXTERNAL_LOCATION,ONLINE'],
@@ -29,6 +31,7 @@ class ScheduleConflictController
         }
         $end ??= $proposal?->end_time;
         $chairpersonId = (int) ($data['chairperson_employee_id'] ?? $meetingRequest->scheduled_chairperson_employee_id ?? 0);
+        $this->assertEmployeeScope($meetingRequest, $chairpersonId, $data['participant_ids'] ?? null);
         if (!$date || !$start || !$end || !$chairpersonId) return response()->json(['success' => true, 'data' => ['blocking_conflicts' => [], 'warnings' => [], 'evaluated' => false]]);
 
         $schedule = $versions->normalize([
@@ -45,7 +48,7 @@ class ScheduleConflictController
 
     public function meeting(Request $httpRequest, Meeting $meeting, CentralScheduleConflictService $conflicts, ScheduleVersionService $versions)
     {
-        Gate::authorize('meetingRescheduleViewHistory', $meeting);
+        Gate::authorize('meetingScheduleConflictPreview', $meeting);
         $data = $httpRequest->validate([
             'meeting_date' => ['required', 'date'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i'],
             'venue_type' => ['nullable', 'in:INTERNAL_VENUE,EXTERNAL_LOCATION,ONLINE'], 'venue_id' => ['nullable', 'integer'], 'location' => ['nullable', 'string', 'max:255'],
@@ -53,5 +56,24 @@ class ScheduleConflictController
         $schedule = $versions->normalize(array_merge($data, ['location' => $data['location'] ?? $meeting->location, 'venue_type' => $data['venue_type'] ?? $meeting->venue_type, 'venue_id' => $data['venue_id'] ?? $meeting->venue_id]), $meeting);
 
         return response()->json(['success' => true, 'data' => $conflicts->evaluateMeeting($meeting, $schedule)]);
+    }
+
+    private function assertEmployeeScope(MeetingRequest $request, int $chairpersonId, ?array $participantIds): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', array_merge([$chairpersonId], $participantIds ?? [])))));
+        if ($ids === []) return;
+        $scopeUnitIds = $request->units()->pluck('organizational_unit_id')->map(fn ($id): int => (int) $id)->all();
+        if ($scopeUnitIds === []) $scopeUnitIds = [(int) $request->requesting_unit_id];
+        $authorityOfficeUnitId = (int) ($request->authorityContext?->authority_office_unit_id ?? 0);
+        if ($authorityOfficeUnitId > 0) $scopeUnitIds[] = $authorityOfficeUnitId;
+        $scopeUnitIds = array_values(array_unique($scopeUnitIds));
+        $scopeUnits = OrganizationalUnit::query()->whereIn('id', $scopeUnitIds)->get();
+        $authorityEmployeeId = (int) ($request->authorityContext?->authority_employee_id ?? 0);
+        $employees = Employee::query()->whereIn('id', $ids)->get();
+        abort_unless($employees->count() === count($ids), 403, 'EMPLOYEE_OUTSIDE_WORKFLOW_SCOPE');
+        abort_unless($employees->every(function (Employee $employee) use ($scopeUnits, $authorityEmployeeId): bool {
+            if ((int) $employee->id === $authorityEmployeeId) return true;
+            return $scopeUnits->contains(fn (OrganizationalUnit $unit): bool => $unit->isWithinScope((int) $employee->organizational_unit_id));
+        }), 403, 'EMPLOYEE_OUTSIDE_WORKFLOW_SCOPE');
     }
 }

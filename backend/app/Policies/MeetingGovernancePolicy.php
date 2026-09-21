@@ -37,6 +37,13 @@ class MeetingGovernancePolicy extends MeetingPolicy
         return false;
     }
 
+    public function meetingScheduleConflictPreview(User $user, Meeting $meeting): bool
+    {
+        return $this->meetingReschedulePeerPropose($user, $meeting)
+            || $this->meetingRescheduleAuthorityPropose($user, $meeting)
+            || $this->meetingRescheduleConfirm($user, $meeting);
+    }
+
     public function meetingRescheduleCreateCase(User $user, Meeting $meeting): bool
     {
         if (!$this->view($user, $meeting) || !$user->can('meeting-reschedule.create')) return false;

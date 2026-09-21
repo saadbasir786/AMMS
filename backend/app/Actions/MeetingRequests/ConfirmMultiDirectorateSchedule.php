@@ -6,6 +6,7 @@ use App\Actions\MeetingRequests\Concerns\MultiDirectorateWorkflowSupport;
 use App\Enums\MeetingRequestStatus;
 use App\Models\MeetingRequest;
 use App\Models\User;
+use App\Support\CentralScheduleConflictService;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmMultiDirectorateSchedule
@@ -50,6 +51,7 @@ class ConfirmMultiDirectorateSchedule
                 'scheduled_venue_id' => $proposal->venue_id,
                 'scheduled_venue_snapshot' => $proposal->venue_snapshot,
             ]);
+            app(CentralScheduleConflictService::class)->assertRequestScheduleAvailable($locked);
             $this->record($locked, $actor, 'SCHEDULE_CONFIRMED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id, 'unit_ids' => $unitIds->all()]);
 
             return $this->responseRequest($locked);

@@ -7,6 +7,7 @@ use App\Enums\MeetingRequestStatus;
 use App\Models\MeetingRequest;
 use App\Models\MeetingScheduleProposal;
 use App\Models\User;
+use App\Support\CentralScheduleConflictService;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmMultiHighAuthoritySchedule
@@ -43,6 +44,7 @@ class ConfirmMultiHighAuthoritySchedule
                 'schedule_confirmed_by' => $actor->id,
                 'schedule_confirmed_at' => now(),
             ]);
+            app(CentralScheduleConflictService::class)->assertRequestScheduleAvailable($locked);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, $locked->status, null, ['proposal_id' => $proposal->id, 'unit_ids' => $unitIds->all()]);
             return $this->responseRequest($locked);
         });
