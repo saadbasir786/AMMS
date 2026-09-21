@@ -29,6 +29,7 @@ type ScheduleFormCardProps = {
   endTime: string
   busy: boolean
   onSubmit: () => Promise<void>
+  venues?: Array<{ id: number; name: string; location_details?: string | null }>
 }
 
 export function ScheduleFormCard({
@@ -39,6 +40,7 @@ export function ScheduleFormCard({
   endTime,
   busy,
   onSubmit,
+  venues = [],
 }: ScheduleFormCardProps) {
   const chairpersonOptions = useMemo(() => {
     return eligibleEmployees.map((e) => ({
@@ -132,18 +134,42 @@ export function ScheduleFormCard({
 
         {/* Location & Chairperson Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground block">نوع محل برگزاری</label>
+            <select
+              value={form.venue_type || 'EXTERNAL_LOCATION'}
+              onChange={(e) => onChange('venue_type', e.target.value)}
+              className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5"
+            >
+              <option value="INTERNAL_VENUE">محل داخلی مدیریت‌شده</option>
+              <option value="EXTERNAL_LOCATION">محل خارج از اداره</option>
+              <option value="ONLINE">جلسه آنلاین</option>
+            </select>
+          </div>
+
           {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground block">
               محل برگزاری جلسه <span className="text-destructive">*</span>
             </label>
-            <Input
-              type="text"
-              value={form.location}
-              onChange={(e) => onChange('location', e.target.value)}
-              placeholder="مثلاً: سالن کنفرانس طبقه دوم"
-              className="h-9.5 text-xs bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 rounded-xl"
-            />
+            {form.venue_type === 'INTERNAL_VENUE' ? (
+              <select
+                value={form.venue_id || ''}
+                onChange={(e) => onChange('venue_id', e.target.value ? Number(e.target.value) : null)}
+                className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5"
+              >
+                <option value="">انتخاب محل داخلی</option>
+                {venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}{venue.location_details ? ` — ${venue.location_details}` : ''}</option>)}
+              </select>
+            ) : (
+              <Input
+                type="text"
+                value={form.location}
+                onChange={(e) => onChange('location', e.target.value)}
+                placeholder="آدرس یا پیوند جلسه آنلاین"
+                className="h-9.5 text-xs bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 rounded-xl"
+              />
+            )}
           </div>
 
           {/* Chairperson */}
@@ -187,7 +213,7 @@ export function ScheduleFormCard({
           <Button
             type="button"
             className="h-9.5 px-5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
-            disabled={busy || !form.meeting_date || !form.start_time || !form.location}
+            disabled={busy || !form.meeting_date || !form.start_time || (form.venue_type === 'INTERNAL_VENUE' ? !form.venue_id : !form.location)}
             onClick={onSubmit}
           >
             {busy ? (

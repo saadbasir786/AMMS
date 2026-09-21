@@ -39,6 +39,7 @@ export function MeetingReschedulePage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [venues, setVenues] = useState<Array<{ id: number; name: string; location_details?: string | null }>>([])
 
   // Form states
   const [caseReason, setCaseReason] = useState('')
@@ -57,8 +58,16 @@ export function MeetingReschedulePage() {
         }),
         fetchMeetingActionCapabilities(id),
       ])
+      let venueData: any[] = []
+      try {
+        const venueRes = await api.get('/meeting-venues', { params: { per_page: 50 } })
+        venueData = apiData(venueRes) || []
+      } catch {
+        // Venue catalogue access is optional until an internal venue is selected.
+      }
       setWorkspace(apiData(wsRes))
       setCapabilities(actionCapabilities)
+      setVenues(venueData)
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -314,6 +323,7 @@ export function MeetingReschedulePage() {
                 submitLabel={internalDirectorate ? 'ذخیره پیش‌نویس' : undefined}
                 label={authorityControlled ? 'پیشنهاد رسمی دفتر مقام' : internalDirectorate ? 'پیش‌نویس زمان پیشنهادی' : 'ثبت پیشنهاد تغییر زمان'}
                 busy={busy}
+                venues={venues}
               />
             )}
 

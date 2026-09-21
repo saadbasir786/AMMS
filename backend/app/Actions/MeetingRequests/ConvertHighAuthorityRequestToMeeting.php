@@ -11,6 +11,7 @@ use App\Models\MeetingAuthorityScheduleAcknowledgement;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Support\CentralScheduleConflictService;
 
 class ConvertHighAuthorityRequestToMeeting
 {
@@ -58,6 +59,9 @@ class ConvertHighAuthorityRequestToMeeting
                 'start_time' => $scheduledStart,
                 'end_time' => $scheduledEnd,
                 'location' => $locked->scheduled_location,
+                'venue_type' => $locked->scheduled_venue_type ?: 'EXTERNAL_LOCATION',
+                'venue_id' => $locked->scheduled_venue_id,
+                'venue_snapshot' => $locked->scheduled_venue_snapshot,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
@@ -77,9 +81,14 @@ class ConvertHighAuthorityRequestToMeeting
             ]);
             app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
+            $conflicts = app(CentralScheduleConflictService::class)->evaluateMeeting($meeting->fresh(['units.unit', 'organizingUnit', 'participants', 'authorityContext']), [
+                'meeting_date' => $meeting->meeting_date->toDateString(), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time,
+                'location' => $meeting->location, 'venue_type' => $meeting->venue_type, 'venue_id' => $meeting->venue_id,
+            ], true);
+            app(CentralScheduleConflictService::class)->assertNoBlocking($conflicts);
 
             $from = $this->updateStatus($locked, MeetingRequestStatus::CONVERTED_TO_MEETING);
-            $this->record($locked, $actor, 'MEETING_CREATED', $from, $locked->status, null, ['meeting_id' => $meeting->id, 'authority_employee_id' => $holder->id, 'requesting_unit_id' => $locked->requesting_unit_id]);
+            $this->record($locked, $actor, 'MEETING_CREATED', $from, $locked->status, null, ['meeting_id' => $meeting->id, 'authority_employee_id' => $holder->id, 'requesting_unit_id' => $locked->requesting_unit_id, 'schedule_warnings' => $conflicts['warnings']]);
             $recipientIds = User::whereIn('employee_id', $allNominations->pluck('employee_id')->all())->pluck('id')->unique();
             foreach ($recipientIds as $recipientId) $this->notifyUser((int) $recipientId, 'جلسه با مقام عالی ایجاد شد', 'جلسهٔ رسمی پس از تأیید مقام عالی و نهایی‌شدن زمان‌بندی ایجاد شد.', $locked);
             $this->notifyUsersForUnit($context->authority_office_unit_id, ['EXECUTIVE_SECRETARY'], 'جلسه با مقام عالی نهایی شد', 'جلسهٔ رسمی در تقویم مقام عالی ثبت شد.', $locked);

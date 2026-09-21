@@ -16,6 +16,9 @@ export type MeetingItem = {
   start_time: string
   end_time: string
   location: string
+  venue_type?: 'INTERNAL_VENUE' | 'EXTERNAL_LOCATION' | 'ONLINE'
+  venue_id?: number | null
+  venue_snapshot?: Record<string, unknown> | null
   status: MeetingStatus
   reschedule_pending?: boolean
   request_id?: number
@@ -189,6 +192,9 @@ export type ScheduleVersion = {
   start_time: string
   end_time: string
   location: string
+  venue_type?: 'INTERNAL_VENUE' | 'EXTERNAL_LOCATION' | 'ONLINE'
+  venue_id?: number | null
+  venue_snapshot?: Record<string, unknown> | null
   created_at?: string
 }
 
@@ -216,6 +222,9 @@ export type RescheduleProposal = {
   start_time: string
   end_time: string
   location: string
+  venue_type?: 'INTERNAL_VENUE' | 'EXTERNAL_LOCATION' | 'ONLINE'
+  venue_id?: number | null
+  venue_snapshot?: Record<string, unknown> | null
   comment?: string
   acknowledgements?: RescheduleAcknowledgement[]
 }

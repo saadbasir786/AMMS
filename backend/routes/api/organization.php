@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/organizational-units/tree', [DirectoryController::class, 'tree']);
     Route::get('/organizational-units', [DirectoryController::class, 'units']);
     Route::get('/employees', [DirectoryController::class, 'employees']);
+    Route::get('/meeting-venues', [DirectoryController::class, 'meetingVenues']);
 
     // Admin & Organizational Structure Management
     Route::get('/admin/permissions', [RoleManagementController::class, 'permissions']);

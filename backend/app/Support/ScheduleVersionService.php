@@ -22,12 +22,12 @@ class ScheduleVersionService
         return $version;
     }
 
-    public function normalize(array $data): array
+    public function normalize(array $data, \App\Models\Meeting|\App\Models\MeetingRequest|null $context = null): array
     {
         $date = (string) ($data['meeting_date'] ?? '');
         $start = (string) ($data['start_time'] ?? '');
         $end = (string) ($data['end_time'] ?? '');
-        $location = trim((string) ($data['location'] ?? ''));
+        $venue = app(ScheduleVenueService::class)->normalize($data, $context);
         try {
             $startAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$start}", self::TIMEZONE);
             $endAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$end}", self::TIMEZONE);
@@ -36,8 +36,7 @@ class ScheduleVersionService
         }
         if (!$startAt || !$endAt || $endAt->lessThanOrEqualTo($startAt)) throw new HttpException(422, 'INVALID_SCHEDULE_TIME');
         if ($startAt->lessThanOrEqualTo(CarbonImmutable::now(self::TIMEZONE))) throw new HttpException(422, 'INVALID_SCHEDULE_TIME');
-        if ($location === '') throw new HttpException(422, 'INVALID_SCHEDULE_LOCATION');
-        return ['meeting_date' => $date, 'start_time' => $start, 'end_time' => $end, 'location' => $location];
+        return ['meeting_date' => $date, 'start_time' => $start, 'end_time' => $end, ...$venue];
     }
 
     public function sameAs(MeetingScheduleVersion $current, array $schedule): bool
@@ -45,7 +44,10 @@ class ScheduleVersionService
         return $current->meeting_date?->toDateString() === $schedule['meeting_date']
             && substr((string) $current->start_time, 0, 5) === substr($schedule['start_time'], 0, 5)
             && substr((string) $current->end_time, 0, 5) === substr($schedule['end_time'], 0, 5)
-            && trim((string) $current->location) === trim($schedule['location']);
+            && (string) ($current->venue_type ?: ScheduleVenueService::EXTERNAL) === (string) ($schedule['venue_type'] ?? ScheduleVenueService::EXTERNAL)
+            && (int) ($current->venue_id ?? 0) === (int) ($schedule['venue_id'] ?? 0)
+            && ((string) ($current->venue_type ?: ScheduleVenueService::EXTERNAL) === ScheduleVenueService::INTERNAL
+                || trim((string) $current->location) === trim($schedule['location']));
     }
 
     public function createNext(Meeting $meeting, array $schedule, int $createdBy, ?MeetingRescheduleCase $case = null): MeetingScheduleVersion
@@ -71,6 +73,9 @@ class ScheduleVersionService
                 'start_time' => $meeting->start_time,
                 'end_time' => $meeting->end_time,
                 'location' => $meeting->location,
+                'venue_type' => $meeting->venue_type ?: ScheduleVenueService::EXTERNAL,
+                'venue_id' => $meeting->venue_id,
+                'venue_snapshot' => $meeting->venue_snapshot ?: ['type' => $meeting->venue_type ?: ScheduleVenueService::EXTERNAL, 'location' => $meeting->location],
             ], $createdBy);
         }
 
@@ -88,6 +93,9 @@ class ScheduleVersionService
             'start_time' => $version->start_time,
             'end_time' => $version->end_time,
             'location' => $version->location,
+            'venue_type' => $version->venue_type ?: ScheduleVenueService::EXTERNAL,
+            'venue_id' => $version->venue_id,
+            'venue_snapshot' => $version->venue_snapshot,
             'current_schedule_version_id' => $version->id,
         ]);
     }
@@ -101,6 +109,9 @@ class ScheduleVersionService
             'start_time' => $version->start_time,
             'end_time' => $version->end_time,
             'location' => $version->location,
+            'venue_type' => $version->venue_type ?: ScheduleVenueService::EXTERNAL,
+            'venue_id' => $version->venue_id,
+            'venue_snapshot' => $version->venue_snapshot,
         ];
     }
 }

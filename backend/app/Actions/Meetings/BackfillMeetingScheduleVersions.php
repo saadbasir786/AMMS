@@ -26,6 +26,9 @@ class BackfillMeetingScheduleVersions
                     'start_time' => $meeting->start_time,
                     'end_time' => $meeting->end_time,
                     'location' => $meeting->location,
+                    'venue_type' => $meeting->venue_type ?: 'EXTERNAL_LOCATION',
+                    'venue_id' => $meeting->venue_id,
+                    'venue_snapshot' => $meeting->venue_snapshot ?: ['type' => $meeting->venue_type ?: 'EXTERNAL_LOCATION', 'location' => $meeting->location],
                     'created_by_user_id' => $meeting->coordinator_id,
                     'created_at' => now(),
                 ]);

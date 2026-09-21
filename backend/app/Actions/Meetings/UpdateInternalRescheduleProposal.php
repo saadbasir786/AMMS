@@ -30,7 +30,7 @@ class UpdateInternalRescheduleProposal
                 && $actor->can('meeting-reschedule.propose')
                 && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', (int) $proposal->proposed_by_unit_id), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
 
-            $schedule = app(ScheduleVersionService::class)->normalize($data);
+            $schedule = app(ScheduleVersionService::class)->normalize($data, $locked);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
             app(ScheduleConflictGuard::class)->assertNoConflict($locked, $schedule, $actor);

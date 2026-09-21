@@ -43,7 +43,9 @@ class ConfirmMeetingReschedule
                 'start_time' => substr((string) $proposal->start_time, 0, 5),
                 'end_time' => substr((string) $proposal->end_time, 0, 5),
                 'location' => $proposal->location,
-            ]);
+                'venue_type' => $proposal->venue_type,
+                'venue_id' => $proposal->venue_id,
+            ], $locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
             $employeeIds = app(ScheduleConflictGuard::class)->employeeIds($locked);
             Employee::query()->whereIn('id', $employeeIds)->orderBy('id')->lockForUpdate()->get();

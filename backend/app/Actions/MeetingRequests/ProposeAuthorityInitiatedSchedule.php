@@ -20,14 +20,12 @@ class ProposeAuthorityInitiatedSchedule
             abort_unless($officeId && $actor->can('authority-schedule.propose') && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeId), 403, 'UNAUTHORIZED_AUTHORITY_SCHEDULER');
             abort_unless($request->status === 'AUTHORITY_SCHEDULING', 422, 'AUTHORITY_SCHEDULING_REQUIRED');
             abort_unless((string) $data['end_time'] > (string) $data['start_time'], 422, 'INVALID_SCHEDULE_TIME');
+            $schedule = app(\App\Support\ScheduleVersionService::class)->normalize($data, $request);
             $request->scheduleProposals()->whereIn('status', ['PROPOSED', 'COUNTER_PROPOSED', 'ACCEPTED', 'ALTERNATIVE_REQUESTED'])->update(['status' => 'SUPERSEDED']);
             $proposal = $request->scheduleProposals()->create([
                 'proposed_by_unit_id' => $officeId,
                 'proposed_by_user_id' => $actor->id,
-                'meeting_date' => $data['meeting_date'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'location' => $data['location'],
+                ...$schedule,
                 'comment' => $data['comment'] ?? null,
                 'status' => 'PROPOSED',
                 'proposal_type' => 'AUTHORITY_OFFICIAL',

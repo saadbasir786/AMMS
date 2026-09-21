@@ -46,6 +46,9 @@ class ConfirmMultiDirectorateSchedule
                 'scheduled_start_time' => $proposal->start_time,
                 'scheduled_duration_minutes' => $this->durationMinutes($proposal->start_time, $proposal->end_time),
                 'scheduled_location' => $proposal->location,
+                'scheduled_venue_type' => $proposal->venue_type ?: 'EXTERNAL_LOCATION',
+                'scheduled_venue_id' => $proposal->venue_id,
+                'scheduled_venue_snapshot' => $proposal->venue_snapshot,
             ]);
             $this->record($locked, $actor, 'SCHEDULE_CONFIRMED', MeetingRequestStatus::SCHEDULING->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['proposal_id' => $proposal->id, 'unit_ids' => $unitIds->all()]);
 

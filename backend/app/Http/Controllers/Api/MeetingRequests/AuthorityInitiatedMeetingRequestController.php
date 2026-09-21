@@ -162,7 +162,7 @@ class AuthorityInitiatedMeetingRequestController
 
     public function proposeSchedule(Request $request, MeetingRequest $meetingRequest, ProposeAuthorityInitiatedSchedule $action): JsonResponse
     {
-        $data = $request->validate(['meeting_date' => ['required', 'date'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i'], 'location' => ['required', 'string', 'max:255'], 'comment' => ['nullable', 'string']]);
+        $data = $request->validate(['meeting_date' => ['required', 'date'], 'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i'], 'location' => ['nullable', 'string', 'max:255'], 'venue_type' => ['nullable', 'in:INTERNAL_VENUE,EXTERNAL_LOCATION,ONLINE'], 'venue_id' => ['nullable', 'integer', 'exists:meeting_venues,id'], 'comment' => ['nullable', 'string']]);
         Gate::authorize('authorityInitiatedSchedule', $meetingRequest);
 
         return $this->ok($action($request->user(), $meetingRequest, $data));

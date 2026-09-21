@@ -13,16 +13,21 @@ type RescheduleProposalFormProps = {
     start_time?: string
     end_time?: string
     location?: string
+    venue_type?: 'INTERNAL_VENUE' | 'EXTERNAL_LOCATION' | 'ONLINE'
+    venue_id?: number | string | null
   } | null
   label?: string
   submitLabel?: string
   busy: boolean
+  venues?: Array<{ id: number; name: string; location_details?: string | null }>
   onSubmit: (data: {
     meeting_date: string
     start_time: string
     end_time: string
     location: string
     comment?: string
+    venue_type?: string
+    venue_id?: number | string | null
   }) => Promise<boolean>
 }
 
@@ -31,6 +36,7 @@ export function RescheduleProposalForm({
   label = 'ثبت پیشنهاد زمان‌بندی جدید',
   submitLabel = 'ثبت و ارسال پیشنهاد',
   busy,
+  venues = [],
   onSubmit,
 }: RescheduleProposalFormProps) {
   const [meetingDate, setMeetingDate] = useState(
@@ -43,6 +49,8 @@ export function RescheduleProposalForm({
     initial?.end_time ? initial.end_time.slice(0, 5) : '10:00'
   )
   const [location, setLocation] = useState(initial?.location || '')
+  const [venueType, setVenueType] = useState(initial?.venue_type || 'EXTERNAL_LOCATION')
+  const [venueId, setVenueId] = useState<number | string | null>(initial?.venue_id || null)
   const [comment, setComment] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -55,7 +63,7 @@ export function RescheduleProposalForm({
       setError('تعیین ساعت آغاز و پایان جلسه الزامی است.')
       return
     }
-    if (!location.trim()) {
+    if (venueType !== 'INTERNAL_VENUE' && !location.trim()) {
       setError('درج محل برگزاری جلسه الزامی است.')
       return
     }
@@ -66,6 +74,8 @@ export function RescheduleProposalForm({
       end_time: endTime,
       location,
       comment: comment || undefined,
+      venue_type: venueType,
+      venue_id: venueId,
     })
     if (saved) setComment('')
   }
@@ -131,12 +141,17 @@ export function RescheduleProposalForm({
             <label className="text-xs font-bold text-foreground block">
               محل برگزاری جلسه
             </label>
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="تالار جلسات، اتاق کنفرانس، یا لینک آنلاین..."
-              className="h-9.5 text-xs rounded-xl"
-            />
+            <select value={venueType} onChange={(e) => { setVenueType(e.target.value as any); setVenueId(null) }} className="w-full h-9.5 mb-2 text-xs rounded-xl border border-border/70 bg-card px-2.5">
+              <option value="INTERNAL_VENUE">محل داخلی مدیریت‌شده</option>
+              <option value="EXTERNAL_LOCATION">محل خارج از اداره</option>
+              <option value="ONLINE">جلسه آنلاین</option>
+            </select>
+            {venueType === 'INTERNAL_VENUE' ? (
+              <select value={venueId || ''} onChange={(e) => setVenueId(e.target.value ? Number(e.target.value) : null)} className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5">
+                <option value="">انتخاب محل داخلی</option>
+                {venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
+              </select>
+            ) : <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="آدرس یا پیوند جلسه آنلاین" className="h-9.5 text-xs rounded-xl" />}
           </div>
 
           {/* Comment */}

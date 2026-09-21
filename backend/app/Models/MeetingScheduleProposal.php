@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MeetingScheduleProposal extends Model
 {
-    protected $fillable = ['meeting_request_id', 'proposed_by_unit_id', 'proposed_by_user_id', 'meeting_date', 'start_time', 'end_time', 'location', 'comment', 'status', 'proposal_type'];
-    protected $casts = ['meeting_date' => 'date'];
+    protected $fillable = ['meeting_request_id', 'proposed_by_unit_id', 'proposed_by_user_id', 'meeting_date', 'start_time', 'end_time', 'location', 'venue_type', 'venue_id', 'venue_snapshot', 'comment', 'status', 'proposal_type'];
+    protected $casts = ['meeting_date' => 'date', 'venue_snapshot' => 'array'];
 
     public function request(): BelongsTo
     {
@@ -25,6 +25,8 @@ class MeetingScheduleProposal extends Model
     {
         return $this->belongsTo(User::class, 'proposed_by_user_id');
     }
+
+    public function venue(): BelongsTo { return $this->belongsTo(MeetingVenue::class, 'venue_id'); }
 
     public function acceptances(): HasMany
     {

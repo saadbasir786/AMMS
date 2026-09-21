@@ -8,6 +8,7 @@ use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\MeetingRequestResource;
 use App\Http\Resources\MeetingResource;
+use App\Http\Resources\MeetingVenueResource;
 use App\Http\Resources\NotificationResource;
 use App\Http\Resources\OrganizationalUnitResource;
 use App\Models\AmmsNotification;
@@ -16,6 +17,7 @@ use App\Models\Meeting;
 use App\Models\MeetingRequest;
 use App\Models\OrganizationalUnit;
 use App\Models\OrganizationAuthority;
+use App\Models\MeetingVenue;
 use App\Support\MeetingActionCapabilities;
 use Illuminate\Http\Request;
 
@@ -113,6 +115,19 @@ class DirectoryController extends Controller
         $paginator = $employeesQuery->paginate($perPage);
 
         return EmployeeResource::collection($paginator)->additional(['success' => true, 'message' => 'فهرست کارمندان فعال.']);
+    }
+
+    public function meetingVenues(Request $request)
+    {
+        abort_unless($request->user()->isActive(), 401, 'UNAUTHORIZED');
+        $user = $request->user()->loadMissing('employee.unit');
+        $organizationIds = $user->roleScopes()->with('unit')->get()->pluck('unit.organization_id')->filter()->unique()->values()->all();
+        if ($user->employee?->unit?->organization_id) $organizationIds[] = $user->employee->unit->organization_id;
+        $organizationIds = array_values(array_unique(array_map('intval', $organizationIds)));
+        $perPage = min(max($request->integer('per_page', 20), 1), 50);
+        $venues = MeetingVenue::query()->where('status', 'ACTIVE')->whereIn('organization_id', $organizationIds ?: [-1])->orderBy('name')->orderBy('id')->paginate($perPage);
+
+        return MeetingVenueResource::collection($venues)->additional(['success' => true, 'message' => 'مکان‌های داخلی فعال.']);
     }
 
     public function meetings(Request $request)

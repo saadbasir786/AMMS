@@ -37,6 +37,7 @@ type ScheduleProposalsCardProps = {
   canAccept: boolean
   userUnitId?: number
   units?: Array<{ id: number; name: string; organizational_unit_id?: number }>
+  venues?: Array<{ id: number; name: string; location_details?: string | null }>
   busy: boolean
   onPropose: (data: {
     proposed_by_unit_id: number | string
@@ -44,6 +45,8 @@ type ScheduleProposalsCardProps = {
     start_time: string
     end_time: string
     location: string
+    venue_type?: string
+    venue_id?: number | string | null
     comment: string
   }) => Promise<void>
   onAccept: (proposalId: number) => Promise<void>
@@ -58,6 +61,7 @@ export function ScheduleProposalsCard({
   busy,
   onPropose,
   onAccept,
+  venues = [],
 }: ScheduleProposalsCardProps) {
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -66,6 +70,8 @@ export function ScheduleProposalsCard({
     start_time: '09:00',
     end_time: '10:00',
     location: '',
+    venue_type: 'EXTERNAL_LOCATION',
+    venue_id: null as number | null,
     comment: '',
   })
 
@@ -176,12 +182,21 @@ export function ScheduleProposalsCard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="space-y-1.5">
                 <label className="font-bold text-foreground block">محل پیشنهادی جلسه</label>
-                <Input
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="تالار کنفرانس، اتاق جلسات ریاست..."
-                  className="h-9 text-xs rounded-xl"
-                />
+                <div className="space-y-1.5">
+                  <select value={formData.venue_type} onChange={(e) => setFormData({ ...formData, venue_type: e.target.value, venue_id: null })} className="w-full h-9 text-xs rounded-xl border border-border/70 bg-card px-2.5">
+                    <option value="INTERNAL_VENUE">محل داخلی مدیریت‌شده</option>
+                    <option value="EXTERNAL_LOCATION">محل خارج از اداره</option>
+                    <option value="ONLINE">جلسه آنلاین</option>
+                  </select>
+                  {formData.venue_type === 'INTERNAL_VENUE' ? (
+                    <select value={formData.venue_id || ''} onChange={(e) => setFormData({ ...formData, venue_id: e.target.value ? Number(e.target.value) : null })} className="w-full h-9 text-xs rounded-xl border border-border/70 bg-card px-2.5">
+                      <option value="">انتخاب محل داخلی</option>
+                      {venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
+                    </select>
+                  ) : (
+                    <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="آدرس یا پیوند جلسه آنلاین" className="h-9 text-xs rounded-xl" />
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -198,7 +213,7 @@ export function ScheduleProposalsCard({
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="submit"
-                disabled={busy || !formData.meeting_date || !formData.start_time}
+                disabled={busy || !formData.meeting_date || !formData.start_time || (formData.venue_type === 'INTERNAL_VENUE' ? !formData.venue_id : !formData.location)}
                 size="sm"
                 className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-white"
               >

@@ -30,7 +30,7 @@ class CreatePeerRescheduleProposal
             abort_unless($actor->isActive() && $actor->can('meeting-reschedule.propose'), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
             $unitId = $this->actorFormalUnitId($actor, $governance['required_unit_ids'], ['EXECUTIVE_MANAGEMENT']);
             abort_unless($unitId, 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
-            $schedule = app(ScheduleVersionService::class)->normalize($data);
+            $schedule = app(ScheduleVersionService::class)->normalize($data, $locked);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
             app(ScheduleConflictGuard::class)->assertNoConflict($locked, $schedule, $actor);

@@ -10,6 +10,7 @@ use App\Models\MeetingRequest;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Support\CentralScheduleConflictService;
 
 class ConvertAuthorityInitiatedRequestToMeeting
 {
@@ -67,6 +68,9 @@ class ConvertAuthorityInitiatedRequestToMeeting
                 'start_time' => $scheduledStart,
                 'end_time' => $scheduledEnd,
                 'location' => $locked->scheduled_location,
+                'venue_type' => $locked->scheduled_venue_type ?: 'EXTERNAL_LOCATION',
+                'venue_id' => $locked->scheduled_venue_id,
+                'venue_snapshot' => $locked->scheduled_venue_snapshot,
                 'agenda' => $data['agenda'] ?? $locked->proposed_agenda,
                 'status' => 'SCHEDULED',
             ]);
@@ -77,9 +81,14 @@ class ConvertAuthorityInitiatedRequestToMeeting
             $meeting->authorityContext()->create(['organization_authority_id' => $context->organization_authority_id, 'authority_type' => $context->authority_type, 'authority_position_id' => $context->authority_position_id, 'authority_employee_id' => $holder->id, 'authority_office_unit_id' => $context->authority_office_unit_id]);
             app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
+            $conflicts = app(CentralScheduleConflictService::class)->evaluateMeeting($meeting->fresh(['units.unit', 'organizingUnit', 'participants', 'authorityContext']), [
+                'meeting_date' => $meeting->meeting_date->toDateString(), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time,
+                'location' => $meeting->location, 'venue_type' => $meeting->venue_type, 'venue_id' => $meeting->venue_id,
+            ], true);
+            app(CentralScheduleConflictService::class)->assertNoBlocking($conflicts);
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
-            $this->recordAuthorityInitiated($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['meeting_id' => $meeting->id, 'unit_ids' => $unitIds->all(), 'authority_employee_id' => $holder->id, 'directive_version' => $version->version]);
+            $this->recordAuthorityInitiated($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['meeting_id' => $meeting->id, 'unit_ids' => $unitIds->all(), 'authority_employee_id' => $holder->id, 'directive_version' => $version->version, 'schedule_warnings' => $conflicts['warnings']]);
             return $meeting->fresh(['request.units.unit', 'request.currentDirectiveVersion', 'units.unit', 'participants.employee.unit', 'authorityContext.authorityEmployee', 'authorityContext.authorityPosition', 'authorityContext.authorityOfficeUnit', 'chairperson']);
         });
     }

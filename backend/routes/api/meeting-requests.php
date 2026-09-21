@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\MeetingRequests\MeetingRequestController;
 use App\Http\Controllers\Api\MeetingRequests\MultiDirectorateMeetingRequestController;
 use App\Http\Controllers\Api\MeetingRequests\MultiHighAuthorityMeetingRequestController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Meetings\ScheduleConflictController;
 
 Route::middleware('auth:sanctum')->group(function () {
     // -------------------------------------------------------------------------
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/internal-meeting-approval-delegations/{capabilityScope}', [InternalMeetingApprovalDelegationController::class, 'revoke']);
     Route::post('/meeting-requests', [MeetingRequestController::class, 'store']);
     Route::get('/meeting-requests/{meetingRequest}/action-capabilities', [MeetingRequestController::class, 'actionCapabilities']);
+    Route::get('/meeting-requests/{meetingRequest}/schedule-conflicts', [ScheduleConflictController::class, 'request']);
     Route::get('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'show']);
     Route::put('/meeting-requests/{meetingRequest}', [MeetingRequestController::class, 'update']);
     Route::post('/meeting-requests/{meetingRequest}/submit', [MeetingRequestController::class, 'submit']);

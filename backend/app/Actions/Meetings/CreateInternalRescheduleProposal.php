@@ -35,7 +35,7 @@ class CreateInternalRescheduleProposal
 
             abort_if($case->proposals()->whereIn('status', $this->internalProposalStatuses())->exists(), 422, 'RESCHEDULE_PROPOSAL_ALREADY_EXISTS');
 
-            $schedule = app(ScheduleVersionService::class)->normalize($data);
+            $schedule = app(ScheduleVersionService::class)->normalize($data, $locked);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
             app(ScheduleConflictGuard::class)->assertNoConflict($locked, $schedule, $actor);

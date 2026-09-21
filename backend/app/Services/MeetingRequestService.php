@@ -12,6 +12,8 @@ use App\Models\MeetingRequestAction;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
 use App\Support\InternalMeetingApprovalDelegation;
+use App\Support\CentralScheduleConflictService;
+use App\Support\ScheduleVersionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -121,17 +123,28 @@ class MeetingRequestService
             $current = MeetingRequestStatus::tryFrom($locked->status);
             abort_unless($current === MeetingRequestStatus::SCHEDULING && $current->canTransitionTo(MeetingRequestStatus::SCHEDULE_CONFIRMED), 422, 'SCHEDULING_NOT_STARTED');
             abort_unless($actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $locked->requesting_unit_id), 403, 'FORBIDDEN');
-            $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...($data['participant_ids'] ?? [])]);
+            $participantIds = $data['participant_ids'] ?? [];
+            $this->validatePeople($locked->requesting_unit_id, [$data['chairperson_employee_id'], ...$participantIds]);
+            $scheduledEnd = Carbon::createFromFormat('H:i', substr($data['start_time'], 0, 5))->addMinutes((int) $data['duration_minutes'])->format('H:i');
+            $schedule = app(ScheduleVersionService::class)->normalize([
+                'meeting_date' => $data['meeting_date'], 'start_time' => $data['start_time'], 'end_time' => $scheduledEnd,
+                'location' => $data['location'] ?? null, 'venue_type' => $data['venue_type'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
+            ], $locked);
+            $conflicts = app(CentralScheduleConflictService::class)->evaluateRequest($locked, $schedule, (int) $data['chairperson_employee_id'], $participantIds, (int) ($locked->authorityContext?->authority_employee_id ?? 0), true);
+            app(CentralScheduleConflictService::class)->assertNoBlocking($conflicts);
             $locked->update([
-                'scheduled_date' => $data['meeting_date'],
-                'scheduled_start_time' => $data['start_time'],
+                'scheduled_date' => $schedule['meeting_date'],
+                'scheduled_start_time' => $schedule['start_time'],
                 'scheduled_duration_minutes' => $data['duration_minutes'],
-                'scheduled_location' => $data['location'],
+                'scheduled_location' => $schedule['location'],
+                'scheduled_venue_type' => $schedule['venue_type'],
+                'scheduled_venue_id' => $schedule['venue_id'],
+                'scheduled_venue_snapshot' => $schedule['venue_snapshot'],
                 'scheduled_chairperson_employee_id' => $data['chairperson_employee_id'],
                 'coordinator_id' => $locked->coordinator_id ?: $actor->id,
             ]);
             $this->syncParticipants($locked, $actor, $data['participant_ids'] ?? [], 'FINAL');
-            $this->action($locked, $actor, 'SCHEDULE_CONFIRMED', $current->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value);
+            $this->action($locked, $actor, 'SCHEDULE_CONFIRMED', $current->value, MeetingRequestStatus::SCHEDULE_CONFIRMED->value, null, ['warnings' => $conflicts['warnings']]);
             $locked->update(['status' => MeetingRequestStatus::SCHEDULE_CONFIRMED->value]);
             return $locked->fresh($this->withRelations());
         });
@@ -151,17 +164,32 @@ class MeetingRequestService
             $scheduledDate = $locked->scheduled_date->format('Y-m-d');
             $scheduledStart = substr((string) $locked->scheduled_start_time, 0, 5);
             $scheduledEnd = Carbon::createFromFormat('H:i', $scheduledStart)->addMinutes((int) $locked->scheduled_duration_minutes)->format('H:i');
+            $storedSchedule = app(ScheduleVersionService::class)->normalize([
+                'meeting_date' => $scheduledDate, 'start_time' => $scheduledStart, 'end_time' => $scheduledEnd,
+                'location' => $locked->scheduled_location, 'venue_type' => $locked->scheduled_venue_type, 'venue_id' => $locked->scheduled_venue_id,
+            ], $locked);
             abort_unless(
                 $data['meeting_date'] === $scheduledDate
                 && $data['start_time'] === $scheduledStart
                 && $data['end_time'] === $scheduledEnd
-                && $data['location'] === $locked->scheduled_location
+                && ($data['location'] ?? $locked->scheduled_location) === $locked->scheduled_location
+                && (string) ($data['venue_type'] ?? $storedSchedule['venue_type']) === (string) $storedSchedule['venue_type']
+                && (int) ($data['venue_id'] ?? $storedSchedule['venue_id']) === (int) $storedSchedule['venue_id']
                 && (int) $data['chairperson_employee_id'] === (int) $locked->scheduled_chairperson_employee_id,
                 422,
                 'CONFIRMED_SCHEDULE_MISMATCH'
             );
 
             $this->validatePeople($locked->requesting_unit_id, [(int) $locked->scheduled_chairperson_employee_id, ...$locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all()]);
+            $conflicts = app(CentralScheduleConflictService::class)->evaluateRequest(
+                $locked,
+                $storedSchedule,
+                (int) $locked->scheduled_chairperson_employee_id,
+                $locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all(),
+                (int) ($locked->authorityContext?->authority_employee_id ?? 0),
+                true,
+            );
+            app(CentralScheduleConflictService::class)->assertNoBlocking($conflicts);
             $meeting = Meeting::create([
                 'meeting_request_id' => $locked->id,
                 'meeting_number' => $this->nextNumber('meetings', 'MT'),
@@ -174,6 +202,9 @@ class MeetingRequestService
                 'start_time' => $scheduledStart,
                 'end_time' => $scheduledEnd,
                 'location' => $locked->scheduled_location,
+                'venue_type' => $storedSchedule['venue_type'],
+                'venue_id' => $storedSchedule['venue_id'],
+                'venue_snapshot' => $storedSchedule['venue_snapshot'],
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
@@ -186,7 +217,7 @@ class MeetingRequestService
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
             $from = $current->value;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
-            $this->action($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value);
+            $this->action($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['warnings' => $conflicts['warnings']]);
             $recipientEmployeeIds = array_merge([$meeting->chairperson_employee_id], $locked->participants->where('participant_type', 'FINAL')->pluck('employee_id')->all());
             $recipientUserIds = User::whereIn('employee_id', array_unique($recipientEmployeeIds))->pluck('id')->all();
             if ($meeting->coordinator_id) $recipientUserIds[] = $meeting->coordinator_id;

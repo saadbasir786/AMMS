@@ -38,6 +38,9 @@ class ConfirmAuthoritySchedule
                 'scheduled_start_time' => $lockedProposal->start_time,
                 'scheduled_duration_minutes' => $this->durationMinutes($lockedProposal->start_time, $lockedProposal->end_time),
                 'scheduled_location' => $lockedProposal->location,
+                'scheduled_venue_type' => $lockedProposal->venue_type ?: 'EXTERNAL_LOCATION',
+                'scheduled_venue_id' => $lockedProposal->venue_id,
+                'scheduled_venue_snapshot' => $lockedProposal->venue_snapshot,
             ]);
             $this->record($locked, $actor, 'AUTHORITY_SCHEDULE_CONFIRMED', $from, $locked->status, null, ['proposal_id' => $lockedProposal->id, 'proposal_type' => $lockedProposal->proposal_type]);
             $this->notifyUser($locked->created_by, 'زمان‌بندی رسمی مقام تأیید شد', 'زمان رسمی جلسه توسط منشی اجرائیه نهایی شد.', $locked);

@@ -40,6 +40,9 @@ class ConfirmAuthorityInitiatedSchedule
                 'scheduled_start_time' => $proposal->start_time,
                 'scheduled_duration_minutes' => $this->durationMinutes($proposal->start_time, $proposal->end_time),
                 'scheduled_location' => $proposal->location,
+                'scheduled_venue_type' => $proposal->venue_type ?: 'EXTERNAL_LOCATION',
+                'scheduled_venue_id' => $proposal->venue_id,
+                'scheduled_venue_snapshot' => $proposal->venue_snapshot,
                 'schedule_confirmed_by' => $actor->id,
                 'schedule_confirmed_at' => now(),
             ]);

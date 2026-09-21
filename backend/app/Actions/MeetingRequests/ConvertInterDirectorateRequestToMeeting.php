@@ -10,6 +10,7 @@ use App\Models\MeetingRequest;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Support\CentralScheduleConflictService;
 
 class ConvertInterDirectorateRequestToMeeting
 {
@@ -58,6 +59,9 @@ class ConvertInterDirectorateRequestToMeeting
                 'start_time' => $scheduledStart,
                 'end_time' => $scheduledEnd,
                 'location' => $locked->scheduled_location,
+                'venue_type' => $locked->scheduled_venue_type ?: 'EXTERNAL_LOCATION',
+                'venue_id' => $locked->scheduled_venue_id,
+                'venue_snapshot' => $locked->scheduled_venue_snapshot,
                 'agenda' => $data['agenda'] ?? null,
                 'status' => 'SCHEDULED',
             ]);
@@ -74,9 +78,14 @@ class ConvertInterDirectorateRequestToMeeting
             }
             app(\App\Support\ScheduleVersionService::class)->ensureInitialVersion($meeting, $actor->id);
             app(\App\Support\ParticipantVersionService::class)->ensureInitialVersion($meeting->fresh(['request.authorityContext', 'participants.employee.unit']), $actor->id);
+            $conflicts = app(CentralScheduleConflictService::class)->evaluateMeeting($meeting->fresh(['units.unit', 'organizingUnit', 'participants', 'authorityContext']), [
+                'meeting_date' => $meeting->meeting_date->toDateString(), 'start_time' => $meeting->start_time, 'end_time' => $meeting->end_time,
+                'location' => $meeting->location, 'venue_type' => $meeting->venue_type, 'venue_id' => $meeting->venue_id,
+            ], true);
+            app(CentralScheduleConflictService::class)->assertNoBlocking($conflicts);
             $from = $locked->status;
             $locked->update(['status' => MeetingRequestStatus::CONVERTED_TO_MEETING->value]);
-            $this->record($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value);
+            $this->record($locked, $actor, 'MEETING_CREATED', $from, MeetingRequestStatus::CONVERTED_TO_MEETING->value, null, ['schedule_warnings' => $conflicts['warnings']]);
             $recipientIds = User::whereIn('employee_id', $nominations->pluck('employee_id')->all())
                 ->pluck('id')
                 ->push($locked->lead_coordinator_user_id)

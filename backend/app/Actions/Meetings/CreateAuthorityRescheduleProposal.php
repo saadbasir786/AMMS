@@ -25,7 +25,7 @@ class CreateAuthorityRescheduleProposal
             abort_unless($governance['mode'] === 'AUTHORITY_CONTROLLED', 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
             $officeUnitId = $governance['authority_office_unit_id'];
             abort_unless($officeUnitId && $actor->hasScopedRole('EXECUTIVE_SECRETARY', $officeUnitId), 403, 'UNAUTHORIZED_RESCHEDULE_PROPOSAL');
-            $schedule = app(ScheduleVersionService::class)->normalize($data);
+            $schedule = app(ScheduleVersionService::class)->normalize($data, $locked);
             $current = app(ScheduleVersionService::class)->current($locked);
             abort_if(app(ScheduleVersionService::class)->sameAs($current, $schedule), 422, 'NO_SCHEDULE_CHANGE');
             app(ScheduleConflictGuard::class)->assertNoConflict($locked, $schedule, $actor);

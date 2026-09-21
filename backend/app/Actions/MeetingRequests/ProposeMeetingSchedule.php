@@ -27,17 +27,15 @@ class ProposeMeetingSchedule
             abort_unless(in_array($unit->id, [$requester->id, $target->id], true), 403, 'FORBIDDEN');
             abort_unless($this->canCoordinateUnit($actor, $unit->id), 403, 'FORBIDDEN');
             abort_unless($unit->status === 'ACTIVE', 422, 'INVALID_TARGET_DIRECTORATE');
-            abort_unless(isset($data['meeting_date'], $data['start_time'], $data['end_time'], $data['location']) && filled($data['location']), 422, 'INVALID_SCHEDULE_PROPOSAL');
+            abort_unless(isset($data['meeting_date'], $data['start_time'], $data['end_time']), 422, 'INVALID_SCHEDULE_PROPOSAL');
+            $schedule = app(\App\Support\ScheduleVersionService::class)->normalize($data, $locked);
 
             MeetingScheduleProposal::query()->where('meeting_request_id', $locked->id)->whereIn('status', ['PROPOSED', 'COUNTER_PROPOSED'])->update(['status' => 'SUPERSEDED']);
             $hasPrevious = MeetingScheduleProposal::where('meeting_request_id', $locked->id)->exists();
             $proposal = $locked->scheduleProposals()->create([
                 'proposed_by_unit_id' => $unit->id,
                 'proposed_by_user_id' => $actor->id,
-                'meeting_date' => $data['meeting_date'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'location' => $data['location'],
+                ...$schedule,
                 'comment' => $data['comment'] ?? null,
                 'status' => $hasPrevious ? 'COUNTER_PROPOSED' : 'PROPOSED',
             ]);

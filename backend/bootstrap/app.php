@@ -42,7 +42,14 @@ return Application::configure(basePath: dirname(__DIR__))
             }
             $message = $e->getMessage() ?: 'خطای غیرمنتظره در سیستم رخ داد.';
             $code = is_string($message) && preg_match('/^[A-Z0-9_]+$/', $message) ? $message : ($e instanceof AuthorizationException || $status === 403 ? 'FORBIDDEN' : ($status === 401 ? 'UNAUTHORIZED' : ($status === 422 ? 'VALIDATION_ERROR' : 'SERVER_ERROR')));
+            $scheduleConflictMessages = [
+                'HIGH_AUTHORITY_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ مقام عالی در تعارض است.',
+                'CHAIRPERSON_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ رئیس جلسه در تعارض است.',
+                'PARTICIPANT_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ یکی از اشتراک‌کنندگان در تعارض است.',
+                'INTERNAL_VENUE_SCHEDULE_CONFLICT' => 'این زمان با رزرو محل داخلی در تعارض است.',
+            ];
+            $displayMessage = $scheduleConflictMessages[$code] ?? (preg_match('/^[A-Z0-9_]+$/', $message) ? 'این عملیات برای شما مجاز نیست.' : $message);
 
-            return response()->json(['success' => false, 'code' => $code, 'message' => preg_match('/^[A-Z0-9_]+$/', $message) ? 'این عملیات برای شما مجاز نیست.' : $message, 'errors' => new stdClass], $status);
+            return response()->json(['success' => false, 'code' => $code, 'message' => $displayMessage, 'errors' => new stdClass], $status);
         });
     })->create();

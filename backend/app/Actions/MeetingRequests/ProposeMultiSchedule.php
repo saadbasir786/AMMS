@@ -27,14 +27,12 @@ class ProposeMultiSchedule
             if ($active) {
                 $active->update(['status' => 'SUPERSEDED']);
             }
+            $schedule = app(\App\Support\ScheduleVersionService::class)->normalize($data, $locked);
 
             $proposal = $locked->scheduleProposals()->create([
                 'proposed_by_unit_id' => $unit->id,
                 'proposed_by_user_id' => $actor->id,
-                'meeting_date' => $data['meeting_date'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'location' => $data['location'],
+                ...$schedule,
                 'comment' => $data['comment'] ?? null,
                 'status' => $status,
             ]);

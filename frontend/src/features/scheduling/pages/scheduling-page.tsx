@@ -26,15 +26,19 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
   const [request, setRequest] = useState<any>(null)
   const [employees, setEmployees] = useState<EmployeeItem[]>([])
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
+  const [venues, setVenues] = useState<Array<{ id: number; name: string; location_details?: string | null }>>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [conflictResult, setConflictResult] = useState<{ blocking_conflicts: any[]; warnings: any[] } | null>(null)
 
   const [form, setForm] = useState<SchedulingFormValues>({
     meeting_date: '',
     start_time: '',
     duration_minutes: 60,
     location: '',
+    venue_type: 'EXTERNAL_LOCATION',
+    venue_id: null,
     chairperson_employee_id: '',
     participant_ids: [],
     agenda: '',
@@ -50,6 +54,13 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         fetchAllPages<EmployeeItem>('/employees'),
         api.get('/organizational-units'),
       ])
+      let venueData: any[] = []
+      try {
+        const venueRes = await api.get('/meeting-venues', { params: { per_page: 50 } })
+        venueData = apiData(venueRes) || []
+      } catch {
+        // Venue catalogue access is optional for external/online scheduling.
+      }
 
       const reqData = apiData(reqRes)
       const empData = empRes
@@ -58,6 +69,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
       setRequest(reqData)
       setEmployees(empData)
       setUnits(unitData)
+      setVenues(venueData)
 
       const hasFinalParticipants = (reqData.participants || []).some(
         (p: any) => p.participant_type === 'FINAL'
@@ -101,6 +113,10 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
           reqData.proposed_location ||
           prev.location ||
           '',
+        venue_type:
+          acceptedProposal?.venue_type || reqData.scheduled_venue_type || prev.venue_type || 'EXTERNAL_LOCATION',
+        venue_id:
+          acceptedProposal?.venue_id || reqData.scheduled_venue_id || prev.venue_id || null,
         chairperson_employee_id:
           reqData.scheduled_chairperson_employee_id ||
           prev.chairperson_employee_id ||
@@ -174,6 +190,17 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
   }, [form.start_time, form.duration_minutes, request])
 
+  useEffect(() => {
+    if (!id || !form.meeting_date || !form.start_time || !endTime || !form.chairperson_employee_id) return
+    let cancelled = false
+    api.get(`/meeting-requests/${id}/schedule-conflicts`, { params: {
+      meeting_date: form.meeting_date, start_time: form.start_time, end_time: endTime,
+      location: form.location || undefined, venue_type: form.venue_type, venue_id: form.venue_id || undefined,
+      chairperson_employee_id: Number(form.chairperson_employee_id), participant_ids: form.participant_ids,
+    }}).then((response) => { if (!cancelled) setConflictResult(apiData(response)) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [id, form.meeting_date, form.start_time, endTime, form.chairperson_employee_id, form.participant_ids, form.location, form.venue_type, form.venue_id])
+
   // Final participants list for review
   const finalParticipants = useMemo(() => {
     return (request?.participants || []).filter((p: any) => p.participant_type === 'FINAL')
@@ -232,6 +259,8 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         start_time: form.start_time,
         duration_minutes: Number(form.duration_minutes),
         location: form.location,
+        venue_type: form.venue_type,
+        venue_id: form.venue_id || undefined,
         chairperson_employee_id: Number(form.chairperson_employee_id) || undefined,
         participant_ids: form.participant_ids,
       })
@@ -266,6 +295,8 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
         start_time: request.scheduled_start_time?.slice(0, 5) || form.start_time,
         end_time: endTime,
         location: request.scheduled_location || form.location,
+        venue_type: request.scheduled_venue_type || form.venue_type,
+        venue_id: request.scheduled_venue_id || form.venue_id || undefined,
         chairperson_employee_id: Number(request.scheduled_chairperson_employee_id || form.chairperson_employee_id),
         agenda: form.agenda,
       })
@@ -327,7 +358,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
       )}
 
       {/* Error State */}
-      {!loading && error && (
+      {!loading && error && !request && (
         <Alert variant="destructive" className="rounded-2xl p-4">
           <AlertCircle className="size-4" />
           <AlertDescription className="text-xs flex items-center justify-between gap-2">
@@ -346,10 +377,27 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
       )}
 
       {/* Loaded Content */}
-      {!loading && !error && request && (
+      {!loading && request && (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           {/* Main Column */}
           <section className="space-y-6">
+            {error && (
+              <Alert variant="destructive" className="rounded-2xl p-4">
+                <AlertCircle className="size-4" />
+                <AlertDescription className="text-xs flex items-center justify-between gap-2">
+                  <span>{error}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadData}
+                    className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+                  >
+                    <RotateCw className="size-3" />
+                    <span>تلاش مجدد</span>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             {/* Multi-party Proposals Negotiation */}
             {hasProposals && !isConfirmed && (
               <ScheduleProposalsCard
@@ -357,6 +405,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
                 canPropose={['SCHEDULING', 'BILATERAL_APPROVED', 'MULTILATERAL_APPROVED', 'AUTHORITY_SCHEDULING'].includes(request.status)}
                 canAccept={['SCHEDULING', 'AUTHORITY_SCHEDULING'].includes(request.status)}
                 units={requestUnits}
+                venues={venues}
                 busy={busy}
                 onPropose={handleProposeSchedule}
                 onAccept={handleAcceptProposal}
@@ -364,6 +413,9 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
             )}
 
             {!isConfirmed ? (
+              <>
+              {conflictResult?.blocking_conflicts?.length ? <Alert variant="destructive" className="rounded-2xl"><AlertCircle className="size-4" /><AlertDescription className="text-xs">این زمان به دلیل تعارض فردی یا محل داخلی قابل ثبت نیست.</AlertDescription></Alert> : null}
+              {conflictResult?.warnings?.length ? <Alert className="rounded-2xl border-amber-300 bg-amber-50 text-amber-900"><AlertDescription className="text-xs">هم‌پوشانی زمانی ریاست مشاهده شد؛ در صورت نبود تعارض فردی یا محل، می‌توانید ادامه دهید.</AlertDescription></Alert> : null}
               <ScheduleFormCard
                 form={form}
                 onChange={handleFieldChange}
@@ -372,7 +424,9 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
                 endTime={endTime}
                 busy={busy}
                 onSubmit={handleConfirmSchedule}
+                venues={venues}
               />
+              </>
             ) : (
               <ScheduleReviewCard
                 request={request}

@@ -31,7 +31,7 @@ class ResumePostponedMeeting
             $this->assertCaseReadyForApplication($lockedCase);
             abort_unless($meeting->status === 'POSTPONED', 409, 'MEETING_RESUMPTION_NOT_ALLOWED');
             $this->assertBaseline($lockedCase, $meeting);
-            $normalized = $this->scheduleVersions->normalize($schedule);
+            $normalized = $this->scheduleVersions->normalize($schedule, $meeting);
             $current = $this->scheduleVersions->current($meeting);
             abort_if($this->scheduleVersions->sameAs($current, $normalized), 422, 'MEETING_RESUMPTION_SCHEDULE_REQUIRED');
             $employeeIds = $this->conflicts->employeeIds($meeting);
