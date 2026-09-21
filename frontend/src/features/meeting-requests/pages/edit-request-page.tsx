@@ -19,6 +19,7 @@ import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-pic
 import { TimePicker } from '@/components/ui/time-picker'
 import { api, apiData } from '@/lib/api-client'
 import { fetchAllPages } from '@/lib/fetch-all-pages'
+import { SchedulingStageBar } from '@/features/scheduling/components/scheduling-stage-bar'
 import type { OrganizationalUnit, EmployeeItem } from '../types'
 
 type EditRequestPageProps = {
@@ -179,6 +180,10 @@ export function EditRequestPage({
           </Button>
         }
       />
+
+      {request?.flow_type === 'INTERNAL_DIRECTORATE' && (
+        <SchedulingStageBar status={request.status} />
+      )}
 
       {/* Error Alert */}
       {error && (

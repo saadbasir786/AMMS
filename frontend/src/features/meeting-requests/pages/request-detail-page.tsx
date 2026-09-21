@@ -24,6 +24,7 @@ import { MultiDirectorateRequestDetailView } from '../components/request-detail/
 import { DirectorateHighAuthorityRequestDetailView } from '../components/request-detail/directorate-high-authority-request-detail-view'
 import { MultiDirectorateHighAuthorityRequestDetailView } from '../components/request-detail/multi-directorate-high-authority-request-detail-view'
 import { HighAuthorityInitiatedRequestDetailView } from '../components/request-detail/high-authority-initiated-request-detail-view'
+import { SchedulingStageBar } from '@/features/scheduling/components/scheduling-stage-bar'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'outline' | 'destructive' | 'secondary' }> = {
   DRAFT: { label: 'پیش‌نویس', variant: 'outline' },
@@ -107,6 +108,10 @@ export function RequestDetailPage({
   const handleAction = async (actionUrl: string, body?: any) => {
     if (!id) return
     await api.post(`/meeting-requests/${id}/${actionUrl}`, body)
+    if (actionUrl === 'start-scheduling') {
+      navigate(`/meeting-requests/${id}/scheduling`)
+      return
+    }
     await loadData()
   }
 
@@ -350,6 +355,10 @@ export function RequestDetailPage({
           </div>
         }
       />
+
+      {request.flow_type === 'INTERNAL_DIRECTORATE' && (
+        <SchedulingStageBar status={request.status} />
+      )}
 
       {/* Loaded Content */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

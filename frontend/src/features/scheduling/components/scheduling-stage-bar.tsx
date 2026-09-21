@@ -1,34 +1,37 @@
 import React from 'react'
-import { Check, Calendar, FileCheck, CheckCircle2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type SchedulingStageBarProps = {
-  status: string // 'SCHEDULING' | 'SCHEDULE_CONFIRMED' | 'CONVERTED_TO_MEETING'
+  status: string
 }
 
 export function SchedulingStageBar({ status }: SchedulingStageBarProps) {
-  const isScheduling = status === 'SCHEDULING'
-  const isConfirmed = status === 'SCHEDULE_CONFIRMED'
-  const isConverted = status === 'CONVERTED_TO_MEETING'
+  const stageOneActive = ['DRAFT', 'PENDING_INTERNAL_APPROVAL', 'RETURNED_FOR_REVISION'].includes(status)
+  const stageOneDone = ['APPROVED', 'SCHEDULING', 'SCHEDULE_CONFIRMED', 'CONVERTED_TO_MEETING'].includes(status)
+  const stageTwoActive = ['APPROVED', 'SCHEDULING'].includes(status)
+  const stageTwoDone = ['SCHEDULE_CONFIRMED', 'CONVERTED_TO_MEETING'].includes(status)
+  const stageThreeActive = status === 'SCHEDULE_CONFIRMED'
+  const stageThreeDone = status === 'CONVERTED_TO_MEETING'
 
   const stages = [
     {
       step: 1,
       title: 'درخواست و تأیید',
-      desc: 'پیشنهاد اولیه ثبت و تأیید شد',
-      status: 'done' as const,
+      desc: 'ثبت درخواست، بررسی و تأیید ریاست',
+      status: stageOneActive ? ('active' as const) : stageOneDone ? ('done' as const) : ('pending' as const),
     },
     {
       step: 2,
       title: 'تنظیم زمان‌بندی رسمی',
       desc: 'تاریخ، زمان، محل و رئیس جلسه',
-      status: isScheduling ? ('active' as const) : ('done' as const),
+      status: stageTwoActive ? ('active' as const) : stageTwoDone ? ('done' as const) : ('pending' as const),
     },
     {
       step: 3,
       title: 'ایجاد جلسه رسمی',
       desc: 'بازبینی، ثبت آجندا و صدور جلسه',
-      status: isConverted ? ('done' as const) : isConfirmed ? ('active' as const) : ('pending' as const),
+      status: stageThreeDone ? ('done' as const) : stageThreeActive ? ('active' as const) : ('pending' as const),
     },
   ]
 

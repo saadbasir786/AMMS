@@ -192,7 +192,7 @@ export function RequestActionsCard({
             ) : (
               <CalendarCheck className="size-4" />
             )}
-            <span>شروع زمان‌بندی رسمی جلسه</span>
+            <span>شروع و ورود به زمان‌بندی رسمی جلسه</span>
           </Button>
         )}
 
@@ -204,7 +204,7 @@ export function RequestActionsCard({
             onClick={onScheduling}
           >
             <CalendarCheck className="size-4" />
-            <span>ورود به فضای زمان‌بندی جلسه</span>
+            <span>ادامه تنظیم زمان‌بندی جلسه</span>
           </Button>
         )}
 

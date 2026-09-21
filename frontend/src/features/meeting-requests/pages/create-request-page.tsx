@@ -9,6 +9,7 @@ import { api, apiData } from '@/lib/api-client'
 import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { MeetingRequestForm } from '../components/meeting-request-form'
 import { FormSideGuide } from '../components/form-side-guide'
+import { SchedulingStageBar } from '@/features/scheduling/components/scheduling-stage-bar'
 import type {
   CreateMeetingMode,
   MeetingFormValues,
@@ -168,6 +169,8 @@ export function CreateRequestPage({
           </Button>
         }
       />
+
+      {mode === 'internal' && <SchedulingStageBar status="DRAFT" />}
 
       {/* Grid: Form on the Right / Main, Guide Card on the Left */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
