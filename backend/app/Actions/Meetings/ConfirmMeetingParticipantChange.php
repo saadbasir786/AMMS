@@ -18,6 +18,11 @@ class ConfirmMeetingParticipantChange
         return DB::transaction(function () use ($meeting, $case, $actor): MeetingParticipantChangeCase {
             $meeting = $this->lockMeeting($meeting);
             $case = $this->lockCase($meeting, $case);
+            if ($this->governance()->isInternalDirectorate($meeting)) {
+                $this->assertConfirm($actor, $case, $this->governance());
+                $this->assertState($case, ['PENDING_CONFIRMATION']);
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'PARTICIPANT_CHANGE_FINALIZATION_REQUIRED');
+            }
             $this->assertConfirm($actor, $case, $this->governance());
             $this->assertState($case, ['PENDING_CONFIRMATION']);
             $this->validator()->assertCaseReady($case);

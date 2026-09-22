@@ -47,7 +47,24 @@ trait ParticipantChangeActionSupport
     private function assertConfirm(User $actor, MeetingParticipantChangeCase $case, ParticipantGovernanceResolver $governance): void
     {
         $this->assertActive($actor);
-        if (!$governance->mayConfirm($case->meeting, $actor, $case->owner_type, $case->owner_unit_id, (int) $case->initiated_by_user_id)) throw new HttpException(403, 'UNAUTHORIZED_PARTICIPANT_CONFIRMATION');
+        $submitterId = (int) ($case->submitted_by_user_id ?: $case->initiated_by_user_id);
+        if (!$governance->mayConfirm($case->meeting, $actor, $case->owner_type, $case->owner_unit_id, $submitterId)) throw new HttpException(403, 'UNAUTHORIZED_PARTICIPANT_CONFIRMATION');
+    }
+
+    private function draftFingerprint(MeetingParticipantChangeCase $case): string
+    {
+        $items = $case->items->sortBy('id')->map(fn ($item): array => [
+            'id' => (int) $item->id,
+            'operation' => (string) $item->operation,
+            'old_employee_id' => $item->old_employee_id ? (int) $item->old_employee_id : null,
+            'new_employee_id' => $item->new_employee_id ? (int) $item->new_employee_id : null,
+            'participant_role' => $item->participant_role,
+        ])->values()->all();
+
+        return hash('sha256', json_encode([
+            'reason' => (string) $case->reason,
+            'items' => $items,
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     private function assertState(MeetingParticipantChangeCase $case, array $states): void
@@ -140,6 +157,28 @@ trait ParticipantChangeActionSupport
             ->get(['id']);
 
         foreach ($users as $user) {
+            AmmsNotification::create([
+                'user_id' => $user->id,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'data' => ['meeting_id' => $meeting->id],
+            ]);
+        }
+    }
+
+    private function notifyScopedRoleAndUsers(int $unitId, string $role, array $userIds, string $type, string $title, string $message, Meeting $meeting): void
+    {
+        $recipients = User::query()->where('status', 'ACTIVE')
+            ->where(function ($query) use ($unitId, $role, $userIds): void {
+                $query->whereHas('roles', fn ($roleQuery) => $roleQuery->where('name', $role)->where('guard_name', 'sanctum'))
+                    ->whereHas('roleScopes', fn ($scopeQuery) => $scopeQuery->where('organizational_unit_id', $unitId)
+                        ->whereHas('role', fn ($roleQuery) => $roleQuery->where('name', $role)->where('guard_name', 'sanctum')));
+                if ($userIds !== []) $query->orWhereIn('id', $userIds);
+            })
+            ->distinct()->get(['id']);
+
+        foreach ($recipients as $user) {
             AmmsNotification::create([
                 'user_id' => $user->id,
                 'type' => $type,

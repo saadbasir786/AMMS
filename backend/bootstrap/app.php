@@ -42,13 +42,23 @@ return Application::configure(basePath: dirname(__DIR__))
             }
             $message = $e->getMessage() ?: 'خطای غیرمنتظره در سیستم رخ داد.';
             $code = is_string($message) && preg_match('/^[A-Z0-9_]+$/', $message) ? $message : ($e instanceof AuthorizationException || $status === 403 ? 'FORBIDDEN' : ($status === 401 ? 'UNAUTHORIZED' : ($status === 422 ? 'VALIDATION_ERROR' : 'SERVER_ERROR')));
-            $scheduleConflictMessages = [
+            $domainMessages = [
                 'HIGH_AUTHORITY_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ مقام عالی در تعارض است.',
                 'CHAIRPERSON_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ رئیس جلسه در تعارض است.',
                 'PARTICIPANT_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ یکی از اشتراک‌کنندگان در تعارض است.',
                 'INTERNAL_VENUE_SCHEDULE_CONFLICT' => 'این زمان با رزرو محل داخلی در تعارض است.',
+                'PARTICIPANT_CHANGE_FINALIZATION_REQUIRED' => 'پس از تأیید رئیس، مدیریت اجرائیه باید تغییرات اعضا را نهایی کند.',
+                'PARTICIPANT_CHANGE_APPROVAL_INVALIDATED' => 'محتوای پرونده پس از تأیید تغییر کرده است؛ پرونده را بازبینی و دوباره برای تأیید ارسال کنید.',
+                'PARTICIPANT_VERSION_CHANGED_REVIEW_REQUIRED' => 'فهرست رسمی اعضا تغییر کرده است؛ مبنای پرونده را به‌روزرسانی و دوباره برای تأیید ارسال کنید.',
+                'MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED' => 'زمان جلسه پس از بررسی تغییر کرده است؛ مبنای پرونده را به‌روزرسانی و دوباره برای تأیید ارسال کنید.',
+                'UNAUTHORIZED_PARTICIPANT_CHANGE_FINALIZATION' => 'نهایی‌سازی این پرونده فقط برای مدیریت اجرائیهٔ همان ریاست مجاز است.',
+                'EMPLOYEE_INACTIVE' => 'یکی از کارکنان پیشنهادی دیگر فعال نیست؛ پرونده را بازبینی و دوباره برای تأیید ارسال کنید.',
+                'EMPLOYEE_OUTSIDE_PARTICIPANT_DOMAIN' => 'حوزهٔ سازمانی یکی از کارکنان پیشنهادی تغییر کرده است؛ پرونده را بازبینی و دوباره برای تأیید ارسال کنید.',
+                'CHAIRPERSON_PARTICIPANT_REQUIRED' => 'رئیس جلسه باید در فهرست نهایی اشتراک‌کنندگان باقی بماند.',
+                'UNIT_PARTICIPANT_REQUIRED' => 'فهرست نهایی باید دست‌کم یک اشتراک‌کننده از ریاست مربوط داشته باشد.',
+                'DUPLICATE_FINAL_PARTICIPANTS' => 'فهرست نهایی شامل اشتراک‌کنندهٔ تکراری است؛ پرونده را بازبینی کنید.',
             ];
-            $displayMessage = $scheduleConflictMessages[$code] ?? (preg_match('/^[A-Z0-9_]+$/', $message) ? 'این عملیات برای شما مجاز نیست.' : $message);
+            $displayMessage = $domainMessages[$code] ?? (preg_match('/^[A-Z0-9_]+$/', $message) ? 'این عملیات برای شما مجاز نیست.' : $message);
 
             return response()->json(['success' => false, 'code' => $code, 'message' => $displayMessage, 'errors' => new stdClass], $status);
         });

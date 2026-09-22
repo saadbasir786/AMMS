@@ -65,6 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/meetings/{meeting}/participant-change/{case}/return', [MeetingParticipantChangeController::class, 'returnForCorrection']);
     Route::post('/meetings/{meeting}/participant-change/{case}/reject', [MeetingParticipantChangeController::class, 'reject']);
     Route::post('/meetings/{meeting}/participant-change/{case}/refresh-baseline', [MeetingParticipantChangeController::class, 'refreshBaseline']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/approve', [MeetingParticipantChangeController::class, 'approve']);
+    Route::post('/meetings/{meeting}/participant-change/{case}/finalize', [MeetingParticipantChangeController::class, 'finalize']);
     Route::post('/meetings/{meeting}/participant-change/{case}/confirm', [MeetingParticipantChangeController::class, 'confirm']);
 
     // Meeting Exceptions (Postponement / Emergency / Cancellation)

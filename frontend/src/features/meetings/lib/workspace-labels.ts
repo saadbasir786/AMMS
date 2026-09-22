@@ -6,7 +6,7 @@ export const caseTypeLabels: Record<string, string> = {
 export const workspaceStatusLabels: Record<string, string> = {
   DRAFT: 'پیش‌نویس', OPEN: 'باز', NEGOTIATING: 'در حال هماهنگی',
   READY_TO_CONFIRM: 'آماده تأیید', CONFIRMED: 'تأییدشده', UNDER_REVIEW: 'در حال بررسی',
-  RETURNED_FOR_CORRECTION: 'برگشت جهت اصلاح', PENDING_CONFIRMATION: 'در انتظار تأیید',
+  RETURNED_FOR_CORRECTION: 'برگشت جهت اصلاح', PENDING_CONFIRMATION: 'در انتظار بررسی رئیس',
   READY_TO_APPLY: 'آماده اجرا', APPLIED: 'اجراشده', REJECTED: 'ردشده', WITHDRAWN: 'پس‌گرفته‌شده',
 }
 

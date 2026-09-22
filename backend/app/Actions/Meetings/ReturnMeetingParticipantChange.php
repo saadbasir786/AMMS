@@ -27,14 +27,15 @@ class ReturnMeetingParticipantChange
             $case->forceFill(['status' => 'RETURNED_FOR_CORRECTION'])->save();
             $this->record($meeting, $actor, 'PARTICIPANT_CHANGE_RETURNED', $reason, [
                 'change_case_id' => $case->id,
+                'review_cycle' => (int) $case->review_cycle,
+                'submitted_by_user_id' => (int) $case->submitted_by_user_id,
                 'reviewer_user_id' => $actor->id,
                 'reviewer_name' => $actor->name,
                 'reviewed_at' => now()->toIso8601String(),
                 'reason' => $reason,
             ]);
             if ($this->governance()->isInternalDirectorate($meeting)) {
-                $this->notifyScopedRole((int) $case->owner_unit_id, 'EXECUTIVE_MANAGEMENT', 'PARTICIPANT_CHANGE_RETURNED', 'پرونده تغییر اعضا برای اصلاح برگشت داده شد', 'مدیر جلسه پرونده تغییر اعضا را برای اصلاح برگشت داده است. دلیل در فضای کاری پرونده ثبت شده است.', $meeting, (int) $case->initiated_by_user_id);
-                $this->notifyUser((int) $case->initiated_by_user_id, 'PARTICIPANT_CHANGE_RETURNED', 'پرونده تغییر اعضا برای اصلاح برگشت داده شد', 'مدیر جلسه پرونده تغییر اعضا را برای اصلاح برگشت داده است. دلیل در فضای کاری پرونده ثبت شده است.', $meeting);
+                $this->notifyScopedRoleAndUsers((int) $case->owner_unit_id, 'EXECUTIVE_MANAGEMENT', [(int) $case->initiated_by_user_id], 'PARTICIPANT_CHANGE_RETURNED', 'پرونده تغییر اعضا برای اصلاح برگشت داده شد', 'مدیر جلسه پرونده تغییر اعضا را برای اصلاح برگشت داده است. دلیل در فضای کاری پرونده ثبت شده است.', $meeting);
             }
             return $case->fresh(['items.oldEmployee.unit', 'items.newEmployee.unit']);
         });

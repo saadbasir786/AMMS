@@ -18,16 +18,29 @@ class RefreshParticipantChangeCaseBaseline
             $meeting = $this->lockMeeting($meeting);
             $case = $this->lockCase($meeting, $case);
             $this->assertManage($actor, $case, $this->governance());
-            $this->assertState($case, ['DRAFT', 'RETURNED_FOR_CORRECTION', 'PENDING_CONFIRMATION']);
+            $this->assertState($case, ['DRAFT', 'RETURNED_FOR_CORRECTION', 'PENDING_CONFIRMATION', 'APPROVED']);
             abort_unless((int) $meeting->active_participant_change_case_id === (int) $case->id, 422, 'PARTICIPANT_CHANGE_NOT_ACTIVE');
             $this->validator()->assertMeetingEditable($meeting);
-            $case->forceFill([
+            $previousStatus = $case->status;
+            $attributes = [
                 'baseline_schedule_version_id' => $meeting->current_schedule_version_id,
                 'status' => 'DRAFT',
                 'submitted_at' => null,
-            ])->save();
+                'submitted_by_user_id' => null,
+                'approved_by_user_id' => null,
+                'approved_at' => null,
+                'approved_participant_version_id' => null,
+                'approved_schedule_version_id' => null,
+                'approved_draft_hash' => null,
+            ];
+            if ($this->governance()->isInternalDirectorate($meeting)) {
+                $attributes['baseline_participant_version_id'] = $meeting->current_participant_version_id;
+            }
+            $case->forceFill($attributes)->save();
             $this->record($meeting, $actor, 'PARTICIPANT_CHANGE_BASELINE_REFRESHED', $case->reason, [
                 'change_case_id' => $case->id,
+                'previous_status' => $previousStatus,
+                'baseline_participant_version_id' => $case->baseline_participant_version_id,
                 'baseline_schedule_version_id' => $case->baseline_schedule_version_id,
             ]);
             return $case->fresh(['items.oldEmployee.unit', 'items.newEmployee.unit', 'baselineScheduleVersion']);

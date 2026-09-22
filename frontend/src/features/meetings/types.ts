@@ -85,7 +85,7 @@ export type MeetingActionCapabilities = {
     confirm: boolean
     resolve_alternative: boolean
   }
-  participant_change: { view: boolean; create: boolean; manage: boolean; confirm: boolean; return: boolean; reject: boolean }
+  participant_change: { view: boolean; create: boolean; manage: boolean; confirm: boolean; approve: boolean; finalize: boolean; return: boolean; reject: boolean }
   exceptions: {
     view: boolean
     create: boolean
@@ -274,12 +274,19 @@ export type ParticipantChangeItem = {
 
 export type ParticipantChangeCase = {
   id: number
-  status: 'DRAFT' | 'RETURNED_FOR_CORRECTION' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'REJECTED'
+  status: 'DRAFT' | 'RETURNED_FOR_CORRECTION' | 'PENDING_CONFIRMATION' | 'APPROVED' | 'CONFIRMED' | 'REJECTED'
   reason: string
   owner_type: 'UNIT' | 'AUTHORITY'
   owner_unit_id?: number
   baseline_participant_version_id: number
   baseline_schedule_version_id: number
+  submitted_at?: string | null
+  submitted_by_user_id?: number | null
+  submitted_by?: { id: number; name: string } | null
+  review_cycle?: number
+  approved_by_user_id?: number | null
+  approved_by?: { id: number; name: string } | null
+  approved_at?: string | null
   owner_unit?: {
     id: number
     name: string

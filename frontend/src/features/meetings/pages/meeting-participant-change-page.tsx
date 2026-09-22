@@ -46,7 +46,7 @@ export function MeetingParticipantChangePage() {
   const [reviewReason, setReviewReason] = useState('')
   const [participantVersionsPage, setParticipantVersionsPage] = useState(1)
   const [actionsPage, setActionsPage] = useState(1)
-  const [confirmDialog, setConfirmDialog] = useState<'confirm' | 'reject' | 'return' | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<'confirm' | 'approve' | 'finalize' | 'reject' | 'return' | null>(null)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -101,13 +101,17 @@ export function MeetingParticipantChangePage() {
   const canCreateCase = capabilities?.participant_change.create === true
   const isPreparer = capabilities?.participant_change.manage === true
   const isConfirmer = capabilities?.participant_change.confirm === true
+  const isApprover = capabilities?.participant_change.approve === true
+  const canFinalize = capabilities?.participant_change.finalize === true
   const canReturn = capabilities?.participant_change.return === true
   const canReject = capabilities?.participant_change.reject === true
   const isInternalFlow = meeting?.request?.flow_type === 'INTERNAL_DIRECTORATE'
   const latestDirectorReview = workspace?.latest_director_review
-  const reviewMatchesActiveCase = !active || Number(latestDirectorReview?.metadata?.change_case_id) === Number(active.id)
+  const reviewMatchesActiveCase = active?.status === 'RETURNED_FOR_CORRECTION'
+    && latestDirectorReview?.action === 'PARTICIPANT_CHANGE_RETURNED'
+    && Number(latestDirectorReview?.metadata?.change_case_id) === Number(active.id)
 
-  const isStale = isParticipantBaselineStale(active, meeting?.current_schedule_version_id)
+  const isStale = isParticipantBaselineStale(active, meeting?.current_schedule_version_id, meeting?.current_participant_version_id)
 
   const ownerParticipants = useMemo(() => {
     if (!active) return currentParticipants
@@ -163,6 +167,12 @@ export function MeetingParticipantChangePage() {
 
   const handleConfirmCase = () =>
     runCall(() => api.post(`/meetings/${id}/participant-change/${active?.id}/confirm`))
+
+  const handleApproveCase = () =>
+    runCall(() => api.post(`/meetings/${id}/participant-change/${active?.id}/approve`))
+
+  const handleFinalizeCase = () =>
+    runCall(() => api.post(`/meetings/${id}/participant-change/${active?.id}/finalize`))
 
   const handleReturnCase = async () => {
     if (!reviewReason.trim()) {
@@ -321,7 +331,7 @@ export function MeetingParticipantChangePage() {
                 <AlertTriangle className="size-4" />
                 <AlertDescription className="text-xs space-y-2">
                   <p>
-                    زمان جلسه پس از ایجاد این پرونده تغییر کرده است و نسخه مبنای زمان قدیمی شده است.
+                    نسخه مبنای اعضا یا زمان جلسه پس از ایجاد یا تأیید این پرونده تغییر کرده است؛ تأیید قبلی قابل استفاده نیست.
                   </p>
                   {isPreparer && (
                     <Button
@@ -332,7 +342,7 @@ export function MeetingParticipantChangePage() {
                       className="h-8 text-xs font-semibold gap-1.5"
                     >
                       <RotateCw className="size-3" />
-                      <span>به‌روزرسانی و همگام‌سازی مبنا</span>
+                      <span>به‌روزرسانی مبنا و ارسال دوباره برای تأیید</span>
                     </Button>
                   )}
                 </AlertDescription>
@@ -348,6 +358,34 @@ export function MeetingParticipantChangePage() {
                 onDeleteItem={handleDeleteItem}
                 onSaveReason={(nextReason) => runCall(() => api.put(`/meetings/${id}/participant-change/${active.id}`, { reason: nextReason }))}
               />
+            )}
+
+            {isInternalFlow && active?.status === 'APPROVED' && (
+              <Alert className="rounded-2xl border-emerald-300/70 bg-emerald-50/70 dark:bg-emerald-950/20">
+                <CheckCircle2 className="size-4 text-emerald-600" />
+                <AlertDescription className="space-y-2 text-xs">
+                  <p className="font-semibold text-foreground">تأیید رئیس انجام شده؛ آماده نهایی‌سازی</p>
+                  <p className="text-muted-foreground">
+                    فهرست رسمی اعضا هنوز تغییر نکرده است. تغییرات فقط پس از نهایی‌سازی مدیریت اجرائیه اعمال می‌شود.
+                    {active.approved_by?.name ? ` تأییدکننده: ${active.approved_by.name}.` : ''}
+                  </p>
+                  {canFinalize && (
+                    <Button disabled={busy || isStale} onClick={() => setConfirmDialog('finalize')} className="h-9 rounded-xl bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700">
+                      نهایی‌سازی تغییرات
+                    </Button>
+                  )}
+                  {isStale && isPreparer && (
+                    <Button variant="outline" disabled={busy} onClick={handleRefreshBaseline} className="h-9 rounded-xl text-xs">
+                      بازبینی مبنا و ارسال دوباره برای تأیید
+                    </Button>
+                  )}
+                  {!isStale && isPreparer && (
+                    <Button variant="outline" disabled={busy} onClick={handleRefreshBaseline} className="h-9 rounded-xl text-xs">
+                      لغو تأیید و بازگشت برای بازبینی
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
             )}
 
             {isInternalFlow && latestDirectorReview && reviewMatchesActiveCase && (
@@ -370,6 +408,7 @@ export function MeetingParticipantChangePage() {
               <ParticipantChangeFormCard
                 meetingId={Number(id)}
                 activeCase={active}
+                isInternalFlow={isInternalFlow}
                 ownerParticipants={ownerParticipants}
                 employeeOptions={employeeOptions}
                 busy={busy}
@@ -491,23 +530,23 @@ export function MeetingParticipantChangePage() {
             )}
 
             {/* Pending Confirmation Box */}
-            {active && active.status === 'PENDING_CONFIRMATION' && (isConfirmer || canReturn || canReject) && (
+            {active && active.status === 'PENDING_CONFIRMATION' && ((isInternalFlow && isApprover) || (!isInternalFlow && isConfirmer) || canReturn || canReject) && (
               <Card className="border border-border/70 shadow-xs">
                 <CardHeader className="p-4 sm:p-5 border-b border-border/60">
                   <h3 className="text-xs sm:text-sm font-bold text-foreground">
-                    بررسی و تصمیم‌گیری نهایی
+                    {isInternalFlow ? 'بررسی و تصمیم رئیس ریاست' : 'بررسی و تصمیم‌گیری نهایی'}
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    {isInternalFlow ? 'تصمیم‌گیری با مدیر همین ریاست است.' : 'تأیید، برگشت جهت اصلاح یا رد پرونده تغییر اعضا'}
+                    {isInternalFlow ? 'رئیس ریاست بررسی می‌کند؛ فهرست رسمی اعضا تا نهایی‌سازی تغییر نمی‌کند.' : 'تأیید، برگشت جهت اصلاح یا رد پرونده تغییر اعضا'}
                   </p>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 space-y-3">
-                  {isConfirmer && <Button
+                  {((isInternalFlow && isApprover) || (!isInternalFlow && isConfirmer)) && <Button
                     className="w-full h-9.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                     disabled={busy || isStale}
-                    onClick={() => setConfirmDialog('confirm')}
+                    onClick={() => setConfirmDialog(isInternalFlow ? 'approve' : 'confirm')}
                   >
-                    تأیید و صدور نسخه جدید فهرست
+                    {isInternalFlow ? 'تأیید برای نهایی‌سازی' : 'تأیید و صدور نسخه جدید فهرست'}
                   </Button>}
 
                   {(canReturn || canReject) && <div className="space-y-2.5 rounded-xl border border-amber-200/70 bg-amber-50/50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
@@ -561,7 +600,43 @@ export function MeetingParticipantChangePage() {
         description="با تأیید شما، نسخه جدید فهرست اعضای جلسه صادر و مبنای ثبت حضور و غیاب قرار خواهد گرفت."
         confirmLabel="تأیید و اعمال نسخه جدید"
         onConfirm={handleConfirmCase}
-      >{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</ConfirmDialog>
+      >
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmDialog === 'approve'}
+        onOpenChange={(open) => !open && setConfirmDialog(null)}
+        title="پرونده برای نهایی‌سازی تأیید شود؟"
+        description="این تصمیم مجوز اداری برای مدیریت اجرائیه است و فهرست رسمی اعضا را تغییر نمی‌دهد."
+        confirmLabel="تأیید پرونده"
+        onConfirm={handleApproveCase}
+      >
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmDialog === 'finalize'}
+        onOpenChange={(open) => !open && setConfirmDialog(null)}
+        title="تغییرات مصوب نهایی و اعمال شوند؟"
+        description="فهرست رسمی اشتراک‌کنندگان به‌روزرسانی می‌شود و به کارکنان متأثر اطلاع داده خواهد شد."
+        confirmLabel="نهایی‌سازی تغییرات"
+        onConfirm={handleFinalizeCase}
+      >
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmDialog === 'reject'}
@@ -571,7 +646,13 @@ export function MeetingParticipantChangePage() {
         confirmLabel="تأیید و رد پرونده"
         variant="destructive"
         onConfirm={handleRejectCase}
-      >{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</ConfirmDialog>
+      >
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </ConfirmDialog>
     </div>
   )
 }

@@ -18,11 +18,20 @@ class MeetingParticipantChangeCase extends Model
         'reason',
         'status',
         'submitted_at',
+        'submitted_by_user_id',
+        'review_cycle',
+        'approved_by_user_id',
+        'approved_at',
+        'approved_participant_version_id',
+        'approved_schedule_version_id',
+        'approved_draft_hash',
         'confirmed_at',
     ];
 
     protected $casts = [
+        'review_cycle' => 'integer',
         'submitted_at' => 'datetime',
+        'approved_at' => 'datetime',
         'confirmed_at' => 'datetime',
     ];
 
@@ -49,6 +58,16 @@ class MeetingParticipantChangeCase extends Model
     public function initiatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'initiated_by_user_id');
+    }
+
+    public function submittedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by_user_id');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by_user_id');
     }
 
     public function items(): HasMany

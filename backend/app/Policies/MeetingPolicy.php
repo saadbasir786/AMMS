@@ -118,8 +118,26 @@ class MeetingPolicy
                 $user,
                 $ownerType,
                 $ownerUnitId,
-                $activeCase ? (int) $activeCase->initiated_by_user_id : null,
+                $activeCase ? (int) ($activeCase->submitted_by_user_id ?: $activeCase->initiated_by_user_id) : null,
             );
+    }
+
+    public function participantChangeApprove(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    {
+        $activeCase = $meeting->activeParticipantChangeCase()->first();
+        return $activeCase
+            && $activeCase->status === 'PENDING_CONFIRMATION'
+            && app(\App\Support\ParticipantGovernanceResolver::class)->isInternalDirectorate($meeting)
+            && $this->participantChangeConfirm($user, $meeting, $ownerType, $ownerUnitId);
+    }
+
+    public function participantChangeFinalize(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
+    {
+        $activeCase = $meeting->activeParticipantChangeCase()->first();
+        return $activeCase
+            && $activeCase->status === 'APPROVED'
+            && $this->view($user, $meeting)
+            && app(\App\Support\ParticipantGovernanceResolver::class)->mayFinalize($meeting, $user, $ownerType, $ownerUnitId);
     }
 
     public function participantChangeReturn(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool

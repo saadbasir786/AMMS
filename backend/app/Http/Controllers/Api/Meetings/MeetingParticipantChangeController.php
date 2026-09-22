@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Meetings;
 
 use App\Actions\Meetings\AddMeetingParticipantChangeItem;
+use App\Actions\Meetings\ApproveMeetingParticipantChange;
 use App\Actions\Meetings\ConfirmMeetingParticipantChange;
 use App\Actions\Meetings\CreateMeetingParticipantChangeCase;
 use App\Actions\Meetings\DeleteMeetingParticipantChangeItem;
+use App\Actions\Meetings\FinalizeMeetingParticipantChange;
 use App\Actions\Meetings\RefreshParticipantChangeCaseBaseline;
 use App\Actions\Meetings\RejectMeetingParticipantChange;
 use App\Actions\Meetings\RemoveMeetingParticipantChangeItem;
@@ -132,6 +134,22 @@ class MeetingParticipantChangeController
         return response()->json(['data' => $action->execute($meeting, $case, $request->user())]);
     }
 
+    public function approve(Request $request, Meeting $meeting, MeetingParticipantChangeCase $case, ApproveMeetingParticipantChange $action): JsonResponse
+    {
+        $this->assertCaseBelongsToMeeting($case, $meeting);
+        Gate::authorize('participantChangeApprove', [$meeting, (string) $case->owner_type, $case->owner_unit_id]);
+
+        return response()->json(['data' => $action->execute($meeting, $case, $request->user())]);
+    }
+
+    public function finalize(Request $request, Meeting $meeting, MeetingParticipantChangeCase $case, FinalizeMeetingParticipantChange $action): JsonResponse
+    {
+        $this->assertCaseBelongsToMeeting($case, $meeting);
+        Gate::authorize('participantChangeFinalize', [$meeting, (string) $case->owner_type, $case->owner_unit_id]);
+
+        return response()->json(['data' => $action->execute($meeting, $case, $request->user())]);
+    }
+
     public function history(Request $request, Meeting $meeting): JsonResponse
     {
         Gate::authorize('participantChangeViewHistory', $meeting);
@@ -160,6 +178,7 @@ class MeetingParticipantChangeController
             'currentScheduleVersion', 'currentParticipantVersion.members.employee.unit',
             'activeParticipantChangeCase.items.oldEmployee.unit', 'activeParticipantChangeCase.items.newEmployee.unit',
             'activeParticipantChangeCase.ownerUnit', 'activeParticipantChangeCase.baselineScheduleVersion',
+            'activeParticipantChangeCase.submittedBy', 'activeParticipantChangeCase.approvedBy',
         ]);
         $versionsPage = $request->has('participant_versions_page') ? 'participant_versions_page' : 'page';
         $actionsPage = $request->has('actions_page') ? 'actions_page' : 'page';
@@ -171,15 +190,23 @@ class MeetingParticipantChangeController
         ])->orderByDesc('version_number')->orderByDesc('id'), $request, $versionsPage);
         $actions = $this->withParticipantSnapshots(MeetingWorkspacePagination::read($this->participantActions($meeting), $request, $actionsPage));
 
+        $latestDirectorReview = null;
+        $activeCase = $meeting->activeParticipantChangeCase;
+        if ($activeCase && $activeCase->status === 'RETURNED_FOR_CORRECTION') {
+            $review = $meeting->rescheduleActions()->with('actor')
+                ->where('action', 'PARTICIPANT_CHANGE_RETURNED')->latest('id')->first();
+            if ((int) ($review?->metadata['change_case_id'] ?? 0) === (int) $activeCase->id) {
+                $latestDirectorReview = $review;
+            }
+        }
+
         return [
             'meeting' => new MeetingResource($meeting),
             'current_schedule_version' => $meeting->currentScheduleVersion,
             'current_participant_version' => $meeting->currentParticipantVersion,
             'current_participants' => $meeting->participants,
             'active_participant_change_case' => $meeting->activeParticipantChangeCase,
-            'latest_director_review' => $meeting->rescheduleActions()->with('actor')
-                ->whereIn('action', ['PARTICIPANT_CHANGE_RETURNED', 'PARTICIPANT_CHANGE_REJECTED'])
-                ->latest('id')->first(),
+            'latest_director_review' => $latestDirectorReview,
             'participant_versions' => $versions['data'], 'participant_versions_meta' => $versions['meta'],
             'participant_actions' => $actions['data'], 'participant_actions_meta' => $actions['meta'],
             'employee_options' => $this->employeeOptions($meeting, $request->user()),

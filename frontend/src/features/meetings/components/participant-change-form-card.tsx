@@ -13,6 +13,7 @@ import { participantRoleLabels } from '../lib/workspace-labels'
 type ParticipantChangeFormCardProps = {
   meetingId: number
   activeCase: ParticipantChangeCase
+  isInternalFlow?: boolean
   ownerParticipants: any[]
   employeeOptions: any[]
   busy: boolean
@@ -29,6 +30,7 @@ type ParticipantChangeFormCardProps = {
 export function ParticipantChangeFormCard({
   meetingId,
   activeCase,
+  isInternalFlow = false,
   ownerParticipants,
   employeeOptions,
   busy,
@@ -258,7 +260,7 @@ export function ParticipantChangeFormCard({
               className="h-9.5 w-full text-xs font-semibold rounded-xl gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900"
             >
               <Send className="size-3.5" />
-              <span>ارسال پرونده برای تأیید نهایی</span>
+              <span>{isInternalFlow ? 'ارسال برای بررسی رئیس' : 'ارسال پرونده برای تأیید نهایی'}</span>
             </Button>
           )}
         </div>

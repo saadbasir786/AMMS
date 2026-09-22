@@ -22,8 +22,10 @@ class SubmitMeetingParticipantChange
             if ($this->governance()->isInternalDirectorate($meeting) && !$actor->can('meeting-participant-change.submit')) {
                 throw new HttpException(403, 'UNAUTHORIZED_PARTICIPANT_CHANGE');
             }
+            $isInternalFlow = $this->governance()->isInternalDirectorate($meeting);
             $this->assertState($case, ['DRAFT', 'RETURNED_FOR_CORRECTION']);
-            $this->validator()->assertMeetingEditable($meeting);
+            if ($isInternalFlow) $this->validator()->assertCaseReady($case);
+            else $this->validator()->assertMeetingEditable($meeting);
             if ($case->items()->count() === 0) throw new HttpException(422, 'PARTICIPANT_CHANGE_NOT_READY');
             foreach ($case->items as $item) {
                 $this->validator()->assertItem($case, $item->operation, $item->old_employee_id, $item->new_employee_id);
@@ -46,13 +48,37 @@ class SubmitMeetingParticipantChange
             ])->all());
             $this->validator()->assertFinalConflicts($meeting, $members, $case->items->whereIn('operation', ['ADD', 'REPLACE'])->pluck('new_employee_id')->filter()->all());
 
-            $case->forceFill(['status' => 'PENDING_CONFIRMATION', 'submitted_at' => now()])->save();
-            $this->record($meeting, $actor, 'PARTICIPANT_CHANGE_SUBMITTED', $case->reason, [
+            $attributes = [
+                'status' => 'PENDING_CONFIRMATION',
+                'submitted_at' => now(),
+            ];
+            if ($isInternalFlow) {
+                $reviewCycle = (int) $case->review_cycle + 1;
+                $attributes = array_merge($attributes, [
+                    'submitted_by_user_id' => $actor->id,
+                    'review_cycle' => $reviewCycle,
+                    'approved_by_user_id' => null,
+                    'approved_at' => null,
+                    'approved_participant_version_id' => null,
+                    'approved_schedule_version_id' => null,
+                    'approved_draft_hash' => null,
+                ]);
+            }
+            $case->forceFill($attributes)->save();
+            $metadata = [
                 'change_case_id' => $case->id,
                 'baseline_participant_version_id' => $case->baseline_participant_version_id,
                 'baseline_schedule_version_id' => $case->baseline_schedule_version_id,
-            ]);
-            if ($this->governance()->isInternalDirectorate($meeting)) {
+            ];
+            if ($isInternalFlow) {
+                $metadata = array_merge($metadata, [
+                    'review_cycle' => $reviewCycle,
+                    'submitted_by_user_id' => $actor->id,
+                    'submitted_by_name' => $actor->name,
+                ]);
+            }
+            $this->record($meeting, $actor, 'PARTICIPANT_CHANGE_SUBMITTED', $case->reason, $metadata);
+            if ($isInternalFlow) {
                 $this->notifyScopedRole((int) $case->owner_unit_id, 'DIRECTOR', 'PARTICIPANT_CHANGE_REVIEW_REQUIRED', 'تغییر اعضای جلسه در انتظار بررسی', 'پرونده تغییر اعضای جلسه برای بررسی و تصمیم‌گیری ارسال شده است.', $meeting, (int) $actor->id);
             }
             return $case->fresh(['items.oldEmployee.unit', 'items.newEmployee.unit', 'ownerUnit', 'baselineScheduleVersion']);
