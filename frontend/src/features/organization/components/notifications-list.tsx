@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Bell,
   Clock,
@@ -31,6 +31,8 @@ export function NotificationsList({
   onPageChange,
   onMarkAsRead,
 }: NotificationsListProps) {
+  const navigate = useNavigate()
+
   if (notifications.length === 0) {
     return (
       <div
@@ -64,7 +66,14 @@ export function NotificationsList({
                   : 'border-border/60 bg-card/60'
               )}
             >
-              <CardContent className="p-4 sm:p-5">
+              <CardContent
+                className={cn('p-4 sm:p-5', n.action_url && 'cursor-pointer')}
+                onClick={() => {
+                  if (!n.action_url) return
+                  if (isUnread) onMarkAsRead?.(n.id)
+                  navigate(n.action_url)
+                }}
+              >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <div
@@ -112,7 +121,10 @@ export function NotificationsList({
                         variant="outline"
                         size="sm"
                         disabled={busy}
-                        onClick={() => onMarkAsRead(n.id)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onMarkAsRead(n.id)
+                        }}
                         className="h-8 text-xs font-semibold rounded-xl gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                       >
                         <Check className="size-3.5" />
@@ -125,14 +137,15 @@ export function NotificationsList({
                         asChild
                         variant={isUnread ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => {
+                        onClick={(event) => {
+                          event.stopPropagation()
                           if (isUnread && onMarkAsRead) {
                             onMarkAsRead(n.id)
                           }
                         }}
                         className="h-8 text-xs font-semibold rounded-xl gap-1.5"
                       >
-                        <Link to={n.action_url}>
+                        <Link to={n.action_url} onClick={(event) => event.stopPropagation()}>
                           <span>مشاهده جزئیات</span>
                           <ArrowRight className="size-3" />
                         </Link>
