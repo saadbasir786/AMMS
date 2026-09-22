@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $message = $e->getMessage() ?: 'خطای غیرمنتظره در سیستم رخ داد.';
             $code = is_string($message) && preg_match('/^[A-Z0-9_]+$/', $message) ? $message : ($e instanceof AuthorizationException || $status === 403 ? 'FORBIDDEN' : ($status === 401 ? 'UNAUTHORIZED' : ($status === 422 ? 'VALIDATION_ERROR' : 'SERVER_ERROR')));
             $domainMessages = [
+                'PARTICIPANT_CHANGE_APPROVER_CANNOT_FINALIZE' => 'تأییدکننده نمی‌تواند همان پرونده را نهایی کند؛ مدیریت اجرائیهٔ دیگری باید آن را نهایی کند.',
                 'HIGH_AUTHORITY_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ مقام عالی در تعارض است.',
                 'CHAIRPERSON_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ رئیس جلسه در تعارض است.',
                 'PARTICIPANT_SCHEDULE_CONFLICT' => 'این زمان با برنامهٔ یکی از اشتراک‌کنندگان در تعارض است.',

@@ -137,7 +137,13 @@ class MeetingPolicy
         return $activeCase
             && $activeCase->status === 'APPROVED'
             && $this->view($user, $meeting)
-            && app(\App\Support\ParticipantGovernanceResolver::class)->mayFinalize($meeting, $user, $ownerType, $ownerUnitId);
+            && app(\App\Support\ParticipantGovernanceResolver::class)->mayFinalize(
+                $meeting,
+                $user,
+                $ownerType,
+                $ownerUnitId,
+                $activeCase->approved_by_user_id ? (int) $activeCase->approved_by_user_id : null,
+            );
     }
 
     public function participantChangeReturn(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool

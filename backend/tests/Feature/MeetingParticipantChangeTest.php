@@ -29,6 +29,7 @@ use App\Models\AmmsRoleScope;
 use Spatie\Permission\Models\Role;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
+use App\Support\MeetingActionCapabilities;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -381,6 +382,55 @@ class MeetingParticipantChangeTest extends TestCase
         $this->assertDatabaseHas('meeting_actions', ['meeting_id' => $meeting->id, 'action' => 'PARTICIPANT_CHANGE_FINALIZED', 'actor_id' => $users['techExec']->id]);
         $this->actingAs($users['techExec'], 'sanctum')->getJson("/api/meetings/{$meeting->id}/participant-change")
             ->assertOk()->assertJsonPath('data.latest_director_review', null);
+    }
+
+    public function test_internal_approver_with_executive_scope_cannot_finalize_but_another_manager_can(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'تغییر نماینده');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+
+        $dualRoleApprover = $users['techDirector'];
+        $executiveRole = Role::findByName('EXECUTIVE_MANAGEMENT', 'sanctum');
+        $techUnitId = (int) $meeting->request->requesting_unit_id;
+        $dualRoleApprover->assignRole($executiveRole);
+        AmmsRoleScope::firstOrCreate([
+            'user_id' => $dualRoleApprover->id,
+            'role_id' => $executiveRole->id,
+            'organizational_unit_id' => $techUnitId,
+        ]);
+
+        app(ApproveMeetingParticipantChange::class)->execute($meeting, $case, $dualRoleApprover);
+        $case = $case->fresh();
+        $this->assertSame($dualRoleApprover->id, $case->approved_by_user_id);
+        $this->assertFalse(app(MeetingActionCapabilities::class)
+            ->resolve($meeting->fresh(['request']), $dualRoleApprover)['participant_change']['finalize']);
+
+        $versionCountBeforeDeniedAttempt = $meeting->fresh()->participantVersions()->count();
+        $participantsBeforeDeniedAttempt = $meeting->fresh()->participants()->orderBy('employee_id')->pluck('employee_id')->all();
+        $this->actingAs($dualRoleApprover, 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/participant-change/{$case->id}/finalize")
+            ->assertForbidden()
+            ->assertJsonPath('code', 'PARTICIPANT_CHANGE_APPROVER_CANNOT_FINALIZE');
+
+        $this->assertSame('APPROVED', $case->fresh()->status);
+        $this->assertSame($versionCountBeforeDeniedAttempt, $meeting->fresh()->participantVersions()->count());
+        $this->assertSame($participantsBeforeDeniedAttempt, $meeting->fresh()->participants()->orderBy('employee_id')->pluck('employee_id')->all());
+        $this->assertDatabaseHas('meeting_participants', ['meeting_id' => $meeting->id, 'employee_id' => $employees['oldInternal']->id]);
+        $this->assertDatabaseMissing('meeting_participants', ['meeting_id' => $meeting->id, 'employee_id' => $employees['newInternal']->id]);
+
+        $validFinalizer = $users['techExec'];
+        $this->assertTrue(app(MeetingActionCapabilities::class)
+            ->resolve($meeting->fresh(['request']), $validFinalizer)['participant_change']['finalize']);
+        $this->actingAs($validFinalizer, 'sanctum')
+            ->postJson("/api/meetings/{$meeting->id}/participant-change/{$case->id}/finalize")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'CONFIRMED');
+        $this->assertSame('CONFIRMED', $case->fresh()->status);
+        $this->assertSame(2, $meeting->fresh()->participantVersions()->count());
+        $this->assertDatabaseMissing('meeting_participants', ['meeting_id' => $meeting->id, 'employee_id' => $employees['oldInternal']->id]);
+        $this->assertDatabaseHas('meeting_participants', ['meeting_id' => $meeting->id, 'employee_id' => $employees['newInternal']->id]);
     }
 
     public function test_internal_participant_baseline_change_after_approval_blocks_finalization(): void

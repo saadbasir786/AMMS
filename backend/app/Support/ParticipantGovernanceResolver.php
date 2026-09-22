@@ -114,7 +114,7 @@ class ParticipantGovernanceResolver
             && $actor->hasScopedRole('DIRECTOR', $ownerUnitId);
     }
 
-    public function mayFinalize(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId): bool
+    public function mayFinalize(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId, ?int $approvedByUserId = null): bool
     {
         if (! $this->isInternalDirectorate($meeting) || ! $actor->isActive()) return false;
         $unitId = $this->internalDirectorateId($meeting);
@@ -123,7 +123,8 @@ class ParticipantGovernanceResolver
             && $unitId > 0
             && (int) $ownerUnitId === $unitId
             && $actor->can('meeting-participant-change.manage')
-            && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+            && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+            && ($approvedByUserId === null || $approvedByUserId !== (int) $actor->id);
     }
 
     public function mayView(Meeting $meeting, User $actor): bool

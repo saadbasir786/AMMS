@@ -145,6 +145,12 @@ class MeetingParticipantChangeController
     public function finalize(Request $request, Meeting $meeting, MeetingParticipantChangeCase $case, FinalizeMeetingParticipantChange $action): JsonResponse
     {
         $this->assertCaseBelongsToMeeting($case, $meeting);
+        abort_if(
+            (string) $meeting->request?->flow_type === 'INTERNAL_DIRECTORATE'
+                && (int) $case->approved_by_user_id === (int) $request->user()->id,
+            403,
+            'PARTICIPANT_CHANGE_APPROVER_CANNOT_FINALIZE',
+        );
         Gate::authorize('participantChangeFinalize', [$meeting, (string) $case->owner_type, $case->owner_unit_id]);
 
         return response()->json(['data' => $action->execute($meeting, $case, $request->user())]);

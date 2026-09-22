@@ -23,10 +23,19 @@ class FinalizeMeetingParticipantChange
                 throw new HttpException(422, 'PARTICIPANT_CHANGE_NOT_READY');
             }
             $this->assertActive($actor);
-            if (! $this->governance()->mayFinalize($meeting, $actor, $case->owner_type, $case->owner_unit_id)) {
+            $this->assertState($case, ['APPROVED']);
+            if ((int) $case->approved_by_user_id === (int) $actor->id) {
+                throw new HttpException(403, 'PARTICIPANT_CHANGE_APPROVER_CANNOT_FINALIZE');
+            }
+            if (! $this->governance()->mayFinalize(
+                $meeting,
+                $actor,
+                $case->owner_type,
+                $case->owner_unit_id,
+                $case->approved_by_user_id ? (int) $case->approved_by_user_id : null,
+            )) {
                 throw new HttpException(403, 'UNAUTHORIZED_PARTICIPANT_CHANGE_FINALIZATION');
             }
-            $this->assertState($case, ['APPROVED']);
             abort_unless((int) $meeting->active_participant_change_case_id === (int) $case->id, 422, 'PARTICIPANT_CHANGE_NOT_ACTIVE');
             if (! $case->approved_by_user_id || ! $case->approved_at || ! $case->approved_draft_hash) {
                 throw new HttpException(422, 'PARTICIPANT_CHANGE_APPROVAL_INVALIDATED');
