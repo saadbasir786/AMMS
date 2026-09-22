@@ -30,6 +30,7 @@ import { TimePicker } from '@/components/ui/time-picker'
 import { ParticipantPicker } from '@/shared/components'
 import { isFormalGovernanceUnit } from '@/features/organization'
 import { cn } from '@/lib/utils'
+import { ProposedLocationField, type ActiveVenueOption } from './proposed-location-field'
 import type {
   CreateMeetingMode,
   MeetingFormValues,
@@ -41,6 +42,7 @@ type MeetingRequestFormProps = {
   mode?: CreateMeetingMode
   units: OrganizationalUnit[]
   employees: EmployeeItem[]
+  venues?: ActiveVenueOption[]
   currentUser?: any
   purposeLabels: Record<string, string>
   priorityLabels: Record<string, string>
@@ -53,6 +55,7 @@ export function MeetingRequestForm({
   mode = 'internal',
   units,
   employees,
+  venues = [],
   currentUser,
   purposeLabels,
   priorityLabels,
@@ -500,7 +503,13 @@ export function MeetingRequestForm({
             <label className="text-xs font-bold text-foreground block">
               محل پیشنهادی برگزاری
             </label>
-            <div className="relative">
+            {mode === 'internal' ? (
+              <ProposedLocationField
+                value={form.proposed_location}
+                venues={venues}
+                onChange={(value) => handleFieldChange('proposed_location', value)}
+              />
+            ) : <div className="relative">
               <MapPin className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <Input
                 type="text"
@@ -509,7 +518,7 @@ export function MeetingRequestForm({
                 placeholder="مثلاً: تالار جلسات ریاست عمومی یا دفتر ریاست تکنالوژی"
                 className="h-9.5 ps-10 pe-3 text-xs bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 rounded-xl"
               />
-            </div>
+            </div>}
           </div>
         </CardContent>
       </Card>

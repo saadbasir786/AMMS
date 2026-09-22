@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, apiData } from '@/lib/api-client'
 import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { MeetingRequestForm } from '../components/meeting-request-form'
+import type { ActiveVenueOption } from '../components/proposed-location-field'
 import { FormSideGuide } from '../components/form-side-guide'
 import { SchedulingStageBar } from '@/features/scheduling/components/scheduling-stage-bar'
 import type {
@@ -31,6 +32,7 @@ export function CreateRequestPage({
   const navigate = useNavigate()
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
   const [employees, setEmployees] = useState<EmployeeItem[]>([])
+  const [venues, setVenues] = useState<ActiveVenueOption[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -39,14 +41,18 @@ export function CreateRequestPage({
     setLoading(true)
     setFetchError('')
     try {
-      const [resUnits, resEmployees, resMe] = await Promise.all([
+      const [resUnits, resEmployees, resMe, resVenues] = await Promise.all([
         api.get('/organizational-units'),
         fetchAllPages<EmployeeItem>('/employees'),
         api.get('/me').catch(() => ({ data: { data: null } })),
+        mode === 'internal'
+          ? api.get('/meeting-venues', { params: { per_page: 50 } }).catch(() => null)
+          : Promise.resolve(null),
       ])
       setUnits(apiData(resUnits) || [])
       setEmployees(resEmployees)
       setCurrentUser(apiData(resMe) || null)
+      setVenues(apiData(resVenues) || [])
     } catch (err: any) {
       console.error('Error loading form metadata:', err)
       setFetchError(
@@ -210,6 +216,7 @@ export function CreateRequestPage({
               mode={mode}
               units={units}
               employees={employees}
+              venues={venues}
               currentUser={currentUser}
               purposeLabels={purposeLabels}
               priorityLabels={priorityLabels}

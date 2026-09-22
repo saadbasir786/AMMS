@@ -3,7 +3,6 @@ import {
   Calendar,
   Clock,
   Clock3,
-  MapPin,
   UserCheck,
   CheckCircle2,
   Users2,
@@ -18,6 +17,7 @@ import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-pic
 import { TimePicker } from '@/components/ui/time-picker'
 import { ParticipantPicker } from '@/shared/components'
 import { cn } from '@/lib/utils'
+import { ScheduleVenueField } from './schedule-venue-field'
 import type { SchedulingFormValues } from '../types'
 import type { EmployeeItem } from '@/shared/types'
 
@@ -135,45 +135,10 @@ export function ScheduleFormCard({
         {/* Location & Chairperson Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground block">نوع محل برگزاری</label>
-            <select
-              value={form.venue_type || 'EXTERNAL_LOCATION'}
-              onChange={(e) => {
-                const venueType = e.target.value
-                onChange('venue_type', venueType)
-                if (venueType !== 'INTERNAL_VENUE') onChange('venue_id', null)
-              }}
-              className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5"
-            >
-              <option value="INTERNAL_VENUE">محل داخلی مدیریت‌شده</option>
-              <option value="EXTERNAL_LOCATION">محل خارج از اداره</option>
-              <option value="ONLINE">جلسه آنلاین</option>
-            </select>
-          </div>
-
-          {/* Location */}
-          <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground block">
               محل برگزاری جلسه <span className="text-destructive">*</span>
             </label>
-            {form.venue_type === 'INTERNAL_VENUE' ? (
-              <select
-                value={form.venue_id || ''}
-                onChange={(e) => onChange('venue_id', e.target.value ? Number(e.target.value) : null)}
-                className="w-full h-9.5 text-xs rounded-xl border border-border/70 bg-card px-2.5"
-              >
-                <option value="">انتخاب محل داخلی</option>
-                {venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}{venue.location_details ? ` — ${venue.location_details}` : ''}</option>)}
-              </select>
-            ) : (
-              <Input
-                type="text"
-                value={form.location}
-                onChange={(e) => onChange('location', e.target.value)}
-                placeholder="آدرس یا پیوند جلسه آنلاین"
-                className="h-9.5 text-xs bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 rounded-xl"
-              />
-            )}
+            <ScheduleVenueField form={form} venues={venues} onChange={onChange} />
           </div>
 
           {/* Chairperson */}

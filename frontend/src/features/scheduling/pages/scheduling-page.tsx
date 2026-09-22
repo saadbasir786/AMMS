@@ -57,8 +57,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
       ])
       let venueData: any[] = []
       try {
-        const venueRes = await api.get('/meeting-venues', { params: { per_page: 50 } })
-        venueData = apiData(venueRes) || []
+        venueData = await fetchAllPages('/meeting-venues')
       } catch {
         // Venue catalogue access is optional for external/online scheduling.
       }
@@ -88,6 +87,15 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
       const acceptedProposal = (reqData.schedule_proposals || []).find(
         (p: any) => p.status === 'ACCEPTED'
       )
+      const proposedVenue = venueData.find((venue) => venue.name === reqData.proposed_location)
+      const hasConfirmedSchedule = Boolean(reqData.scheduled_date)
+      const initialVenueType = acceptedProposal?.venue_type
+        || (hasConfirmedSchedule ? reqData.scheduled_venue_type : null)
+        || (proposedVenue ? 'INTERNAL_VENUE' : 'EXTERNAL_LOCATION')
+      const initialVenueId = acceptedProposal?.venue_id
+        ?? (hasConfirmedSchedule ? reqData.scheduled_venue_id : null)
+        ?? proposedVenue?.id
+        ?? null
 
       setForm((prev) => ({
         ...prev,
@@ -115,9 +123,9 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
           prev.location ||
           '',
         venue_type:
-          acceptedProposal?.venue_type || reqData.scheduled_venue_type || prev.venue_type || 'EXTERNAL_LOCATION',
+          initialVenueType,
         venue_id:
-          acceptedProposal?.venue_id || reqData.scheduled_venue_id || prev.venue_id || null,
+          initialVenueId,
         chairperson_employee_id:
           reqData.scheduled_chairperson_employee_id ||
           prev.chairperson_employee_id ||

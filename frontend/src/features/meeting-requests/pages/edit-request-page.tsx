@@ -19,6 +19,7 @@ import { MultiCalendarDatePicker } from '@/components/ui/multi-calendar-date-pic
 import { TimePicker } from '@/components/ui/time-picker'
 import { api, apiData } from '@/lib/api-client'
 import { fetchAllPages } from '@/lib/fetch-all-pages'
+import { ProposedLocationField, type ActiveVenueOption } from '../components/proposed-location-field'
 import { SchedulingStageBar } from '@/features/scheduling/components/scheduling-stage-bar'
 import type { OrganizationalUnit, EmployeeItem } from '../types'
 
@@ -49,6 +50,7 @@ export function EditRequestPage({
   const [request, setRequest] = useState<any>(null)
   const [units, setUnits] = useState<OrganizationalUnit[]>([])
   const [employees, setEmployees] = useState<EmployeeItem[]>([])
+  const [venues, setVenues] = useState<ActiveVenueOption[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,12 +75,14 @@ export function EditRequestPage({
       api.get(`/meeting-requests/${id}`),
       api.get('/organizational-units'),
       fetchAllPages<EmployeeItem>('/employees'),
+      api.get('/meeting-venues', { params: { per_page: 50 } }).catch(() => null),
     ])
-      .then(([reqRes, unitsRes, empRes]) => {
+      .then(([reqRes, unitsRes, empRes, venueRes]) => {
         const r = apiData(reqRes)
         setRequest(r)
         setUnits(apiData(unitsRes) || [])
         setEmployees(empRes)
+        setVenues(apiData(venueRes) || [])
         setForm({
           subject: r.subject || '',
           purpose: r.purpose || 'COORDINATION',
@@ -327,12 +331,18 @@ export function EditRequestPage({
 
                 <div className="space-y-1.5">
                   <label className="font-bold text-foreground block">محل پیشنهادی برگزاری</label>
-                  <Input
+                  {request?.flow_type === 'INTERNAL_DIRECTORATE' ? (
+                    <ProposedLocationField
+                      value={form.proposed_location}
+                      venues={venues}
+                      onChange={(value) => setForm({ ...form, proposed_location: value })}
+                    />
+                  ) : <Input
                     value={form.proposed_location}
                     onChange={(e) => setForm({ ...form, proposed_location: e.target.value })}
                     placeholder="اتاق جلسات، تالار کنفرانس..."
                     className="h-9.5 text-xs rounded-xl"
-                  />
+                  />}
                 </div>
               </CardContent>
             </Card>
