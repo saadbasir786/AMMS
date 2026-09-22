@@ -37,17 +37,26 @@ class NotificationWorkflowTest extends TestCase
             'data' => ['meeting_id' => 55],
         ]);
 
+        AmmsNotification::create([
+            'user_id' => $user->id,
+            'type' => 'PARTICIPANT_CHANGE_REVIEW_REQUIRED',
+            'title' => 'Review participant changes',
+            'message' => 'A participant change needs review.',
+            'data' => ['meeting_id' => 77],
+        ]);
+
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/notifications');
 
         $response->assertOk();
-        $response->assertJsonPath('unread_count', 2);
+        $response->assertJsonPath('unread_count', 3);
         $data = $response->json('data');
-        $this->assertCount(2, $data);
+        $this->assertCount(3, $data);
 
         // Check action_url dynamic calculation
         $urls = collect($data)->pluck('action_url')->all();
         $this->assertContains('/meeting-requests/99', $urls);
         $this->assertContains('/meetings/55/reschedule', $urls);
+        $this->assertContains('/meetings/77/participants/change', $urls);
     }
 
     public function test_user_can_filter_unread_notifications(): void

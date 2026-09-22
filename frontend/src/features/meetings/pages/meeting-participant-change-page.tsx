@@ -44,7 +44,8 @@ export function MeetingParticipantChangePage() {
   // Case creation & confirmation states
   const [reason, setReason] = useState('')
   const [reviewReason, setReviewReason] = useState('')
-  const [page, setPage] = useState(1)
+  const [participantVersionsPage, setParticipantVersionsPage] = useState(1)
+  const [actionsPage, setActionsPage] = useState(1)
   const [confirmDialog, setConfirmDialog] = useState<'confirm' | 'reject' | 'return' | null>(null)
 
   const loadData = useCallback(async () => {
@@ -53,7 +54,9 @@ export function MeetingParticipantChangePage() {
     setError(null)
     try {
       const [wsRes, actionCapabilities] = await Promise.all([
-        api.get(`/meetings/${id}/participant-change`, { params: { page } }),
+        api.get(`/meetings/${id}/participant-change`, {
+          params: { participant_versions_page: participantVersionsPage, actions_page: actionsPage },
+        }),
         fetchMeetingActionCapabilities(id),
       ])
       setWorkspace(apiData(wsRes))
@@ -66,7 +69,7 @@ export function MeetingParticipantChangePage() {
     } finally {
       setLoading(false)
     }
-  }, [id, page])
+  }, [id, participantVersionsPage, actionsPage])
 
   useEffect(() => {
     loadData()
@@ -98,6 +101,11 @@ export function MeetingParticipantChangePage() {
   const canCreateCase = capabilities?.participant_change.create === true
   const isPreparer = capabilities?.participant_change.manage === true
   const isConfirmer = capabilities?.participant_change.confirm === true
+  const canReturn = capabilities?.participant_change.return === true
+  const canReject = capabilities?.participant_change.reject === true
+  const isInternalFlow = meeting?.request?.flow_type === 'INTERNAL_DIRECTORATE'
+  const latestDirectorReview = workspace?.latest_director_review
+  const reviewMatchesActiveCase = !active || Number(latestDirectorReview?.metadata?.change_case_id) === Number(active.id)
 
   const isStale = isParticipantBaselineStale(active, meeting?.current_schedule_version_id)
 
@@ -298,7 +306,7 @@ export function MeetingParticipantChangePage() {
                         </div>
 
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 shrink-0">
-                          {participantRoleLabels[p.participant_role || p.role] || 'عضو'}
+                          {participantRoleLabels[p.participant_role || p.role] || p.participant_role || p.role || '\u0639\u0636\u0648'}
                         </Badge>
                       </div>
                     ))}
@@ -342,6 +350,21 @@ export function MeetingParticipantChangePage() {
               />
             )}
 
+            {isInternalFlow && latestDirectorReview && reviewMatchesActiveCase && (
+              <Alert className="rounded-2xl border-amber-300/70 bg-amber-50/70 dark:bg-amber-950/20">
+                <AlertDescription className="space-y-1 text-xs">
+                  <p className="font-semibold text-foreground">
+                    {latestDirectorReview.action === 'PARTICIPANT_CHANGE_RETURNED' ? 'آخرین نظر مدیر: برگشت برای اصلاح' : 'آخرین نظر مدیر: رد پرونده'}
+                  </p>
+                  <p className="text-muted-foreground">{latestDirectorReview.comment || 'دلیلی ثبت نشده است.'}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {latestDirectorReview.actor?.name || 'مدیر مربوط'}
+                    {latestDirectorReview.created_at ? ` · ${formatSolarDateTime(latestDirectorReview.created_at)}` : ''}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Change Form Card */}
             {active && isPreparer && ['DRAFT', 'RETURNED_FOR_CORRECTION'].includes(active.status) && (
               <ParticipantChangeFormCard
@@ -377,29 +400,52 @@ export function MeetingParticipantChangePage() {
                 {history.map((v) => (
                   <div
                     key={v.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50 text-xs"
+                    className="flex flex-col gap-2 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-border/50 text-xs"
                   >
-                    <div className="flex items-center gap-2">
-                      <Badge variant={v.id === current?.id ? 'default' : 'outline'} className="font-mono text-[10px]">
-                        نسخه {v.version_number}
-                      </Badge>
-                      <span className="text-muted-foreground">
-                        {v.created_at ? formatSolarDateTime(v.created_at) : '—'}
-                      </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={v.id === current?.id ? 'default' : 'outline'} className="font-mono text-[10px]">
+                          نسخه {v.version_number}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          {v.created_at ? formatSolarDateTime(v.created_at) : '—'}
+                        </span>
+                      </div>
+                      {v.id === current?.id && (
+                        <span className="text-[10px] text-primary font-bold">نسخه معتبر جاری</span>
+                      )}
                     </div>
-                    {v.id === current?.id && (
-                      <span className="text-[10px] text-primary font-bold">نسخه معتبر جاری</span>
+                    {v.source_change_case?.items && v.source_change_case.items.length > 0 ? (
+                      <ul className="space-y-1 text-muted-foreground">
+                        {v.source_change_case.items.map((item) => {
+                          const oldName = item.old_employee?.full_name
+                          const newName = item.new_employee?.full_name
+                          const detail = item.operation === 'ADD'
+                            ? `افزوده شد: ${newName || 'عضو نامشخص'}`
+                            : item.operation === 'REMOVE'
+                              ? `حذف شد: ${oldName || 'عضو نامشخص'}`
+                              : `جایگزینی: ${oldName || 'عضو نامشخص'} با ${newName || 'عضو نامشخص'}`
+
+                          return <li key={item.id}>• {detail}</li>
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground">نسخه پایه فهرست اعضا</p>
+                    )}
+                    {v.created_by?.name && (
+                      <p className="text-muted-foreground">
+                        ثبت‌کننده نسخه: <span className="font-medium text-foreground">{v.created_by.name}</span>
+                      </p>
                     )}
                   </div>
                 ))}
-                <WorkspacePagination meta={workspace.participant_versions_meta} onChange={setPage} busy={busy || loading} />
+                <WorkspacePagination meta={workspace.participant_versions_meta} onChange={setParticipantVersionsPage} busy={busy || loading} />
               </CardContent>
             </Card>
           </section>
 
           {/* Sidebar Column */}
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <WorkspaceAuditCard actions={workspace.participant_actions} meta={workspace.participant_actions_meta} onPageChange={setPage} busy={busy || loading} />
             {/* Create Case Card */}
             {!active && (
               <Card className="border border-border/70 shadow-xs">
@@ -445,26 +491,27 @@ export function MeetingParticipantChangePage() {
             )}
 
             {/* Pending Confirmation Box */}
-            {active && active.status === 'PENDING_CONFIRMATION' && isConfirmer && (
+            {active && active.status === 'PENDING_CONFIRMATION' && (isConfirmer || canReturn || canReject) && (
               <Card className="border border-border/70 shadow-xs">
                 <CardHeader className="p-4 sm:p-5 border-b border-border/60">
                   <h3 className="text-xs sm:text-sm font-bold text-foreground">
                     بررسی و تصمیم‌گیری نهایی
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    تأیید، برگشت جهت اصلاح یا رد پرونده تغییر اعضا
+                    {isInternalFlow ? 'تصمیم‌گیری با مدیر همین ریاست است.' : 'تأیید، برگشت جهت اصلاح یا رد پرونده تغییر اعضا'}
                   </p>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 space-y-3">
-                  <Button
+                  {isConfirmer && <Button
                     className="w-full h-9.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                     disabled={busy || isStale}
                     onClick={() => setConfirmDialog('confirm')}
                   >
                     تأیید و صدور نسخه جدید فهرست
-                  </Button>
+                  </Button>}
 
-                  <Textarea
+                  {(canReturn || canReject) && <div className="space-y-2.5 rounded-xl border border-amber-200/70 bg-amber-50/50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                    <Textarea
                     rows={2}
                     value={reviewReason}
                     onChange={(e) => setReviewReason(e.target.value)}
@@ -473,27 +520,31 @@ export function MeetingParticipantChangePage() {
                     disabled={busy}
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
+                  {(canReturn || canReject) && <div className="flex flex-col gap-2 border-t border-amber-200/70 pt-3 dark:border-amber-900/50 sm:flex-row">
+                    {canReturn && <Button
                       variant="outline"
                       disabled={busy || !reviewReason.trim()}
                       onClick={() => setConfirmDialog('return')}
-                      className="h-9 text-xs font-semibold rounded-xl text-amber-700 dark:text-amber-300"
+                      className="h-9 flex-1 text-xs font-semibold rounded-xl text-amber-700 dark:text-amber-300"
                     >
                       برگشت جهت اصلاح
-                    </Button>
-                    <Button
+                    </Button>}
+                    {canReject && <Button
                       variant="destructive"
                       disabled={busy || !reviewReason.trim()}
                       onClick={() => setConfirmDialog('reject')}
-                      className="h-9 text-xs font-semibold rounded-xl"
+                      className="h-9 flex-1 text-xs font-semibold rounded-xl"
                     >
                       رد پرونده
-                    </Button>
-                  </div>
+                    </Button>}
+                  </div>}
+                  </div>}
                 </CardContent>
               </Card>
             )}
+
+            {/* Workflow Audit */}
+            <WorkspaceAuditCard actions={workspace.participant_actions} meta={workspace.participant_actions_meta} onPageChange={setActionsPage} busy={busy || loading} />
           </aside>
         </div>
       )}

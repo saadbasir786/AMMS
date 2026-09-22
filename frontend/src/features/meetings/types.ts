@@ -85,7 +85,7 @@ export type MeetingActionCapabilities = {
     confirm: boolean
     resolve_alternative: boolean
   }
-  participant_change: { view: boolean; create: boolean; manage: boolean; confirm: boolean }
+  participant_change: { view: boolean; create: boolean; manage: boolean; confirm: boolean; return: boolean; reject: boolean }
   exceptions: {
     view: boolean
     create: boolean
@@ -288,16 +288,23 @@ export type ParticipantChangeCase = {
 }
 
 export type ParticipantVersion = {
-  members?: any[]
   id: number
   version_number: number
   created_at?: string
+  created_by?: { id: number; name?: string | null } | null
+  members?: any[]
+  source_change_case?: {
+    id: number
+    items?: ParticipantChangeItem[]
+  } | null
 }
 
 export type MeetingParticipantChangeData = {
   participant_actions?: WorkspaceAuditItem[]
   participant_actions_meta?: PaginationMeta
+  latest_director_review?: WorkspaceAuditItem | null
   meeting: MeetingItem & {
+    request?: { flow_type?: string }
     current_schedule_version_id?: number
     current_participant_version_id?: number
     authority_context?: any

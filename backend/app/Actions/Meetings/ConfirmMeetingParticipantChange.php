@@ -25,6 +25,14 @@ class ConfirmMeetingParticipantChange
             foreach ($case->items as $item) {
                 $this->validator()->assertItem($case, $item->operation, $item->old_employee_id, $item->new_employee_id);
             }
+            if ($this->governance()->isInternalDirectorate($meeting)) {
+                $this->validator()->assertInternalDraftConsistent($case, $case->items->map(fn ($item): array => [
+                    'operation' => $item->operation,
+                    'old_employee_id' => $item->old_employee_id,
+                    'new_employee_id' => $item->new_employee_id,
+                    'participant_role' => $item->participant_role,
+                ])->all());
+            }
 
             $baselineMembers = $case->baselineParticipantVersion->members->map(fn ($member): array => [
                 'employee_id' => (int) $member->employee_id,

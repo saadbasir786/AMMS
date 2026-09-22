@@ -64,6 +64,8 @@ class MeetingActionCapabilities
                 'create' => $this->allows(fn (): bool => $gate->allows('participantChangeCreateCase', $meeting)),
                 'manage' => $this->canActiveParticipantOperation($meeting, $actor, 'participantChangeManageCase'),
                 'confirm' => $this->canActiveParticipantOperation($meeting, $actor, 'participantChangeConfirm'),
+                'return' => $this->canActiveParticipantOperation($meeting, $actor, 'participantChangeReturn'),
+                'reject' => $this->canActiveParticipantOperation($meeting, $actor, 'participantChangeReject'),
             ],
             'exceptions' => [
                 'view' => $this->allows(fn (): bool => $gate->allows('viewMeeting', [MeetingExceptionCase::class, $meeting])),

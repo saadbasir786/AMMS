@@ -24,6 +24,21 @@ class RemoveMeetingParticipantChangeItem
             $this->validator()->assertMeetingEditable($meeting);
             $this->validator()->assertItem($case, 'REMOVE', $employeeId, null);
 
+            if ($this->governance()->isInternalDirectorate($meeting)) {
+                $draftItems = $case->items->map(fn (MeetingParticipantChangeItem $existing): array => [
+                    'operation' => $existing->operation,
+                    'old_employee_id' => $existing->old_employee_id,
+                    'new_employee_id' => $existing->new_employee_id,
+                    'participant_role' => $existing->participant_role,
+                ])->push([
+                    'operation' => 'REMOVE',
+                    'old_employee_id' => $employeeId,
+                    'new_employee_id' => null,
+                    'participant_role' => null,
+                ])->all();
+                $this->validator()->assertInternalDraftConsistent($case, $draftItems);
+            }
+
             $item = $case->items()->create([
                 'operation' => 'REMOVE',
                 'old_employee_id' => $employeeId,

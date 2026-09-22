@@ -53,12 +53,17 @@ export function ParticipantChangeCaseCard({
               پرونده رسمی تغییر اشتراک‌کنندگان
             </span>
             <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">
-              پرونده فعال تغییر اعضا ({workspaceStatusLabels[activeCase.status] || 'نامشخص'})
+              {'\u067e\u0631\u0648\u0646\u062f\u0647 \u0641\u0639\u0627\u0644 \u062a\u063a\u06cc\u06cc\u0631 \u0627\u0639\u0636\u0627'}
             </h3>
           </div>
-          <Badge variant="outline" className="text-xs px-2.5 py-1">
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge variant="outline" className="text-xs px-2.5 py-1">
+              {workspaceStatusLabels[activeCase.status] || '\u0646\u0627\u0645\u0634\u062e\u0635'}
+            </Badge>
+            <Badge variant="outline" className="text-xs px-2.5 py-1">
             مالک: {activeCase.owner_type === 'AUTHORITY' ? 'دفتر مقام' : activeCase.owner_unit?.name || 'ریاست'}
-          </Badge>
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -152,7 +157,7 @@ export function ParticipantChangeCaseCard({
                         )}
                         {item.participant_role && (
                           <span className="text-[10px] text-muted-foreground mr-2">
-                            (سمت: {participantRoleLabels[item.participant_role] || 'عضو'})
+                            (سمت: {participantRoleLabels[item.participant_role] || item.participant_role || '\u0639\u0636\u0648'})
                           </span>
                         )}
                       </div>

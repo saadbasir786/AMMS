@@ -110,10 +110,19 @@ class ParticipantVersionService
             'active_participant_change_case_id' => null,
         ])->save();
 
+        $case->items->loadMissing(['oldEmployee.unit', 'newEmployee.unit']);
+        $employeeSnapshot = static fn ($employee): ?array => $employee ? [
+            'id' => (int) $employee->id,
+            'full_name' => $employee->full_name,
+            'employee_number' => $employee->employee_number,
+            'unit_name' => $employee->unit?->name,
+        ] : null;
         $operations = $case->items->map(fn ($item): array => [
             'operation' => $item->operation,
             'old_employee_id' => $item->old_employee_id,
             'new_employee_id' => $item->new_employee_id,
+            'old_employee' => $employeeSnapshot($item->oldEmployee),
+            'new_employee' => $employeeSnapshot($item->newEmployee),
         ])->values()->all();
 
         MeetingAction::create([

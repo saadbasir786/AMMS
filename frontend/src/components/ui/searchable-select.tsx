@@ -23,6 +23,11 @@ type SearchableSelectProps = {
   emptyMessage?: string
   disabled?: boolean
   clearable?: boolean
+  searchValue?: string
+  onSearchChange?: (query: string) => void
+  loading?: boolean
+  loadingMessage?: string
+  footer?: React.ReactNode
   className?: string
   triggerClassName?: string
 }
@@ -36,18 +41,25 @@ export function SearchableSelect({
   emptyMessage = 'موردی یافت نشد.',
   disabled = false,
   clearable = true,
+  searchValue,
+  onSearchChange,
+  loading = false,
+  loadingMessage = 'در حال جستجو…',
+  footer,
   className,
   triggerClassName,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const remoteSearch = Boolean(onSearchChange)
 
   const selectedOption = useMemo(() => {
     return options.find((opt) => String(opt.value) === String(value))
   }, [options, value])
 
   const filteredOptions = useMemo(() => {
+    if (remoteSearch) return options
     if (!query.trim()) return options
     const q = query.toLowerCase().trim()
     return options.filter(
@@ -56,17 +68,21 @@ export function SearchableSelect({
         (opt.description && opt.description.toLowerCase().includes(q)) ||
         (opt.badge && opt.badge.toLowerCase().includes(q))
     )
-  }, [options, query])
+  }, [options, query, remoteSearch])
 
   useEffect(() => {
     if (open) {
       setTimeout(() => {
         searchInputRef.current?.focus()
       }, 50)
-    } else {
+    } else if (!remoteSearch) {
       setQuery('')
     }
-  }, [open])
+  }, [open, remoteSearch])
+
+  useEffect(() => {
+    if (searchValue !== undefined) setQuery(searchValue)
+  }, [searchValue])
 
   const handleSelect = (val: string | number) => {
     onChange(val)
@@ -139,7 +155,10 @@ export function SearchableSelect({
                 ref={searchInputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  onSearchChange?.(e.target.value)
+                }}
                 placeholder={searchPlaceholder}
                 className="h-8.5 ps-8.5 pe-8 text-xs bg-slate-50/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700 rounded-lg text-right"
               />
@@ -216,13 +235,20 @@ export function SearchableSelect({
                 )
               })}
 
-              {filteredOptions.length === 0 && (
+              {loading && (
+                <div className="py-3 text-center text-xs text-muted-foreground" role="status">
+                  {loadingMessage}
+                </div>
+              )}
+
+              {!loading && filteredOptions.length === 0 && (
                 <div className="py-6 text-center text-xs text-muted-foreground space-y-1">
                   <Search className="size-4 mx-auto text-muted-foreground/60" />
                   <p>{emptyMessage}</p>
                 </div>
               )}
             </div>
+            {footer && <div className="mt-2 border-t border-border/60 px-1">{footer}</div>}
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>
       </div>

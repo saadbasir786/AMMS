@@ -8,6 +8,7 @@ import type { ParticipantChangeCase } from '../types'
 import type { PaginationMeta } from '../types'
 import { api } from '@/lib/api-client'
 import { WorkspacePagination } from './workspace-pagination'
+import { participantRoleLabels } from '../lib/workspace-labels'
 
 type ParticipantChangeFormCardProps = {
   meetingId: number
@@ -43,12 +44,14 @@ export function ParticipantChangeFormCard({
   const [operation, setOperation] = useState<'REPLACE' | 'ADD' | 'REMOVE'>('REPLACE')
   const [oldId, setOldId] = useState('')
   const [newId, setNewId] = useState('')
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null)
   const [role, setRole] = useState('PARTICIPATING')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
     setSearching(true)
+    setError(null)
     const timer = setTimeout(() => {
       api.get(`/meetings/${meetingId}/participant-change/employees`, { params: { search, page, per_page: 15 }, signal: controller.signal })
         .then(({ data }) => { setCandidates(data.data); setPagination(data.meta) })
@@ -83,7 +86,13 @@ export function ParticipantChangeFormCard({
       })
     }
 
-    if (saved) { setOldId(''); setNewId('') }
+    if (saved) {
+      setOldId('')
+      setNewId('')
+      setSelectedCandidate(null)
+      setSearch('')
+      setPage(1)
+    }
   }
 
   const oldParticipantOptions = ownerParticipants.map((p) => ({
@@ -91,7 +100,10 @@ export function ParticipantChangeFormCard({
     label: `${p.employee?.full_name || 'کارمند'} (${p.employee?.unit?.name || p.organizational_unit?.name || 'واحد'})`,
   }))
 
-  const newEmployeeSelectOptions = candidates.map((e) => ({
+  const availableCandidates = selectedCandidate && !candidates.some((employee) => employee.id === selectedCandidate.id)
+    ? [...candidates, selectedCandidate]
+    : candidates
+  const newEmployeeSelectOptions = availableCandidates.map((e) => ({
     value: String(e.id),
     label: `${e.full_name} • ${e.unit?.name || 'واحد نامشخص'}`,
   }))
@@ -108,12 +120,6 @@ export function ParticipantChangeFormCard({
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5 space-y-4">
-        {operation !== 'REMOVE' && <div className="space-y-2">
-          <label className="text-xs font-bold" htmlFor="participant-candidate-search">جستجوی کارمند جدید در حوزهٔ مجاز</label>
-          <Input id="participant-candidate-search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); setNewId('') }} placeholder="نام، تخلص یا شمارهٔ کارمند" />
-          {searching && <p className="text-xs" role="status">در حال جستجو…</p>}
-          <WorkspacePagination meta={pagination} busy={searching} onChange={(next) => { setPage(next); setNewId('') }} />
-        </div>}
         {error && (
           <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 text-xs text-rose-700 dark:text-rose-300 font-medium">
             {error}
@@ -193,8 +199,27 @@ export function ParticipantChangeFormCard({
               <SearchableSelect
                 options={newEmployeeSelectOptions}
                 value={newId}
-                onChange={(val) => setNewId(String(val))}
-                placeholder="جستجو و انتخاب کارمند..."
+                onChange={(val) => {
+                  const selected = availableCandidates.find((employee) => String(employee.id) === String(val))
+                  setNewId(String(val))
+                  setSelectedCandidate(selected || null)
+                }}
+                searchValue={search}
+                onSearchChange={(query) => {
+                  setSearch(query)
+                  setPage(1)
+                  setNewId('')
+                  setSelectedCandidate(null)
+                  setCandidates([])
+                  setPagination(null)
+                  setSearching(true)
+                }}
+                loading={searching}
+                loadingMessage="در حال جستجوی کارکنان حوزهٔ مجاز…"
+                footer={<WorkspacePagination meta={pagination} busy={searching} onChange={setPage} />}
+                placeholder="جستجو و انتخاب کارمند در حوزهٔ مجاز..."
+                searchPlaceholder="نام، تخلص یا شمارهٔ کارمند را جستجو کنید"
+                emptyMessage="کارمندی با این مشخصات در حوزهٔ مجاز پیدا نشد."
                 className="h-9.5 text-xs rounded-xl"
               />
             </div>
@@ -203,11 +228,11 @@ export function ParticipantChangeFormCard({
           {/* Role */}
           <div className="space-y-1.5 sm:col-span-2">
             <label className="text-xs font-bold text-foreground block">
-              سمت یا نقش در جلسه
+              {'\u0646\u0642\u0634 \u0641\u0631\u062f \u062f\u0631 \u062c\u0644\u0633\u0647'}
             </label>
             <Input
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              value={participantRoleLabels[role] || role}
+              onChange={(e) => setRole(e.target.value === participantRoleLabels.PARTICIPATING ? 'PARTICIPATING' : e.target.value)}
               placeholder="عضو اصلی، کارشناس فنی، مدعو..."
               className="h-9.5 text-xs rounded-xl"
             />
@@ -215,11 +240,11 @@ export function ParticipantChangeFormCard({
         </div>
 
         {/* Submit & Add buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+        <div className="space-y-2 border-t border-border/50 pt-3">
           <Button
             disabled={busy || (operation !== 'ADD' && !oldId) || (operation !== 'REMOVE' && !newId)}
             onClick={handleAdd}
-            className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
+            className="h-9.5 w-full text-xs font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-white shadow-xs"
           >
             <Plus className="size-3.5" />
             <span>ثبت تغییر در پرونده</span>
@@ -230,7 +255,7 @@ export function ParticipantChangeFormCard({
               variant="outline"
               disabled={busy}
               onClick={onSubmitCase}
-              className="h-9.5 text-xs font-semibold rounded-xl gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900"
+              className="h-9.5 w-full text-xs font-semibold rounded-xl gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900"
             >
               <Send className="size-3.5" />
               <span>ارسال پرونده برای تأیید نهایی</span>

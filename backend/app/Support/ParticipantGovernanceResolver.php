@@ -55,6 +55,13 @@ class ParticipantGovernanceResolver
 
     public function actorOwner(Meeting $meeting, User $actor): ?array
     {
+        if ($this->isInternalDirectorate($meeting)) {
+            $unitId = $this->internalDirectorateId($meeting);
+            return $unitId > 0 && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId)
+                ? ['owner_type' => 'UNIT', 'owner_unit_id' => $unitId]
+                : null;
+        }
+
         if ($this->isAuthorityOwner($meeting, $actor)) {
             return ['owner_type' => 'AUTHORITY', 'owner_unit_id' => null];
         }
@@ -79,6 +86,12 @@ class ParticipantGovernanceResolver
     public function mayPrepare(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId): bool
     {
         if (!$actor->isActive() || !$actor->can('meeting-participant-change.create')) return false;
+        if ($this->isInternalDirectorate($meeting)) {
+            $unitId = $this->internalDirectorateId($meeting);
+            return $ownerType === 'UNIT' && $unitId > 0 && (int) $ownerUnitId === $unitId
+                && $actor->can('meeting-participant-change.manage')
+                && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $unitId);
+        }
         if ($ownerType === 'AUTHORITY') {
             return $actor->can('meeting-participant-change.manage') && $this->isAuthorityOwner($meeting, $actor);
         }
@@ -86,9 +99,15 @@ class ParticipantGovernanceResolver
             && $actor->hasScopedRole('EXECUTIVE_MANAGEMENT', $ownerUnitId);
     }
 
-    public function mayConfirm(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId): bool
+    public function mayConfirm(Meeting $meeting, User $actor, string $ownerType, ?int $ownerUnitId, ?int $preparerUserId = null): bool
     {
         if (!$actor->isActive() || !$actor->can('meeting-participant-change.confirm')) return false;
+        if ($this->isInternalDirectorate($meeting)) {
+            $unitId = $this->internalDirectorateId($meeting);
+            return $ownerType === 'UNIT' && $unitId > 0 && (int) $ownerUnitId === $unitId
+                && ($preparerUserId === null || (int) $preparerUserId !== (int) $actor->id)
+                && $actor->hasScopedRole('DIRECTOR', $unitId);
+        }
         if ($ownerType === 'AUTHORITY') return $this->isAuthorityOwner($meeting, $actor);
         if ($ownerType !== 'UNIT' || !$ownerUnitId) return false;
         return in_array($ownerUnitId, $this->resolve($meeting)['formal_unit_ids'], true)
@@ -99,5 +118,15 @@ class ParticipantGovernanceResolver
     {
         return $actor->isActive() && $actor->can('meeting-participant-change.view-history')
             && app(\App\Policies\MeetingGovernancePolicy::class)->view($actor, $meeting);
+    }
+
+    public function isInternalDirectorate(Meeting $meeting): bool
+    {
+        return (string) ($meeting->request?->flow_type ?? '') === 'INTERNAL_DIRECTORATE';
+    }
+
+    public function internalDirectorateId(Meeting $meeting): int
+    {
+        return (int) ($meeting->request?->requesting_unit_id ?: $meeting->organizing_unit_id ?: 0);
     }
 }

@@ -103,10 +103,65 @@ class ParticipantChangeValidator
             }
         }
 
-        $this->assertMinimums($case->meeting, $byEmployee->values()->all());
-        $this->assertProtectedParticipants($case->meeting, $byEmployee->values()->all());
+        $projected = $byEmployee->values()->all();
+        $ids = array_map(static fn (array $member): int => (int) $member['employee_id'], $projected);
+        if (count($ids) !== count(array_unique($ids))) {
+            throw new HttpException(422, 'DUPLICATE_FINAL_PARTICIPANTS');
+        }
+        $this->assertMinimums($case->meeting, $projected);
+        $this->assertProtectedParticipants($case->meeting, $projected);
 
-        return $byEmployee->values()->sortBy('employee_id')->values()->all();
+        return collect($projected)->sortBy('employee_id')->values()->all();
+    }
+
+    /** Validate the complete proposed delta after each internal-flow mutation. */
+    public function assertInternalDraftConsistent(MeetingParticipantChangeCase $case, array $items): void
+    {
+        $oldIds = [];
+        $newIds = [];
+        foreach ($items as $item) {
+            $operation = strtoupper((string) $item['operation']);
+            $oldId = isset($item['old_employee_id']) ? (int) $item['old_employee_id'] : null;
+            $newId = isset($item['new_employee_id']) ? (int) $item['new_employee_id'] : null;
+            $this->assertItem($case, $operation, $oldId, $newId);
+
+            if (in_array($operation, ['REMOVE', 'REPLACE'], true)) {
+                if (isset($oldIds[$oldId])) throw new HttpException(422, 'CONTRADICTORY_PARTICIPANT_CHANGE');
+                $oldIds[$oldId] = true;
+            }
+            if (in_array($operation, ['ADD', 'REPLACE'], true)) {
+                if (isset($newIds[$newId])) throw new HttpException(422, 'CONTRADICTORY_PARTICIPANT_CHANGE');
+                $newIds[$newId] = true;
+            }
+        }
+
+        $baseline = $case->baselineParticipantVersion->members->map(fn ($member): array => [
+            'employee_id' => (int) $member->employee_id,
+            'organizational_unit_id' => (int) $member->organizational_unit_id,
+            'participant_role' => $member->participant_role,
+            'owner_type' => $member->owner_type,
+            'owner_unit_id' => $member->owner_unit_id,
+            'is_mandatory' => (bool) $member->is_mandatory,
+        ])->all();
+        $this->applyDeltaToItems($case, $baseline, $items);
+    }
+
+    private function applyDeltaToItems(MeetingParticipantChangeCase $case, array $members, array $items): array
+    {
+        $byEmployee = collect($members)->keyBy(fn (array $member): int => (int) $member['employee_id']);
+        foreach ($items as $item) {
+            $operation = strtoupper((string) $item['operation']);
+            if (in_array($operation, ['REMOVE', 'REPLACE'], true)) $byEmployee->forget((int) $item['old_employee_id']);
+            if (in_array($operation, ['ADD', 'REPLACE'], true)) {
+                $employee = Employee::findOrFail((int) $item['new_employee_id']);
+                if ($byEmployee->has((int) $employee->id)) throw new HttpException(422, 'DUPLICATE_FINAL_PARTICIPANTS');
+                $byEmployee->put($employee->id, $this->memberFromEmployee($employee, $case, $item['participant_role'] ?: 'PARTICIPATING'));
+            }
+        }
+        $projected = $byEmployee->values()->all();
+        $this->assertMinimums($case->meeting, $projected);
+        $this->assertProtectedParticipants($case->meeting, $projected);
+        return $projected;
     }
 
     public function assertFinalConflicts(Meeting $meeting, array $members, array $candidateEmployeeIds = []): void
@@ -180,6 +235,13 @@ class ParticipantChangeValidator
 
     private function assertMinimums(Meeting $meeting, array $members): void
     {
+        if ($this->governance->isInternalDirectorate($meeting)) {
+            $unitId = $this->governance->internalDirectorateId($meeting);
+            $count = collect($members)->filter(fn (array $member): bool => $member['owner_type'] === 'UNIT' && (int) ($member['owner_unit_id'] ?? 0) === $unitId)->count();
+            if ($unitId < 1 || $count < 1) throw new HttpException(422, 'UNIT_PARTICIPANT_REQUIRED');
+            return;
+        }
+
         $formalUnits = $this->governance->resolve($meeting)['formal_units'];
         foreach ($formalUnits as $formalUnit) {
             $unitId = (int) $formalUnit->organizational_unit_id;

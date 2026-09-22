@@ -111,8 +111,15 @@ class MeetingPolicy
 
     public function participantChangeConfirm(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool
     {
+        $activeCase = $meeting->activeParticipantChangeCase()->first();
         return $this->view($user, $meeting)
-            && app(\App\Support\ParticipantGovernanceResolver::class)->mayConfirm($meeting, $user, $ownerType, $ownerUnitId);
+            && app(\App\Support\ParticipantGovernanceResolver::class)->mayConfirm(
+                $meeting,
+                $user,
+                $ownerType,
+                $ownerUnitId,
+                $activeCase ? (int) $activeCase->initiated_by_user_id : null,
+            );
     }
 
     public function participantChangeReturn(User $user, Meeting $meeting, string $ownerType, ?int $ownerUnitId = null): bool

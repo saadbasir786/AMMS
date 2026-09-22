@@ -5,20 +5,25 @@ namespace Tests\Feature;
 use App\Actions\Meetings\AddMeetingParticipantChangeItem;
 use App\Actions\Meetings\ConfirmMeetingParticipantChange;
 use App\Actions\Meetings\CreateMeetingParticipantChangeCase;
+use App\Actions\Meetings\DeleteMeetingParticipantChangeItem;
 use App\Actions\Meetings\RefreshParticipantChangeCaseBaseline;
 use App\Actions\Meetings\RejectMeetingParticipantChange;
 use App\Actions\Meetings\RemoveMeetingParticipantChangeItem;
 use App\Actions\Meetings\ReturnMeetingParticipantChange;
 use App\Actions\Meetings\SubmitMeetingParticipantChange;
+use App\Actions\Meetings\UpdateMeetingParticipantChangeCase;
 use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingAuthorityContext;
 use App\Models\MeetingParticipant;
+use App\Models\MeetingParticipantVersionMember;
 use App\Models\MeetingRequest;
 use App\Models\MeetingUnit;
 use App\Models\OrganizationalUnit;
 use App\Models\OrganizationAuthority;
 use App\Models\User;
+use App\Models\AmmsRoleScope;
+use Spatie\Permission\Models\Role;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,6 +67,32 @@ class MeetingParticipantChangeTest extends TestCase
         $this->assertSame(collect([$employees['financeDirector']->id, $employees['hrDirector']->id, $employees['techEmployee']->id])->sort()->values()->all(), $fresh->meeting->participants->sortBy('employee_id')->pluck('employee_id')->values()->all());
         $this->assertSame(2, $fresh->meeting->participantVersions()->count());
         $this->assertSame(1, $fresh->meeting->rescheduleActions()->where('action', 'MEETING_PARTICIPANTS_CHANGED')->count());
+
+        $changeAction = $fresh->meeting->rescheduleActions()->where('action', 'MEETING_PARTICIPANTS_CHANGED')->firstOrFail();
+        $this->assertSame($employees['techDirector']->full_name, $changeAction->metadata['operations'][0]['old_employee']['full_name']);
+        $this->assertSame($employees['techEmployee']->full_name, $changeAction->metadata['operations'][0]['new_employee']['full_name']);
+        $this->actingAs($users['techDirector'], 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/participant-change")
+            ->assertOk()
+            ->assertJsonPath('data.participant_actions.0.metadata.operations.0.old_employee.full_name', $employees['techDirector']->full_name)
+            ->assertJsonPath('data.participant_actions.0.metadata.operations.0.new_employee.full_name', $employees['techEmployee']->full_name)
+            ->assertJsonPath('data.participant_versions.0.source_change_case.items.0.old_employee.full_name', $employees['techDirector']->full_name)
+            ->assertJsonPath('data.participant_versions.0.source_change_case.items.0.new_employee.full_name', $employees['techEmployee']->full_name)
+            ->assertJsonPath('data.participant_versions.0.created_by.name', $users['techDirector']->name);
+    }
+
+    public function test_deleting_a_draft_item_keeps_the_affected_participant_in_audit_metadata(): void
+    {
+        [$meeting, $users, $employees] = $this->peerMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'ط¯ظ„غŒظ„ طھط؛غŒغŒط± ط¹ط¶ظˆ');
+        $item = app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['techDirector']->id, $employees['techEmployee']->id);
+
+        app(DeleteMeetingParticipantChangeItem::class)->execute($meeting, $case, $item, $users['techExec']);
+
+        $deleteAction = $meeting->fresh()->rescheduleActions()->where('action', 'PARTICIPANT_CHANGE_ITEM_DELETED')->firstOrFail();
+        $this->assertSame('REPLACE', $deleteAction->metadata['operation']);
+        $this->assertSame($employees['techDirector']->full_name, $deleteAction->metadata['old_employee']['full_name']);
+        $this->assertSame($employees['techEmployee']->full_name, $deleteAction->metadata['new_employee']['full_name']);
     }
 
     public function test_draft_does_not_mutate_current_projection_and_one_active_case_is_enforced(): void
@@ -206,6 +237,202 @@ class MeetingParticipantChangeTest extends TestCase
         $this->assertSame(2, $meeting->fresh('currentParticipantVersion')->currentParticipantVersion->version_number);
     }
 
+    public function test_internal_directorate_roles_and_self_approval_are_enforced(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        try {
+            app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techDirector'], 'دلیل تغییر');
+            $this->fail('A Director must not create the internal draft.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        $case = app(UpdateMeetingParticipantChangeCase::class)->execute($meeting, $case, $users['techExec'], 'دلیل به‌روزشده');
+        $this->assertSame('دلیل به‌روزشده', $case->reason);
+        try {
+            app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techDirector'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+            $this->fail('Director must not edit the preparer draft.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+
+        foreach ([$users['techExec'], $users['financeDirector']] as $denied) {
+            try {
+                app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $denied);
+                $this->fail('Only a different Director of the same Directorate may confirm.');
+            } catch (HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        }
+
+        $techUnitId = (int) $meeting->request->requesting_unit_id;
+        $directorRole = Role::findByName('DIRECTOR', 'sanctum');
+        $users['techExec']->assignRole($directorRole);
+        AmmsRoleScope::create(['user_id' => $users['techExec']->id, 'role_id' => $directorRole->id, 'organizational_unit_id' => $techUnitId]);
+        try {
+            app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+            $this->fail('The preparer must not self-approve even when also scoped as Director.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+        $this->assertSame('PENDING_CONFIRMATION', $case->fresh()->status);
+        $this->assertSame($employees['oldInternal']->id, $meeting->fresh()->participants()->where('employee_id', $employees['oldInternal']->id)->value('employee_id'));
+    }
+
+    public function test_internal_draft_rejects_contradictions_and_last_directorate_participant_removal(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+
+        foreach ([
+            fn () => app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REMOVE', $employees['oldInternal']->id, null),
+            fn () => app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'ADD', null, $employees['newInternal']->id),
+        ] as $contradiction) {
+            try {
+                $contradiction();
+                $this->fail('Contradictory operations should be rejected immediately.');
+            } catch (HttpException $exception) {
+                $this->assertSame(422, $exception->getStatusCode());
+            }
+        }
+
+        [$meeting2, $users2, $employees2] = $this->internalMeeting();
+        $removeCase = app(CreateMeetingParticipantChangeCase::class)->execute($meeting2, $users2['techExec'], 'حذف آخر عضو');
+        try {
+            app(RemoveMeetingParticipantChangeItem::class)->execute($meeting2, $removeCase, $users2['techExec'], $employees2['oldInternal']->id);
+            $this->fail('Removing the final valid Directorate participant must be rejected.');
+        } catch (HttpException $exception) {
+            $this->assertSame(422, $exception->getStatusCode());
+        }
+        $this->assertSame(0, $removeCase->fresh()->items()->count());
+        $this->assertSame(2, $meeting2->fresh()->participants()->count());
+    }
+
+    public function test_internal_workflow_notifications_and_mandatory_rejection_reason(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        $this->assertDatabaseHas('amms_notifications', ['user_id' => $users['techDirector']->id, 'type' => 'PARTICIPANT_CHANGE_REVIEW_REQUIRED']);
+
+        app(ReturnMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector'], 'لطفاً دلیل اصلاح را تکمیل کنید.');
+        $this->assertDatabaseHas('amms_notifications', ['user_id' => $users['techExec']->id, 'type' => 'PARTICIPANT_CHANGE_RETURNED']);
+        $this->assertSame('PARTICIPANT_CHANGE_RETURNED', $meeting->fresh()->rescheduleActions()->latest('id')->value('action'));
+        $this->actingAs($users['techExec'], 'sanctum')->getJson("/api/meetings/{$meeting->id}/participant-change")
+            ->assertOk()
+            ->assertJsonPath('data.latest_director_review.action', 'PARTICIPANT_CHANGE_RETURNED')
+            ->assertJsonPath('data.latest_director_review.comment', 'لطفاً دلیل اصلاح را تکمیل کنید.')
+            ->assertJsonPath('data.latest_director_review.actor.id', $users['techDirector']->id);
+
+        $this->actingAs($users['techExec'], 'sanctum')
+            ->getJson("/api/meetings/{$meeting->id}/participant-change?participant_versions_page=2&actions_page=1&per_page=1")
+            ->assertOk()
+            ->assertJsonPath('data.participant_versions_meta.current_page', 2)
+            ->assertJsonPath('data.participant_actions_meta.current_page', 1);
+
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        try {
+            app(RejectMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector'], '  ');
+            $this->fail('Rejection requires a reason.');
+        } catch (HttpException $exception) {
+            $this->assertSame(422, $exception->getStatusCode());
+        }
+        app(RejectMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector'], 'درخواست به دلیل نبود ضرورت رد شد.');
+        $this->assertDatabaseHas('amms_notifications', ['user_id' => $users['techExec']->id, 'type' => 'PARTICIPANT_CHANGE_REJECTED']);
+        $this->assertNull($meeting->fresh()->active_participant_change_case_id);
+        $this->assertSame($employees['oldInternal']->id, $meeting->fresh()->participants()->where('employee_id', $employees['oldInternal']->id)->value('employee_id'));
+    }
+
+    public function test_internal_candidates_must_be_active_and_in_the_same_directorate_and_chair_is_immutable(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        try {
+            app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $this->employee('finance.exec@example.test')->id);
+            $this->fail('Cross-Directorate participants must be rejected.');
+        } catch (HttpException $exception) {
+            $this->assertSame('EMPLOYEE_OUTSIDE_PARTICIPANT_DOMAIN', $exception->getMessage());
+        }
+        $inactive = Employee::create(['employee_number' => 'INTERNAL-INACTIVE-'.uniqid(), 'first_name' => 'Inactive', 'last_name' => 'Candidate', 'organizational_unit_id' => $this->unit('TECH')->id, 'status' => 'INACTIVE']);
+        try {
+            app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $inactive->id);
+            $this->fail('Inactive participants must be rejected.');
+        } catch (HttpException $exception) {
+            $this->assertSame('EMPLOYEE_INACTIVE', $exception->getMessage());
+        }
+
+        [$chairMeeting, $chairUsers, $chairEmployees] = $this->internalMeeting();
+        $chairMeeting->update(['chairperson_employee_id' => $chairEmployees['oldInternal']->id]);
+        $chairCase = app(CreateMeetingParticipantChangeCase::class)->execute($chairMeeting, $chairUsers['techExec'], 'دلیل تغییر');
+        try {
+            app(RemoveMeetingParticipantChangeItem::class)->execute($chairMeeting, $chairCase, $chairUsers['techExec'], $chairEmployees['oldInternal']->id);
+            $this->fail('The chairperson cannot be removed.');
+        } catch (HttpException $exception) {
+            $this->assertSame('CHAIRPERSON_PARTICIPANT_REQUIRED', $exception->getMessage());
+        }
+    }
+
+    public function test_internal_submit_and_confirm_revalidate_central_schedule_conflicts(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+
+        $conflict = $this->conflictingMeetingFor($meeting, $users['techExec'], $employees['newInternal']);
+        try {
+            app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+            $this->fail('Submit must detect participant schedule conflicts.');
+        } catch (HttpException $exception) {
+            $this->assertSame('PARTICIPANT_SCHEDULE_CONFLICT', $exception->getMessage());
+        }
+
+        $conflict->update(['status' => 'CANCELLED']);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        $confirmConflict = $this->conflictingMeetingFor($meeting, $users['techExec'], $employees['newInternal']);
+        try {
+            app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector']);
+            $this->fail('Confirm must revalidate participant schedule conflicts.');
+        } catch (HttpException $exception) {
+            $this->assertSame('PARTICIPANT_SCHEDULE_CONFLICT', $exception->getMessage());
+        }
+        $this->assertSame('PENDING_CONFIRMATION', $case->fresh()->status);
+        $this->assertSame($employees['oldInternal']->id, $meeting->fresh()->participants()->where('employee_id', $employees['oldInternal']->id)->value('employee_id'));
+        $confirmConflict->update(['status' => 'CANCELLED']);
+        app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector']);
+        $this->assertSame(2, $meeting->fresh('currentParticipantVersion')->currentParticipantVersion->version_number);
+    }
+
+    public function test_internal_schedule_version_change_requires_refresh_and_resubmission(): void
+    {
+        [$meeting, $users, $employees] = $this->internalMeeting();
+        $case = app(CreateMeetingParticipantChangeCase::class)->execute($meeting, $users['techExec'], 'دلیل تغییر');
+        app(AddMeetingParticipantChangeItem::class)->execute($meeting, $case, $users['techExec'], 'REPLACE', $employees['oldInternal']->id, $employees['newInternal']->id);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        $schedule = app(ScheduleVersionService::class)->createNext($meeting, [
+            'meeting_date' => now()->addDays(25)->format('Y-m-d'),
+            'start_time' => '13:00',
+            'end_time' => '14:00',
+            'location' => 'تالار جدید',
+        ], $users['techExec']->id);
+        app(ScheduleVersionService::class)->applyToMeeting($meeting, $schedule);
+        try {
+            app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector']);
+            $this->fail('Stale schedule baseline must block confirmation.');
+        } catch (HttpException $exception) {
+            $this->assertSame('MEETING_SCHEDULE_CHANGED_REVIEW_REQUIRED', $exception->getMessage());
+        }
+        $refreshed = app(RefreshParticipantChangeCaseBaseline::class)->execute($meeting, $case, $users['techExec']);
+        $this->assertSame('DRAFT', $refreshed->status);
+        app(SubmitMeetingParticipantChange::class)->execute($meeting, $case, $users['techExec']);
+        app(ConfirmMeetingParticipantChange::class)->execute($meeting, $case, $users['techDirector']);
+        $this->assertSame(2, $meeting->fresh('currentParticipantVersion')->currentParticipantVersion->version_number);
+    }
+
     public function test_direct_participant_mutation_route_is_blocked(): void
     {
         [$meeting, $users] = $this->peerMeeting();
@@ -291,5 +518,73 @@ class MeetingParticipantChangeTest extends TestCase
         $users['authorityOffice'] = $this->user('authority.office@example.test');
 
         return [$meeting->fresh(['request', 'authorityContext', 'units.unit', 'participants.employee.unit', 'currentParticipantVersion.members.employee.unit', 'currentScheduleVersion']), $users, $employees];
+    }
+
+    private function internalMeeting(): array
+    {
+        [$meeting, $users] = $this->peerMeeting();
+        $techUnit = $this->unit('TECH');
+        $meeting->request->update(['flow_type' => 'INTERNAL_DIRECTORATE', 'requesting_unit_id' => $techUnit->id]);
+        $meeting->units()->where('organizational_unit_id', '<>', $techUnit->id)->delete();
+        $meeting->participants()->delete();
+        $chairperson = $this->employee('finance.director@example.test');
+        $meeting->update(['chairperson_employee_id' => $chairperson->id]);
+        $meeting->participants()->create(['employee_id' => $chairperson->id, 'organizational_unit_id' => $chairperson->organizational_unit_id, 'role' => 'PARTICIPATING']);
+
+        $oldEmployee = Employee::create(['employee_number' => 'INTERNAL-OLD-'.uniqid(), 'first_name' => 'Internal', 'last_name' => 'Old', 'organizational_unit_id' => $techUnit->id, 'status' => 'ACTIVE']);
+        $newEmployee = Employee::create(['employee_number' => 'INTERNAL-NEW-'.uniqid(), 'first_name' => 'Internal', 'last_name' => 'New', 'organizational_unit_id' => $techUnit->id, 'status' => 'ACTIVE']);
+        $meeting->participants()->create(['employee_id' => $oldEmployee->id, 'organizational_unit_id' => $techUnit->id, 'role' => 'PARTICIPATING']);
+
+        $version = $meeting->currentParticipantVersion;
+        $version->members()->delete();
+        foreach ([$chairperson, $oldEmployee] as $employee) {
+            MeetingParticipantVersionMember::create([
+                'participant_version_id' => $version->id,
+                'employee_id' => $employee->id,
+                'organizational_unit_id' => $techUnit->id,
+                'participant_role' => 'PARTICIPATING',
+                'owner_type' => (int) $employee->organizational_unit_id === (int) $techUnit->id ? 'UNIT' : 'AUTHORITY',
+                'owner_unit_id' => (int) $employee->organizational_unit_id === (int) $techUnit->id ? $techUnit->id : null,
+                'is_mandatory' => false,
+                'created_at' => now(),
+            ]);
+        }
+
+        return [$meeting->fresh(['request', 'units.unit', 'participants.employee.unit', 'currentParticipantVersion.members.employee.unit', 'currentScheduleVersion']), $users, ['oldInternal' => $oldEmployee, 'newInternal' => $newEmployee]];
+    }
+
+    private function conflictingMeetingFor(Meeting $meeting, User $actor, Employee $participant): Meeting
+    {
+        $unitId = (int) $meeting->organizing_unit_id;
+        $request = MeetingRequest::create([
+            'request_number' => 'INTERNAL-CONFLICT-'.uniqid(),
+            'flow_type' => 'INTERNAL_DIRECTORATE',
+            'requesting_unit_id' => $unitId,
+            'created_by' => $actor->id,
+            'subject' => 'تعارض زمان‌بندی آزمایشی',
+            'purpose' => 'COORDINATION',
+            'status' => 'CONVERTED_TO_MEETING',
+            'coordinator_id' => $actor->id,
+        ]);
+        $conflict = Meeting::create([
+            'meeting_request_id' => $request->id,
+            'meeting_number' => 'INTERNAL-CONFLICT-M-'.uniqid(),
+            'title' => $request->subject,
+            'organizing_unit_id' => $unitId,
+            'coordinator_id' => $actor->id,
+            'chairperson_employee_id' => $this->employee('tech.director@example.test')->id,
+            'meeting_date' => $meeting->meeting_date->format('Y-m-d'),
+            'start_time' => $meeting->start_time,
+            'end_time' => $meeting->end_time,
+            'location' => 'محل دیگر',
+            'status' => 'SCHEDULED',
+        ]);
+        MeetingParticipant::create([
+            'meeting_id' => $conflict->id,
+            'employee_id' => $participant->id,
+            'organizational_unit_id' => $participant->organizational_unit_id,
+            'role' => 'PARTICIPATING',
+        ]);
+        return $conflict;
     }
 }

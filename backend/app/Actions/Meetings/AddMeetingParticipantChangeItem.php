@@ -30,6 +30,21 @@ class AddMeetingParticipantChangeItem
             });
             if ($duplicate) throw new HttpException(422, 'PARTICIPANT_CHANGE_NOT_READY');
 
+            if ($this->governance()->isInternalDirectorate($meeting)) {
+                $draftItems = $case->items->map(fn (MeetingParticipantChangeItem $existing): array => [
+                    'operation' => $existing->operation,
+                    'old_employee_id' => $existing->old_employee_id,
+                    'new_employee_id' => $existing->new_employee_id,
+                    'participant_role' => $existing->participant_role,
+                ])->push([
+                    'operation' => $operation,
+                    'old_employee_id' => $oldEmployeeId,
+                    'new_employee_id' => $newEmployeeId,
+                    'participant_role' => $participantRole,
+                ])->all();
+                $this->validator()->assertInternalDraftConsistent($case, $draftItems);
+            }
+
             $item = $case->items()->create([
                 'operation' => $operation,
                 'old_employee_id' => $oldEmployeeId,

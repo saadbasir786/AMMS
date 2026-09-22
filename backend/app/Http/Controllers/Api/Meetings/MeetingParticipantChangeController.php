@@ -14,6 +14,7 @@ use App\Actions\Meetings\SubmitMeetingParticipantChange;
 use App\Actions\Meetings\UpdateMeetingParticipantChangeCase;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\MeetingResource;
+use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingParticipantChangeItem;
@@ -109,8 +110,12 @@ class MeetingParticipantChangeController
     public function reject(Request $request, Meeting $meeting, MeetingParticipantChangeCase $case, RejectMeetingParticipantChange $action): JsonResponse
     {
         $this->assertCaseBelongsToMeeting($case, $meeting);
+        $rules = (string) $meeting->request?->flow_type === 'INTERNAL_DIRECTORATE'
+            ? ['reason' => ['required', 'string']]
+            : ['reason' => ['sometimes', 'nullable', 'string']];
+        $reason = $request->validate($rules)['reason'] ?? null;
 
-        return response()->json(['data' => $action->execute($meeting, $case, $request->user(), $request->input('reason'))]);
+        return response()->json(['data' => $action->execute($meeting, $case, $request->user(), $reason)]);
     }
 
     public function refreshBaseline(Request $request, Meeting $meeting, MeetingParticipantChangeCase $case, RefreshParticipantChangeCaseBaseline $action): JsonResponse
@@ -130,8 +135,15 @@ class MeetingParticipantChangeController
     public function history(Request $request, Meeting $meeting): JsonResponse
     {
         Gate::authorize('participantChangeViewHistory', $meeting);
-        $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->with(['members.employee.unit', 'sourceChangeCase'])->orderByDesc('version_number')->orderByDesc('id'), $request);
-        $actions = MeetingWorkspacePagination::read($this->participantActions($meeting), $request);
+        $versionsPage = $request->has('participant_versions_page') ? 'participant_versions_page' : 'page';
+        $actionsPage = $request->has('actions_page') ? 'actions_page' : 'page';
+        $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->with([
+            'members.employee.unit',
+            'sourceChangeCase.items.oldEmployee.unit',
+            'sourceChangeCase.items.newEmployee.unit',
+            'createdBy',
+        ])->orderByDesc('version_number')->orderByDesc('id'), $request, $versionsPage);
+        $actions = $this->withParticipantSnapshots(MeetingWorkspacePagination::read($this->participantActions($meeting), $request, $actionsPage));
 
         return response()->json(['data' => [
             'meeting_id' => $meeting->id,
@@ -149,8 +161,15 @@ class MeetingParticipantChangeController
             'activeParticipantChangeCase.items.oldEmployee.unit', 'activeParticipantChangeCase.items.newEmployee.unit',
             'activeParticipantChangeCase.ownerUnit', 'activeParticipantChangeCase.baselineScheduleVersion',
         ]);
-        $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->orderByDesc('version_number')->orderByDesc('id'), $request);
-        $actions = MeetingWorkspacePagination::read($this->participantActions($meeting), $request);
+        $versionsPage = $request->has('participant_versions_page') ? 'participant_versions_page' : 'page';
+        $actionsPage = $request->has('actions_page') ? 'actions_page' : 'page';
+        $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->with([
+            'members.employee.unit',
+            'sourceChangeCase.items.oldEmployee.unit',
+            'sourceChangeCase.items.newEmployee.unit',
+            'createdBy',
+        ])->orderByDesc('version_number')->orderByDesc('id'), $request, $versionsPage);
+        $actions = $this->withParticipantSnapshots(MeetingWorkspacePagination::read($this->participantActions($meeting), $request, $actionsPage));
 
         return [
             'meeting' => new MeetingResource($meeting),
@@ -158,6 +177,9 @@ class MeetingParticipantChangeController
             'current_participant_version' => $meeting->currentParticipantVersion,
             'current_participants' => $meeting->participants,
             'active_participant_change_case' => $meeting->activeParticipantChangeCase,
+            'latest_director_review' => $meeting->rescheduleActions()->with('actor')
+                ->whereIn('action', ['PARTICIPANT_CHANGE_RETURNED', 'PARTICIPANT_CHANGE_REJECTED'])
+                ->latest('id')->first(),
             'participant_versions' => $versions['data'], 'participant_versions_meta' => $versions['meta'],
             'participant_actions' => $actions['data'], 'participant_actions_meta' => $actions['meta'],
             'employee_options' => $this->employeeOptions($meeting, $request->user()),
@@ -174,6 +196,62 @@ class MeetingParticipantChangeController
     {
         return app(ParticipantCandidateQuery::class)->forActor($meeting, $actor)
             ->orderBy('first_name')->orderBy('id')->limit(15)->get();
+    }
+
+    private function withParticipantSnapshots(array $page): array
+    {
+        $rows = $page['data'] ?? [];
+        $employeeIds = collect($rows)->flatMap(function (array $action): array {
+            $metadata = (array) ($action['metadata'] ?? []);
+            $ids = [$metadata['old_employee_id'] ?? null, $metadata['new_employee_id'] ?? null];
+            foreach (($metadata['operations'] ?? []) as $operation) {
+                $ids[] = $operation['old_employee_id'] ?? null;
+                $ids[] = $operation['new_employee_id'] ?? null;
+            }
+            return $ids;
+        })->filter()->map(fn ($id): int => (int) $id)->unique()->values();
+
+        if ($employeeIds->isEmpty()) return $page;
+
+        $employees = Employee::query()->with('unit')->whereIn('id', $employeeIds)->get()->keyBy('id');
+        $snapshot = static function ($id) use ($employees): ?array {
+            $employee = $employees->get((int) $id);
+            if (!$employee) return null;
+            return [
+                'id' => (int) $employee->id,
+                'full_name' => $employee->full_name,
+                'employee_number' => $employee->employee_number,
+                'unit_name' => $employee->unit?->name,
+            ];
+        };
+
+        foreach ($rows as &$action) {
+            $metadata = (array) ($action['metadata'] ?? []);
+            foreach (['old', 'new'] as $side) {
+                $key = "{$side}_employee";
+                $idKey = "{$side}_employee_id";
+                if (!isset($metadata[$key]) && !empty($metadata[$idKey])) {
+                    $metadata[$key] = $snapshot($metadata[$idKey]);
+                }
+            }
+            if (isset($metadata['operations']) && is_array($metadata['operations'])) {
+                foreach ($metadata['operations'] as &$operation) {
+                    foreach (['old', 'new'] as $side) {
+                        $key = "{$side}_employee";
+                        $idKey = "{$side}_employee_id";
+                        if (!isset($operation[$key]) && !empty($operation[$idKey])) {
+                            $operation[$key] = $snapshot($operation[$idKey]);
+                        }
+                    }
+                }
+                unset($operation);
+            }
+            $action['metadata'] = $metadata;
+        }
+        unset($action);
+        $page['data'] = $rows;
+
+        return $page;
     }
 
     private function assertCaseBelongsToMeeting(MeetingParticipantChangeCase $case, Meeting $meeting): void
