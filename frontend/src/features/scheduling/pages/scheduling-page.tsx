@@ -154,6 +154,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
   }, [loadData])
 
   const handleFieldChange = (field: keyof SchedulingFormValues, value: any) => {
+    setError(null)
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -430,7 +431,7 @@ export function SchedulingPage({ currentUser }: SchedulingPageProps) {
 
             {!isConfirmed ? (
               <>
-              {conflictResult?.blocking_conflicts?.length ? <Alert variant="destructive" className="rounded-2xl"><AlertCircle className="size-4" /><AlertDescription className="text-xs">این زمان به دلیل تعارض فردی یا محل داخلی قابل ثبت نیست.</AlertDescription></Alert> : null}
+              {!error && conflictResult?.blocking_conflicts?.length ? <Alert variant="destructive" className="rounded-2xl"><AlertCircle className="size-4" /><AlertDescription className="text-xs">این زمان به دلیل تعارض فردی یا محل داخلی قابل ثبت نیست.</AlertDescription></Alert> : null}
               {conflictResult?.warnings?.length ? <Alert className="rounded-2xl border-amber-300 bg-amber-50 text-amber-900"><AlertDescription className="text-xs">هم‌پوشانی زمانی ریاست مشاهده شد؛ در صورت نبود تعارض فردی یا محل، می‌توانید ادامه دهید.</AlertDescription></Alert> : null}
               <ScheduleFormCard
                 form={form}
