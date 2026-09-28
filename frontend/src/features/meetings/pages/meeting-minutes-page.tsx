@@ -27,6 +27,7 @@ import type {
 } from '../types'
 import type { Employee, OrganizationalUnit } from '@/features/organization/types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
+import { VersionInspector } from '../components/version-inspector'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'پیش‌نویس',
@@ -355,6 +356,7 @@ export function MeetingMinutesPage() {
               plannedAgendaItems={meeting.agenda_items || []}
               onCopyPlannedAgenda={handleCopyPlannedAgenda}
             />
+            {id && <VersionInspector endpoint={`/meetings/${id}/versions/minutes`} domain="minutes" currentVersionId={minutes?.current_version_id} />}
           </section>
 
           {/* Sidebar Column */}

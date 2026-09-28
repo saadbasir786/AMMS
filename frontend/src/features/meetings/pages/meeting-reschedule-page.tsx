@@ -30,6 +30,7 @@ import type { MeetingActionCapabilities } from '../types'
 import { WorkspacePagination } from '../components/workspace-pagination'
 import { WorkspaceAuditCard } from '../components/workspace-audit-card'
 import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
+import { VersionInspector } from '../components/version-inspector'
 
 export function MeetingReschedulePage() {
   const { id } = useParams<{ id: string }>()
@@ -309,7 +310,6 @@ export function MeetingReschedulePage() {
                 </div>
               </CardContent>
             </Card>
-
             {/* Active Reschedule Case */}
             {activeCase && (
               <RescheduleCaseCard
@@ -391,8 +391,8 @@ export function MeetingReschedulePage() {
 
             {/* Schedule History */}
             <Card className="border border-border/70 shadow-xs">
-              <CardHeader className="p-4 sm:p-5 border-b border-border/60">
-                <div className="flex items-center gap-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-3 p-4 sm:p-5 border-b border-border/60">
+                <div className="flex min-w-0 items-center gap-2">
                   <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <CalendarClock className="size-4" />
                   </div>
@@ -405,6 +405,7 @@ export function MeetingReschedulePage() {
                     </p>
                   </div>
                 </div>
+                {id && <VersionInspector endpoint={`/meetings/${id}/versions/schedule`} domain="schedule" currentVersionId={current?.id} triggerPlacement="inline" triggerLabel="مشاهده و مقایسه نسخه‌ها" />}
               </CardHeader>
               <CardContent className="p-4 sm:p-5 space-y-2">
                 {history.map((v) => (

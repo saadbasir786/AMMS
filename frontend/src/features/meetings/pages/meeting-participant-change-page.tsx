@@ -30,6 +30,7 @@ import { WorkspacePagination } from '../components/workspace-pagination'
 import { WorkspaceAuditCard } from '../components/workspace-audit-card'
 import { MeetingLifecycleBar } from '../components/meeting-lifecycle-bar'
 import { isParticipantBaselineStale } from '../lib/workspace-contracts'
+import { VersionInspector } from '../components/version-inspector'
 
 export function MeetingParticipantChangePage() {
   const { id } = useParams<{ id: string }>()
@@ -324,7 +325,6 @@ export function MeetingParticipantChangePage() {
                 )}
               </CardContent>
             </Card>
-
             {/* Stale Baseline Warning */}
             {isStale && (
               <Alert variant="destructive" className="rounded-2xl p-4">
@@ -420,20 +420,21 @@ export function MeetingParticipantChangePage() {
 
             {/* Versions History Card */}
             <Card className="border border-border/70 shadow-xs">
-              <CardHeader className="p-4 sm:p-5 border-b border-border/60">
+              <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 p-4 sm:p-5">
                 <div className="flex items-center gap-2">
-                  <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <History className="size-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-foreground">
-                      تاریخچه نسخه‌های فهرست اعضا
+                    <h3 className="text-xs font-bold text-foreground sm:text-sm">
+                      تاریخچه تغییرات اشتراک‌کنندگان
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      سوابق ثبت و اعمال تغییرات اشتراک‌کنندگان جلسه
+                      سوابق ثبت و اعمال تغییرات؛ مشاهده و مقایسه نسخه‌ها
                     </p>
                   </div>
                 </div>
+                {id && <VersionInspector endpoint={`/meetings/${id}/versions/participants`} domain="participants" currentVersionId={current?.id} triggerPlacement="inline" triggerLabel="مشاهده و مقایسه نسخه‌ها" />}
               </CardHeader>
               <CardContent className="p-4 sm:p-5 space-y-2">
                 {history.map((v) => (

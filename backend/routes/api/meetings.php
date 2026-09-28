@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Meetings\MeetingExecutionController;
 use App\Http\Controllers\Api\Meetings\MeetingMinutesController;
 use App\Http\Controllers\Api\Meetings\MeetingParticipantChangeController;
 use App\Http\Controllers\Api\Meetings\MeetingRescheduleController;
+use App\Http\Controllers\Api\Meetings\MeetingVersionInspectionController;
 use App\Http\Controllers\Api\Meetings\ScheduleConflictController;
 use App\Http\Controllers\Api\Meetings\MinutesApprovalDelegationController;
 use App\Http\Controllers\Api\Organization\DirectoryController;
@@ -14,6 +15,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Meetings Overview & Details
     Route::get('/meetings', [DirectoryController::class, 'meetings']);
     Route::get('/meetings/{meeting}/action-capabilities', [DirectoryController::class, 'meetingActionCapabilities']);
+    Route::get('/meetings/{meeting}/versions/{domain}', [MeetingVersionInspectionController::class, 'index']);
+    Route::get('/meetings/{meeting}/versions/{domain}/compare', [MeetingVersionInspectionController::class, 'compare']);
+    Route::get('/meetings/{meeting}/versions/{domain}/{version}', [MeetingVersionInspectionController::class, 'show']);
     Route::get('/meetings/{meeting}/schedule-conflicts', [ScheduleConflictController::class, 'meeting']);
     Route::get('/meetings/{meeting}', [DirectoryController::class, 'meeting']);
 

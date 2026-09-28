@@ -162,7 +162,6 @@ class MeetingParticipantChangeController
         $versionsPage = $request->has('participant_versions_page') ? 'participant_versions_page' : 'page';
         $actionsPage = $request->has('actions_page') ? 'actions_page' : 'page';
         $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->with([
-            'members.employee.unit',
             'sourceChangeCase.items.oldEmployee.unit',
             'sourceChangeCase.items.newEmployee.unit',
             'createdBy',
@@ -189,7 +188,6 @@ class MeetingParticipantChangeController
         $versionsPage = $request->has('participant_versions_page') ? 'participant_versions_page' : 'page';
         $actionsPage = $request->has('actions_page') ? 'actions_page' : 'page';
         $versions = MeetingWorkspacePagination::read($meeting->participantVersions()->with([
-            'members.employee.unit',
             'sourceChangeCase.items.oldEmployee.unit',
             'sourceChangeCase.items.newEmployee.unit',
             'createdBy',

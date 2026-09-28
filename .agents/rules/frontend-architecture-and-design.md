@@ -111,3 +111,11 @@ All user-facing text must be clear, professional, respectful, and free of develo
 2. **Local Commit Only**: The AI assistant must strictly perform only `git commit` and never run `git push`. Remote push operations are handled manually by the user.
 3. **Commit Atomicity**: Each commit must strictly encapsulate changes belonging to that specific feature and its associated route/types/cleanup, keeping the Git history clean, logical, and bisectable.
 4. **Zero Accumulation**: Never leave completed features uncommitted across multiple consecutive tasks.
+
+## 8. Business Version Inspection UX
+
+- Use the shared Version History / View / Compare experience for immutable business snapshots instead of implementing separate inspection dialogs in each feature.
+- Keep history lists lightweight and paginated. Fetch a complete snapshot only after a user chooses a version or comparison.
+- Mark the current version distinctly and make every historical view explicitly read-only. Never add restore, activate, apply, or rollback controls.
+- Render comparisons using domain labels and stable business identities. Do not show raw JSON or technical diffs; collection changes must distinguish added, removed, changed, and unchanged records.
+- Reuse the existing domain workspace's visible authorization boundary; the backend remains authoritative and may reject direct requests.

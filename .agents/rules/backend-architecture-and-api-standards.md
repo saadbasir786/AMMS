@@ -260,3 +260,13 @@ For a new module or a change to an existing module:
 - Maintain reusable backend implementation conventions here when a task establishes a concrete pattern; record material rule changes in the task handoff.
 - Never autonomously modify business authority, scope, roles, permissions, delegated capabilities, ownership, approval paths, lifecycle states or metric definitions. The authorization charter remains authoritative.
 - Keep rules consistent with each other and distinguish a desired standard from verified current compliance. Adding a rule does not certify that every existing endpoint already follows it.
+
+## 13. Business Version Inspection
+
+- Implement business snapshot inspection through a shared read-only service/controller contract with explicit domain adapters for summaries, full views, current-version identity and semantic comparisons.
+- Scope version queries through the authorized parent entity. Validate both comparison IDs against the same parent; never compare by accepting two unscoped version IDs.
+- Reuse each domain's existing Policy/Gate/Resolver. Do not create a global version permission that broadens business scope.
+- Paginate lightweight history summaries and load immutable snapshot relations only for a requested View or Compare. Avoid serializing all nested snapshots in workspace responses.
+- Comparators must be deterministic, directional and domain-aware. Match collections by stable business identity and exclude database-only fields from comparison semantics.
+- Keep inspection endpoints side-effect free. Never update version pointers, projections, workflows, notifications or audits as a consequence of reading a version.
+- Exclude sensitive technical versions such as biometric templates. If later audit metadata is needed, define an explicit safe adapter that never returns payloads, images, secrets or sensitive checksums.
