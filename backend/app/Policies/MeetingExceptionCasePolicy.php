@@ -16,6 +16,11 @@ class MeetingExceptionCasePolicy
         return $case->meeting && app(MeetingExceptionGovernanceResolver::class)->mayView($case->meeting, $user);
     }
 
+    public function viewHistory(User $user, MeetingExceptionCase $case): bool
+    {
+        return $case->meeting && app(MeetingExceptionGovernanceResolver::class)->mayHistoryView($case->meeting, $user);
+    }
+
     public function viewMeeting(User $user, Meeting $meeting): bool
     {
         return app(MeetingExceptionGovernanceResolver::class)->mayView($meeting, $user);

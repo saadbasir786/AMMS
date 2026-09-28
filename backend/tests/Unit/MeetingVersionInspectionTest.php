@@ -63,10 +63,13 @@ class MeetingVersionInspectionTest extends TestCase
         self::assertTrue($result['fields'][0]['changed']);
         self::assertCount(1, $result['collections']['items']['added']);
         self::assertCount(1, $result['collections']['items']['changed']);
-        self::assertCount(1, $result['collections']['decisions']['added']);
-        self::assertCount(1, $result['collections']['decisions']['removed']);
+        self::assertCount(0, $result['collections']['decisions']['added']);
+        self::assertCount(0, $result['collections']['decisions']['removed']);
+        self::assertCount(1, $result['collections']['decisions']['changed']);
+        self::assertSame('D1', $result['collections']['decisions']['changed'][0]['from']['decision_number']);
         self::assertCount(1, $result['collections']['attendanceSnapshots']['changed']);
-        self::assertSame(['from' => 4, 'to' => 8], $result['context']['schedule']);
+        self::assertSame(4, $result['context']['schedule']['from']['id']);
+        self::assertSame(8, $result['context']['schedule']['to']['id']);
     }
 
     private function participantVersion(array $members): MeetingParticipantVersion

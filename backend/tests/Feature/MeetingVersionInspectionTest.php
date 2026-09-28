@@ -6,6 +6,8 @@ namespace Tests\Feature;
 
 use App\Models\Meeting;
 use App\Models\Employee;
+use App\Models\MeetingExceptionCase;
+use App\Models\MeetingExceptionCaseVersion;
 use App\Models\MeetingRequest;
 use App\Models\MeetingParticipantChangeCase;
 use App\Models\MeetingParticipantVersion;
@@ -107,7 +109,43 @@ class MeetingVersionInspectionTest extends TestCase
             ->assertJsonPath('data.comparison.history.2.new.name', $employees['EMP-TECH-004']->full_name);
 
         $this->getJson('/api/meetings/'.$meeting->id.'/versions/participants/compare?from_id='.$version4->id.'&to_id='.$version1->id)
-            ->assertOk()->assertJsonPath('data.comparison.history.0.type', 'add')->assertJsonPath('data.comparison.history.2.type', 'replace');
+            ->assertOk()
+            ->assertJsonPath('data.from.version_number', 4)
+            ->assertJsonPath('data.to.version_number', 1)
+            ->assertJsonPath('data.comparison.history.0.type', 'replace')
+            ->assertJsonPath('data.comparison.history.0.version_number', 4)
+            ->assertJsonPath('data.comparison.history.0.old.name', $employees['EMP-TECH-004']->full_name)
+            ->assertJsonPath('data.comparison.history.0.new.name', $employees['EMP-TECH-003']->full_name)
+            ->assertJsonPath('data.comparison.history.1.type', 'add')
+            ->assertJsonPath('data.comparison.history.2.type', 'remove');
+    }
+
+    public function test_authorized_user_can_view_and_compare_exception_versions_as_read_only_business_snapshots(): void
+    {
+        $actor = User::where('email', 'tech.director@example.test')->firstOrFail();
+        $this->grant($actor, 'meeting.exception.view');
+        $this->grant($actor, 'meeting.exception.history.view');
+        $meeting = $this->meeting($actor, 'VERSION-EXCEPTION');
+        $case = MeetingExceptionCase::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'meeting_id' => $meeting->id, 'case_type' => MeetingExceptionCase::POSTPONEMENT,
+            'status' => MeetingExceptionCase::UNDER_REVIEW, 'governance_mode' => 'INTERNAL_SINGLE_UNIT', 'baseline_meeting_status' => 'SCHEDULED',
+            'created_by_user_id' => $actor->id,
+        ]);
+        $first = MeetingExceptionCaseVersion::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'exception_case_id' => $case->id, 'version_number' => 1, 'reason' => 'Initial reason',
+            'baseline_meeting_status' => 'SCHEDULED', 'prepared_by_user_id' => $actor->id, 'created_at' => now(),
+        ]);
+        $second = MeetingExceptionCaseVersion::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'exception_case_id' => $case->id, 'version_number' => 2, 'reason' => 'Updated reason',
+            'administrative_note' => 'Reviewed', 'baseline_meeting_status' => 'SCHEDULED', 'prepared_by_user_id' => $actor->id, 'created_at' => now(),
+        ]);
+        $case->forceFill(['current_version_id' => $second->id])->save();
+
+        $this->actingAs($actor, 'sanctum')->getJson('/api/meeting-exceptions/'.$case->id.'/versions/'.$first->id)
+            ->assertOk()->assertJsonPath('data.current', false)->assertJsonPath('data.version.reason', 'Initial reason');
+        $this->getJson('/api/meeting-exceptions/'.$case->id.'/versions/compare?from_id='.$second->id.'&to_id='.$first->id)
+            ->assertOk()->assertJsonPath('data.from.version_number', 2)->assertJsonPath('data.to.version_number', 1)
+            ->assertJsonPath('data.comparison.fields.0.from', 'Updated reason')->assertJsonPath('data.comparison.fields.0.to', 'Initial reason');
     }
 
     private function meeting(User $coordinator, string $key): Meeting

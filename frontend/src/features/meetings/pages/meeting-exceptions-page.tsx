@@ -38,6 +38,7 @@ import { exceptionCreatePayload } from '../lib/workspace-contracts'
 import type { MeetingExceptionData, ExceptionCase, ExceptionCaseType } from '../types'
 import { fetchMeetingActionCapabilities } from '../lib/meeting-capabilities'
 import type { MeetingActionCapabilities } from '../types'
+import { VersionInspector } from '../components/version-inspector'
 
 export function MeetingExceptionsPage() {
   const { id } = useParams<{ id: string }>()
@@ -299,13 +300,15 @@ export function MeetingExceptionsPage() {
             {/* Existing Exception Cases */}
             <div className="space-y-4">
               {cases.map((c: any) => (
-                <MeetingExceptionCaseCard
-                  key={c.id}
-                  item={c}
-                  busy={busy}
-                  onAction={handleAction}
-                  onReviewAction={handleReviewAction}
-                />
+                <React.Fragment key={c.id}>
+                  <MeetingExceptionCaseCard
+                    item={c}
+                    busy={busy}
+                    onAction={handleAction}
+                    onReviewAction={handleReviewAction}
+                  />
+                  <VersionInspector endpoint={`/meeting-exceptions/${c.id}/versions`} domain="exception" currentVersionId={c.current_version?.id} />
+                </React.Fragment>
               ))}
             </div>
             <WorkspacePagination meta={data.meta} onChange={setPage} busy={busy || loading} />

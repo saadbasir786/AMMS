@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Eye, GitCompareArrows, History, LoaderCircle } from 'lucide-react'
 import { api, apiData } from '@/lib/api-client'
+import { fetchAllPages } from '@/lib/fetch-all-pages'
 import { formatSolarDate, formatSolarDateTime } from '@/lib/calendar-utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type VersionSummary = { id: number; version_number: number; current?: boolean; actor?: string | null; created_at?: string | null; finalized_at?: string | null; label?: string | null }
-const domainTitles: Record<string, string> = { schedule: 'زمان‌بندی جلسه', participants: 'اشتراک‌کنندگان جلسه', minutes: 'صورت‌جلسه' }
+const domainTitles: Record<string, string> = { schedule: 'زمان‌بندی جلسه', participants: 'اشتراک‌کنندگان جلسه', minutes: 'صورت‌جلسه', exception: 'پرونده استثنایی جلسه' }
 const businessValues: Record<string, string> = {
   DRAFT: 'پیش‌نویس', ISSUED: 'صادرشده', PENDING_ISSUANCE: 'در انتظار صدور', PENDING_REISSUANCE: 'در انتظار صدور مجدد', RETURNED_FOR_CORRECTION: 'برگشت جهت اصلاح',
   SCHEDULED: 'زمان‌بندی‌شده', COMPLETED: 'تکمیل‌شده', CANCELLED: 'لغوشده', INTERNAL_VENUE: 'محل داخلی', EXTERNAL_LOCATION: 'محل بیرونی', ONLINE: 'برخط',
@@ -75,15 +76,28 @@ function SnapshotView({ domain, version }: { domain: string; version: any }) {
       {!!items.length && <Section title="آجندا و دستورکار"><div className="grid gap-3 xl:grid-cols-2">{items.map((item: any, index: number) => <article key={item.id ?? index} className="rounded-xl border p-4"><div className="mb-2 flex items-start gap-3"><Badge variant="outline">{item.sequence_number ?? index + 1}</Badge><h6 className="font-medium">{item.agenda_title}</h6></div>{item.discussion_summary && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{item.discussion_summary}</p>}</article>)}</div></Section>}
       {!!decisions.length && <Section title="تصمیم‌ها"><div className="space-y-3">{decisions.map((decision: any, index: number) => <article key={decision.id ?? index} className="rounded-xl border p-4"><div className="mb-2 flex items-start gap-3"><Badge>{decision.decision_number || index + 1}</Badge><p className="whitespace-pre-wrap font-medium">{decision.decision_text}</p></div><div className="grid gap-2 text-sm sm:grid-cols-2">{(decision.responsible_unit?.name || decision.responsible_employee?.full_name) && <Field label="مسئول اجرا" value={decision.responsible_unit?.name || decision.responsible_employee?.full_name} />}{decision.target_date && <Field label="مهلت اجرا" value={displayValue('target_date', decision.target_date)} />}{decision.notes && <Field label="یادداشت" value={decision.notes} />}</div></article>)}</div></Section>}
       {!!attendance.length && <Section title={`حاضری (${attendance.length})`}><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{attendance.map((person: any, index: number) => <div key={person.id ?? person.employee_id ?? index} className="flex items-center justify-between gap-3 rounded-xl bg-muted/35 p-3"><div><div className="text-sm font-medium">{person.display_name || person.employee?.full_name || '—'}</div><div className="text-xs text-muted-foreground">{displayValue('participant_role', person.participant_role)}</div></div><Badge variant="outline">{displayValue('attendance_status', person.attendance_status)}</Badge></div>)}</div></Section>}
+      <HistoricalContextView context={version?.context} />
     </div>
   }
+
+  if (domain === 'exception') return <div className="space-y-5"><Section title="جزئیات پرونده"><div className="grid gap-3 sm:grid-cols-2"><Field label="دلیل" value={version?.reason} /><Field label="یادداشت اداری" value={version?.administrative_note} /><Field label="جایگزین مورد انتظار" value={displayValue('replacement_expected', version?.replacement_expected)} /><Field label="تاریخ پیشنهادی ازسرگیری" value={displayValue('proposed_resume_date', version?.proposed_resume_date)} /><Field label="وضعیت جلسه هنگام ثبت" value={displayValue('baseline_meeting_status', version?.baseline_meeting_status)} /><Field label="وضعیت درخواست" value={version?.submitted_at ? 'ارسال‌شده' : 'پیش‌نویس'} /></div></Section><HistoricalContextView context={version?.context} /></div>
 
 
   return <p className="text-sm text-muted-foreground">خلاصهٔ این نوع نسخه در دسترس نیست.</p>
 }
 
 function ComparisonValue({ field }: { field: any }) {
-  return <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start"><div className="rounded-lg bg-muted/35 p-3"><div className="mb-1 text-xs text-muted-foreground">پیشین</div>{displayValue(field.key, field.from)}</div><span className="hidden pt-3 text-muted-foreground sm:block">←</span><div className="rounded-lg bg-primary/5 p-3"><div className="mb-1 text-xs text-muted-foreground">جدید</div>{displayValue(field.key, field.to)}</div></div>
+  return <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start"><div className="rounded-lg bg-muted/35 p-3"><div className="mb-1 text-xs text-muted-foreground">نسخه مبدأ</div>{displayValue(field.key, field.from)}</div><span className="hidden pt-3 text-muted-foreground sm:block">←</span><div className="rounded-lg bg-primary/5 p-3"><div className="mb-1 text-xs text-muted-foreground">نسخه مقصد</div>{displayValue(field.key, field.to)}</div></div>
+}
+
+function HistoricalContextView({ context }: { context: any }) {
+  const isComparison = Boolean(context?.schedule?.from || context?.schedule?.to || context?.participants?.from || context?.participants?.to)
+  const scheduleValues = isComparison ? { from: context.schedule?.from, to: context.schedule?.to } : { from: context?.schedule, to: null }
+  const participantValues = isComparison ? { from: context.participants?.from, to: context.participants?.to } : { from: context?.participants, to: null }
+  if (!scheduleValues.from && !scheduleValues.to && !participantValues.from && !participantValues.to) return null
+  const contextCard = (title: string, value: any, kind: 'schedule' | 'participants') => value ? <div className="rounded-xl border bg-muted/20 p-3"><div className="mb-1 text-xs text-muted-foreground">{title}</div><div className="font-medium">نسخه {value.version_number ?? '—'}</div>{kind === 'schedule' ? <div className="mt-1 text-xs text-muted-foreground">{displayValue('meeting_date', value.meeting_date)} · {displayValue('start_time', value.start_time)} تا {displayValue('end_time', value.end_time)}{value.location ? ` · ${value.location}` : ''}</div> : <div className="mt-1 text-xs text-muted-foreground">{value.members_count ?? '—'} اشتراک‌کننده</div>}</div> : <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">ثبت نشده</div>
+  const contextCards = (values: { from: any; to: any }, kind: 'schedule' | 'participants') => <div className="grid gap-2">{values.from && contextCard(isComparison ? 'نسخه مبدأ' : 'مبنای ثبت', values.from, kind)}{values.to && contextCard('نسخه مقصد', values.to, kind)}</div>
+  return <Section title="زمینهٔ تاریخی"><div className="grid gap-3 sm:grid-cols-2"><div><div className="mb-2 text-xs font-medium text-muted-foreground">زمان‌بندی مبنا</div>{contextCards(scheduleValues, 'schedule')}</div><div><div className="mb-2 text-xs font-medium text-muted-foreground">اشتراک‌کنندگان مبنا</div>{contextCards(participantValues, 'participants')}</div></div></Section>
 }
 
 function ComparisonView({ domain, comparison }: { domain: string; comparison: any }) {
@@ -116,6 +130,7 @@ function ComparisonView({ domain, comparison }: { domain: string; comparison: an
   const collections = Object.entries(comparison?.collections ?? {}) as [string, any][]
   const collectionChanges = collections.flatMap(([key, collection]) => ['added', 'removed', 'changed'].flatMap((changeType) => (collection?.[changeType] ?? []).map((item: any) => ({ key, label: collection.label, changeType, item }))))
   return <div className="space-y-5">
+    {domain === 'minutes' && <HistoricalContextView context={comparison?.context} />}
     {!!fields.length && <Section title="تغییرات مهم"><div className="space-y-3">{fields.map((field: any) => <article key={field.key} className="space-y-2 rounded-xl border p-4"><h6 className="font-medium">{field.label}</h6><ComparisonValue field={field} /></article>)}</div></Section>}
     {!!collectionChanges.length && <Section title="تغییرات آجندا، تصمیم‌ها و حاضری"><div className="space-y-3">{collectionChanges.map(({ key, label, changeType, item }, index) => {
       const record = changeType === 'changed' ? item.to : item
@@ -145,6 +160,7 @@ function VersionMetadata({ metadata, version }: { metadata: any; version: any })
 export function VersionInspector({ endpoint, domain, currentVersionId, triggerPlacement = 'card', triggerLabel = 'مشاهده تاریخچه' }: { endpoint: string; domain: string; currentVersionId?: number | null; triggerPlacement?: 'card' | 'inline'; triggerLabel?: string }) {
   const [open, setOpen] = useState(false)
   const [versions, setVersions] = useState<VersionSummary[]>([])
+  const [versionOptions, setVersionOptions] = useState<VersionSummary[]>([])
   const [meta, setMeta] = useState<any>(null)
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<number | null>(null)
@@ -164,30 +180,43 @@ export function VersionInspector({ endpoint, domain, currentVersionId, triggerPl
       setVersions(data)
       setMeta(response.data?.meta)
       setSelected((current) => current ?? data[0]?.id ?? null)
-      setCompareTo((current) => current ?? data.find((item: VersionSummary) => item.id !== (selected ?? data[0]?.id))?.id ?? null)
     } catch (e: any) { setError(e?.response?.data?.message || 'بارگذاری تاریخ نسخه‌ها انجام نشد.') }
     finally { setBusy(false) }
   }, [endpoint, page])
 
-  useEffect(() => { if (open) void load() }, [open, load])
+  const loadOptions = useCallback(async () => {
+    try {
+      setVersionOptions(await fetchAllPages<VersionSummary>(endpoint))
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'فهرست نسخه‌ها برای مقایسه بارگذاری نشد.')
+    }
+  }, [endpoint])
+
+  useEffect(() => {
+    if (!open) return
+    void load()
+    void loadOptions()
+  }, [open, load, loadOptions])
+
+  useEffect(() => {
+    if (!selected && versionOptions[0]) setSelected(versionOptions[0].id)
+    if (!compareTo && versionOptions.length > 1) setCompareTo(versionOptions.find((version) => version.id !== (selected ?? versionOptions[0].id))?.id ?? null)
+  }, [compareTo, selected, versionOptions])
 
   const inspect = async (nextMode: 'view' | 'compare') => {
     if (!selected || (nextMode === 'compare' && !compareTo)) return
     if (nextMode === 'compare') setVersionSelectedAfterCompare(false)
     setBusy(true); setError(null); setMode(nextMode)
     try {
-      const selectedSummary = versions.find((version) => version.id === selected)
-      const compareSummary = versions.find((version) => version.id === compareTo)
-      const selectedFirst = (selectedSummary?.version_number ?? 0) <= (compareSummary?.version_number ?? 0)
       const response = nextMode === 'view'
         ? await api.get(`${endpoint}/${selected}`)
-        : await api.get(`${endpoint}/compare`, { params: { from_id: selectedFirst ? selected : compareTo, to_id: selectedFirst ? compareTo : selected } })
+        : await api.get(`${endpoint}/compare`, { params: { from_id: selected, to_id: compareTo } })
       setPayload(apiData(response))
     } catch (e: any) { setError(e?.response?.data?.message || 'خواندن نسخه انجام نشد.') }
     finally { setBusy(false) }
   }
 
-  const current = versions.find((version) => version.current || version.id === currentVersionId)?.id
+  const current = versionOptions.find((version) => version.current || version.id === currentVersionId)?.id
   const trigger = <Button variant="outline" className="shrink-0 rounded-xl" onClick={() => setOpen(true)}><Eye className="me-2 size-4" />{triggerLabel}</Button>
   return <>
     {triggerPlacement === 'inline' ? trigger : <Card className="rounded-2xl border-border/70 shadow-xs"><CardHeader className="flex flex-row items-center justify-between gap-3 p-4"><div className="flex items-center gap-2"><History className="size-4 text-primary" /><div><h3 className="text-sm font-bold">تاریخچه نسخه‌ها</h3><p className="text-xs text-muted-foreground">مشاهده و مقایسه نسخه‌های ثبت‌شده</p></div></div>{trigger}</CardHeader></Card>}
@@ -201,8 +230,8 @@ export function VersionInspector({ endpoint, domain, currentVersionId, triggerPl
             <span className="flex items-center justify-between gap-2"><strong>نسخه {version.version_number}</strong>{(version.current || version.id === current) && <Badge>جاری</Badge>}</span>
             <span className="mt-1 block text-xs text-muted-foreground">{version.label || version.actor || version.created_at || ''}</span>
           </button>)}
-            {meta?.last_page > 1 && <div className="flex items-center justify-between gap-2"><Button variant="outline" size="sm" disabled={page <= 1 || busy} onClick={() => { setPage(page - 1); setSelected(null); setCompareTo(null) }}>پیشین</Button><span className="text-xs text-muted-foreground">صفحه {meta.current_page} از {meta.last_page}</span><Button variant="outline" size="sm" disabled={page >= meta.last_page || busy} onClick={() => { setPage(page + 1); setSelected(null); setCompareTo(null) }}>بعدی</Button></div>}
-            <div className="space-y-2 border-t pt-3"><label className="block text-xs font-medium">مقایسه با</label><select className="h-9 w-full rounded-xl border bg-background px-2 text-sm" value={compareTo ?? ''} onChange={(event) => setCompareTo(Number(event.target.value) || null)}><option value="">انتخاب نسخه</option>{versions.filter((v) => v.id !== selected).map((v) => <option key={v.id} value={v.id}>نسخه {v.version_number}</option>)}</select><Button className="w-full rounded-xl" variant="outline" disabled={!selected || !compareTo || busy} onClick={() => void inspect('compare')}><GitCompareArrows className="me-2 size-4" />مقایسه با نسخه انتخاب‌شده</Button></div>
+            {meta?.last_page > 1 && <div className="flex items-center justify-between gap-2"><Button variant="outline" size="sm" disabled={page <= 1 || busy} onClick={() => setPage(page - 1)}>پیشین</Button><span className="text-xs text-muted-foreground">صفحه {meta.current_page} از {meta.last_page}</span><Button variant="outline" size="sm" disabled={page >= meta.last_page || busy} onClick={() => setPage(page + 1)}>بعدی</Button></div>}
+            <div className="space-y-2 border-t pt-3"><label className="block text-xs font-medium">مقایسه با</label><select className="h-9 w-full rounded-xl border bg-background px-2 text-sm" value={compareTo ?? ''} onChange={(event) => setCompareTo(Number(event.target.value) || null)}><option value="">انتخاب نسخه</option>{versionOptions.filter((v) => v.id !== selected).map((v) => <option key={v.id} value={v.id}>نسخه {v.version_number}</option>)}</select><Button className="w-full rounded-xl" variant="outline" disabled={!selected || !compareTo || busy} onClick={() => void inspect('compare')}><GitCompareArrows className="me-2 size-4" />مقایسه با نسخه انتخاب‌شده</Button></div>
           </div>
           <div className="min-h-[28rem] rounded-xl border border-border/60 p-4 sm:p-6">
             {payload ? <><div className="mb-3 flex items-center justify-between"><h4 className="font-semibold">{mode === 'view' ? `نمایش نسخه ${payload.version?.version_number ?? payload.version?.version ?? ''}` : `مقایسه نسخه ${payload.from?.version_number} با نسخه ${payload.to?.version_number}`}</h4>{mode === 'view' && payload.current && <Badge>نسخه جاری</Badge>}</div>{mode === 'view' ? <><VersionMetadata metadata={payload.metadata} version={payload.version} /><SnapshotView domain={domain} version={payload.version} /></> : <ComparisonView domain={domain} comparison={payload.comparison} />}</> : <p className="text-sm text-muted-foreground">یک نسخه را انتخاب کنید و نمایش یا مقایسه را بزنید.</p>}

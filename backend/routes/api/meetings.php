@@ -77,6 +77,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'index']);
     Route::post('/meetings/{meeting}/exceptions', [MeetingExceptionController::class, 'store']);
     Route::get('/meeting-exceptions/{case}', [MeetingExceptionController::class, 'show']);
+    Route::get('/meeting-exceptions/{case}/versions', [MeetingVersionInspectionController::class, 'exceptionIndex']);
+    Route::get('/meeting-exceptions/{case}/versions/compare', [MeetingVersionInspectionController::class, 'compareExceptions']);
+    Route::get('/meeting-exceptions/{case}/versions/{version}', [MeetingVersionInspectionController::class, 'showException']);
     Route::put('/meeting-exceptions/{case}/draft', [MeetingExceptionController::class, 'updateDraft']);
     Route::post('/meeting-exceptions/{case}/submit', [MeetingExceptionController::class, 'submit']);
     Route::post('/meeting-exception-reviews/{review}/acknowledge', [MeetingExceptionController::class, 'acknowledge']);

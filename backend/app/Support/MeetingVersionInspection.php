@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Meeting;
+use App\Models\MeetingExceptionCase;
+use App\Models\MeetingExceptionCaseVersion;
 use App\Models\MeetingMinuteVersion;
 use App\Models\MeetingParticipantVersion;
 use App\Models\MeetingScheduleVersion;
@@ -14,7 +16,7 @@ use Illuminate\Support\Collection;
 /** Read-only, domain-aware access and comparisons for immutable meeting snapshots. */
 class MeetingVersionInspection
 {
-    public const MEETING_DOMAINS = ['schedule', 'participants', 'minutes'];
+    public const MEETING_DOMAINS = ['schedule', 'participants', 'minutes', 'exception'];
 
     public function query(Meeting $meeting, string $domain): Builder
     {
@@ -22,6 +24,7 @@ class MeetingVersionInspection
             'schedule' => $meeting->scheduleVersions()->getQuery(),
             'participants' => $meeting->participantVersions()->getQuery(),
             'minutes' => $meeting->minutes()->firstOrFail()->versions()->getQuery(),
+            'exception' => abort(404),
             default => abort(404),
         };
     }
@@ -37,6 +40,19 @@ class MeetingVersionInspection
         };
     }
 
+    public function exceptionQuery(MeetingExceptionCase $case): Builder
+    {
+        return $case->versions()->getQuery();
+    }
+
+    public function loadException(MeetingExceptionCase $case, int $id): MeetingExceptionCaseVersion
+    {
+        $version = $case->versions()->whereKey($id)->with(['preparedBy', 'baselineScheduleVersion', 'baselineParticipantVersion.members'])->firstOrFail();
+        if ($version->baselineScheduleVersion && (int) $version->baselineScheduleVersion->meeting_id !== (int) $case->meeting_id) $version->setRelation('baselineScheduleVersion', null);
+        if ($version->baselineParticipantVersion && (int) $version->baselineParticipantVersion->meeting_id !== (int) $case->meeting_id) $version->setRelation('baselineParticipantVersion', null);
+        return $version;
+    }
+
     public function isCurrent(Meeting $meeting, string $domain, object $version): bool
     {
         return match ($domain) {
@@ -45,6 +61,11 @@ class MeetingVersionInspection
             'minutes' => (int) $meeting->getAttribute('minutes_current_version_id') === (int) $version->id,
             default => false,
         };
+    }
+
+    public function isCurrentException(MeetingExceptionCase $case, MeetingExceptionCaseVersion $version): bool
+    {
+        return (int) $case->current_version_id === (int) $version->id;
     }
 
     public function compare(string $domain, object $from, object $to): array
@@ -56,6 +77,11 @@ class MeetingVersionInspection
             ]),
             'participants' => $this->compareParticipants($from, $to),
             'minutes' => $this->compareMinutes($from, $to),
+            'exception' => $this->compareFields($from, $to, [
+                'reason' => 'دلیل', 'administrative_note' => 'یادداشت اداری', 'replacement_expected' => 'انتظار جایگزین',
+                'proposed_resume_date' => 'تاریخ پیشنهادی ازسرگیری', 'baseline_meeting_status' => 'وضعیت مبنا',
+                'baseline_schedule_version_id' => 'نسخه زمان‌بندی مبنا', 'baseline_participant_version_id' => 'نسخه اشتراک‌کنندگان مبنا',
+            ]),
             default => abort(404),
         };
     }
@@ -96,19 +122,20 @@ class MeetingVersionInspection
         ];
     }
 
-    /** Return the immutable participant operations between two snapshots in chronological order. */
+    /** Return immutable participant operations in the selected from-to direction. */
     private function participantChangeHistory(MeetingParticipantVersion $from, MeetingParticipantVersion $to): array
     {
-        $firstVersion = min((int) $from->version_number, (int) $to->version_number);
-        $lastVersion = max((int) $from->version_number, (int) $to->version_number);
-        if ($lastVersion <= $firstVersion) return [];
+        $fromNumber = (int) $from->version_number;
+        $toNumber = (int) $to->version_number;
+        if ($fromNumber === $toNumber) return [];
+        $forward = $fromNumber < $toNumber;
 
         $versions = MeetingParticipantVersion::query()
             ->where('meeting_id', $from->meeting_id)
-            ->where('version_number', '>', $firstVersion)
-            ->where('version_number', '<=', $lastVersion)
+            ->where('version_number', $forward ? '>' : '<=', $fromNumber)
+            ->where('version_number', $forward ? '<=' : '>=', $toNumber)
             ->with(['sourceChangeCase.items.oldEmployee.unit', 'sourceChangeCase.items.newEmployee.unit'])
-            ->orderBy('version_number')
+            ->orderBy('version_number', $forward ? 'asc' : 'desc')
             ->get();
 
         $person = static fn ($employee): ?array => $employee ? [
@@ -116,16 +143,33 @@ class MeetingVersionInspection
             'unit' => $employee->unit?->name,
         ] : null;
 
-        return $versions->flatMap(function (MeetingParticipantVersion $version) use ($person): array {
+        return $versions->flatMap(function (MeetingParticipantVersion $version) use ($person, $forward): array {
             if (! $version->sourceChangeCase) return [];
 
-            return $version->sourceChangeCase->items->map(fn ($item): array => [
-                'version_number' => (int) $version->version_number,
-                'type' => strtolower((string) $item->operation),
-                'old' => $person($item->oldEmployee),
-                'new' => $person($item->newEmployee),
-                'role' => $item->participant_role,
-            ])->all();
+            return $version->sourceChangeCase->items->map(function ($item) use ($person, $forward, $version): array {
+                $operation = strtolower((string) $item->operation);
+                if ($forward) {
+                    return [
+                        'version_number' => (int) $version->version_number,
+                        'type' => $operation,
+                        'old' => $person($item->oldEmployee),
+                        'new' => $person($item->newEmployee),
+                        'role' => $item->participant_role,
+                    ];
+                }
+
+                return [
+                    'version_number' => (int) $version->version_number,
+                    'type' => match ($operation) {
+                        'add' => 'remove',
+                        'remove' => 'add',
+                        default => $operation,
+                    },
+                    'old' => $person($item->newEmployee),
+                    'new' => $person($item->oldEmployee),
+                    'role' => $item->participant_role,
+                ];
+            })->all();
         })->values()->all();
     }
 
@@ -133,8 +177,8 @@ class MeetingVersionInspection
     {
         $collections = [];
         foreach ([
-            'items' => ['key' => fn ($v) => $this->businessKey((string) $v->agenda_title), 'label' => 'بند دستورکار', 'fields' => ['sequence_number', 'agenda_title', 'discussion_summary']],
-            'decisions' => ['key' => fn ($v) => $this->businessKey((string) $v->decision_text), 'label' => 'تصمیم', 'fields' => ['decision_number', 'decision_text', 'responsible_unit_id', 'responsible_employee_id', 'target_date', 'notes']],
+            'items' => ['key' => fn ($v) => (string) $v->sequence_number, 'label' => 'بند دستورکار', 'fields' => ['sequence_number', 'agenda_title', 'discussion_summary']],
+            'decisions' => ['key' => fn ($v) => $this->businessKey((string) $v->decision_number), 'label' => 'تصمیم', 'fields' => ['decision_number', 'decision_text', 'responsible_unit_id', 'responsible_employee_id', 'target_date', 'notes']],
             'attendanceSnapshots' => ['key' => fn ($v) => (string) $v->employee_id, 'label' => 'حاضری', 'fields' => ['employee_id', 'organizational_unit_id', 'participant_role', 'display_name', 'attendance_status']],
         ] as $relation => $config) {
             $a = $from->{$relation}->keyBy($config['key']);
@@ -152,7 +196,20 @@ class MeetingVersionInspection
             ];
         }
         return ['fields' => $this->compareFields($from, $to, ['summary' => 'خلاصه', 'general_notes' => 'یادداشت‌های عمومی'])['fields'], 'collections' => $collections,
-            'context' => ['schedule' => ['from' => $from->schedule_version_id, 'to' => $to->schedule_version_id], 'participants' => ['from' => $from->participant_version_id, 'to' => $to->participant_version_id]]];
+            'context' => ['schedule' => ['from' => $this->scheduleContext($from->relationLoaded('scheduleVersion') ? $from->getRelation('scheduleVersion') : null, $from->schedule_version_id), 'to' => $this->scheduleContext($to->relationLoaded('scheduleVersion') ? $to->getRelation('scheduleVersion') : null, $to->schedule_version_id)],
+                'participants' => ['from' => $this->participantContext($from->relationLoaded('participantVersion') ? $from->getRelation('participantVersion') : null, $from->participant_version_id), 'to' => $this->participantContext($to->relationLoaded('participantVersion') ? $to->getRelation('participantVersion') : null, $to->participant_version_id)]]];
+    }
+
+    private function scheduleContext(?object $version, mixed $fallbackId = null): ?array
+    {
+        if (! $version) return $fallbackId ? ['id' => $fallbackId, 'version_number' => null] : null;
+        return ['id' => $version->id, 'version_number' => $version->version_number, 'meeting_date' => $version->meeting_date?->toDateString(), 'start_time' => $version->start_time, 'end_time' => $version->end_time, 'location' => $version->location];
+    }
+
+    private function participantContext(?object $version, mixed $fallbackId = null): ?array
+    {
+        if (! $version) return $fallbackId ? ['id' => $fallbackId, 'version_number' => null, 'members_count' => null] : null;
+        return ['id' => $version->id, 'version_number' => $version->version_number, 'members_count' => $version->relationLoaded('members') ? $version->members->count() : null];
     }
 
     private function memberSummary(object $member): array

@@ -45,6 +45,10 @@ class MeetingVersionInspectionSnapshotResource extends JsonResource
             'minutes' => [
                 'summary' => $version->summary,
                 'general_notes' => $version->general_notes,
+                'context' => [
+                    'schedule' => $this->scheduleContext($version->relationLoaded('scheduleVersion') ? $version->getRelation('scheduleVersion') : null),
+                    'participants' => $this->participantContext($version->relationLoaded('participantVersion') ? $version->getRelation('participantVersion') : null),
+                ],
                 'items' => $version->items->map(fn ($item) => [
                     'id' => $item->id,
                     'sequence_number' => $item->sequence_number,
@@ -69,7 +73,43 @@ class MeetingVersionInspectionSnapshotResource extends JsonResource
                     'employee' => $person->employee ? ['full_name' => $person->employee->full_name] : null,
                 ])->values()->all(),
             ],
+            'exception' => [
+                'reason' => $version->reason,
+                'administrative_note' => $version->administrative_note,
+                'replacement_expected' => (bool) $version->replacement_expected,
+                'proposed_resume_date' => $version->proposed_resume_date?->toDateString(),
+                'baseline_meeting_status' => $version->baseline_meeting_status,
+                'submitted_at' => $version->submitted_at,
+                'prepared_by' => $version->preparedBy ? ['name' => $version->preparedBy->name] : null,
+                'context' => [
+                    'schedule' => $this->scheduleContext($version->relationLoaded('baselineScheduleVersion') ? $version->getRelation('baselineScheduleVersion') : null),
+                    'participants' => $this->participantContext($version->relationLoaded('baselineParticipantVersion') ? $version->getRelation('baselineParticipantVersion') : null),
+                ],
+            ],
             default => [],
         };
+    }
+
+    private function scheduleContext(?object $version): ?array
+    {
+        if (! $version) return null;
+        return [
+            'id' => $version->id,
+            'version_number' => $version->version_number,
+            'meeting_date' => $version->meeting_date?->toDateString(),
+            'start_time' => $version->start_time,
+            'end_time' => $version->end_time,
+            'location' => $version->location,
+        ];
+    }
+
+    private function participantContext(?object $version): ?array
+    {
+        if (! $version) return null;
+        return [
+            'id' => $version->id,
+            'version_number' => $version->version_number,
+            'members_count' => $version->relationLoaded('members') ? $version->members->count() : null,
+        ];
     }
 }
