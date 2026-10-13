@@ -15,8 +15,8 @@ class OrganizationStructureSeeder extends Seeder
     {
         // 1. Root Organization
         $organization = Organization::create([
-            'name' => 'اداره نمونه',
-            'short_name' => 'اداره نمونه',
+            'name' => 'ریاست عمومی اداره امور ا.ا.ا',
+            'short_name' => 'اداره امور',
             'type' => 'INDEPENDENT_ADMINISTRATION',
             'status' => 'ACTIVE',
         ]);
