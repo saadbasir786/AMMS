@@ -85,6 +85,5 @@ jobs:
           cache-dependency-path: |
             terminal-android/*.gradle.kts
             terminal-android/gradle/wrapper/gradle-wrapper.properties
-      - run: python3 tools/run_core_contract.py
       - run: chmod +x gradlew
       - run: ./gradlew --no-daemon --max-workers=1 assembleDebug

@@ -1,42 +1,34 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "com.amms.terminal"
+    namespace = "af.gov.aop.amms.terminal"
     compileSdk = 35
 
-    defaultConfig {
-        applicationId = "com.amms.terminal"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-flow10a"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
+    val ammsApiBaseUrl = providers.gradleProperty("ammsApiBaseUrl")
+        .orElse("http://127.0.0.1:8000")
+        .get()
 
-    buildTypes {
-        debug {
-            buildConfigField("boolean", "FLOW10A_FAKE_ADAPTER", "true")
-        }
-        release {
-            isMinifyEnabled = false
-            buildConfigField("boolean", "FLOW10A_FAKE_ADAPTER", "false")
+    defaultConfig {
+        applicationId = "af.gov.aop.amms.terminal"
+        minSdk = 25
+        // The deployed SVT3000 SE runs Android 7.1.2 / API 25.
+        targetSdk = 25
+        versionCode = 1
+        versionName = "0.1.0-laravel"
+
+        buildConfigField("String", "AMMS_API_BASE_URL", "\"$ammsApiBaseUrl\"")
+
+        ndk {
+            abiFilters.add("armeabi-v7a")
         }
     }
 
     buildFeatures { buildConfig = true }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-    kotlinOptions { jvmTarget = "21" }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     testImplementation("junit:junit:4.13.2")
 }

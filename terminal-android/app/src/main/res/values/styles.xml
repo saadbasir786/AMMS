@@ -1,8 +1,9 @@
 <resources>
-    <style name="Theme.AmmsTerminal" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#526FE0</item>
         <item name="android:layoutDirection">rtl</item>
-        <item name="android:textDirection">rtl</item>
-        <item name="android:colorAccent">#0F766E</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7F8FB</item>
     </style>
 </resources>

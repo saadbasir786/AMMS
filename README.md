@@ -8,7 +8,7 @@ The current product scope is frozen at **FLOW-01 through FLOW-14**. The independ
 
 The authoritative release statement is [`docs/release/RELEASE_BASELINE.md`](docs/release/RELEASE_BASELINE.md). The documentation index is [`docs/README.md`](docs/README.md).
 
-**FLOW-10B** — physical DERMALOG SVT3000 SE integration and lawful vendor-SDK/hardware acceptance — remains explicitly deferred. The vendor-independent terminal and biometric software foundation from FLOW-10A remains part of the current baseline.
+**FLOW-10B** — formal production acceptance of physical DERMALOG SVT3000 SE integration — remains explicitly deferred. The Android terminal client and backend workflow do not by themselves certify production device support.
 
 ## Architecture
 
@@ -35,11 +35,11 @@ Laravel is the authoritative business and authorization layer. The frontend does
 
 ### Terminal Android
 
-- independent Android module under `terminal-android/`
-- vendor-independent enrollment/meeting workflow foundation
-- deterministic core contract tests
-- Gradle `assembleDebug` CI gate
-- no claim of physical DERMALOG SDK behavior until FLOW-10B is executed
+- AMMS Android terminal client under `terminal-android/`
+- targets the terminal's Android API 25 and ARMv7 runtime constraints
+- includes the terminal app's DERMALOG integration artifacts
+- CI runs `assembleDebug`; this is a compile check, not hardware or production acceptance
+- formal FLOW-10B production acceptance remains deferred
 
 ## Frozen functional areas
 
@@ -113,7 +113,6 @@ pnpm run build
 
 ```bash
 cd terminal-android
-python3 tools/run_core_contract.py
 ./gradlew --no-daemon --max-workers=1 assembleDebug
 ```
 
@@ -123,7 +122,7 @@ python3 tools/run_core_contract.py
 
 1. Laravel Feature suite on MariaDB;
 2. frontend lint and production build;
-3. terminal Android core contract and `assembleDebug`.
+3. terminal Android `assembleDebug` compile check (not hardware acceptance).
 
 The workflow protects pull requests and pushes to `main`, `release/**`, and retained `audit/**` branches.
 
