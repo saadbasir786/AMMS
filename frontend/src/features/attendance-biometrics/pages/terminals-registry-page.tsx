@@ -16,9 +16,9 @@ export function TerminalsRegistryPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Dialog & Credential state
+  // Dialog & one-time pairing code state
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [issuedCredential, setIssuedCredential] = useState<string | null>(null)
+  const [issuedPairingCode, setIssuedPairingCode] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -58,26 +58,15 @@ export function TerminalsRegistryPage() {
     }
   }
 
-  const handleIssueCredential = async (terminal: Terminal) => {
+  const handleIssuePairingCode = async (terminal: Terminal) => {
     setBusy(true)
     setError(null)
-    setIssuedCredential(null)
+    setIssuedPairingCode(null)
     try {
-      const res = await api.post(`/terminals/${terminal.id}/credentials`)
-      setIssuedCredential(apiData(res)?.credential?.token || null)
-      await loadData()
+      const res = await api.post(`/terminals/${terminal.id}/pairing-code`)
+      setIssuedPairingCode(apiData(res)?.pairing_code || null)
     } catch (err: any) {
-      if (err.response?.data?.code === 'TERMINAL_CREDENTIAL_ALREADY_ACTIVE') {
-        try {
-          const rotRes = await api.post(`/terminals/${terminal.id}/credentials/rotate`)
-          setIssuedCredential(apiData(rotRes)?.credential?.token || null)
-          await loadData()
-        } catch (rotErr: any) {
-          setError(rotErr?.response?.data?.message || 'تعویض اعتبارنامه انجام نشد.')
-        }
-      } else {
-        setError(err?.response?.data?.message || 'صدور اعتبارنامه انجام نشد.')
-      }
+      setError(err?.response?.data?.message || 'صدور کد اتصال ترمینال انجام نشد.')
     } finally {
       setBusy(false)
     }
@@ -122,24 +111,24 @@ export function TerminalsRegistryPage() {
         </Alert>
       )}
 
-      {/* Single-use Credential Alert */}
-      {issuedCredential && (
+      {/* One-time Pairing Code Alert */}
+      {issuedPairingCode && (
         <Alert className="rounded-2xl p-4 bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900">
           <KeyRound className="size-4 text-indigo-600" />
           <AlertDescription className="text-xs space-y-2">
             <strong className="block font-bold text-foreground">
-              اعتبارنامه امن جدید صادر شد (فقط یک‌بار نمایش داده می‌شود):
+              کد اتصال چهاررقمی صادر شد؛ سه دقیقه اعتبار دارد و یک‌بار مصرف است:
             </strong>
             <code
               dir="ltr"
               className="block overflow-x-auto rounded-xl border bg-card p-3 font-mono text-xs font-bold text-primary select-all"
             >
-              {issuedCredential}
+              {issuedPairingCode}
             </code>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setIssuedCredential(null)}
+              onClick={() => setIssuedPairingCode(null)}
               className="h-8 text-xs font-semibold"
             >
               بستن و تأیید دریافت
@@ -210,7 +199,7 @@ export function TerminalsRegistryPage() {
         <TerminalsTable
           terminals={terminals}
           busy={busy}
-          onIssueCredential={handleIssueCredential}
+          onIssuePairingCode={handleIssuePairingCode}
         />
       )}
 

@@ -32,6 +32,45 @@ import { AssignTerminalCard } from '../components/assign-terminal-card'
 import type { MeetingTerminalsData, TerminalAssignment } from '../types'
 import { fetchMeetingActionCapabilities, type MeetingActionCapabilities } from '@/features/meetings'
 
+const TERMINAL_ASSIGNMENT_ERROR_MESSAGES: Record<string, string> = {
+  TERMINAL_NOT_AVAILABLE: 'ترمینال انتخاب‌شده فعال یا در دسترس نیست. وضعیت دستگاه را بررسی کنید.',
+  MEETING_NOT_SCHEDULED: 'این جلسه شروع شده یا پایان یافته است؛ تخصیص ترمینال باید پیش از شروع رسمی جلسه انجام شود.',
+  MEETING_VERSIONS_REQUIRED: 'نسخهٔ رسمی زمان‌بندی یا اشتراک‌کنندگان جلسه موجود نیست؛ ابتدا اطلاعات جلسه را تکمیل کنید.',
+  TERMINAL_OUTSIDE_MEETING_ORGANIZATION: 'این ترمینال متعلق به ادارهٔ برگزارکنندهٔ جلسه نیست؛ ترمینال همان اداره را انتخاب کنید.',
+  INVALID_TERMINAL_ASSIGNMENT_WINDOW: 'زمان پایان بازه باید پس از زمان شروع آن باشد.',
+  TERMINAL_ASSIGNMENT_WINDOW_NOT_COVERING_MEETING: 'بازهٔ مجاز باید تمام مدت جلسه را پوشش دهد؛ شروع بازه را پیش از شروع جلسه و پایان آن را پس از ختم جلسه بگذارید.',
+  TERMINAL_ASSIGNMENT_EXISTS: 'این ترمینال از قبل به همین جلسه تخصیص یافته است؛ تخصیص موجود را بررسی کنید.',
+  TERMINAL_ASSIGNMENT_CONFLICT: 'این ترمینال در این بازه به جلسهٔ دیگری تخصیص دارد؛ ترمینال دیگری یا بازهٔ بدون تداخل انتخاب کنید.',
+}
+
+const ASSIGNMENT_FIELD_MESSAGES: Record<string, string> = {
+  terminal_id: 'یک ترمینال فعال انتخاب کنید.',
+  valid_from: 'زمان شروع بازهٔ مجاز را بررسی کنید.',
+  valid_until: 'زمان پایان باید معتبر و پس از زمان شروع باشد.',
+}
+
+function terminalAssignmentError(err: any): string {
+  const response = err?.response?.data
+  const code = response?.code || response?.message
+  if (typeof code === 'string' && TERMINAL_ASSIGNMENT_ERROR_MESSAGES[code]) {
+    return TERMINAL_ASSIGNMENT_ERROR_MESSAGES[code]
+  }
+
+  const validationErrors = response?.errors
+  if (validationErrors && typeof validationErrors === 'object') {
+    const fieldMessages = Object.keys(ASSIGNMENT_FIELD_MESSAGES)
+      .filter((field) => Object.prototype.hasOwnProperty.call(validationErrors, field))
+      .map((field) => ASSIGNMENT_FIELD_MESSAGES[field])
+    if (fieldMessages.length) return fieldMessages.join(' ')
+  }
+
+  if (code === 'VALIDATION_ERROR' || err?.response?.status === 422) {
+    return 'تخصیص انجام نشد. زمان‌های انتخاب‌شده باید معتبر باشند و بازهٔ مجاز تمام مدت جلسه را پوشش دهد.'
+  }
+
+  return response?.message || 'تخصیص ترمینال انجام نشد؛ وضعیت جلسه، ترمینال و بازهٔ زمانی را بررسی کنید.'
+}
+
 export function MeetingTerminalsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -77,15 +116,17 @@ export function MeetingTerminalsPage() {
     valid_from: string
     valid_until: string
   }) => {
-    if (!id) return
+    if (!id) return false
     setBusy(true)
     setError(null)
     try {
       await api.post(`/meetings/${id}/terminal-assignments`, formData)
       setAssignmentsPage(1)
       await loadData(1)
+      return true
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'تخصیص ترمینال با خطا مواجه شد.')
+      setError(terminalAssignmentError(err))
+      return false
     } finally {
       setBusy(false)
     }
@@ -130,6 +171,7 @@ export function MeetingTerminalsPage() {
   const meeting = data?.meeting
   const assignments = data?.assignments || []
   const availableTerminals = data?.available_terminals || []
+  const meetingSchedule = meeting?.current_schedule_version
   const canAssign = capabilities?.terminals.assign === true
   const canRefresh = capabilities?.terminals.refresh === true
   const canRevoke = capabilities?.terminals.revoke === true
@@ -244,6 +286,10 @@ export function MeetingTerminalsPage() {
       {canAssign && (
         <AssignTerminalCard
           availableTerminals={availableTerminals}
+          scheduleDate={meetingSchedule?.meeting_date || meeting?.meeting_date || ''}
+          scheduleStartTime={meetingSchedule?.start_time || meeting?.start_time || ''}
+          scheduleEndTime={meetingSchedule?.end_time || meeting?.end_time || ''}
+          scheduleVersionId={meeting?.current_schedule_version_id}
           busy={busy}
           onAssign={handleAssign}
         />

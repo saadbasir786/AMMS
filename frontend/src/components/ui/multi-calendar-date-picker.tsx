@@ -35,6 +35,7 @@ type MultiCalendarDatePickerProps = {
   placeholder?: string
   disabled?: boolean
   className?: string
+  showSolarPreview?: boolean
 }
 
 export function MultiCalendarDatePicker({
@@ -43,6 +44,7 @@ export function MultiCalendarDatePicker({
   placeholder = 'انتخاب تاریخ جلسه...',
   disabled = false,
   className,
+  showSolarPreview = true,
 }: MultiCalendarDatePickerProps) {
   const [open, setOpen] = useState(false)
   const [calendarMode, setCalendarMode] = useState<CalendarMode>('solar')
@@ -381,11 +383,13 @@ export function MultiCalendarDatePicker({
       {/* Triple Conversion Badge when Date is Selected */}
       {tripleSummary && (
         <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-border/70 text-[11px] text-muted-foreground animate-in fade-in duration-150">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-amber-500/20 text-foreground font-medium shadow-2xs">
-              <Sun className="size-3 text-amber-500 shrink-0" />
-              <span className="truncate">{tripleSummary.solar}</span>
-            </div>
+          <div className={showSolarPreview ? 'grid grid-cols-1 sm:grid-cols-3 gap-1.5' : 'grid grid-cols-1 gap-1.5'}>
+            {showSolarPreview && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-amber-500/20 text-foreground font-medium shadow-2xs">
+                <Sun className="size-3 text-amber-500 shrink-0" />
+                <span className="truncate">{tripleSummary.solar}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background border border-indigo-500/20 text-foreground font-medium shadow-2xs">
               <Moon className="size-3 text-indigo-400 shrink-0" />
               <span className="truncate">{tripleSummary.lunar}</span>

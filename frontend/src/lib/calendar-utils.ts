@@ -238,7 +238,8 @@ export function getTripleDateSummary(isoStr?: string | null): {
   if (!d) return null
   return {
     solar: `${formatSolarDate(d)} هـ.ش`,
-    lunar: `${formatLunarDate(d)} هـ.ق`,
+    // Intl's fa-AF Islamic formatter already includes the Hijri era suffix.
+    lunar: formatLunarDate(d),
     gregorian: `${isoStr} M`,
   }
 }

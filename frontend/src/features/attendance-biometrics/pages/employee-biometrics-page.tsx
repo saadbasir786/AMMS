@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  Building2
+  Building2,
+  Loader2
 } from 'lucide-react'
 import { PageHeader } from '@/components/amms/page-header'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatSolarDateTime } from '@/lib/calendar-utils'
 import { api, apiData } from '@/lib/api-client'
-import type { EmployeeBiometricData } from '../types'
+import type { BiometricEnrollmentContext, EmployeeBiometricData } from '../types'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   ENROLLED: {
@@ -42,14 +43,28 @@ export function EmployeeBiometricsPage() {
   const [templatesPage, setTemplatesPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [enrollmentContext, setEnrollmentContext] = useState<BiometricEnrollmentContext | null>(null)
+  const [selectedTerminalId, setSelectedTerminalId] = useState('')
+  const [enrollmentBusy, setEnrollmentBusy] = useState(false)
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
+  const [enrollmentNotice, setEnrollmentNotice] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     if (!id) return
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/employees/${id}/biometrics`, { params: { page: templatesPage, per_page: 25 } })
+      const [res, contextRes] = await Promise.all([
+        api.get(`/employees/${id}/biometrics`, { params: { page: templatesPage, per_page: 25 } }),
+        api.get(`/employees/${id}/biometric-enrollment-context`).catch(() => null),
+      ])
       setData(apiData(res))
+      const nextContext = contextRes ? (apiData(contextRes) as BiometricEnrollmentContext) : null
+      setEnrollmentContext(nextContext)
+      setSelectedTerminalId((current) => {
+        if (nextContext?.terminals.some((terminal) => String(terminal.id) === current)) return current
+        return nextContext?.terminals[0] ? String(nextContext.terminals[0].id) : ''
+      })
     } catch (err: any) {
       setError(
         err?.response?.data?.message ||
@@ -70,6 +85,42 @@ export function EmployeeBiometricsPage() {
   const statusCfg = STATUS_CONFIG[data?.biometric_status || 'NOT_ENROLLED'] || {
     label: data?.biometric_status || '—',
     color: 'text-slate-600 bg-slate-100',
+  }
+
+  const startEnrollment = async () => {
+    if (!id || !selectedTerminalId) return
+    setEnrollmentBusy(true)
+    setEnrollmentError(null)
+    setEnrollmentNotice(null)
+    try {
+      await api.post('/biometric/enrollment-sessions', {
+        employee_id: Number(id),
+        terminal_id: Number(selectedTerminalId),
+      })
+      setEnrollmentNotice('نشست ثبت برای همین کارمند و ترمینال آغاز شد. اکنون در اپ ترمینال ثبت اثر انگشت را انجام دهید.')
+      await loadData()
+    } catch (err: any) {
+      setEnrollmentError(err?.response?.data?.message || 'آغاز نشست ثبت بایومتریک انجام نشد؛ صلاحیت، ترمینال و نشست‌های فعال را بررسی کنید.')
+    } finally {
+      setEnrollmentBusy(false)
+    }
+  }
+
+  const completeEnrollment = async () => {
+    const enrollment = enrollmentContext?.enrollment
+    if (!enrollment) return
+    setEnrollmentBusy(true)
+    setEnrollmentError(null)
+    setEnrollmentNotice(null)
+    try {
+      await api.post(`/biometric/enrollment-sessions/${enrollment.uuid}/complete`)
+      setEnrollmentNotice('نشست ثبت بایومتریک تکمیل شد.')
+      await loadData()
+    } catch (err: any) {
+      setEnrollmentError(err?.response?.data?.message || 'تکمیل نشست انجام نشد؛ شمار انگشت‌های ثبت‌شده و صلاحیت خود را بررسی کنید.')
+    } finally {
+      setEnrollmentBusy(false)
+    }
   }
 
   return (
@@ -127,6 +178,88 @@ export function EmployeeBiometricsPage() {
       {/* Main Content */}
       {!loading && data && (
         <div className="space-y-6">
+          {enrollmentContext && (
+            <Card className="rounded-2xl border border-border/70 shadow-xs">
+              <CardHeader className="p-4 sm:p-5 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <Fingerprint className="size-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">نشست ثبت اثر انگشت برای ترمینال</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-6">
+                  نشست را برای کارمند و ترمینال مشخص آغاز کنید؛ اپ ترمینال فقط در همین نشست قالب را می‌پذیرد.
+                </p>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                {enrollmentError && (
+                  <Alert variant="destructive" className="rounded-xl">
+                    <AlertCircle className="size-4" />
+                    <AlertDescription>{enrollmentError}</AlertDescription>
+                  </Alert>
+                )}
+                {enrollmentNotice && (
+                  <Alert className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-900">
+                    <CheckCircle2 className="size-4" />
+                    <AlertDescription>{enrollmentNotice}</AlertDescription>
+                  </Alert>
+                )}
+
+                {enrollmentContext.enrollment ? (
+                  <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1 text-sm">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{enrollmentContext.enrollment.status === 'IN_PROGRESS' ? 'در حال ثبت' : 'آماده ثبت'}</Badge>
+                        <span className="font-semibold">{enrollmentContext.enrollment.terminal?.name || `ترمینال ${enrollmentContext.enrollment.terminal_id ?? 'تعیین‌نشده'}`}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        انگشت ثبت‌شده: {enrollmentContext.enrollment.active_finger_count} از {enrollmentContext.enrollment.required_finger_count}
+                        {enrollmentContext.enrollment.expires_at ? ` · اعتبار تا ${formatSolarDateTime(enrollmentContext.enrollment.expires_at)}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={loadData} disabled={enrollmentBusy}>
+                        <RotateCw className="size-3.5" /> تازه‌سازی وضعیت
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={completeEnrollment}
+                        disabled={enrollmentBusy || enrollmentContext.enrollment.active_finger_count < enrollmentContext.enrollment.required_finger_count}
+                      >
+                        {enrollmentBusy && <Loader2 className="size-3.5 animate-spin" />}
+                        تکمیل نشست
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <label className="flex-1 space-y-1.5 text-xs font-medium">
+                      <span>ترمینال ثبت</span>
+                      <select
+                        value={selectedTerminalId}
+                        onChange={(event) => setSelectedTerminalId(event.target.value)}
+                        disabled={enrollmentBusy || enrollmentContext.terminals.length === 0}
+                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">انتخاب ترمینال فعال</option>
+                        {enrollmentContext.terminals.map((terminal) => (
+                          <option key={terminal.id} value={terminal.id}>
+                            {terminal.name} · {terminal.code}{terminal.model ? ` · ${terminal.model}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Button onClick={startEnrollment} disabled={enrollmentBusy || !selectedTerminalId}>
+                      {enrollmentBusy ? <Loader2 className="size-4 animate-spin" /> : <Fingerprint className="size-4" />}
+                      آغاز نشست ثبت
+                    </Button>
+                    {enrollmentContext.terminals.length === 0 && (
+                      <p className="text-xs text-amber-700">در ادارهٔ این کارمند ترمینال فعال ثبت نشده است.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-xs flex items-center gap-3">

@@ -27,7 +27,7 @@ export function TerminalDetailPage() {
   const navigate = useNavigate()
 
   const [terminal, setTerminal] = useState<Terminal | null>(null)
-  const [issuedCredential, setIssuedCredential] = useState<string | null>(null)
+  const [issuedPairingCode, setIssuedPairingCode] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,17 +57,16 @@ export function TerminalDetailPage() {
     loadData()
   }, [loadData])
 
-  const handleRotateCredentials = async () => {
+  const handleIssuePairingCode = async () => {
     if (!id) return
     setBusy(true)
     setError(null)
-    setIssuedCredential(null)
+    setIssuedPairingCode(null)
     try {
-      const res = await api.post(`/terminals/${id}/credentials/rotate`)
-      setIssuedCredential(apiData(res)?.credential?.token || null)
-      await loadData()
+      const res = await api.post(`/terminals/${id}/pairing-code`)
+      setIssuedPairingCode(apiData(res)?.pairing_code || null)
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'تعویض اعتبارنامه ترمینال انجام نشد.')
+      setError(err?.response?.data?.message || 'صدور کد اتصال ترمینال انجام نشد.')
     } finally {
       setBusy(false)
     }
@@ -113,11 +112,11 @@ export function TerminalDetailPage() {
               variant="outline"
               size="sm"
               disabled={busy || terminal?.status === 'REVOKED'}
-              onClick={handleRotateCredentials}
+              onClick={handleIssuePairingCode}
               className="text-xs font-semibold rounded-xl gap-1.5 text-indigo-700 dark:text-indigo-300 border-indigo-200"
             >
               <KeyRound className="size-3.5" />
-              <span>تعویض اعتبارنامه (Rotate)</span>
+              <span>صدور کد اتصال</span>
             </Button>
 
             <Button
@@ -152,24 +151,24 @@ export function TerminalDetailPage() {
         </Alert>
       )}
 
-      {/* Single-use Credential Alert */}
-      {issuedCredential && (
+      {/* One-time Pairing Code Alert */}
+      {issuedPairingCode && (
         <Alert className="rounded-2xl p-4 bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900">
           <KeyRound className="size-4 text-indigo-600" />
           <AlertDescription className="text-xs space-y-2">
             <strong className="block font-bold text-foreground">
-              اعتبارنامه امن جدید صادر شد (فقط یک‌بار نمایش داده می‌شود):
+              کد اتصال چهاررقمی صادر شد؛ سه دقیقه اعتبار دارد و یک‌بار مصرف است:
             </strong>
             <code
               dir="ltr"
               className="block overflow-x-auto rounded-xl border bg-card p-3 font-mono text-xs font-bold text-primary select-all"
             >
-              {issuedCredential}
+              {issuedPairingCode}
             </code>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setIssuedCredential(null)}
+              onClick={() => setIssuedPairingCode(null)}
               className="h-8 text-xs font-semibold"
             >
               بستن و تأیید دریافت

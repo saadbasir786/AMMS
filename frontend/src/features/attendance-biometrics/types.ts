@@ -59,8 +59,16 @@ export type MeetingTerminalsData = {
     title: string
     meeting_number?: string
     status: string
+    meeting_date?: string | null
+    start_time?: string | null
+    end_time?: string | null
     current_schedule_version_id?: number
     current_participant_version_id?: number
+    current_schedule_version?: {
+      meeting_date?: string | null
+      start_time?: string | null
+      end_time?: string | null
+    } | null
   }
   assignments: TerminalAssignment[]
   assignments_meta?: {
@@ -127,6 +135,31 @@ export type BiometricTemplate = {
   status: 'ACTIVE' | 'REVOKED' | 'ARCHIVED'
   quality_score?: number
   enrolled_at?: string
+}
+
+export type BiometricEnrollmentTerminal = {
+  id: number
+  code: string
+  name: string
+  model?: string | null
+}
+
+export type BiometricEnrollmentSession = {
+  uuid: string
+  employee_id: number
+  terminal_id: number | null
+  status: 'PENDING_CAPTURE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED'
+  required_finger_count: number
+  active_finger_count: number
+  active_finger_positions: string[]
+  started_at?: string | null
+  expires_at?: string | null
+  terminal?: BiometricEnrollmentTerminal | null
+}
+
+export type BiometricEnrollmentContext = {
+  terminals: BiometricEnrollmentTerminal[]
+  enrollment: BiometricEnrollmentSession | null
 }
 
 export type EmployeeBiometricData = {

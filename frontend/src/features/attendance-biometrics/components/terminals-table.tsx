@@ -29,13 +29,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 type TerminalsTableProps = {
   terminals: Terminal[]
   busy: boolean
-  onIssueCredential: (terminal: Terminal) => Promise<void>
+  onIssuePairingCode: (terminal: Terminal) => Promise<void>
 }
 
 export function TerminalsTable({
   terminals,
   busy,
-  onIssueCredential,
+  onIssuePairingCode,
 }: TerminalsTableProps) {
   if (terminals.length === 0) {
     return (
@@ -160,11 +160,11 @@ export function TerminalsTable({
                         variant="outline"
                         size="sm"
                         disabled={busy}
-                        onClick={() => onIssueCredential(terminal)}
+                        onClick={() => onIssuePairingCode(terminal)}
                         className="h-8 text-xs font-semibold rounded-xl gap-1 text-indigo-700 dark:text-indigo-300 border-indigo-200"
                       >
                         <KeyRound className="size-3.5" />
-                        <span>اعتبارنامه</span>
+                          <span>کد اتصال</span>
                       </Button>
                     </div>
                   </td>

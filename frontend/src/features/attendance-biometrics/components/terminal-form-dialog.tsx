@@ -34,7 +34,7 @@ export function TerminalFormDialog({
     model: 'SVT3000 SE',
     platform: 'Android',
     os_version: '7.1.2',
-    app_version: '1.0.0',
+    app_version: '0.1.0-laravel',
     status: 'ACTIVE',
   })
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +66,7 @@ export function TerminalFormDialog({
       model: 'SVT3000 SE',
       platform: 'Android',
       os_version: '7.1.2',
-      app_version: '1.0.0',
+      app_version: '0.1.0-laravel',
       status: 'ACTIVE',
     })
   }
