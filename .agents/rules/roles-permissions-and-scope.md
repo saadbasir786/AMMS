@@ -49,7 +49,7 @@ Use a delegated capability when a software duty is not a real organizational pos
 Required properties: explicit, revocable, auditable, unit-scoped, independent from job title, inactive when the user/employee is inactive. Grant/revoke history must record actor and time. Duplicate active grants should be idempotent.
 
 ### BIOMETRIC_ENROLLMENT
-Biometric enrollment requires:
+General biometric enrollment requires:
 1. required `biometric.*` permission;
 2. active `BIOMETRIC_ENROLLMENT` capability;
 3. valid organizational scope;
@@ -62,6 +62,7 @@ Rules:
 - `SYSTEM_ADMIN` may administer delegation where authorized but must not receive this operational capability.
 - Revocation preserves audit history and immediately removes effective authority.
 - Raw biometric templates/images remain protected independently from enrollment authority.
+- Narrow FLOW-10A exception: a valid active terminal meeting session may authorize initial fingerprint capture only for an employee in that session's bound participant version, within the meeting/terminal organization scope, and only to add missing templates up to the configured minimum. It cannot replace an active template, enroll non-participants, or authorize general enrollment, re-enrollment, template revocation, or biometric metadata access. This meeting-bound capture does not create a separate operator-started `BiometricEnrollmentSession`; its terminal session and immutable audit record are the authorization/provenance context.
 
 ### INTERNAL_MEETING_REQUEST_APPROVAL
 `DIRECTOR` may explicitly delegate only the approval of a same-Directorate internal meeting request to an active, scoped `EXECUTIVE_MANAGEMENT` or `DEPUTY_DIRECTOR` user.
@@ -100,7 +101,7 @@ This matrix is a summary only; exact permission, scope, ownership and status che
 | FLOW-07 Reschedule | Non-authority: scoped `EXECUTIVE_MANAGEMENT` leads governed rescheduling with permitted Director/unit responses. Authority-controlled: `EXECUTIVE_SECRETARY` owns resolution/confirmation. |
 | FLOW-08 Participant Change | Unit domain: scoped `EXECUTIVE_MANAGEMENT` manages changes and scoped `DIRECTOR` confirms/reviews where defined. Authority domain: scoped `AUTHORITY_OFFICE`. Domains must not be mixed. |
 | FLOW-09 Terminal Assignment | `SYSTEM_ADMIN`: technical terminal administration only. Meeting assignment/revoke: lead `EXECUTIVE_MANAGEMENT` for non-authority meetings or `EXECUTIVE_SECRETARY` for authority-controlled meetings. |
-| FLOW-10A Biometric/Attendance | Enrollment only via scoped `BIOMETRIC_ENROLLMENT` + required permissions. Attendance remains governed by attendance permission and meeting context. |
+| FLOW-10A Biometric/Attendance | General enrollment/re-enrollment/revocation requires scoped `BIOMETRIC_ENROLLMENT` + required permissions. Narrow initial fingerprint capture for a participant is allowed within the active, non-stale terminal meeting session, only to add missing templates up to the configured minimum and never to replace an active template. Terminal attendance sessions may activate while the meeting is `SCHEDULED` or `IN_PROGRESS`, within the valid non-stale assignment window. Attendance remains governed by attendance permission and meeting context, and cannot be recorded after the meeting is `POSTPONED`, `CANCELLED`, `HELD` or `COMPLETED`. |
 | FLOW-10B DERMALOG | Deferred/not authorized. No production SDK/device claim or new authority. |
 | FLOW-11 Execution/Minutes | Non-authority: scoped `EXECUTIVE_MANAGEMENT` owns execution/minutes where permitted; scoped `DIRECTOR` reviews/acknowledges as defined. An active same-unit holder of `DIRECTORATE_MINUTES_APPROVAL` (`DEPUTY_DIRECTOR` or `EXECUTIVE_MANAGEMENT`) may acknowledge or request correction for that unit only. Authority-controlled: `EXECUTIVE_SECRETARY`; `HIGH_AUTHORITY` performs explicit approval where required. |
 | FLOW-12 Follow-Up | Follow-up owner: scoped `EXECUTIVE_MANAGEMENT` or authority `EXECUTIVE_SECRETARY`. Responsible-unit `DIRECTOR`/`EXECUTIVE_MANAGEMENT` manages unit items; assigned `EMPLOYEE` may work its own item where permitted. |

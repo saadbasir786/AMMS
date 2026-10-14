@@ -16,6 +16,13 @@ class BiometricEnrollmentSessionResource extends JsonResource
             'status' => $this->status,
             'required_finger_count' => $this->required_finger_count,
             'active_finger_count' => $this->whenLoaded('employee', fn () => $this->employee->biometricTemplates()->active()->distinct('finger_position')->count('finger_position')),
+            'active_finger_positions' => $this->whenLoaded('employee', fn () => $this->employee->biometricTemplates()->active()->distinct()->orderBy('finger_position')->pluck('finger_position')->values()),
+            'terminal' => $this->whenLoaded('terminal', fn () => $this->terminal ? [
+                'id' => $this->terminal->id,
+                'code' => $this->terminal->code,
+                'name' => $this->terminal->name,
+                'model' => $this->terminal->model,
+            ] : null),
             'started_at' => $this->started_at,
             'expires_at' => $this->expires_at,
             'completed_at' => $this->completed_at,

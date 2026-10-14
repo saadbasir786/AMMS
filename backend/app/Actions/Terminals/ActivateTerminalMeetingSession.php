@@ -27,7 +27,14 @@ class ActivateTerminalMeetingSession
 
             if ((int) $lockedAssignment->terminal_id !== (int) $lockedTerminal->id) abort(404, 'TERMINAL_ASSIGNMENT_NOT_FOUND');
             if ($lockedTerminal->status !== 'ACTIVE') abort(422, 'TERMINAL_NOT_AVAILABLE');
-            if ($meeting->status !== 'SCHEDULED') abort(422, 'MEETING_NOT_SCHEDULED');
+            if (!in_array($meeting->status, ['SCHEDULED', 'IN_PROGRESS'], true)) {
+                abort(response()->json([
+                    'success' => false,
+                    'code' => 'MEETING_NOT_ATTENDANCE_ELIGIBLE',
+                    'message' => 'ثبت حضور فقط برای جلسهٔ برنامه‌ریزی‌شده یا در حال برگزاری ممکن است.',
+                    'errors' => [],
+                ], 422));
+            }
             if ($lockedAssignment->status === 'REVOKED') abort(422, 'TERMINAL_ASSIGNMENT_REVOKED');
             if ($lockedAssignment->status === 'EXPIRED' || !$lockedAssignment->isWindowOpen()) abort(422, 'TERMINAL_ASSIGNMENT_EXPIRED');
 
@@ -42,12 +49,36 @@ class ActivateTerminalMeetingSession
                 ->where('status', 'ACTIVE')
                 ->lockForUpdate()
                 ->get();
+            $resumableSessions = [];
             foreach ($activeSessions as $active) {
                 if ($active->isExpired()) {
                     $active->forceFill(['status' => 'EXPIRED'])->saveQuietly();
                     continue;
                 }
-                abort(422, 'TERMINAL_SESSION_ALREADY_ACTIVE');
+
+                $resumableSessions[] = $active;
+            }
+
+            if ($resumableSessions !== []) {
+                if (count($resumableSessions) !== 1
+                    || (int) $resumableSessions[0]->assignment_id !== (int) $lockedAssignment->id) {
+                    abort(422, 'TERMINAL_SESSION_ALREADY_ACTIVE');
+                }
+
+                $session = $resumableSessions[0];
+                $raw = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+                $session->forceFill(['session_token_hash' => hash('sha256', $raw)])->save();
+                $lockedTerminal->forceFill(['current_session_id' => $session->id])->save();
+                $meeting->forceFill(['current_terminal_session_id' => $session->id])->save();
+                $this->audit->record('TERMINAL_SESSION_RESUMED', null, $lockedTerminal, $meeting, $lockedAssignment, $session, [
+                    'reason' => 'CLIENT_SESSION_RECOVERY',
+                ]);
+
+                return [
+                    'session' => $session->fresh(['terminal', 'assignment', 'meeting']),
+                    'session_token' => $raw,
+                    'resumed' => true,
+                ];
             }
 
             $raw = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
@@ -75,6 +106,7 @@ class ActivateTerminalMeetingSession
             return [
                 'session' => $session->fresh(['terminal', 'assignment', 'meeting']),
                 'session_token' => $raw,
+                'resumed' => false,
             ];
         });
     }

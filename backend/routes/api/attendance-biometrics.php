@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 // Operational & Management Endpoints (Sanctum Auth)
 Route::middleware('auth:sanctum')->group(function () {
     // Biometrics Enrollment & Templates
+    Route::get('/employees/{employee}/biometric-enrollment-context', [BiometricController::class, 'enrollmentContext']);
     Route::get('/employees/{employee}/biometrics', [BiometricController::class, 'employee']);
     Route::post('/biometric/enrollment-sessions', [BiometricController::class, 'start']);
     Route::post('/biometric/enrollment-sessions/{enrollment}/complete', [BiometricController::class, 'complete']);
@@ -24,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Terminal Registry & Credential Management
     Route::get('/terminals', [TerminalController::class, 'index']);
     Route::post('/terminals', [TerminalController::class, 'store']);
+    Route::post('/terminals/{terminal}/pairing-code', [TerminalController::class, 'issuePairingCode']);
     Route::get('/terminals/{terminal}', [TerminalController::class, 'show']);
     Route::patch('/terminals/{terminal}', [TerminalController::class, 'update']);
     Route::post('/terminals/{terminal}/credentials', [TerminalController::class, 'issueCredential']);
@@ -39,10 +41,13 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Terminal Device API (Hardware Client Authentication)
+Route::post('/terminal/v1/pair', [TerminalController::class, 'pair'])->middleware('throttle:5,1');
+
 Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->group(function (): void {
     Route::get('/me', [TerminalApiController::class, 'me']);
     Route::post('/heartbeat', [TerminalApiController::class, 'heartbeat']);
     Route::get('/assignments/current', [TerminalApiController::class, 'currentAssignments']);
+    Route::get('/assignments/{assignment:uuid}/participants', [TerminalApiController::class, 'assignmentParticipants']);
     Route::post('/assignments/{assignment:uuid}/activate', [TerminalApiController::class, 'activate'])->middleware('throttle:10,1');
     Route::get('/enrollment/current', [TerminalBiometricEnrollmentController::class, 'current']);
     Route::post('/enrollment/{enrollment:uuid}/template', [TerminalBiometricEnrollmentController::class, 'submit']);
@@ -52,6 +57,7 @@ Route::prefix('terminal/v1')->middleware(['terminal.auth', 'throttle:30,1'])->gr
 Route::prefix('terminal/v1')->middleware(['terminal.session.auth', 'throttle:60,1'])->group(function (): void {
     Route::get('/sessions/{session:uuid}/manifest', [TerminalApiController::class, 'manifest']);
     Route::get('/sessions/{session:uuid}/biometric-candidates', [TerminalApiController::class, 'biometricCandidates']);
+    Route::post('/sessions/{session:uuid}/biometric-templates', [TerminalBiometricEnrollmentController::class, 'submitForMeetingParticipant']);
     Route::post('/sessions/{session:uuid}/attendance/fingerprint', [TerminalApiController::class, 'fingerprintAttendance']);
     Route::post('/sessions/{session:uuid}/close', [TerminalApiController::class, 'close']);
 });

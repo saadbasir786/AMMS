@@ -52,7 +52,7 @@ class BiometricCandidateSetBuilder
                     'template_vendor' => $template->template_vendor,
                     'template_format' => $template->template_format,
                     'algorithm_version' => $template->algorithm_version,
-                    'template_data' => $template->template_data,
+                ...$this->transportTemplate($template->template_data),
                     'template_checksum' => $template->template_checksum,
                 ];
                 if (config('biometric.device_driver') === 'fake') $item['fake_probe_fixture'] = 'EMPLOYEE_' . $template->employee_id;
@@ -77,5 +77,16 @@ class BiometricCandidateSetBuilder
         if ((int) $session->meeting->current_schedule_version_id !== (int) $session->schedule_version_id || (int) $session->meeting->current_participant_version_id !== (int) $session->participant_version_id) {
             abort(response()->json(['success' => false, 'code' => 'TERMINAL_SESSION_STALE', 'message' => 'نسخهٔ جلسه تغییر کرده است.', 'errors' => ['schedule_changed' => (int) $session->meeting->current_schedule_version_id !== (int) $session->schedule_version_id, 'participants_changed' => (int) $session->meeting->current_participant_version_id !== (int) $session->participant_version_id]], 422));
         }
+    }
+
+    private function transportTemplate(string $templateData): array
+    {
+        // Template bytes must cross JSON as Base64. Keep the legacy UTF-8 fixture
+        // shape intact for existing test consumers and non-binary simulator data.
+        if (mb_check_encoding($templateData, 'UTF-8')) {
+            return ['template_data' => $templateData, 'template_encoding' => 'RAW_UTF8'];
+        }
+
+        return ['template_data' => base64_encode($templateData), 'template_encoding' => 'BASE64'];
     }
 }

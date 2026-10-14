@@ -16,7 +16,7 @@ class EmployeeBiometricTemplate extends Model
         'uuid', 'organization_id', 'employee_id', 'modality', 'finger_position',
         'template_vendor', 'template_format', 'algorithm_version', 'template_data',
         'template_checksum', 'quality_score', 'version_number', 'status',
-        'source_terminal_id', 'enrollment_session_id', 'enrolled_by_user_id',
+        'source_terminal_id', 'terminal_meeting_session_id', 'enrollment_session_id', 'enrolled_by_user_id',
         'enrolled_at', 'superseded_at', 'revoked_at', 'revoked_by_user_id',
         'revoke_reason',
     ];
@@ -34,6 +34,7 @@ class EmployeeBiometricTemplate extends Model
     public function employee(): BelongsTo { return $this->belongsTo(Employee::class); }
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
     public function sourceTerminal(): BelongsTo { return $this->belongsTo(Terminal::class, 'source_terminal_id'); }
+    public function terminalMeetingSession(): BelongsTo { return $this->belongsTo(TerminalMeetingSession::class, 'terminal_meeting_session_id'); }
     public function enrollmentSession(): BelongsTo { return $this->belongsTo(BiometricEnrollmentSession::class, 'enrollment_session_id'); }
     public function enrolledBy(): BelongsTo { return $this->belongsTo(User::class, 'enrolled_by_user_id'); }
     public function revokedBy(): BelongsTo { return $this->belongsTo(User::class, 'revoked_by_user_id'); }

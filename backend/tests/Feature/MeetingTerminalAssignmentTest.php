@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Meetings\AssignTerminalToMeeting;
 use App\Actions\Terminals\IssueTerminalCredential;
+use App\Actions\Terminals\IssueTerminalPairingCode;
 use App\Actions\Terminals\RegisterTerminal;
 use App\Actions\Terminals\RevokeTerminal;
 use App\Actions\Terminals\RotateTerminalCredential;
@@ -18,6 +19,7 @@ use App\Models\MeetingUnit;
 use App\Models\Organization;
 use App\Models\OrganizationalUnit;
 use App\Models\Terminal;
+use App\Models\TerminalPairingCode;
 use App\Models\User;
 use App\Support\ParticipantVersionService;
 use App\Support\ScheduleVersionService;
@@ -54,6 +56,64 @@ class MeetingTerminalAssignmentTest extends TestCase
         app(RevokeTerminal::class)->execute($admin, $terminal, 'آزمایش لغو ترمینال');
         $this->assertNull(app(TerminalCredentialManager::class)->resolve($second['token']));
         $this->assertSame('REVOKED', $terminal->fresh()->status);
+    }
+
+    public function test_terminal_pairing_code_is_short_lived_one_time_and_returns_a_credential(): void
+    {
+        $terminal = $this->registerTerminal();
+        $admin = $this->admin();
+
+        $issued = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/terminals/'.$terminal->id.'/pairing-code')
+            ->assertCreated()
+            ->assertJsonPath('success', true)
+            ->json('data');
+
+        $code = $issued['pairing_code'];
+        $this->assertMatchesRegularExpression('/^\d{4}$/', $code);
+        $this->assertEquals(now()->addMinutes(3)->timestamp, CarbonImmutable::parse($issued['expires_at'])->timestamp);
+
+        $pairingCode = TerminalPairingCode::query()->where('terminal_id', $terminal->id)->sole();
+        $this->assertSame(hash('sha256', $code), $pairingCode->code_hash);
+        $this->assertNotSame($code, $pairingCode->code_hash);
+
+        $paired = $this->postJson('/api/terminal/v1/pair', ['pairing_code' => $code])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.terminal.uuid', $terminal->uuid);
+
+        $token = $paired->json('data.credential');
+        $this->assertNotEmpty($token);
+        $this->assertNotNull(app(TerminalCredentialManager::class)->resolve($token));
+        $this->assertNotNull($pairingCode->fresh()->consumed_at);
+
+        $this->postJson('/api/terminal/v1/pair', ['pairing_code' => $code])
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'TERMINAL_PAIRING_CODE_INVALID');
+    }
+
+    public function test_issuing_a_new_terminal_pairing_code_invalidates_the_previous_code(): void
+    {
+        $terminal = $this->registerTerminal();
+        $action = app(IssueTerminalPairingCode::class);
+        $first = $action->execute($this->admin(), $terminal);
+        $second = $action->execute($this->admin(), $terminal);
+
+        $this->assertNotSame($first['code'], $second['code']);
+        $this->postJson('/api/terminal/v1/pair', ['pairing_code' => $first['code']])->assertUnauthorized();
+        $this->postJson('/api/terminal/v1/pair', ['pairing_code' => '123'])->assertUnprocessable();
+        $this->postJson('/api/terminal/v1/pair', ['pairing_code' => $second['code']])->assertOk();
+    }
+
+    public function test_issuing_a_pairing_code_requires_terminal_management_authority(): void
+    {
+        $terminal = $this->registerTerminal();
+
+        $this->postJson('/api/terminals/'.$terminal->id.'/pairing-code')->assertUnauthorized();
+
+        $this->actingAs($this->user('tech.exec@example.test'), 'sanctum')
+            ->postJson('/api/terminals/'.$terminal->id.'/pairing-code')
+            ->assertForbidden();
     }
 
     public function test_unauthorized_human_cannot_register_terminal(): void
@@ -107,6 +167,7 @@ class MeetingTerminalAssignmentTest extends TestCase
         $issued = app(IssueTerminalCredential::class)->execute($this->admin(), $terminal);
         $assignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$this->window($meeting));
 
+        $this->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')->assertUnauthorized();
         $this->withHeader('Authorization', 'Bearer '.$issued['token'])->getJson('/api/terminal/v1/me')
             ->assertOk()->assertJsonPath('data.terminal_uuid', $terminal->uuid)->assertJsonMissingPath('data.email');
         $activation = $this->withHeader('Authorization', 'Bearer '.$issued['token'])->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate');
@@ -130,16 +191,79 @@ class MeetingTerminalAssignmentTest extends TestCase
         $this->withHeader('Authorization', 'Bearer '.$sessionToken)->getJson('/api/terminal/v1/sessions/'.$sessionUuid.'/manifest')->assertStatus(401);
     }
 
-    public function test_concurrent_style_second_activation_is_rejected_and_session_token_cannot_cross_session_route(): void
+    public function test_terminal_activation_accepts_in_progress_meeting_and_assignment_api_reports_actual_meeting_status(): void
+    {
+        $meeting = $this->futureMeeting();
+        $terminal = $this->registerTerminal($meeting);
+        $credential = app(IssueTerminalCredential::class)->execute($this->admin(), $terminal);
+        $assignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$this->window($meeting));
+        $otherTerminal = $this->registerTerminal($meeting);
+        $otherCredential = app(IssueTerminalCredential::class)->execute($this->admin(), $otherTerminal);
+        app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $otherTerminal, ...$this->window($meeting));
+        $meeting->forceFill(['status' => 'IN_PROGRESS'])->saveQuietly();
+
+        $this->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')->assertUnauthorized();
+        $this->withHeader('Authorization', 'Bearer '.$credential['token'])
+            ->getJson('/api/terminal/v1/assignments/current')
+            ->assertOk()
+            ->assertJsonPath('data.0.meeting_status', 'IN_PROGRESS');
+
+        $this->withHeader('Authorization', 'Bearer '.$otherCredential['token'])
+            ->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')
+            ->assertNotFound();
+
+        $this->withHeader('Authorization', 'Bearer '.$credential['token'])
+            ->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')
+            ->assertCreated()
+            ->assertJsonPath('data.session.status', 'ACTIVE');
+    }
+
+    public function test_terminal_activation_is_rejected_after_meeting_attendance_lifecycle_closes(): void
+    {
+        $meeting = $this->futureMeeting();
+        $terminal = $this->registerTerminal($meeting);
+        $credential = app(IssueTerminalCredential::class)->execute($this->admin(), $terminal);
+        $assignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$this->window($meeting));
+        $meeting->forceFill(['status' => 'HELD'])->saveQuietly();
+
+        $this->withHeader('Authorization', 'Bearer '.$credential['token'])
+            ->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'MEETING_NOT_ATTENDANCE_ELIGIBLE')
+            ->assertJsonPath('message', 'ثبت حضور فقط برای جلسهٔ برنامه‌ریزی‌شده یا در حال برگزاری ممکن است.');
+
+        $this->assertDatabaseCount('terminal_meeting_sessions', 0);
+        $this->assertNull($terminal->fresh()->current_session_id);
+    }
+
+    public function test_terminal_can_resume_its_active_assignment_with_a_rotated_session_token(): void
     {
         $meeting = $this->futureMeeting();
         $terminal = $this->registerTerminal($meeting);
         $issued = app(IssueTerminalCredential::class)->execute($this->admin(), $terminal);
         $assignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$this->window($meeting));
         $first = $this->withHeader('Authorization', 'Bearer '.$issued['token'])->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')->assertStatus(201);
-        $this->withHeader('Authorization', 'Bearer '.$issued['token'])->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')->assertStatus(422)->assertJsonPath('code', 'TERMINAL_SESSION_ALREADY_ACTIVE');
-        $sessionToken = $first->json('data.session_token');
-        $this->withHeader('Authorization', 'Bearer '.$sessionToken)->getJson('/api/terminal/v1/sessions/'.str_repeat('0', 36).'/manifest')->assertStatus(401);
+        $firstToken = $first->json('data.session_token');
+        $sessionUuid = $first->json('data.session.uuid');
+
+        $resumed = $this->withHeader('Authorization', 'Bearer '.$issued['token'])
+            ->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')
+            ->assertOk()
+            ->assertJsonPath('data.session.uuid', $sessionUuid);
+        $resumedToken = $resumed->json('data.session_token');
+
+        $this->assertNotSame($firstToken, $resumedToken);
+        $this->assertSame(hash('sha256', $resumedToken), $terminal->fresh()->sessions()->sole()->session_token_hash);
+        $this->assertDatabaseHas('terminal_audit_events', [
+            'action' => 'TERMINAL_SESSION_RESUMED',
+            'session_id' => $resumed->json('data.session.id'),
+        ]);
+        $this->withHeader('Authorization', 'Bearer '.$firstToken)
+            ->getJson('/api/terminal/v1/sessions/'.$sessionUuid.'/manifest')
+            ->assertUnauthorized();
+        $this->withHeader('Authorization', 'Bearer '.$resumedToken)
+            ->getJson('/api/terminal/v1/sessions/'.$sessionUuid.'/manifest')
+            ->assertOk();
     }
 
     public function test_stale_participant_binding_blocks_activation_until_refresh(): void
@@ -154,6 +278,11 @@ class MeetingTerminalAssignmentTest extends TestCase
             MeetingParticipantVersionMember::create(['participant_version_id' => $new->id, 'employee_id' => $member->employee_id, 'organizational_unit_id' => $member->organizational_unit_id, 'participant_role' => $member->participant_role, 'owner_type' => $member->owner_type, 'owner_unit_id' => $member->owner_unit_id, 'is_mandatory' => $member->is_mandatory, 'created_at' => now()]);
         }
         $meeting->forceFill(['current_participant_version_id' => $new->id])->save();
+        $this->withHeader('Authorization', 'Bearer '.$issued['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/participants')
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'TERMINAL_ASSIGNMENT_STALE');
+        $this->assertSame('ASSIGNED', $assignment->fresh()->status);
         $this->withHeader('Authorization', 'Bearer '.$issued['token'])->postJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/activate')->assertStatus(422)->assertJsonPath('code', 'TERMINAL_ASSIGNMENT_STALE')->assertJsonPath('errors.participants_changed', true);
         $freshAssignment = $assignment->fresh('meeting');
         $this->assertTrue($freshAssignment->isStale($meeting->fresh()));
@@ -211,6 +340,70 @@ class MeetingTerminalAssignmentTest extends TestCase
         $response = $this->withHeader('Authorization', 'Bearer '.$issued['token'])->getJson('/api/terminal/v1/assignments/current')->assertOk();
         $this->assertCount(1, $response->json('data'));
         $this->assertSame($assignment->uuid, $response->json('data.0.assignment_uuid'));
+    }
+
+    public function test_terminal_can_read_its_assignment_participants_without_activating_a_session(): void
+    {
+        $meeting = $this->futureMeeting();
+        $terminal = $this->registerTerminal($meeting);
+        $issued = app(IssueTerminalCredential::class)->execute($this->admin(), $terminal);
+        $assignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $terminal, ...$this->window($meeting));
+        $participantCount = $meeting->currentParticipantVersion->members()->count();
+        $firstMember = $meeting->currentParticipantVersion->members()->with('employee')->orderBy('id')->firstOrFail();
+        $this->withHeader('Authorization', 'Bearer '.$issued['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/participants?page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('assignment_uuid', $assignment->uuid)
+            ->assertJsonPath('participant_version_id', $assignment->baseline_participant_version_id)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', $participantCount)
+            ->assertJsonPath('data.0.attendance_status', 'NOT_CHECKED_IN')
+            ->assertJsonMissingPath('data.0.email')
+            ->assertJsonMissingPath('data.0.phone');
+
+        $this->withHeader('Authorization', 'Bearer '.$issued['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/participants?page=2&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        $search = $firstMember->employee->first_name;
+        $this->withHeader('Authorization', 'Bearer '.$issued['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$assignment->uuid.'/participants?search='.urlencode($search))
+            ->assertOk()
+            ->assertJsonPath('data.0.employee_id', $firstMember->employee_id);
+
+        $this->assertDatabaseCount('terminal_meeting_sessions', 0);
+        $this->assertNull($terminal->fresh()->current_session_id);
+        $this->assertNull($meeting->fresh()->current_terminal_session_id);
+    }
+
+    public function test_terminal_participant_list_is_scoped_and_hidden_until_assignment_window_opens(): void
+    {
+        $meeting = $this->futureMeeting();
+        $firstTerminal = $this->registerTerminal($meeting);
+        $secondTerminal = $this->registerTerminal($meeting);
+        $firstCredential = app(IssueTerminalCredential::class)->execute($this->admin(), $firstTerminal);
+        $secondCredential = app(IssueTerminalCredential::class)->execute($this->admin(), $secondTerminal);
+        $window = $this->window($meeting);
+        $firstAssignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $firstTerminal, ...$window);
+        $secondAssignment = app(AssignTerminalToMeeting::class)->execute($this->user('tech.exec@example.test'), $meeting, $secondTerminal, ...$window);
+
+        $this->getJson('/api/terminal/v1/assignments/'.$firstAssignment->uuid.'/participants')->assertUnauthorized();
+        $this->withHeader('Authorization', 'Bearer '.$firstCredential['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$secondAssignment->uuid.'/participants')
+            ->assertNotFound();
+
+        $firstAssignment->forceFill(['valid_from' => now()->addMinute()])->save();
+        $this->withHeader('Authorization', 'Bearer '.$firstCredential['token'])
+            ->getJson('/api/terminal/v1/assignments/'.$firstAssignment->uuid.'/participants')
+            ->assertForbidden()
+            ->assertJsonPath('code', 'TERMINAL_ASSIGNMENT_WINDOW_NOT_OPEN');
+
+        $this->assertDatabaseCount('terminal_meeting_sessions', 0);
     }
 
     public function test_assignment_revoke_invalidates_active_session_and_preserves_history(): void

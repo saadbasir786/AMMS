@@ -29,13 +29,16 @@ class StartBiometricEnrollment
                 if ($lockedTerminal->status !== 'ACTIVE') {
                     $this->fail('TERMINAL_NOT_AVAILABLE', 422, 'ترمینال برای ثبت بایومتریک آماده نیست.');
                 }
+                if ((int) $lockedTerminal->organization_id !== (int) $lockedEmployee->unit?->organization_id) {
+                    $this->fail('BIOMETRIC_ENROLLMENT_TERMINAL_SCOPE_MISMATCH', 403, 'ترمینال انتخاب‌شده در محدودهٔ سازمانی این کارمند نیست.');
+                }
 
                 $meetingSession = TerminalMeetingSession::query()
                     ->where('terminal_id', $lockedTerminal->id)
                     ->where('status', 'ACTIVE')
                     ->lockForUpdate()
                     ->first();
-                if ($meetingSession !== null && !$meetingSession->isExpired()) {
+                if ($meetingSession !== null && ! $meetingSession->isExpired()) {
                     $this->fail('TERMINAL_BUSY', 422, 'ترمینال در نشست جلسه استفاده می‌شود.');
                 }
                 if ($meetingSession?->isExpired()) {

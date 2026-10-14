@@ -26,8 +26,16 @@ class SubmitFingerprintTemplate
         ?float $qualityScore = null,
         bool $qualityAccepted = true,
         bool $replaceActive = false,
+        string $templateEncoding = 'RAW_UTF8',
     ): EmployeeBiometricTemplate {
-        return DB::transaction(function () use ($actor, $enrollment, $fingerPosition, $templateVendor, $templateFormat, $algorithmVersion, $templateData, $qualityScore, $qualityAccepted, $replaceActive): EmployeeBiometricTemplate {
+        return DB::transaction(function () use ($actor, $enrollment, $fingerPosition, $templateVendor, $templateFormat, $algorithmVersion, $templateData, $templateEncoding, $qualityScore, $qualityAccepted, $replaceActive): EmployeeBiometricTemplate {
+            if ($templateEncoding === 'BASE64') {
+                $decoded = base64_decode($templateData, true);
+                if ($decoded === false) {
+                    $this->fail('BIOMETRIC_TEMPLATE_ENCODING_INVALID', 422, 'قالب بایومتریک رمزگذاری معتبر ندارد.');
+                }
+                $templateData = $decoded;
+            }
             $session = BiometricEnrollmentSession::query()
                 ->with(['employee.unit', 'terminal'])
                 ->lockForUpdate()

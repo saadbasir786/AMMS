@@ -17,9 +17,38 @@ use App\Models\Employee;
 use App\Models\EmployeeBiometricTemplate;
 use App\Models\Terminal;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BiometricController extends Controller
 {
+    public function enrollmentContext(Request $request, Employee $employee): JsonResponse
+    {
+        $this->authorize('biometric-scoped.enroll', $employee);
+        $employee->loadMissing('unit');
+
+        $terminals = Terminal::query()
+            ->where('organization_id', $employee->unit?->organization_id)
+            ->where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'model']);
+
+        $enrollment = BiometricEnrollmentSession::query()
+            ->with(['employee', 'terminal'])
+            ->active()
+            ->where('employee_id', $employee->id)
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'terminals' => $terminals,
+                'enrollment' => $enrollment ? new BiometricEnrollmentSessionResource($enrollment) : null,
+            ],
+        ]);
+    }
+
     public function employee(PaginatedRequest $request, Employee $employee): JsonResponse
     {
         $this->authorize('biometric-scoped.view', $employee);

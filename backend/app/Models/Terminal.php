@@ -23,6 +23,7 @@ class Terminal extends Model
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
     public function registeredBy(): BelongsTo { return $this->belongsTo(User::class, 'registered_by_user_id'); }
     public function credentials(): HasMany { return $this->hasMany(TerminalCredential::class); }
+    public function pairingCodes(): HasMany { return $this->hasMany(TerminalPairingCode::class); }
     public function activeCredential(): HasOne { return $this->hasOne(TerminalCredential::class)->whereNull('revoked_at')->latestOfMany('issued_at'); }
     public function assignments(): HasMany { return $this->hasMany(MeetingTerminalAssignment::class); }
     public function sessions(): HasMany { return $this->hasMany(TerminalMeetingSession::class); }

@@ -22,6 +22,7 @@ class BiometricTemplateResource extends JsonResource
             'version_number' => $this->version_number,
             'status' => $this->status,
             'source_terminal_id' => $this->source_terminal_id,
+            'terminal_meeting_session_id' => $this->terminal_meeting_session_id,
             'enrollment_session_id' => $this->enrollment_session_id,
             'enrolled_at' => $this->enrolled_at,
             'superseded_at' => $this->superseded_at,

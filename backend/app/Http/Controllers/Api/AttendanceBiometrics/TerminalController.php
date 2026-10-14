@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\AttendanceBiometrics;
 
 use App\Actions\Terminals\IssueTerminalCredential;
+use App\Actions\Terminals\IssueTerminalPairingCode;
+use App\Actions\Terminals\PairTerminalWithCode;
 use App\Actions\Terminals\RegisterTerminal;
 use App\Actions\Terminals\RevokeTerminal;
 use App\Actions\Terminals\RotateTerminalCredential;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceBiometrics\StoreTerminalRequest;
 use App\Http\Requests\AttendanceBiometrics\TerminalRevokeRequest;
 use App\Http\Requests\AttendanceBiometrics\UpdateTerminalRequest;
+use App\Http\Requests\AttendanceBiometrics\PairTerminalRequest;
 use App\Http\Requests\PaginatedRequest;
 use App\Http\Resources\TerminalResource;
 use App\Models\Terminal;
@@ -60,6 +63,40 @@ class TerminalController extends Controller
             'message' => 'اعتبارنامه صادر شد. این کلید فقط یک‌بار نمایش داده می‌شود.',
             'data' => ['terminal' => new TerminalResource($terminal->fresh()), 'credential' => ['id' => $issued['credential']->id, 'token' => $issued['token']]],
         ], 201);
+    }
+
+    public function issuePairingCode(Request $request, Terminal $terminal, IssueTerminalPairingCode $action): JsonResponse
+    {
+        $this->authorize('manage', $terminal);
+        $issued = $action->execute($request->user(), $terminal);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'کد اتصال ترمینال صادر شد و سه دقیقه اعتبار دارد.',
+            'data' => ['pairing_code' => $issued['code'], 'expires_at' => $issued['expires_at']],
+        ], 201);
+    }
+
+    public function pair(PairTerminalRequest $request, PairTerminalWithCode $action): JsonResponse
+    {
+        $paired = $action->execute($request->validated()['pairing_code']);
+        if (!$paired) {
+            return response()->json([
+                'success' => false,
+                'code' => 'TERMINAL_PAIRING_CODE_INVALID',
+                'message' => 'کد اتصال نامعتبر، مصرف‌شده یا منقضی شده است.',
+                'errors' => ['pairing_code' => ['کد اتصال معتبر نیست.']],
+            ], 401);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ترمینال با موفقیت به AMMS متصل شد.',
+            'data' => [
+                'terminal' => new TerminalResource($paired['terminal']),
+                'credential' => $paired['credential'],
+            ],
+        ]);
     }
 
     public function rotateCredential(Request $request, Terminal $terminal, RotateTerminalCredential $action): JsonResponse

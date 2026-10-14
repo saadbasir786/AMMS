@@ -14,18 +14,31 @@ class TerminalManifestBuilder
             'meeting',
             'scheduleVersion',
             'participantVersion.members.employee',
+            'participantVersion.members.employee.position',
             'participantVersion.members.organizationalUnit',
+            'meeting.attendanceRecords',
         ]);
 
         $schedule = $session->scheduleVersion;
         $meeting = $session->meeting;
-        $participants = $session->participantVersion->members->map(fn ($member): array => [
-            'employee_id' => $member->employee_id,
-            'display_name' => $member->employee?->full_name,
-            'organizational_unit_id' => $member->organizational_unit_id,
-            'organizational_unit_name' => $member->organizationalUnit?->name,
-            'participant_role' => $member->participant_role,
-        ])->values()->all();
+        $attendanceByEmployee = $meeting->attendanceRecords->keyBy('employee_id');
+        $participants = $session->participantVersion->members->map(function ($member) use ($attendanceByEmployee): array {
+            $employee = $member->employee;
+            $attendance = $attendanceByEmployee->get($member->employee_id);
+
+            return [
+                'employee_id' => $member->employee_id,
+                'employee_number' => $employee?->employee_number,
+                'first_name' => $employee?->first_name,
+                'last_name' => $employee?->last_name,
+                'display_name' => $employee?->full_name,
+                'job_title' => $employee?->position?->title,
+                'organizational_unit_id' => $member->organizational_unit_id,
+                'organizational_unit_name' => $member->organizationalUnit?->name,
+                'participant_role' => $member->participant_role,
+                'attendance_status' => $attendance ? 'PRESENT' : 'NOT_CHECKED_IN',
+            ];
+        })->values()->all();
 
         $manifest = [
             'session_uuid' => $session->uuid,
